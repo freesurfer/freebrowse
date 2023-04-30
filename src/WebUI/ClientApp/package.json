@@ -8,7 +8,7 @@
 		"start": "vite --mode development",
 		"build": "tsc && vite build",
 		"lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-		"server": "dotnet run --environment \"Development\" ../../../FreeBrowse.sln --project .. --launch-profile \"FreeBrowse.WebUI\""
+		"server": "dotnet run --environment \"Development\" ../../../FreeBrowse.sln --project .."
 	},
 	"dependencies": {
 		"react": "^18.2.0",
