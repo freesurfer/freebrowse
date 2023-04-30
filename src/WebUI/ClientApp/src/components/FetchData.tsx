@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { WeatherForecast, WeatherForecastClient } from '../app/web-api-client';
+import { getApiUrl } from '@/utils';
 
 export const FetchData = () => {
 	const [loading, setLoading] = useState(true);
@@ -7,7 +8,7 @@ export const FetchData = () => {
 
 	useEffect(() => {
 		async function populateWeatherData() {
-			const client = new WeatherForecastClient(import.meta.env.VITE_API_URL);
+			const client = new WeatherForecastClient(getApiUrl());
 			const data = await client.get();
 			setForecasts(data);
 			setLoading(false);
@@ -19,7 +20,6 @@ export const FetchData = () => {
 	function renderForecastsTable(forecasts: WeatherForecast[]) {
 		const renderRow = (forecast: WeatherForecast) => (
 			<>
-				{' '}
 				<td className="p-2">{forecast.date?.toString()}</td>
 				<td className="p-2">{forecast.temperatureC}</td>
 				<td className="p-2">{forecast.temperatureF}</td>

@@ -1,8 +1,10 @@
 # FreeBrowse Frontend
 
-## Use the Infrastructure
+## First steps
 
-// TODO (document npm commands, vscode launch.json, debugging, develop/production)
+We recommend to use Visual Studio Code as IDE and install the recommend workspace extensions.
+
+The fastest way to launch and debug the frontend (along with a local backend deployment) is to press **F5** in Visual Studio code.
 
 ## Tailwind
 
