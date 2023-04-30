@@ -9,7 +9,7 @@ export const Counter = () => {
 
 	return (
 		<div className="px-6 py-4">
-			<h1 className="mb-1 text-xl font-medium">Counter</h1>
+			<h1 className="mb-1 text-3xl font-medium">Counter</h1>
 
 			<p>This is a simple example of a React component.</p>
 

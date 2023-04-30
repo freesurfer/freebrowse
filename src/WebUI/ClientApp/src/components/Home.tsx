@@ -1,7 +1,7 @@
 export const Home = () => {
 	return (
 		<div className="px-6 py-4">
-			<h1 className="mb-1 text-xl font-medium">Hello, world!</h1>
+			<h1 className="mb-1 text-3xl font-medium">Hello, world!</h1>
 			<p>Welcome to your new single-page application, built with:</p>
 			<ul className="my-4 ml-8 list-disc">
 				<li>
