@@ -2,7 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { NavMenu } from '@/components/NavMenu';
 import AppRoutes from '@/AppRoutes';
 
-export const App = () => {
+export const App = (): React.ReactElement => {
 	return (
 		<>
 			<BrowserRouter>

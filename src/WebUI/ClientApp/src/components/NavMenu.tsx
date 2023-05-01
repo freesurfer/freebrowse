@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-export const NavMenu = () => {
+export const NavMenu = (): React.ReactElement => {
 	return (
 		<header className="border-b-1 flex-column flex justify-between px-4 align-baseline shadow-xl">
 			<div className="flex items-center">

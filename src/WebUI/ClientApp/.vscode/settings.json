@@ -3,5 +3,7 @@
 		"Niivue"
 	],
 	"javascript.preferences.importModuleSpecifier": "non-relative",
-	"typescript.preferences.importModuleSpecifier": "non-relative"
+	"typescript.preferences.importModuleSpecifier": "non-relative",
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.formatOnSave": true
 }

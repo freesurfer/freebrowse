@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { Niivue } from '@niivue/niivue';
 
-export const MriViewer = () => {
+export const MriViewer = (): React.ReactElement => {
 	const canvas = useRef<HTMLCanvasElement>(null);
 	useEffect(() => {
 		const volumeList = [
