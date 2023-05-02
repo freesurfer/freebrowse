@@ -1,14 +1,11 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { MemoryRouter } from 'react-router-dom';
-import App from './App';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { App } from '@/App';
 
-it('renders without crashing', async () => {
-  const div = document.createElement('div');
-  const root = createRoot(div);
-  root.render(
-    <MemoryRouter>
-      <App />
-    </MemoryRouter>);
-  await new Promise(resolve => setTimeout(resolve, 1000));
+jest.mock('@/utils');
+
+test('renders learn react link', () => {
+	render(<App />);
+	const linkElement = screen.getByText(/command prompt in that directory/i);
+	expect(linkElement).toBeInTheDocument();
 });

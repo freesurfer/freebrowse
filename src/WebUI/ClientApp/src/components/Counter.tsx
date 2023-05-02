@@ -1,21 +1,28 @@
 import { useState } from 'react';
 
-export const Counter = () => {
-    const [currentCount, setCurrentCount] = useState(0);
+export const Counter = (): React.ReactElement => {
+	const [currentCount, setCurrentCount] = useState(0);
 
-    function incrementCounter() {
-        setCurrentCount(currentCount + 1);
-    }
+	function incrementCounter(): void {
+		setCurrentCount(currentCount + 1);
+	}
 
-    return (
-        <div>
-            <h1>Counter</h1>
+	return (
+		<div className="px-6 py-4">
+			<h1 className="mb-1 text-3xl font-medium">Counter</h1>
 
-            <p>This is a simple example of a React component.</p>
+			<p>This is a simple example of a React component.</p>
 
-            <p aria-live="polite">Current count: <strong>{currentCount}</strong></p>
+			<p className="mt-4">
+				Current count: <strong>{currentCount}</strong>
+			</p>
 
-            <button className="btn btn-primary" onClick={incrementCounter}>Increment</button>
-        </div>
-    );
-}
+			<button
+				className="mt-4 rounded bg-blue-500 px-4 py-2 text-white"
+				onClick={incrementCounter}
+			>
+				Increment
+			</button>
+		</div>
+	);
+};
