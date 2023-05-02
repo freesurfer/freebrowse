@@ -2,6 +2,7 @@ import { Counter } from '@/components/Counter';
 import { FetchData } from '@/components/FetchData';
 import { Home } from '@/components/Home';
 import { MriViewer } from '@/components/MriViewer';
+import { MriViewerDraw } from '@/components/MriViewerDraw';
 
 const AppRoutes = [
 	{
@@ -19,6 +20,10 @@ const AppRoutes = [
 	{
 		path: '/mri-viewer',
 		element: <MriViewer />,
+	},
+	{
+		path: '/mri-viewer-draw',
+		element: <MriViewerDraw />,
 	},
 ];
 
