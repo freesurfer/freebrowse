@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const Counter = (): React.ReactElement => {
 	const [currentCount, setCurrentCount] = useState(0);
+	const { t } = useTranslation();
 
 	function incrementCounter(): void {
 		setCurrentCount(currentCount + 1);
@@ -9,19 +11,19 @@ export const Counter = (): React.ReactElement => {
 
 	return (
 		<div className="px-6 py-4">
-			<h1 className="mb-1 text-3xl font-medium">Counter</h1>
+			<h1 className="mb-1 text-3xl font-medium">{t('counter')}</h1>
 
-			<p>This is a simple example of a React component.</p>
+			<p>{t('counter_description')}</p>
 
 			<p className="mt-4">
-				Current count: <strong>{currentCount}</strong>
+				{t('counter_state')}: <strong>{currentCount}</strong>
 			</p>
 
 			<button
 				className="mt-4 rounded bg-blue-500 px-4 py-2 text-white"
 				onClick={incrementCounter}
 			>
-				Increment
+				{t('counter_button_increment')}
 			</button>
 		</div>
 	);

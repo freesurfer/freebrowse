@@ -1,0 +1,7 @@
+{
+	"helloWorld": "Hello, world!",
+	"counter": "Counter",
+	"counter_description": "This is a simple example of a React component.",
+	"counter_state": "Current count",
+	"counter_button_increment": "Increment"
+}

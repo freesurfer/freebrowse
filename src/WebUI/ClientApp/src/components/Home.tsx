@@ -1,7 +1,11 @@
+import { useTranslation } from 'react-i18next';
+
 export const Home = (): React.ReactElement => {
+	const { t } = useTranslation();
+
 	return (
 		<div className="px-6 py-4">
-			<h1 className="mb-1 text-3xl font-medium">Hello, world!</h1>
+			<h1 className="mb-1 text-3xl font-medium">{t('helloWorld')}</h1>
 			<p>Welcome to your new single-page application, built with:</p>
 			<ul className="my-4 ml-8 list-disc">
 				<li>
