@@ -4,7 +4,7 @@ import AppRoutes from '@/AppRoutes';
 
 export const App = (): React.ReactElement => {
 	return (
-		<>
+		<div className="flex h-full flex-col">
 			<BrowserRouter>
 				<NavMenu />
 				<Routes>
@@ -14,6 +14,6 @@ export const App = (): React.ReactElement => {
 					})}
 				</Routes>
 			</BrowserRouter>
-		</>
+		</div>
 	);
 };

@@ -9,7 +9,7 @@ export const MriViewer = (): React.ReactElement => {
 				url: 'https://niivue.github.io/niivue-demo-images/mni152.nii.gz',
 			},
 		];
-		const nv = new Niivue({ isResizeCanvas: false });
+		const nv = new Niivue({});
 		nv.attachToCanvas(canvas.current);
 		nv.loadVolumes(volumeList).then(() =>
 			console.log(canvas.current?.toDataURL())
@@ -17,8 +17,8 @@ export const MriViewer = (): React.ReactElement => {
 	}, []);
 
 	return (
-		<div className="m-6">
-			<canvas ref={canvas} height={640} width={640} />
+		<div className="m-6 h-full">
+			<canvas className="m-0 h-full" ref={canvas} />
 		</div>
 	);
 };
