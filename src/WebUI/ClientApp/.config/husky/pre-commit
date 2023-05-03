@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+echo "BERE1 start"
+echo "BERE2 $0"
+echo "BERE3 $(dirname -- "$0")"
+echo "BERE4 $(pwd)"
+
+cd src/WebUI/ClientApp
+echo "BERE5 $(pwd)"
+"$(pwd)/.config/husky/_/husky.sh"
+
+npm run lint-staged
