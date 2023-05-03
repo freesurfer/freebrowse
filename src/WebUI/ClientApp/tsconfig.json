@@ -18,10 +18,15 @@
 
 		/* Linting */
 		"strict": true,
-		"strictNullChecks": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"noFallthroughCasesInSwitch": true
+		"alwaysStrict": true,
+		"exactOptionalPropertyTypes": true,
+		"noImplicitAny": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"noUncheckedIndexedAccess": true,
+		"useUnknownInCatchVariables": true
 	},
 	"include": [".eslintrc.cjs", "src"],
 	"references": [{ "path": "./tsconfig.node.json" }]
