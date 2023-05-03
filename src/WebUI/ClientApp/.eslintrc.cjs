@@ -39,5 +39,12 @@ module.exports = {
 			},
 		],
 		'prettier/prettier': 'warn',
+		'no-unreachable': 'warn',
+		'no-fallthrough': 'warn',
+		'func-style': ['off', 'expression', { allowArrowFunctions: true }],
+		'class-methods-use-this': 'warn',
+		'no-use-before-define': 'error',
+		'lines-between-class-members': 'warn',
+		'no-return-assign': ['error', 'always'],
 	},
 };
