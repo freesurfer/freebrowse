@@ -15,7 +15,7 @@ export const resources = {
 	},
 } as const;
 
-await i18n
+void i18n
 	.use(LanguageDetector)
 	.use(initReactI18next)
 	.init({
