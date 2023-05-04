@@ -11,7 +11,7 @@ export const Counter = (): React.ReactElement => {
 
 	return (
 		<div className="px-6 py-4">
-			<h1 className="mb-1 text-3xl font-medium">{t('counter')}</h1>
+			<h1 className="mb-1 text-3xl font-medium">{t('counter_title')}</h1>
 
 			<p>{t('counter_description')}</p>
 
