@@ -19,6 +19,7 @@ module.exports = {
 	parserOptions: {
 		project: ['tsconfig.json'],
 	},
+	ignorePatterns: ['/src/generated/*'],
 	settings: {
 		react: {
 			version: 'detect',
