@@ -1,4 +1,4 @@
-import * as WebApi from '../generated/web-api-client';
+import * as WebApi from '@/generated/web-api-client';
 import { getApiUrl } from '@/utils';
 import { useState, useEffect } from 'react';
 
