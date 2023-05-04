@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react';
 import { Niivue } from '@niivue/niivue';
+import { useRef, useEffect } from 'react';
 
 export const MriViewerDraw = (): React.ReactElement => {
 	const canvas = useRef<HTMLCanvasElement>(null);
