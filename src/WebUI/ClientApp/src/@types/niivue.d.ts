@@ -1,9 +1,9 @@
-enum DRAG_MODE {
-	none = 0,
-	contrast = 1,
-	measurement = 2,
-	pan = 3,
-	slicer3D = 4,
+interface DragModes {
+	none: 0;
+	contrast: 1;
+	measurement: 2;
+	pan: 3;
+	slicer3D: 4;
 }
 
 /**
@@ -177,7 +177,7 @@ interface NiivueOptions {
 	/**
 	 * behavior for dragging (none, contrast, measurement, pan)
 	 */
-	dragMode?: DRAG_MODE;
+	dragMode?: DragModes[keyof DragModes];
 	/**
 	 * when both voxel-based image and mesh is loaded, will depth picking be able to detect mesh or only voxels
 	 */
@@ -269,6 +269,10 @@ interface VolumeObject {
 
 declare module '@niivue/niivue' {
 	class Niivue {
+		dragModes: DragModes;
+
+		opts: NiivueOptions;
+
 		/**
 		 * @class Niivue
 		 * @type Niivue
@@ -281,7 +285,7 @@ declare module '@niivue/niivue' {
 		 * let niivue = new Niivue({crosshairColor: [0,1,0,0.5], textHeight: 0.5}) // a see-through green crosshair, and larger text labels
 		 */
 		// eslint-disable-next-line @typescript-eslint/no-useless-constructor, @typescript-eslint/no-empty-function
-		constructor(options: NiivueOptions) {}
+		constructor(options?: NiivueOptions) {}
 		/**
 		 * attach the Niivue instance to a canvas element directly
 		 * @param {HTMLCanvasElement} canvas the canvas element reference
