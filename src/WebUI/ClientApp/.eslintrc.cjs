@@ -3,7 +3,7 @@ module.exports = {
 		browser: true,
 		es2021: true,
 	},
-	plugins: ['react-refresh', 'jsx-a11y', 'react', 'prettier'],
+	plugins: ['react-refresh', 'jsx-a11y', 'react', 'prettier', 'import'],
 	extends: [
 		'eslint:recommended',
 		'standard-with-typescript',
@@ -12,12 +12,14 @@ module.exports = {
 		'plugin:react-hooks/recommended',
 		'plugin:@typescript-eslint/recommended',
 		'plugin:jsx-a11y/recommended',
+		'plugin:import/typescript',
 		'prettier',
 	],
 	parser: '@typescript-eslint/parser',
 	parserOptions: {
 		project: ['tsconfig.json'],
 	},
+	ignorePatterns: ['/src/generated/*'],
 	settings: {
 		react: {
 			version: 'detect',
@@ -46,5 +48,6 @@ module.exports = {
 		'no-use-before-define': 'error',
 		'lines-between-class-members': 'warn',
 		'no-return-assign': ['error', 'always'],
+		'import/no-relative-parent-imports': 'error',
 	},
 };

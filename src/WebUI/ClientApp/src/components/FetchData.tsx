@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import * as WebApi from '../app/web-api-client';
+import * as WebApi from '@/generated/web-api-client';
 import { getApiUrl } from '@/utils';
+import { useState, useEffect } from 'react';
 
 export const FetchData = (): React.ReactElement => {
 	const [loading, setLoading] = useState(true);

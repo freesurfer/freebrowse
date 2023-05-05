@@ -18,8 +18,9 @@
 
 		/* Linting */
 		"strict": true,
+		"strictNullChecks": true,
 		"alwaysStrict": true,
-		"exactOptionalPropertyTypes": true,
+		"exactOptionalPropertyTypes": false,
 		"noImplicitAny": true,
 		"noImplicitOverride": true,
 		"noImplicitReturns": true,
