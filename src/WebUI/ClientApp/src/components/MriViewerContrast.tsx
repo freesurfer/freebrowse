@@ -52,7 +52,22 @@ export const MriViewerContrast = (): React.ReactElement => {
 						nv.current.opts.dragMode = newValue.value;
 					}}
 				/>
-				Use the right key dragging on the image to adapt the selected property
+				<p>
+					Use the right key dragging on the image to adapt the selected property
+				</p>
+				<label htmlFor="opacityInput" className="mr-4">
+					Opacity:
+				</label>
+				<input
+					className="border p-1 text-end"
+					id="opacityInput"
+					type="number"
+					defaultValue={1.0}
+					min="0"
+					max="1"
+					step={0.1}
+					onChange={(e) => nv.current.setOpacity(0, Number(e.target.value))}
+				></input>
 			</div>
 			<div className="m-6">
 				<canvas ref={canvas} height={640} width={640} />

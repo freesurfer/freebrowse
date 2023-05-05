@@ -317,5 +317,14 @@ declare module '@niivue/niivue' {
 		 * @example niivue.setPenValue(1, true)
 		 */
 		setPenValue(penValue: number, isFilledPen = false): void;
+		/**
+		 * set the opacity of a volume given by volume index
+		 * @param {number} volIdx the volume index of the volume to change
+		 * @param {number} newOpacity the opacity value. valid values range from 0 to 1. 0 will effectively remove a volume from the scene
+		 * @example
+		 * niivue = new Niivue()
+		 * niivue.setOpacity(0, 0.5) // make the first volume transparent
+		 */
+		setOpacity(volIdx: number, newOpacity: number): void;
 	}
 }
