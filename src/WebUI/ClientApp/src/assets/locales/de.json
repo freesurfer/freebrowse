@@ -1,7 +1,0 @@
-{
-	"home_title": "Hallo, Welt!",
-	"counter_title": "Zähler",
-	"counter_description": "Dies ist ein einfaches Beispiel für eine React-Komponente.",
-	"counter_state": "Aktueller Zählerstand",
-	"counter_button_increment": "Erhöhen"
-}

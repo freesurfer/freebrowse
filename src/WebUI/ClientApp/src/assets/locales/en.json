@@ -1,7 +1,0 @@
-{
-	"home_title": "Hello, world!",
-	"counter_title": "Counter",
-	"counter_description": "This is a simple example of a React component.",
-	"counter_state": "Current count",
-	"counter_button_increment": "Increment"
-}
