@@ -274,6 +274,20 @@ declare module '@niivue/niivue' {
 		opts: NiivueOptions;
 
 		/**
+		 * direct access to volumes
+		 */
+		volumes: {
+			opacity: number;
+			cal_min: number;
+			cal_max: number;
+			robust_min: number;
+			robust_max: number;
+			id: string;
+			frame4D: number;
+			// TODO not complete
+		}[];
+
+		/**
 		 * @class Niivue
 		 * @type Niivue
 		 * @description
@@ -286,6 +300,7 @@ declare module '@niivue/niivue' {
 		 */
 		// eslint-disable-next-line @typescript-eslint/no-useless-constructor, @typescript-eslint/no-empty-function
 		constructor(options?: NiivueOptions) {}
+
 		/**
 		 * attach the Niivue instance to a canvas element directly
 		 * @param {HTMLCanvasElement} canvas the canvas element reference
@@ -295,6 +310,7 @@ declare module '@niivue/niivue' {
 		 * niivue.attachToCanvas(document.getElementById(id))
 		 */
 		attachToCanvas(canvas: HTMLCanvasElement, antialias: boolean = null);
+
 		/**
 		 * load an array of volume objects
 		 * @param {array} volumeList the array of objects to load. each object must have a resolvable "url" property at a minimum
@@ -304,12 +320,14 @@ declare module '@niivue/niivue' {
 		 * niivue.loadVolumes([{url: 'someImage.nii.gz}, {url: 'anotherImage.nii.gz'}])
 		 */
 		async loadVolumes(volumes: VolumeObject[]): Promise<void>;
+
 		on(event: 'location', callback: (data) => void);
 		/**
 		 * generate a blank canvas for the pen tool
 		 * @example niivue.createEmptyDrawing()
 		 */
 		createEmptyDrawing(): void;
+
 		/**
 		 * determine color and style of drawing
 		 * @param {number} penValue sets the color of the pen
@@ -317,6 +335,7 @@ declare module '@niivue/niivue' {
 		 * @example niivue.setPenValue(1, true)
 		 */
 		setPenValue(penValue: number, isFilledPen = false): void;
+
 		/**
 		 * set the opacity of a volume given by volume index
 		 * @param {number} volIdx the volume index of the volume to change
@@ -326,5 +345,13 @@ declare module '@niivue/niivue' {
 		 * niivue.setOpacity(0, 0.5) // make the first volume transparent
 		 */
 		setOpacity(volIdx: number, newOpacity: number): void;
+
+		/**
+		 * update the webGL 2.0 scene after making changes to the array of volumes. It's always good to call this method after altering one or more volumes manually (outside of Niivue setter methods)
+		 * @example
+		 * niivue = new Niivue()
+		 * niivue.updateGLVolume()
+		 */
+		updateGLVolume(): void;
 	}
 }
