@@ -24,6 +24,9 @@ export const NavMenu = (): React.ReactElement => {
 				<Link to="/mri-viewer-draw" className="mx-2 my-4">
 					MRI Draw
 				</Link>
+				<Link to="/mri-viewer-contrast" className="mx-2 my-4">
+					MRI Contrast
+				</Link>
 			</div>
 		</header>
 	);
