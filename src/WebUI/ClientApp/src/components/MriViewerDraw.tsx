@@ -16,11 +16,11 @@ export const MriViewerDraw = (): React.ReactElement => {
 			});
 
 			if (canvas.current === null) return;
-			nv.attachToCanvas(canvas.current);
+			await nv.attachToCanvas(canvas.current);
 
 			await nv.loadVolumes(volumeList);
 
-			nv.createEmptyDrawing();
+			await nv.createEmptyDrawing();
 			nv.setPenValue(1, true);
 		};
 
