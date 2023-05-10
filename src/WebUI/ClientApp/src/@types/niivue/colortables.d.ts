@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable lines-between-class-members */
 /* eslint-disable @typescript-eslint/no-explicit-any */

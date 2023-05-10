@@ -1,12 +1,22 @@
-import AppRoutes from '@/AppRoutes';
-import { NavMenu } from '@/components/NavMenu';
+import { CheckAndEdit } from '@/pages/checkAndEdit/CheckAndEdit';
+import { LandingPage } from '@/pages/landingPage/LandingPage';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
-export const App = (): React.ReactElement => {
+const AppRoutes = [
+	{
+		index: true,
+		element: <LandingPage />,
+	},
+	{
+		path: '/check-and-edit',
+		element: <CheckAndEdit />,
+	},
+];
+
+export const MainRouter = (): React.ReactElement => {
 	return (
 		<div className="flex h-full flex-col">
 			<BrowserRouter>
-				<NavMenu />
 				<Routes>
 					{AppRoutes.map((route, index) => {
 						const { element, ...rest } = route;
