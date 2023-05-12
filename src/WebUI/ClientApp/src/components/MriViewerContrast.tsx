@@ -24,7 +24,7 @@ export const MriViewerContrast = (): React.ReactElement => {
 			];
 
 			if (canvas.current === null) return;
-			nv.current.attachToCanvas(canvas.current);
+			await nv.current.attachToCanvas(canvas.current);
 
 			await nv.current.loadVolumes(volumeList);
 		};
@@ -61,11 +61,8 @@ export const MriViewerContrast = (): React.ReactElement => {
 					/>
 				</div>
 				<div className="flex items-center mt-2">
-					<label htmlFor="opacityInput" className="mr-4">
-						Opacity:
-					</label>
+					<span className="mr-4">Opacity:</span>
 					<ReactSlider
-						id="opacityInput"
 						className="flex-grow h-7"
 						thumbClassName="bg-gray-300 w-8 h-8 cursor-pointer rounded-full flex items-center justify-center"
 						trackClassName="mt-3 rounded h-2 bg-gray-200 mx-4"
@@ -74,18 +71,16 @@ export const MriViewerContrast = (): React.ReactElement => {
 							<div {...props}>{state.valueNow}</div>
 						)}
 						pearling
-						onChange={(value: number[]) => {
+						onChange={(value) => {
+							if (value === undefined) return;
 							nv.current.setOpacity(0, value / 100);
 							nv.current.setOpacity(1, value / 100);
 						}}
 					/>
 				</div>
 				<div className="flex items-center mt-2">
-					<label htmlFor="contrastInput" className="mr-4">
-						Contrast:
-					</label>
+					<span className="mr-4">Contrast:</span>
 					<ReactSlider
-						id="contrastInput"
 						className="flex-grow h-7"
 						thumbClassName="bg-gray-300 w-8 h-8 cursor-pointer rounded-full flex items-center justify-center"
 						trackClassName="mt-3 rounded h-2 bg-gray-200 mx-4"
@@ -96,10 +91,13 @@ export const MriViewerContrast = (): React.ReactElement => {
 							<div {...props}>{state.valueNow}</div>
 						)}
 						pearling
-						minDistance={10}
+						minDistance={2}
 						onChange={(values: number[]) => {
-							nv.current.volumes[0].cal_min = values[0];
-							nv.current.volumes[0].cal_max = values[1];
+							if (nv.current.volumes[0] === undefined) return;
+							nv.current.volumes[0].cal_min =
+								values[0] ?? nv.current.volumes[0].cal_min;
+							nv.current.volumes[0].cal_max =
+								values[1] ?? nv.current.volumes[0].cal_max;
 							nv.current.updateGLVolume();
 						}}
 					/>
