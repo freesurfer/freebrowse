@@ -38,6 +38,8 @@ public static class ConfigureServices
 
         services.AddScoped<ApplicationDbContextInitialiser>();
 
+		services.AddScoped<IFileStorage, LocalFileStorage>();
+
         services
             .AddDefaultIdentity<ApplicationUser>(o =>
             {

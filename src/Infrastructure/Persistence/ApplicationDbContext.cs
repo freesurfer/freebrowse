@@ -6,6 +6,7 @@ using FreeBrowse.Infrastructure.Persistence.Interceptors;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace FreeBrowse.Infrastructure.Persistence;
 
@@ -28,7 +29,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<TodoItem> TodoItems => this.Set<TodoItem>();
 
-    protected override void OnModelCreating(ModelBuilder builder)
+    public DbSet<Solution> Solutions => this.Set<Solution>();
+
+    public DbSet<Volume> Volumes => this.Set<Volume>();
+
+    public DbSet<Surface> Surfaces => this.Set<Surface>();
+
+	protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
@@ -46,4 +53,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
         return await base.SaveChangesAsync(cancellationToken);
     }
+
+	public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken)
+	{
+		return await this.Database.BeginTransactionAsync(cancellationToken);
+	}
+
+	public async Task CommitTransactionAsync(IDbContextTransaction transaction, CancellationToken cancellationToken)
+	{
+		await transaction.CommitAsync(cancellationToken);
+	}
+
+	public async Task RollbackTransactionAsync(IDbContextTransaction transaction, CancellationToken cancellationToken)
+	{
+		await transaction.RollbackAsync(cancellationToken);
+	}
 }

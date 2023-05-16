@@ -1,0 +1,12 @@
+﻿namespace FreeBrowse.Application.Surfaces.Commands.CreateSurfaces;
+
+public record SurfaceDto
+{
+	public string Base64 { get; set; } = null!;
+
+	public string Name { get; set; } = null!;
+
+	public int Order { get; set; }
+
+	public int Opacity { get; set; }
+}
