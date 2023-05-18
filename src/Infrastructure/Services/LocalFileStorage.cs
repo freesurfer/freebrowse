@@ -33,6 +33,14 @@ public class LocalFileStorage : IFileStorage
 		return filePath;
 	}
 
+	public async Task<string> SaveFileAsync(byte[] fileData, int solutionId, string fileName)
+	{
+		var filePath = Path.Combine(this.basePath, solutionId.ToString(), fileName);
+		await File.WriteAllBytesAsync(filePath, fileData);
+
+		return filePath;
+	}
+
 	public Task DeleteFileAsync(int solutionId, string fileName)
 	{
 		var filePath = Path.Combine(this.basePath, solutionId.ToString(), fileName);

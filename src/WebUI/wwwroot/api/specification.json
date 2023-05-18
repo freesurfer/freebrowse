@@ -464,6 +464,70 @@
         }
       }
     },
+    "/api/Jupyter/Create": {
+      "post": {
+        "tags": [
+          "Jupyter"
+        ],
+        "operationId": "Jupyter_Create",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJupyterSolutionCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateJupyterSolutionResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Jupyter/CreateFromBytes": {
+      "post": {
+        "tags": [
+          "Jupyter"
+        ],
+        "operationId": "Jupyter_CreateFromBytes",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJupyterSolutionFromBytesCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateJupyterSolutionFromBytesResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Solutions": {
       "get": {
         "tags": [
@@ -1041,6 +1105,75 @@
           "password": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "CreateJupyterSolutionResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateJupyterSolutionCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilesDto"
+            }
+          }
+        }
+      },
+      "FilesDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "base64": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateJupyterSolutionFromBytesResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateJupyterSolutionFromBytesCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilesDto2"
+            }
+          }
+        }
+      },
+      "FilesDto2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "fileData": {
+            "type": "string",
+            "format": "byte"
           }
         }
       },
