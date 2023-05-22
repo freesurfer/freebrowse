@@ -1,9 +1,9 @@
-import { ModalContext } from '@/ModalDialog';
+import { LoadDialogContext } from '@/dialogs/load/LoadDialog';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { useContext } from 'react';
 
 export const LeftBar = (): React.ReactElement => {
-	const { open } = useContext(ModalContext);
+	const { open } = useContext(LoadDialogContext);
 	return (
 		<div className="bg-gray-100 w-[16rem] p-4 border border-gray-500 flex items-start justify-center">
 			<button

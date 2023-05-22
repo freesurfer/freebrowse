@@ -29,6 +29,6 @@
 		"noUncheckedIndexedAccess": true,
 		"useUnknownInCatchVariables": true
 	},
-	"include": [".eslintrc.cjs", "lint-staged.cjs", "src"],
+	"include": [".eslintrc.cjs", "lint-staged.cjs", "tailwind.config.cjs", "src"],
 	"references": [{ "path": "./tsconfig.node.json" }]
 }
