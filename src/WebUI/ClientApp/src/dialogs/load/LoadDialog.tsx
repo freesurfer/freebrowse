@@ -13,7 +13,6 @@ export interface FileLoadMetadata {
 
 export enum LOAD_DIALOG_ERROR {
 	DIALOG_OPENED_ALREADY = 'DIALOG_OPENED_ALREADY',
-	CLOSED_BY_USER = 'CLOSED_BY_USER',
 }
 
 interface LoadDialogHandle {
@@ -125,7 +124,7 @@ export const LoadDialog = ({
 					</h1>
 				</div>
 				<button
-					onClick={() => modalHandle?.reject(LOAD_DIALOG_ERROR.CLOSED_BY_USER)}
+					onClick={() => modalHandle?.resolve('canceled')}
 					className="text-gray-600 absolute right-0 top-0 p-2"
 				>
 					<XMarkIcon className="h-6 w-6 shrink-0"></XMarkIcon>
@@ -139,6 +138,7 @@ export const LoadDialog = ({
 								<MyComputerDialogTab
 									updateFiles={(files) => updateFiles(files)}
 									files={files}
+									isNewProject={modalHandle?.isNewProject ?? false}
 								></MyComputerDialogTab>
 							),
 						},

@@ -6,9 +6,11 @@ import { useState } from 'react';
 export const MyComputerDialogTab = ({
 	files,
 	updateFiles,
+	isNewProject,
 }: {
 	files: Record<string, FileLoadMetadata>;
 	updateFiles: (files: Record<string, FileLoadMetadata>) => void;
+	isNewProject: boolean;
 }): React.ReactElement => {
 	const [projectName, setProjectName] = useState<string>('');
 
@@ -24,6 +26,7 @@ export const MyComputerDialogTab = ({
 					type="text"
 					value={projectName}
 					onChange={(event) => setProjectName(event.target.value)}
+					readOnly={!isNewProject}
 				></input>
 			</div>
 			<DropZone

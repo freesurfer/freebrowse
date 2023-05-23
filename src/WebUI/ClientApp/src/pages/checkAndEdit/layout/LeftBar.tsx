@@ -3,37 +3,16 @@ import {
 	LoadDialogContext,
 } from '@/dialogs/load/LoadDialog';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
-import { NVImage } from '@niivue/niivue';
 import type { Niivue } from '@niivue/niivue';
 import { useContext } from 'react';
 
 export const LeftBar = ({ niivue }: { niivue: Niivue }): React.ReactElement => {
-	const { createProject: openLoadDialog } = useContext(LoadDialogContext);
+	const { editProject } = useContext(LoadDialogContext);
 
 	const loadFiles = async (): Promise<void> => {
 		try {
-			const files = await openLoadDialog();
-			files.forEach((file) => {
-				niivue.addVolume(
-					NVImage.loadFromFile({
-						file: file.file,
-					})
-				);
-
-				/*
-				const reader = new FileReader();
-				reader.addEventListener('load', (event) =>
-					niivue.addVolume(
-						NVImage.loadFromFile({
-							file: event.target.result,
-						})
-					)
-				);
-				reader.readAsText(file.file);
-				*/
-			});
+			await editProject();
 		} catch (error) {
-			if (error === LOAD_DIALOG_ERROR.CLOSED_BY_USER) return;
 			if (error === LOAD_DIALOG_ERROR.DIALOG_OPENED_ALREADY) return;
 			console.error('something went wrong opening files', error);
 		}
