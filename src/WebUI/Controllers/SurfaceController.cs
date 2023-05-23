@@ -3,12 +3,19 @@ using MediatR;
 using FreeBrowse.Application.Surfaces.Commands.CreateSurfaces;
 using FreeBrowse.Application.Surfaces.Commands.EditSurface;
 using FreeBrowse.Application.Surfaces.Commands.DeleteSurface;
+using FreeBrowse.Application.Surfaces.Queries.GetSurface;
 using FreeBrowse.WebUI.Controllers;
 
 namespace WebUI.Controllers;
 
 public class SurfaceController : ApiControllerBase
 {
+	[HttpGet]
+	public async Task<FileContentResult> Get([FromQuery] GetSurfaceQuery query)
+	{
+		return await this.Mediator.Send(query);
+	}
+
 	[HttpPost]
 	public async Task<ActionResult<CreateSurfaceResponseDto[]>> Create(CreateSurfacesCommand command)
 	{

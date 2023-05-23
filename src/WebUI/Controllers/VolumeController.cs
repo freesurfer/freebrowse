@@ -1,15 +1,21 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using FreeBrowse.Application.Volumes.Commands.CreateVolumes;
 using FreeBrowse.Application.Volumes.Commands.EditVolume;
 using FreeBrowse.Application.Volumes.Commands.DeleteVolume;
+using FreeBrowse.Application.Volumes.Queries.GetVolume;
 using FreeBrowse.WebUI.Controllers;
 
 namespace WebUI.Controllers;
 
 public class VolumeController : ApiControllerBase
 {
+	[HttpGet]
+	public async Task<FileContentResult> Get([FromQuery] GetVolumeQuery query)
+	{
+		return await this.Mediator.Send(query);
+	}
+
 	[HttpPost]
 	public async Task<ActionResult<CreateVolumeResponseDto[]>> Create(CreateVolumesCommand command)
 	{
