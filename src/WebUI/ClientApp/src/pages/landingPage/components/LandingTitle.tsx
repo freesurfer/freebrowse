@@ -12,7 +12,7 @@ export const LandingTitle = ({
 				<div className="flex flex-col p-24 items-start">
 					<span className="font-bold text-4xl text-gray-500">Welcome to</span>
 					<span className="font-bold text-5xl text-gray-500 mt-3">
-						Freebrowsee
+						Freebrowse
 					</span>
 					<Link
 						to="/check-and-edit"

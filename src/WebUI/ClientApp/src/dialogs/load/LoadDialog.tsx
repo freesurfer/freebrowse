@@ -4,16 +4,28 @@ import { ArrowUpTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { createContext, useState } from 'react';
 import Modal from 'react-modal';
 
+export interface FileLoadMetadata {
+	file: File;
+	progress: number;
+	selection?: 'grayscale' | 'lookupTable';
+	resampleRAS?: boolean;
+}
+
+export enum LOAD_DIALOG_ERROR {
+	DIALOG_OPENED_ALREADY = 'DIALOG_OPENED_ALREADY',
+	CLOSED_BY_USER = 'CLOSED_BY_USER',
+}
+
 interface LoadDialogHandle {
 	/**
 	 * open the modal dialog
 	 */
-	readonly open: () => void;
+	readonly createProject: () => Promise<FileLoadMetadata[]>;
 }
 
 export const LoadDialogContext = createContext<LoadDialogHandle>({
-	open: () => {
-		console.warn('not initialized yet');
+	createProject: async () => {
+		throw new Error('not initialized yet');
 	},
 });
 
@@ -27,6 +39,7 @@ const customStyles = {
 		transform: 'translate(-50%, -50%)',
 		padding: '0px',
 		maxHeight: '100vh',
+		maxWidth: '100vw',
 	},
 };
 
@@ -45,33 +58,42 @@ export const LoadDialog = ({
 }: {
 	children: React.ReactElement;
 }): React.ReactElement => {
-	const [modalIsOpen, setIsOpen] = useState(true);
+	const [modalHandle, setModalHandle] = useState<
+		| {
+				resolve: (files: FileLoadMetadata[]) => void;
+				reject: (error: LOAD_DIALOG_ERROR) => void;
+		  }
+		| undefined
+	>(undefined);
+
+	const [files, updateFiles] = useState<FileLoadMetadata[]>([]);
 
 	/**
 	 * this callbacks will be accessible from everywhere in the app
 	 * using the useContext hook
 	 */
-	const modalHandle = {
-		open: (): void => {
-			if (modalIsOpen) return;
-			setIsOpen(true);
-		},
-	};
+	const modalContextValue: LoadDialogHandle = {
+		createProject: async (): Promise<FileLoadMetadata[]> => {
+			if (modalHandle !== undefined)
+				throw new Error(LOAD_DIALOG_ERROR.DIALOG_OPENED_ALREADY);
 
-	/**
-	 * close the modal dialog
-	 */
-	const closeModal = (): void => {
-		setIsOpen(false);
+			const promise = new Promise<FileLoadMetadata[]>((resolve, reject) => {
+				setModalHandle({ resolve, reject });
+			});
+
+			// close modal dialog on any result
+			promise.finally(() => setModalHandle(undefined));
+			return await promise;
+		},
 	};
 
 	return (
 		<>
-			<LoadDialogContext.Provider value={modalHandle}>
+			<LoadDialogContext.Provider value={modalContextValue}>
 				{children}
 			</LoadDialogContext.Provider>
 			<Modal
-				isOpen={modalIsOpen}
+				isOpen={modalHandle !== undefined}
 				style={customStyles}
 				contentLabel="Load volumes & surfaces"
 			>
@@ -82,7 +104,7 @@ export const LoadDialog = ({
 					</h1>
 				</div>
 				<button
-					onClick={() => closeModal()}
+					onClick={() => modalHandle?.reject(LOAD_DIALOG_ERROR.CLOSED_BY_USER)}
 					className="text-gray-600 absolute right-0 top-0 p-2"
 				>
 					<XMarkIcon className="h-6 w-6 shrink-0"></XMarkIcon>
@@ -92,7 +114,12 @@ export const LoadDialog = ({
 					tabs={[
 						{
 							title: 'My computer',
-							content: <MyComputerDialogTab></MyComputerDialogTab>,
+							content: (
+								<MyComputerDialogTab
+									updateFiles={(files) => updateFiles(files)}
+									files={files}
+								></MyComputerDialogTab>
+							),
 						},
 						{
 							title: 'Cloud',
@@ -104,13 +131,17 @@ export const LoadDialog = ({
 				<div className="flex justify-end m-2">
 					<button
 						className="m-2 bg-gray-200 text-gray-500 text-sm font-semibold px-5 py-3 rounded-md"
-						onClick={() => closeModal()}
+						onClick={() =>
+							modalHandle?.reject(LOAD_DIALOG_ERROR.CLOSED_BY_USER)
+						}
 					>
 						Cancel
 					</button>
 					<button
 						className="m-2 bg-gray-500 text-white text-sm font-semibold px-5 py-3 rounded-md"
-						onClick={() => alert('open')}
+						onClick={() => {
+							modalHandle?.resolve(files);
+						}}
 					>
 						Open
 					</button>

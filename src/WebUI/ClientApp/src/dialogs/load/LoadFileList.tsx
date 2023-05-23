@@ -1,3 +1,4 @@
+import type { FileLoadMetadata } from '@/dialogs/load/LoadDialog';
 import { ProgressBar } from '@/dialogs/load/ProgressBar';
 import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import Select from 'react-select';
@@ -9,59 +10,47 @@ const options = [
 
 export const LoadFileList = ({
 	className,
+	files,
+	updateFiles,
 }: {
 	className?: string;
+	files: FileLoadMetadata[];
+	updateFiles: (files: FileLoadMetadata[]) => void;
 }): React.ReactElement => {
-	const files: {
-		fileName: string;
-		size: string;
-		progress: number;
-		selection?: 'grayscale' | 'lookupTable';
-	}[] = [
-		{
-			fileName: 'brainmask.mgz',
-			size: '17.4 MB',
-			progress: 100,
-			selection: 'grayscale',
-		},
-		{
-			fileName: 'aseg.mgz',
-			size: '69.2 MB',
-			progress: 30,
-			selection: 'lookupTable',
-		},
-		{
-			fileName: 'lh.pial',
-			size: '130.8 MB',
-			progress: 30,
-		},
-	];
-
 	return (
 		<div className={className}>
 			{files.map((file) => (
-				<div key={file.fileName} className="flex gap-3 pb-3 pt-3 border-b">
+				<div key={file.file.name} className="flex gap-3 pb-3 pt-3 border-b">
 					<div>
 						<div className="flex justify-between text-xs text-gray-500">
-							<span>{file.fileName}</span>
-							<span>{file.size}</span>
+							<span>{file.file.name}</span>
+							<span>{`${
+								file !== undefined
+									? Math.floor(file.file.size / 10000) / 100
+									: ''
+							} MB`}</span>
 						</div>
 						<ProgressBar
 							className="mt-1 w-60"
 							progress={file.progress}
 						></ProgressBar>
 					</div>
-					<button>
+					<button
+						onClick={() =>
+							updateFiles(files.filter((filterFile) => filterFile !== file))
+						}
+					>
 						<XMarkIcon className="w-6 text-gray-600"></XMarkIcon>
 					</button>
 					{file.selection !== undefined ? (
 						<>
 							<Select
-								className="w-40"
+								className="w-40 min-w-[10rem]"
 								options={options}
 								classNames={{
 									indicatorSeparator: () => 'hidden',
 									singleValue: () => 'text-xs',
+									menu: () => 'text-xs',
 								}}
 								value={options.find(
 									(option) => option.value === file.selection
