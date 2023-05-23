@@ -1,6 +1,7 @@
 import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import type { FileError } from 'react-dropzone';
 
 export const DropZone = ({
 	className,
@@ -13,7 +14,28 @@ export const DropZone = ({
 		(acceptedFiles: File[]) => onFileOpen(acceptedFiles),
 		[onFileOpen]
 	);
-	const { getRootProps, getInputProps } = useDropzone({ onDrop });
+
+	const validator = (file: File): null | FileError => {
+		if (file.name === undefined)
+			return {
+				code: 'not-file-name',
+				message: 'There is no name given with the file to validate with',
+			};
+
+		if (file.name.endsWith('.mgz')) return null;
+		if (file.name.endsWith('.nii.gz')) return null;
+		if (file.name.endsWith('.inflated')) return null;
+		if (file.name.endsWith('.pial')) return null;
+		if (file.name.endsWith('.white')) return null;
+		if (file.name.endsWith('.sphere')) return null;
+
+		return {
+			code: 'type-not-supported',
+			message: 'The file type is not supported',
+		};
+	};
+
+	const { getRootProps, getInputProps } = useDropzone({ onDrop, validator });
 
 	return (
 		<div
