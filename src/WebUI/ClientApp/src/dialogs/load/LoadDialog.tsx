@@ -1,5 +1,7 @@
 import { Tabs } from '@/components/Tabs';
 import { MyComputerDialogTab } from '@/dialogs/load/MyComputerDialogTab';
+import * as WebApi from '@/generated/web-api-client';
+import { getApiUrl } from '@/utils';
 import { ArrowUpTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { createContext, useState } from 'react';
 import Modal from 'react-modal';
@@ -13,6 +15,7 @@ export interface FileLoadMetadata {
 
 export enum LOAD_DIALOG_ERROR {
 	DIALOG_OPENED_ALREADY = 'DIALOG_OPENED_ALREADY',
+	UNKNOWN_ERROR = 'UNKNOWN_ERROR',
 }
 
 interface LoadDialogHandle {
@@ -72,6 +75,10 @@ export const LoadDialog = ({
 
 	const [files, updateFiles] = useState<Record<string, FileLoadMetadata>>({});
 
+	const [projectName, setProjectName] = useState<string>(
+		'Subject_Walter_White'
+	);
+
 	/**
 	 * this callbacks will be accessible from everywhere in the app
 	 * using the useContext hook
@@ -107,6 +114,80 @@ export const LoadDialog = ({
 		},
 	};
 
+	const getBase64 = async (file: File | undefined): Promise<string> => {
+		return await new Promise<string>((resolve, reject) => {
+			if (file === undefined) throw new Error('no file given');
+			const reader = new FileReader();
+			reader.readAsDataURL(file);
+			reader.onload = () => {
+				if (reader.result === null) {
+					reject(new Error('result is null'));
+					return;
+				}
+				if (reader.result instanceof ArrayBuffer) {
+					reject(
+						new Error('result is an ArrayBuffer instead of expected string')
+					);
+					return;
+				}
+				resolve(reader.result);
+			};
+			reader.onerror = (error) => {
+				reject(error);
+			};
+		});
+	};
+
+	const onOpenClick = async (): Promise<void> => {
+		const client = new WebApi.ProjectsClient(getApiUrl());
+
+		const fileNames = Object.keys(files);
+		const volumeFileNames = fileNames.filter((fileName) => {
+			if (fileName.endsWith('.mgz')) return true;
+			if (fileName.endsWith('.nii.gz')) return true;
+			return false;
+		});
+		const surfaceFileNames = fileNames.filter((fileName) => {
+			if (fileName.endsWith('.inflated')) return true;
+			if (fileName.endsWith('.pial')) return true;
+			if (fileName.endsWith('.white')) return true;
+			if (fileName.endsWith('.sphere')) return true;
+			return false;
+		});
+
+		const volumes = await Promise.all(
+			volumeFileNames.map(async (fileName) => {
+				return new WebApi.VolumeDto2({
+					base64: await getBase64(files[fileName]?.file),
+					fileName,
+				});
+			})
+		);
+
+		const surfaces = await Promise.all(
+			surfaceFileNames.map(async (fileName) => {
+				return new WebApi.SurfaceDto2({
+					base64: await getBase64(files[fileName]?.file),
+					fileName,
+				});
+			})
+		);
+
+		try {
+			await client.create(
+				new WebApi.CreateProjectCommand({
+					name: projectName,
+					volumes,
+					surfaces,
+				})
+			);
+			modalHandle?.resolve('success');
+		} catch (error) {
+			console.error('something went wrong', error);
+			modalHandle?.reject(LOAD_DIALOG_ERROR.UNKNOWN_ERROR);
+		}
+	};
+
 	return (
 		<>
 			<LoadDialogContext.Provider value={modalContextValue}>
@@ -138,6 +219,8 @@ export const LoadDialog = ({
 								<MyComputerDialogTab
 									updateFiles={(files) => updateFiles(files)}
 									files={files}
+									projectName={projectName}
+									setProjectName={setProjectName}
 									isNewProject={modalHandle?.isNewProject ?? false}
 								></MyComputerDialogTab>
 							),
@@ -159,7 +242,7 @@ export const LoadDialog = ({
 					<button
 						className="m-2 bg-gray-500 text-white text-sm font-semibold px-5 py-3 rounded-md"
 						onClick={() => {
-							modalHandle?.resolve('success');
+							void onOpenClick();
 						}}
 					>
 						Open

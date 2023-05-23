@@ -1,19 +1,20 @@
 import { DropZone } from '@/dialogs/load/DropZone';
 import type { FileLoadMetadata } from '@/dialogs/load/LoadDialog';
 import { LoadFileList } from '@/dialogs/load/LoadFileList';
-import { useState } from 'react';
 
 export const MyComputerDialogTab = ({
 	files,
 	updateFiles,
+	projectName,
+	setProjectName,
 	isNewProject,
 }: {
 	files: Record<string, FileLoadMetadata>;
 	updateFiles: (files: Record<string, FileLoadMetadata>) => void;
+	projectName: string;
+	setProjectName: (projectName: string) => void;
 	isNewProject: boolean;
 }): React.ReactElement => {
-	const [projectName, setProjectName] = useState<string>('');
-
 	return (
 		<div
 			onDragEnter={(event) => event.preventDefault()}
