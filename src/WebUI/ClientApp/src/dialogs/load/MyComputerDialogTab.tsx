@@ -4,11 +4,11 @@ import { LoadFileList } from '@/dialogs/load/LoadFileList';
 import { useState } from 'react';
 
 export const MyComputerDialogTab = ({
-	updateFiles,
 	files,
+	updateFiles,
 }: {
-	updateFiles: (files: FileLoadMetadata[]) => void;
-	files: FileLoadMetadata[];
+	files: Record<string, FileLoadMetadata>;
+	updateFiles: (files: Record<string, FileLoadMetadata>) => void;
 }): React.ReactElement => {
 	const [projectName, setProjectName] = useState<string>('');
 
@@ -31,13 +31,13 @@ export const MyComputerDialogTab = ({
 				onFileOpen={(newFiles) => {
 					updateFiles(
 						newFiles.reduce((result, newFile) => {
-							return [
+							return {
 								...result,
-								{
+								[newFile.name]: {
 									file: newFile,
 									progress: 100,
 								},
-							];
+							};
 						}, files)
 					);
 				}}

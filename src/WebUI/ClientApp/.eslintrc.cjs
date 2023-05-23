@@ -27,12 +27,7 @@ module.exports = {
 	},
 	rules: {
 		'react-refresh/only-export-components': 'warn',
-		'@typescript-eslint/no-confusing-void-expression': [
-			'error',
-			{
-				ignoreArrowShorthand: true,
-			},
-		],
+		'@typescript-eslint/no-confusing-void-expression': ['off'],
 		'@typescript-eslint/no-explicit-any': 'error',
 		'@typescript-eslint/array-type': [
 			'error',

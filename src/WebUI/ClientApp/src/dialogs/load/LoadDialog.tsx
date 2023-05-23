@@ -20,11 +20,15 @@ interface LoadDialogHandle {
 	/**
 	 * open the modal dialog
 	 */
-	readonly createProject: () => Promise<FileLoadMetadata[]>;
+	readonly createProject: () => Promise<'success' | 'canceled'>;
+	readonly editProject: () => Promise<void>;
 }
 
 export const LoadDialogContext = createContext<LoadDialogHandle>({
 	createProject: async () => {
+		throw new Error('not initialized yet');
+	},
+	editProject: async () => {
 		throw new Error('not initialized yet');
 	},
 });
@@ -60,25 +64,42 @@ export const LoadDialog = ({
 }): React.ReactElement => {
 	const [modalHandle, setModalHandle] = useState<
 		| {
-				resolve: (files: FileLoadMetadata[]) => void;
+				resolve: (closeReason: 'success' | 'canceled') => void;
 				reject: (error: LOAD_DIALOG_ERROR) => void;
+				isNewProject: boolean;
 		  }
 		| undefined
 	>(undefined);
 
-	const [files, updateFiles] = useState<FileLoadMetadata[]>([]);
+	const [files, updateFiles] = useState<Record<string, FileLoadMetadata>>({});
 
 	/**
 	 * this callbacks will be accessible from everywhere in the app
 	 * using the useContext hook
 	 */
 	const modalContextValue: LoadDialogHandle = {
-		createProject: async (): Promise<FileLoadMetadata[]> => {
+		createProject: async (): Promise<'success' | 'canceled'> => {
 			if (modalHandle !== undefined)
 				throw new Error(LOAD_DIALOG_ERROR.DIALOG_OPENED_ALREADY);
 
-			const promise = new Promise<FileLoadMetadata[]>((resolve, reject) => {
-				setModalHandle({ resolve, reject });
+			const promise = new Promise<'success' | 'canceled'>((resolve, reject) => {
+				setModalHandle({ resolve, reject, isNewProject: true });
+			});
+
+			// close modal dialog on any result
+			promise.finally(() => setModalHandle(undefined));
+			return await promise;
+		},
+		editProject: async (): Promise<void> => {
+			if (modalHandle !== undefined)
+				throw new Error(LOAD_DIALOG_ERROR.DIALOG_OPENED_ALREADY);
+
+			const promise = new Promise<void>((resolve, reject) => {
+				setModalHandle({
+					resolve: () => resolve(),
+					reject,
+					isNewProject: false,
+				});
 			});
 
 			// close modal dialog on any result
@@ -131,16 +152,14 @@ export const LoadDialog = ({
 				<div className="flex justify-end m-2">
 					<button
 						className="m-2 bg-gray-200 text-gray-500 text-sm font-semibold px-5 py-3 rounded-md"
-						onClick={() =>
-							modalHandle?.reject(LOAD_DIALOG_ERROR.CLOSED_BY_USER)
-						}
+						onClick={() => modalHandle?.resolve('canceled')}
 					>
 						Cancel
 					</button>
 					<button
 						className="m-2 bg-gray-500 text-white text-sm font-semibold px-5 py-3 rounded-md"
 						onClick={() => {
-							modalHandle?.resolve(files);
+							modalHandle?.resolve('success');
 						}}
 					>
 						Open
