@@ -13,4 +13,10 @@
       <PackageReference Include="MediatR" Version="11.1.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Events\" />
+      <Folder Include="Exceptions\" />
+      <Folder Include="ValueObjects\" />
+    </ItemGroup>
+
 </Project>

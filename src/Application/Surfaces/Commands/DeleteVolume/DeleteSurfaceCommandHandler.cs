@@ -40,7 +40,7 @@ public class DeleteSurfaceCommandHandler : IRequestHandler<DeleteSurfaceCommand>
 			throw;
 		}
 
-		await this.fileStorage.DeleteFileAsync(surface.SolutionId, surface.Name);
+		await this.fileStorage.DeleteFileAsync(surface.ProjectId, surface.FileName);
 
 		return Unit.Value;
 	}

@@ -28,7 +28,7 @@ public class CreateVolumeCommandHandler : IRequestHandler<CreateVolumesCommand, 
 		{
 			foreach (var v in request.Volumes)
 			{
-				var filePath = await this.fileStorage.SaveFileAsync(v.Base64, request.SolutionId, v.FileName);
+				var filePath = await this.fileStorage.SaveFileAsync(v.Base64, request.ProjectId, v.FileName);
 
 				var volume = new Volume
 				{
@@ -38,7 +38,7 @@ public class CreateVolumeCommandHandler : IRequestHandler<CreateVolumesCommand, 
 					Opacity = v.Opacity,
 					ContrastMax = v.ContrastMax,
 					ContrastMin = v.ContrastMin,
-					SolutionId = request.SolutionId
+					ProjectId = request.ProjectId
 				};
 
 				this.context.Volumes.Add(volume);
@@ -71,7 +71,7 @@ public class CreateVolumeCommandHandler : IRequestHandler<CreateVolumesCommand, 
 	{
 		foreach (var v in request.Volumes)
 		{
-			await this.fileStorage.DeleteFileAsync(request.SolutionId, v.FileName);
+			await this.fileStorage.DeleteFileAsync(request.ProjectId, v.FileName);
 		}
 	}
 }

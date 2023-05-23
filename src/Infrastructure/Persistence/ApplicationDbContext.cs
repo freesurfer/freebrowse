@@ -25,11 +25,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         this.auditableEntitySaveChangesInterceptor = auditableEntitySaveChangesInterceptor;
     }
 
-    public DbSet<TodoList> TodoLists => this.Set<TodoList>();
-
-    public DbSet<TodoItem> TodoItems => this.Set<TodoItem>();
-
-    public DbSet<Solution> Solutions => this.Set<Solution>();
+    public DbSet<Project> Projects => this.Set<Project>();
 
     public DbSet<Volume> Volumes => this.Set<Volume>();
 

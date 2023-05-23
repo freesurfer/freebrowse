@@ -28,15 +28,15 @@ public class CreateSurfaceCommandHandler : IRequestHandler<CreateSurfacesCommand
 		{
 			foreach (var s in request.Surfaces)
 			{
-				var filePath = await this.fileStorage.SaveFileAsync(s.Base64, request.SolutionId, s.Name);
+				var filePath = await this.fileStorage.SaveFileAsync(s.Base64, request.ProjectId, s.FileName);
 
 				var surface = new Surface
 				{
 					Path = filePath,
-					Name = s.Name,
+					FileName = s.FileName,
 					Order = s.Order,
 					Opacity = s.Opacity,
-					SolutionId = request.SolutionId
+					ProjectId = request.ProjectId
 				};
 
 				this.context.Surfaces.Add(surface);
@@ -46,7 +46,7 @@ public class CreateSurfaceCommandHandler : IRequestHandler<CreateSurfacesCommand
 				var responseDto = new CreateSurfaceResponseDto
 				{
 					Id = surface.Id,
-					Name = surface.Name
+					FileName = surface.FileName
 				};
 
 				result.Add(responseDto);
@@ -69,7 +69,7 @@ public class CreateSurfaceCommandHandler : IRequestHandler<CreateSurfacesCommand
 	{
 		foreach (var s in request.Surfaces)
 		{
-			await this.fileStorage.DeleteFileAsync(request.SolutionId, s.Name);
+			await this.fileStorage.DeleteFileAsync(request.ProjectId, s.FileName);
 		}
 	}
 }

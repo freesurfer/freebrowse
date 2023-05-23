@@ -41,7 +41,7 @@ public class DeleteVolumeCommandHandler : IRequestHandler<DeleteVolumeCommand>
 			throw;
 		}
 
-		await this.fileStorage.DeleteFileAsync(volume.SolutionId, volume.FileName);
+		await this.fileStorage.DeleteFileAsync(volume.ProjectId, volume.FileName);
 
 		return Unit.Value;
 	}

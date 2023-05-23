@@ -22,7 +22,7 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("FreeBrowse.Domain.Entities.Solution", b =>
+            modelBuilder.Entity("FreeBrowse.Domain.Entities.Project", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -47,7 +47,7 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Solutions");
+                    b.ToTable("Projects");
                 });
 
             modelBuilder.Entity("FreeBrowse.Domain.Entities.Surface", b =>
@@ -64,13 +64,13 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("FileName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Opacity")
@@ -82,91 +82,14 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.Property<string>("Path")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("SolutionId")
+                    b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SolutionId");
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("Surfaces");
-                });
-
-            modelBuilder.Entity("FreeBrowse.Domain.Entities.TodoItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("Done")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ListId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("Reminder")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ListId");
-
-                    b.ToTable("TodoItems");
-                });
-
-            modelBuilder.Entity("FreeBrowse.Domain.Entities.TodoList", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TodoLists");
                 });
 
             modelBuilder.Entity("FreeBrowse.Domain.Entities.Volume", b =>
@@ -208,12 +131,12 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.Property<string>("Path")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("SolutionId")
+                    b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SolutionId");
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("Volumes");
                 });
@@ -623,58 +546,24 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("FreeBrowse.Domain.Entities.Surface", b =>
                 {
-                    b.HasOne("FreeBrowse.Domain.Entities.Solution", "Solution")
-                        .WithMany()
-                        .HasForeignKey("SolutionId")
+                    b.HasOne("FreeBrowse.Domain.Entities.Project", "Project")
+                        .WithMany("Surfaces")
+                        .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Solution");
-                });
-
-            modelBuilder.Entity("FreeBrowse.Domain.Entities.TodoItem", b =>
-                {
-                    b.HasOne("FreeBrowse.Domain.Entities.TodoList", "List")
-                        .WithMany("Items")
-                        .HasForeignKey("ListId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("List");
-                });
-
-            modelBuilder.Entity("FreeBrowse.Domain.Entities.TodoList", b =>
-                {
-                    b.OwnsOne("FreeBrowse.Domain.ValueObjects.Colour", "Colour", b1 =>
-                        {
-                            b1.Property<int>("TodoListId")
-                                .HasColumnType("int");
-
-                            b1.Property<string>("Code")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.HasKey("TodoListId");
-
-                            b1.ToTable("TodoLists");
-
-                            b1.WithOwner()
-                                .HasForeignKey("TodoListId");
-                        });
-
-                    b.Navigation("Colour")
-                        .IsRequired();
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("FreeBrowse.Domain.Entities.Volume", b =>
                 {
-                    b.HasOne("FreeBrowse.Domain.Entities.Solution", "Solution")
+                    b.HasOne("FreeBrowse.Domain.Entities.Project", "Project")
                         .WithMany("Volumes")
-                        .HasForeignKey("SolutionId")
+                        .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Solution");
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -752,14 +641,11 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.Navigation("Authorization");
                 });
 
-            modelBuilder.Entity("FreeBrowse.Domain.Entities.Solution", b =>
+            modelBuilder.Entity("FreeBrowse.Domain.Entities.Project", b =>
                 {
-                    b.Navigation("Volumes");
-                });
+                    b.Navigation("Surfaces");
 
-            modelBuilder.Entity("FreeBrowse.Domain.Entities.TodoList", b =>
-                {
-                    b.Navigation("Items");
+                    b.Navigation("Volumes");
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>

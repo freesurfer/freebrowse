@@ -14,7 +14,7 @@ public class Volume : BaseAuditableEntity
 
 	public int ContrastMax { get; set; }
 
-	public int SolutionId { get; set; }
+	public int ProjectId { get; set; }
 
-	public Solution Solution { get; set; } = null!;
+	public Project Project { get; set; } = null!;
 }

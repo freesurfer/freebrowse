@@ -236,3 +236,4 @@ _Pvt_Extensions
 /FreeViewWeb.ndproj
 /.mfractor
 src/WebUI/ClientApp/package-lock.json
+/src/WebUI/Files/

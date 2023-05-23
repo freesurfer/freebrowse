@@ -2,7 +2,7 @@
 
 namespace FreeBrowse.Application.Surfaces.Commands.DeleteSurface;
 
-public class DeleteSurfaceCommand : IRequest
+public record DeleteSurfaceCommand : IRequest
 {
 	public int Id { get; set; }
 }

@@ -4,13 +4,13 @@ public class Surface : BaseAuditableEntity
 {
 	public string? Path { get; set; }
 
-	public string? Name { get; set; }
+	public string? FileName { get; set; }
 
 	public int Order { get; set; }
 
 	public int Opacity { get; set; }
 
-	public int SolutionId { get; set; }
+	public int ProjectId { get; set; }
 
-	public Solution Solution { get; set; } = null!;
+	public Project Project { get; set; } = null!;
 }

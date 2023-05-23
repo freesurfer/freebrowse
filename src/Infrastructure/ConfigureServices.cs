@@ -1,5 +1,4 @@
 ﻿using FreeBrowse.Application.Common.Interfaces;
-using FreeBrowse.Infrastructure.Files;
 using FreeBrowse.Infrastructure.Identity;
 using FreeBrowse.Infrastructure.Persistence;
 using FreeBrowse.Infrastructure.Persistence.Interceptors;
@@ -111,7 +110,6 @@ public static class ConfigureServices
         services.AddTransient<IDateTime, DateTimeService>();
         services.AddTransient<IIdentityService, IdentityService>();
         services.AddTransient<IBearerTokenFactory, BearerTokenFactory>();
-        services.AddTransient<ICsvFileBuilder, CsvFileBuilder>();
 
         services.AddAuthentication();
 

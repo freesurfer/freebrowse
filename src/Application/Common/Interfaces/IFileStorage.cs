@@ -2,13 +2,13 @@
 
 public interface IFileStorage
 {
-	string CreateDirectory(int solutionId);
+	string CreateDirectory(int projectId);
 
-	void DeleteDirectory(int solutionId);
+	void DeleteDirectory(int projectId);
 
-	Task<string> SaveFileAsync(string base64, int solutionId, string fileName);
+	Task<string> SaveFileAsync(string base64, int projectId, string fileName);
 
-	Task<string> SaveFileAsync(byte[] fileData, int solutionId, string fileName);
+	Task<string> SaveFileAsync(byte[] fileData, int projectId, string fileName);
 
-	Task DeleteFileAsync(int solutionId, string fileName);
+	Task DeleteFileAsync(int projectId, string fileName);
 }
