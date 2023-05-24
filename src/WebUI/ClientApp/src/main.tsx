@@ -1,13 +1,13 @@
 import { MainRouter } from '@/MainRouter';
-import { LoadDialog } from '@/dialogs/load/LoadDialog';
+import { OpenProjectDialog } from '@/dialogs/openProject/OpenProjectDialog';
 import '@/index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 	<React.StrictMode>
-		<LoadDialog>
+		<OpenProjectDialog>
 			<MainRouter />
-		</LoadDialog>
+		</OpenProjectDialog>
 	</React.StrictMode>
 );

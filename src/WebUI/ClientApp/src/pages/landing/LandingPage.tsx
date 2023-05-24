@@ -1,5 +1,5 @@
-import { LandingDescription } from '@/pages/landingPage/components/LandingDescription';
-import { LandingTitle } from '@/pages/landingPage/components/LandingTitle';
+import { LandingDescription } from '@/pages/landing/components/LandingDescription';
+import { LandingTitle } from '@/pages/landing/components/LandingTitle';
 
 export const LandingPage = (): React.ReactElement => (
 	<>

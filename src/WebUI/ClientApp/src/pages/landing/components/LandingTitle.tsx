@@ -1,4 +1,4 @@
-import { LoadDialogContext } from '@/dialogs/load/LoadDialog';
+import { OpenProjectDialogContext } from '@/dialogs/openProject/OpenProjectDialog';
 import brain from '@/pages/landingPage/assets/brain_fancy.jpg';
 import { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -9,11 +9,12 @@ export const LandingTitle = ({
 	className?: string;
 }): React.ReactElement => {
 	const navigate = useNavigate();
-	const { createProject } = useContext(LoadDialogContext);
+	const { createProject } = useContext(OpenProjectDialogContext);
 
 	const onGetStartedClick = async (): Promise<void> => {
 		const result = await createProject();
-		if (result === 'success') navigate('/check-and-edit');
+		if (result === 'canceled') return;
+		navigate(`/project/${result.projectId}`);
 	};
 
 	return (

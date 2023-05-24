@@ -1,6 +1,6 @@
-import { DropZone } from '@/dialogs/load/DropZone';
-import type { FileLoadMetadata } from '@/dialogs/load/LoadDialog';
-import { LoadFileList } from '@/dialogs/load/LoadFileList';
+import { DropZone } from '@/dialogs/openProject/DropZone';
+import { LoadFileList } from '@/dialogs/openProject/LoadFileList';
+import type { FileLoadMetadata } from '@/dialogs/openProject/OpenProjectDialog';
 
 export const MyComputerDialogTab = ({
 	files,

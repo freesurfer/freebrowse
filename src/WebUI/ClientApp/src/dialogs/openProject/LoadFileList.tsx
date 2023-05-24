@@ -1,6 +1,7 @@
-import type { FileLoadMetadata } from '@/dialogs/load/LoadDialog';
-import { ProgressBar } from '@/dialogs/load/ProgressBar';
-import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Checkbox } from '@/components/Checkbox';
+import type { FileLoadMetadata } from '@/dialogs/openProject/OpenProjectDialog';
+import { ProgressBar } from '@/dialogs/openProject/ProgressBar';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import Select from 'react-select';
 
 const options = [
@@ -66,10 +67,7 @@ export const LoadFileList = ({
 									)}
 								/>
 								<div className="flex items-center text-xs text-gray-500 gap-1">
-									<label className="cursor-pointer text-gray-500">
-										<input type="checkbox" className="hidden"></input>
-										<CheckIcon className="w-5 p-0.5 text-white bg-gray-500 rounded-[3px]"></CheckIcon>
-									</label>
+									<Checkbox></Checkbox>
 									<span className="whitespace-nowrap">Resample to RAS</span>
 								</div>
 							</>

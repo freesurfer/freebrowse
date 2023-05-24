@@ -1,10 +1,16 @@
 import { Tabs } from '@/components/Tabs';
-import { MyComputerDialogTab } from '@/dialogs/load/MyComputerDialogTab';
+import { MyComputerDialogTab } from '@/dialogs/openProject/MyComputerDialogTab';
 import * as WebApi from '@/generated/web-api-client';
 import { getApiUrl } from '@/utils';
 import { ArrowUpTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { createContext, useState } from 'react';
 import Modal from 'react-modal';
+
+type ResolveCreateProjectDialogResult =
+	| {
+			projectId: number;
+	  }
+	| 'canceled';
 
 export interface FileLoadMetadata {
 	file: File;
@@ -18,15 +24,15 @@ export enum LOAD_DIALOG_ERROR {
 	UNKNOWN_ERROR = 'UNKNOWN_ERROR',
 }
 
-interface LoadDialogHandle {
+interface IOpenProjectDialog {
 	/**
 	 * open the modal dialog
 	 */
-	readonly createProject: () => Promise<'success' | 'canceled'>;
+	readonly createProject: () => Promise<ResolveCreateProjectDialogResult>;
 	readonly editProject: () => Promise<void>;
 }
 
-export const LoadDialogContext = createContext<LoadDialogHandle>({
+export const OpenProjectDialogContext = createContext<IOpenProjectDialog>({
 	createProject: async () => {
 		throw new Error('not initialized yet');
 	},
@@ -36,6 +42,9 @@ export const LoadDialogContext = createContext<LoadDialogHandle>({
 });
 
 const customStyles = {
+	overlay: {
+		zIndex: 1,
+	},
 	content: {
 		top: '50%',
 		left: '50%',
@@ -59,14 +68,14 @@ const bindModalToRoot = (): void => {
 };
 bindModalToRoot();
 
-export const LoadDialog = ({
+export const OpenProjectDialog = ({
 	children,
 }: {
 	children: React.ReactElement;
 }): React.ReactElement => {
 	const [modalHandle, setModalHandle] = useState<
 		| {
-				resolve: (closeReason: 'success' | 'canceled') => void;
+				resolve: (closeReason: ResolveCreateProjectDialogResult) => void;
 				reject: (error: LOAD_DIALOG_ERROR) => void;
 				isNewProject: boolean;
 		  }
@@ -83,14 +92,16 @@ export const LoadDialog = ({
 	 * this callbacks will be accessible from everywhere in the app
 	 * using the useContext hook
 	 */
-	const modalContextValue: LoadDialogHandle = {
-		createProject: async (): Promise<'success' | 'canceled'> => {
+	const modalContextValue: IOpenProjectDialog = {
+		createProject: async (): Promise<ResolveCreateProjectDialogResult> => {
 			if (modalHandle !== undefined)
 				throw new Error(LOAD_DIALOG_ERROR.DIALOG_OPENED_ALREADY);
 
-			const promise = new Promise<'success' | 'canceled'>((resolve, reject) => {
-				setModalHandle({ resolve, reject, isNewProject: true });
-			});
+			const promise = new Promise<ResolveCreateProjectDialogResult>(
+				(resolve, reject) => {
+					setModalHandle({ resolve, reject, isNewProject: true });
+				}
+			);
 
 			// close modal dialog on any result
 			promise.finally(() => setModalHandle(undefined));
@@ -139,7 +150,7 @@ export const LoadDialog = ({
 	};
 
 	const onOpenClick = async (): Promise<void> => {
-		const client = new WebApi.ProjectsClient(getApiUrl());
+		// const client = new WebApi.ProjectsClient(getApiUrl());
 
 		const fileNames = Object.keys(files);
 		const volumeFileNames = fileNames.filter((fileName) => {
@@ -155,6 +166,7 @@ export const LoadDialog = ({
 			return false;
 		});
 
+		/*
 		const volumes = await Promise.all(
 			volumeFileNames.map(async (fileName) => {
 				return new WebApi.VolumeDto2({
@@ -172,16 +184,40 @@ export const LoadDialog = ({
 				});
 			})
 		);
+		*/
 
 		try {
-			await client.create(
+			/*
+			const createProjectResponse = await client.create(
 				new WebApi.CreateProjectCommand({
 					name: projectName,
 					volumes,
 					surfaces,
 				})
 			);
-			modalHandle?.resolve('success');
+			*/
+			// BERE only mock for now, unit i'm able to test it properly
+			const createProjectResponse: WebApi.CreateProjectResponseDto =
+				new WebApi.CreateProjectResponseDto({
+					id: 123,
+					volumes: [
+						new WebApi.VolumeResponseDto({
+							id: 1,
+							fileName: 'test1',
+						}),
+					],
+					surfaces: [
+						new WebApi.VolumeResponseDto({
+							id: 2,
+							fileName: 'test2',
+						}),
+					],
+				});
+
+			if (createProjectResponse.id === undefined)
+				throw new Error('no project id received from backend');
+
+			modalHandle?.resolve({ projectId: createProjectResponse.id });
 		} catch (error) {
 			console.error('something went wrong', error);
 			modalHandle?.reject(LOAD_DIALOG_ERROR.UNKNOWN_ERROR);
@@ -190,9 +226,9 @@ export const LoadDialog = ({
 
 	return (
 		<>
-			<LoadDialogContext.Provider value={modalContextValue}>
+			<OpenProjectDialogContext.Provider value={modalContextValue}>
 				{children}
-			</LoadDialogContext.Provider>
+			</OpenProjectDialogContext.Provider>
 			<Modal
 				isOpen={modalHandle !== undefined}
 				style={customStyles}

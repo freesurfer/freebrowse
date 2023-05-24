@@ -1,5 +1,5 @@
-import { FieldSet } from '@/pages/checkAndEdit/topBar/components/FieldSet';
-import { ToolButton } from '@/pages/checkAndEdit/topBar/components/ToolButton';
+import { FieldSet } from '@/pages/project/topBar/components/FieldSet';
+import { ToolButton } from '@/pages/project/topBar/components/ToolButton';
 import {
 	ArrowUturnLeftIcon,
 	ArrowUturnRightIcon,
