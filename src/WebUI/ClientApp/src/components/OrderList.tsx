@@ -26,12 +26,14 @@ export const OrderList = ({
 					>
 						<Checkbox defaultState={true}></Checkbox>
 						<span
-							className={`grow cursor-default ${isActive ? 'text-white' : ''}`}
+							className={`grow cursor-default text-ellipsis overflow-hidden ${
+								isActive ? 'text-white' : ''
+							}`}
 						>
 							{entry.fileName}
 						</span>
 						<ArrowsUpDownIcon
-							className={`w-5 text-gray-500 m-1 ${
+							className={`w-5 shrink-0 text-gray-500 m-1 ${
 								isActive ? 'text-white' : ''
 							}`}
 						></ArrowsUpDownIcon>

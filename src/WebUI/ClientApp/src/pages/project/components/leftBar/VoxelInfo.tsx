@@ -14,7 +14,9 @@ export const VoxelInfo = (): React.ReactElement => {
 				<div className="flex">
 					<span className="grow">Voxel value</span>
 					<span>
-						{Math.round((location?.values[0]?.value ?? NaN) * 1000) / 1000}
+						{location?.values[0]?.value !== undefined
+							? Math.round(location?.values[0]?.value * 1000) / 1000
+							: '-'}
 					</span>
 				</div>
 
@@ -24,9 +26,15 @@ export const VoxelInfo = (): React.ReactElement => {
 					<span className="font-bold">y</span>
 					<span className="font-bold">z</span>
 					<span className="text-start">Voxel:</span>
-					<span>{Math.round(location?.mm[0] ?? NaN)}</span>
-					<span>{Math.round(location?.mm[1] ?? NaN)}</span>
-					<span>{Math.round(location?.mm[2] ?? NaN)}</span>
+					<span>
+						{location?.mm[0] !== undefined ? Math.round(location.mm[0]) : '-'}
+					</span>
+					<span>
+						{location?.mm[1] !== undefined ? Math.round(location.mm[1]) : '-'}
+					</span>
+					<span>
+						{location?.mm[2] !== undefined ? Math.round(location.mm[2]) : '-'}
+					</span>
 					<span className="text-start">RAS:</span>
 					<span>-23.35</span>
 					<span>0.00</span>
