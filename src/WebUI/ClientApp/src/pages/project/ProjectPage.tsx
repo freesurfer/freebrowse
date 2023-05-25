@@ -4,6 +4,7 @@ import { LeftBar } from '@/pages/project/components/leftBar/LeftBar';
 import { RightBar } from '@/pages/project/components/rightBar/RightBar';
 import { TopBar } from '@/pages/project/components/topBar/TopBar';
 import { useFetchProject } from '@/pages/project/hooks/useFetchProject';
+import type { LocationData } from '@niivue/niivue';
 import { Niivue } from '@niivue/niivue';
 import { createContext, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -16,6 +17,7 @@ interface IProjectContext {
 	 */
 	selectedFile: string | undefined;
 	setSelectedFile: (fileName: string | undefined) => void;
+	location: LocationData | undefined;
 }
 
 export const ProjectContext = createContext<IProjectContext>({
@@ -25,16 +27,19 @@ export const ProjectContext = createContext<IProjectContext>({
 	setSelectedFile: (fileName: string | undefined): void => {
 		throw new Error('method not initialized yet');
 	},
+	location: undefined,
 });
 
 export const ProjectPage = (): React.ReactElement => {
 	const { projectId } = useParams();
 	const { project } = useFetchProject(projectId);
 	const [selectedFile, setSelectedFile] = useState<string | undefined>();
+	const [location, setLocation] = useState<LocationData | undefined>();
 
 	const niivue = useRef<Niivue>(
 		new Niivue({
 			show3Dcrosshair: true,
+			onLocationChange: (location) => setLocation(location),
 		})
 	);
 
@@ -49,7 +54,6 @@ export const ProjectPage = (): React.ReactElement => {
 					{
 						url: `https://niivue.github.io/niivue-demo-images/${volume.fileName}`,
 						name: volume.fileName,
-						opacity: 1,
 					},
 				]);
 			}
@@ -69,7 +73,13 @@ export const ProjectPage = (): React.ReactElement => {
 
 	return (
 		<ProjectContext.Provider
-			value={{ project, niivue: niivue.current, selectedFile, setSelectedFile }}
+			value={{
+				project,
+				niivue: niivue.current,
+				selectedFile,
+				setSelectedFile,
+				location,
+			}}
 		>
 			<div className="flex flex-col h-full">
 				<TopBar></TopBar>

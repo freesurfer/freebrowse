@@ -5,6 +5,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 declare module '@niivue/niivue' {
+	export class LocationData {
+		frac: [number, number, number];
+		mm: Float32Array;
+		values: {
+			id: string;
+			mm: [number, number, number, number];
+			name: string;
+			value: number;
+			vox: [number, number, number];
+		}[];
+		vox: [number, number, number];
+		xy: [number, number];
+		string: string;
+		toString(): string;
+	}
+
 	interface DragModes {
 		none: 0;
 		contrast: 1;
@@ -227,6 +243,7 @@ declare module '@niivue/niivue' {
 		 * optional 2D png bitmap that can be rapidly loaded to defer slow loading of 3D image
 		 */
 		thumbnail?: string;
+		onLocationChange?: (location: LocationData) => void;
 	}
 
 	export interface VolumeObject {
