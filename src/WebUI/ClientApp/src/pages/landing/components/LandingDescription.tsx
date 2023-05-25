@@ -1,4 +1,4 @@
-import description from '@/pages/landingPage/assets/description.png';
+import description from '@/pages/landing/assets/description.png';
 
 export const LandingDescription = ({
 	className,

@@ -992,7 +992,7 @@ declare module '@niivue/niivue' {
 		 * niivue = new Niivue()
 		 * niivue.loadMeshes([{url: 'someMesh.gii}])
 		 */
-		loadMeshes(meshList: any[]): Niivue;
+		async loadMeshes(meshList: any[]): Promise<Niivue>;
 		/**
 		 * load a connectome specified by json
 		 * @param {object} connectome model

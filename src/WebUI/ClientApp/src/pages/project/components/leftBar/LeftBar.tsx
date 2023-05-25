@@ -1,6 +1,6 @@
-import { FileInfo } from '@/pages/project/leftBar/FileInfo';
-import { VoxelInfo } from '@/pages/project/leftBar/VoxelInfo';
-import { LoadedFiles } from '@/pages/project/leftBar/loadedFiles/LoadedFiles';
+import { FileInfo } from '@/pages/project/components/leftBar/FileInfo';
+import { LoadedFiles } from '@/pages/project/components/leftBar/LoadedFiles';
+import { VoxelInfo } from '@/pages/project/components/leftBar/VoxelInfo';
 
 export const LeftBar = (): React.ReactElement => {
 	return (

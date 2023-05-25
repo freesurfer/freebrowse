@@ -1,16 +1,16 @@
-import * as WebApi from '@/generated/web-api-client';
-import { MainView } from '@/pages/project/center/MainView';
-import { LeftBar } from '@/pages/project/leftBar/LeftBar';
-import { RightBar } from '@/pages/project/rightBar/RightBar';
-import { TopBar } from '@/pages/project/topBar/TopBar';
-import { getApiUrl } from '@/utils';
+import type { ProjectDto } from '@/generated/web-api-client';
+import { MainView } from '@/pages/project/components/MainView';
+import { LeftBar } from '@/pages/project/components/leftBar/LeftBar';
+import { RightBar } from '@/pages/project/components/rightBar/RightBar';
+import { TopBar } from '@/pages/project/components/topBar/TopBar';
+import { useFetchProject } from '@/pages/project/hooks/useFetchProject';
 import { Niivue } from '@niivue/niivue';
 import { createContext, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 interface IProjectContext {
 	niivue: Niivue | undefined;
-	project: WebApi.ProjectDto | undefined;
+	project: ProjectDto | undefined;
 	/**
 	 * file name of selected file
 	 */
@@ -29,51 +29,43 @@ export const ProjectContext = createContext<IProjectContext>({
 
 export const ProjectPage = (): React.ReactElement => {
 	const { projectId } = useParams();
-	const [project, setProject] = useState<WebApi.ProjectDto | undefined>();
+	const { project } = useFetchProject(projectId);
 	const [selectedFile, setSelectedFile] = useState<string | undefined>();
 
+	const niivue = useRef<Niivue>(
+		new Niivue({
+			show3Dcrosshair: true,
+		})
+	);
+
 	useEffect(() => {
-		const fetchData = async (): Promise<void> => {
-			/*
-			const client = new WebApi.ProjectsClient(getApiUrl());
-			if (projectId === undefined) {
-				console.error('no project id given');
-				return;
+		const loadData = async (): Promise<void> => {
+			niivue.current.setHighResolutionCapable(false);
+			niivue.current.opts.isOrientCube = true;
+
+			for (const volume of project?.volumes ?? []) {
+				if (volume?.fileName === undefined) continue;
+				await niivue.current.loadVolumes([
+					{
+						url: `https://niivue.github.io/niivue-demo-images/${volume.fileName}`,
+						name: volume.fileName,
+						opacity: 0.5,
+					},
+				]);
 			}
-
-			setProject(await client.getProject(Number(projectId)));
-			*/
-
-			setProject(
-				new WebApi.ProjectDto({
-					id: 123,
-					volumes: [
-						new WebApi.VolumeResponseDto({
-							id: 1,
-							fileName: 'test1.mri',
-						}),
-						new WebApi.VolumeResponseDto({
-							id: 2,
-							fileName: 'test2.mri',
-						}),
-						new WebApi.VolumeResponseDto({
-							id: 3,
-							fileName: 'test3.mri',
-						}),
-					],
-					surfaces: [
-						new WebApi.VolumeResponseDto({
-							id: 2,
-							fileName: 'test2.gz',
-						}),
-					],
-				})
-			);
+			for (const surface of project?.surfaces ?? []) {
+				if (surface?.fileName === undefined) continue;
+				await niivue.current.loadMeshes([
+					{
+						url: `https://niivue.github.io/niivue/images/${surface.fileName}`,
+						name: surface.fileName,
+					},
+				]);
+			}
+			niivue.current.setMeshThicknessOn2D(0);
 		};
-		void fetchData();
-	}, [projectId]);
-
-	const niivue = useRef<Niivue>(new Niivue());
+		void loadData();
+	}, [project]);
 
 	return (
 		<ProjectContext.Provider
