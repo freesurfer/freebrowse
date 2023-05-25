@@ -6,11 +6,13 @@ export const Slider = ({
 	label,
 	defaultValue,
 	unit,
+	onChange,
 }: {
 	className?: string;
 	label: string;
 	defaultValue: number;
 	unit?: string | undefined;
+	onChange?: (value: number) => void;
 }): React.ReactElement => {
 	const [value, setValue] = useState<number>(defaultValue);
 
@@ -21,7 +23,10 @@ export const Slider = ({
 				<input
 					type="number"
 					value={value}
-					onChange={(event) => setValue(Number(event.target.value))}
+					onChange={(event) => {
+						setValue(Number(event.target.value));
+						onChange?.(value);
+					}}
 					className="w-12 h-5 text-center flex justify-center items-center p-1 text-sm border rounded"
 				></input>
 				{unit !== undefined ? <span className="ml-1">{unit}</span> : <></>}
@@ -33,6 +38,7 @@ export const Slider = ({
 				value={value}
 				onChange={(value) => {
 					setValue(value);
+					onChange?.(value);
 				}}
 			/>
 		</div>

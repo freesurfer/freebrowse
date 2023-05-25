@@ -1,3 +1,6 @@
+// TODO remove
+
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Tabs } from '@/components/Tabs';
 import { MyComputerDialogTab } from '@/dialogs/openProject/MyComputerDialogTab';
 import * as WebApi from '@/generated/web-api-client';

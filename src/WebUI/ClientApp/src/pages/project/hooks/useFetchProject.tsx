@@ -44,10 +44,6 @@ export const useFetchProject = (
 					id: 123,
 					volumes: [
 						new VolumeResponseDto({
-							id: 2,
-							fileName: 'chris_PD.nii.gz',
-						}),
-						new VolumeResponseDto({
 							id: 1,
 							fileName: 'mni152.nii.gz',
 						}),

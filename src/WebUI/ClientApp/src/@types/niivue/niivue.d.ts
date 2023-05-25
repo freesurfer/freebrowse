@@ -462,6 +462,7 @@ declare module '@niivue/niivue' {
 		loadingText: any;
 		subscriptions: any;
 		volumes: {
+			name: string;
 			opacity: number;
 			cal_min: number;
 			cal_max: number;
@@ -469,6 +470,7 @@ declare module '@niivue/niivue' {
 			robust_max: number;
 			id: string;
 			frame4D: number;
+			colorMap: string;
 			// TODO not complete
 		}[];
 		set meshes(arg: any);
@@ -1104,7 +1106,7 @@ declare module '@niivue/niivue' {
 		 * niivue = new Niivue()
 		 * colormaps = niivue.colorMaps()
 		 */
-		colorMaps(): any[];
+		colorMaps(): string[];
 		/**
 		 * create a new colormap
 		 * @param {string} key name of new colormap

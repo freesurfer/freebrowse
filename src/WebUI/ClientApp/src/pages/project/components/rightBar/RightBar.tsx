@@ -4,48 +4,99 @@ import { ProjectContext } from '@/pages/project/ProjectPage';
 import { useContext } from 'react';
 import Select from 'react-select';
 
-const options = [
-	{ value: 'grayscale', label: 'Grayscale' },
-	{ value: 'lookupTable', label: 'Lookup Table' },
-];
-
 export const RightBar = (): React.ReactElement => {
-	const { selectedFile } = useContext(ProjectContext);
+	// TODO remove
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const { selectedFile, niivue } = useContext(ProjectContext);
+
+	if (niivue === undefined) {
+		return (
+			<div className="w-[16rem] grow-0 bg-gray-100 border border-gray-500">
+				<span className="m-4 block text-gray-500 text-xs text-center">
+					Niivue is not initialized
+				</span>
+			</div>
+		);
+	}
+
+	// TODO choose volume according to selected file name
+	// const niivueVolume = niivue?.volumes.find(
+	// 	(volume) => volume.name === selectedFile
+	// );
+	const niivueVolume = niivue.volumes[0];
+	const niivueVolumeIndex = 0;
+
+	const colorMapOptions = niivue.colorMaps().map((colorMap) => {
+		return { value: colorMap, label: colorMap };
+	});
 
 	return (
 		<div className="w-[16rem] grow-0 bg-gray-100 border border-gray-500">
-			<Collapse
-				className="border-b border-gray-300 pl-1 pt-1 pr-4"
-				title={
-					<span className="font-semibold">
-						{selectedFile ?? 'No file selected'}
-					</span>
-				}
-			>
-				<>
-					<Slider
-						className="mt-1"
-						label="Opacity"
-						defaultValue={100}
-						unit="%"
-					></Slider>
-					<div className="flex items-center mb-4">
-						<span className="grow mr-2">Color Map:</span>
-						<Select
-							options={options}
-							classNames={{
-								indicatorSeparator: () => 'hidden',
-								singleValue: () => 'text-xs',
-								menu: () => 'text-xs',
+			{niivueVolume === undefined ? (
+				<span className="m-4 block text-gray-500 text-xs text-center">
+					Select a volume to use this section.
+				</span>
+			) : (
+				<Collapse
+					className="border-b border-gray-300 pl-1 pt-1 pr-4"
+					title={
+						<span className="font-semibold">
+							{niivueVolume.name ?? 'No file selected'}
+						</span>
+					}
+				>
+					<>
+						<Slider
+							className="mt-1"
+							label="Opacity"
+							defaultValue={niivueVolume.opacity * 100}
+							unit="%"
+							onChange={(value) => {
+								niivue.setOpacity(niivueVolumeIndex, value / 100);
 							}}
-							value={options[0]}
-						/>
-					</div>
-					<span>Contrast & Brightness</span>
-					<Slider className="mt-1" label="Minimum" defaultValue={25}></Slider>
-					<Slider className="mt-1" label="Maximum" defaultValue={75}></Slider>
-				</>
-			</Collapse>
+						></Slider>
+						<div className="flex items-center mb-4">
+							<span className="grow mr-2">Color Map:</span>
+							<Select
+								options={colorMapOptions}
+								classNames={{
+									indicatorSeparator: () => 'hidden',
+									singleValue: () => 'text-xs z-1',
+									menu: () => 'text-xs',
+								}}
+								defaultValue={colorMapOptions.find(
+									(colorMapOption) =>
+										colorMapOption.value === niivueVolume.colorMap
+								)}
+								onChange={(colorMap) => {
+									if (colorMap === null) return;
+									niivueVolume.colorMap = colorMap.value;
+									niivue.updateGLVolume();
+								}}
+							/>
+						</div>
+						<span>Contrast & Brightness</span>
+						<Slider
+							className="mt-1"
+							label="Minimum"
+							defaultValue={niivueVolume.cal_min}
+							onChange={(value) => {
+								niivueVolume.cal_min = value;
+								niivue.updateGLVolume();
+							}}
+						></Slider>
+						<Slider
+							className="mt-1"
+							label="Maximum"
+							defaultValue={niivueVolume.cal_max}
+							onChange={(value) => {
+								niivueVolume.cal_max = value;
+								niivue.updateGLVolume();
+							}}
+						></Slider>
+					</>
+				</Collapse>
+			)}
 		</div>
 	);
 };

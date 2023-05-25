@@ -49,7 +49,7 @@ export const ProjectPage = (): React.ReactElement => {
 					{
 						url: `https://niivue.github.io/niivue-demo-images/${volume.fileName}`,
 						name: volume.fileName,
-						opacity: 0.5,
+						opacity: 1,
 					},
 				]);
 			}
