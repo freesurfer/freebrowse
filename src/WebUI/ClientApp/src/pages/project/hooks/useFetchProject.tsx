@@ -47,6 +47,22 @@ export const useFetchProject = (
 							id: 1,
 							fileName: 'mni152.nii.gz',
 						}),
+						new VolumeResponseDto({
+							id: 2,
+							fileName: 'Iguana.nii.gz',
+						}),
+						new VolumeResponseDto({
+							id: 3,
+							fileName: 'spm152.nii.gz',
+						}),
+						new VolumeResponseDto({
+							id: 4,
+							fileName: 'spmMotor.nii.gz',
+						}),
+						new VolumeResponseDto({
+							id: 5,
+							fileName: 'visiblehuman.nii.gz',
+						}),
 					],
 					surfaces: [
 						new VolumeResponseDto({
