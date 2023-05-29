@@ -5,6 +5,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 declare module '@niivue/niivue' {
+	export class LocationData {
+		frac: [number, number, number];
+		mm: Float32Array;
+		values: {
+			id: string;
+			mm: [number, number, number, number];
+			name: string;
+			value: number;
+			vox: [number, number, number];
+		}[];
+		vox: [number, number, number];
+		xy: [number, number];
+		string: string;
+		toString(): string;
+	}
+
 	interface DragModes {
 		none: 0;
 		contrast: 1;
@@ -227,6 +243,7 @@ declare module '@niivue/niivue' {
 		 * optional 2D png bitmap that can be rapidly loaded to defer slow loading of 3D image
 		 */
 		thumbnail?: string;
+		onLocationChange?: (location: LocationData) => void;
 	}
 
 	export interface VolumeObject {
@@ -462,6 +479,7 @@ declare module '@niivue/niivue' {
 		loadingText: any;
 		subscriptions: any;
 		volumes: {
+			name: string;
 			opacity: number;
 			cal_min: number;
 			cal_max: number;
@@ -469,6 +487,7 @@ declare module '@niivue/niivue' {
 			robust_max: number;
 			id: string;
 			frame4D: number;
+			colorMap: string;
 			// TODO not complete
 		}[];
 		set meshes(arg: any);
@@ -992,7 +1011,7 @@ declare module '@niivue/niivue' {
 		 * niivue = new Niivue()
 		 * niivue.loadMeshes([{url: 'someMesh.gii}])
 		 */
-		loadMeshes(meshList: any[]): Niivue;
+		async loadMeshes(meshList: any[]): Promise<Niivue>;
 		/**
 		 * load a connectome specified by json
 		 * @param {object} connectome model
@@ -1104,7 +1123,7 @@ declare module '@niivue/niivue' {
 		 * niivue = new Niivue()
 		 * colormaps = niivue.colorMaps()
 		 */
-		colorMaps(): any[];
+		colorMaps(): string[];
 		/**
 		 * create a new colormap
 		 * @param {string} key name of new colormap

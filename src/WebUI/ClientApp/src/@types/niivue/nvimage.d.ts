@@ -4,6 +4,40 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare module '@niivue/niivue' {
 	/**
+	 * query all available color maps that can be applied to volumes
+	 * @param {boolean} [sort=true] whether or not to sort the returned array
+	 * @returns {array} an array of colormap strings
+	 * @example
+	 * niivue = new Niivue()
+	 * colormaps = niivue.colorMaps()
+	 */
+	/**
+	 * Enum for supported image types
+	 * @readonly
+	 * @enum {number}
+	 */
+	export type NVIMAGE_TYPE = Readonly<{
+		UNKNOWN: 0;
+		NII: 1;
+		DCM: 2;
+		DCM_MANIFEST: 3;
+		MIH: 4;
+		MIF: 5;
+		NHDR: 6;
+		NRRD: 7;
+		MHD: 8;
+		MHA: 9;
+		MGH: 10;
+		MGZ: 11;
+		V: 12;
+		V16: 13;
+		VMR: 14;
+		HEAD: 15;
+		DCM_FOLDER: 16;
+		parse: (ext: any) => 0;
+	}>;
+
+	/**
  * NVImageFromUrlOptions
  * @typedef  NVImageFromUrlOptions
  * @type {object}
@@ -392,7 +426,7 @@ declare module '@niivue/niivue' {
 		/**
 		 * factory function to load and return a new NVImage instance from a file in the browser
 		 * @constructs NVImage
-		 * @param {string} file the file object
+		 * @param {File} file the file object
 		 * @param {string} [name=''] a name for this image. Default is an empty string
 		 * @param {string} [colorMap='gray'] a color map to use. default is gray
 		 * @param {number} [opacity=1.0] the opacity for this image. default is 1
@@ -426,7 +460,23 @@ declare module '@niivue/niivue' {
 			colorMapNegative,
 			frame4D,
 			imageType,
-		}?: string): NVImage;
+		}: {
+			file: File;
+			name?: string;
+			colorMap?: string;
+			opacity?: number;
+			urlImgData?: string;
+			cal_min?: number;
+			cal_max?: number;
+			trustCalMinMax?: boolean;
+			percentileFrac?: number;
+			ignoreZeroVoxels?: boolean;
+			visible?: boolean;
+			useQFormNotSForm?: boolean;
+			colorMapNegative?: string;
+			frame4D?: string;
+			imageType?: number;
+		}): NVImage;
 		/**
 		 * factory function to load and return a new NVImage instance from a base64 encoded string
 		 * @constructs NVImage
@@ -467,37 +517,4 @@ declare module '@niivue/niivue' {
 		 */
 		function zerosLike(nvImage: NVImage, dataType?: string): NVImage;
 	}
-	/**
-	 * query all available color maps that can be applied to volumes
-	 * @param {boolean} [sort=true] whether or not to sort the returned array
-	 * @returns {array} an array of colormap strings
-	 * @example
-	 * niivue = new Niivue()
-	 * colormaps = niivue.colorMaps()
-	 */
-	/**
-	 * Enum for supported image types
-	 * @readonly
-	 * @enum {number}
-	 */
-	export type NVIMAGE_TYPE = Readonly<{
-		UNKNOWN: 0;
-		NII: 1;
-		DCM: 2;
-		DCM_MANIFEST: 3;
-		MIH: 4;
-		MIF: 5;
-		NHDR: 6;
-		NRRD: 7;
-		MHD: 8;
-		MHA: 9;
-		MGH: 10;
-		MGZ: 11;
-		V: 12;
-		V16: 13;
-		VMR: 14;
-		HEAD: 15;
-		DCM_FOLDER: 16;
-		parse: (ext: any) => 0;
-	}>;
 }
