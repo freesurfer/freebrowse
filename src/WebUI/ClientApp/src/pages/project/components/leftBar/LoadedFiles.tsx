@@ -42,9 +42,20 @@ export const LoadedFiles = (): React.ReactElement => {
 					title={<span className="border-b border-gray-300 grow">Volumes</span>}
 				>
 					<OrderList
-						entries={project?.volumes}
+						entries={project?.volumes?.map((entry) => ({
+							label: entry.fileName,
+						}))}
 						activeFileName={selectedFile}
 						setActiveFileName={setSelectedFile}
+						updateOrder={(entries) => {
+							entries.forEach((entry) => {
+								const innerEntry = project?.volumes?.find(
+									(innerEntry) => entry.label === innerEntry.fileName
+								);
+								if (innerEntry === undefined) return;
+								innerEntry.order = entry.order;
+							});
+						}}
 					></OrderList>
 				</Collapse>
 				<Collapse
@@ -53,9 +64,20 @@ export const LoadedFiles = (): React.ReactElement => {
 					}
 				>
 					<OrderList
-						entries={project?.surfaces}
+						entries={project?.surfaces?.map((entry) => ({
+							label: entry.fileName,
+						}))}
 						activeFileName={selectedFile}
 						setActiveFileName={setSelectedFile}
+						updateOrder={(entries) => {
+							entries.forEach((entry) => {
+								const innerEntry = project?.surfaces?.find(
+									(innerEntry) => entry.label === innerEntry.fileName
+								);
+								if (innerEntry === undefined) return;
+								innerEntry.order = entry.order;
+							});
+						}}
 					></OrderList>
 				</Collapse>
 			</>
