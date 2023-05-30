@@ -5,6 +5,8 @@ namespace FreeBrowse.Application.Projects.Queries.GetProject;
 
 public record VolumeDto : IMapFrom<Volume>
 {
+	public int Id { get; set; }
+
 	public string Path { get; set; } = null!;
 
 	public string FileName { get; set; } = null!;
