@@ -621,6 +621,10 @@
           "fileName": {
             "type": "string"
           },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
           "order": {
             "type": "integer",
             "format": "int32"
@@ -648,12 +652,15 @@
             "format": "int32"
           },
           "path": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "fileName": {
             "type": "string",
             "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
           },
           "order": {
             "type": "integer",

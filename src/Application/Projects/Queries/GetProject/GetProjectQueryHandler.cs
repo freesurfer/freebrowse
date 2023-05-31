@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AutoMapper;
+﻿using AutoMapper;
 using FreeBrowse.Application.Common.Exceptions;
 using FreeBrowse.Application.Common.Interfaces;
 using FreeBrowse.Domain.Entities;
@@ -31,6 +30,28 @@ public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, ProjectDt
 			throw new NotFoundException(nameof(Project), request.Id);
 		}
 
-		return this.mapper.Map<ProjectDto>(project);
+		var projectDto = this.mapper.Map<ProjectDto>(project);
+
+		foreach (var volumeDto in projectDto.Volumes)
+		{
+			volumeDto.FileSize = this.CalculateFileSize(volumeDto.Path);
+		}
+
+		foreach (var surfaceDto in projectDto.Surfaces)
+		{
+			surfaceDto.FileSize = this.CalculateFileSize(surfaceDto.Path);
+		}
+
+		return projectDto;
+	}
+
+	private long CalculateFileSize(string filePath)
+	{
+		if (!File.Exists(filePath))
+		{
+			throw new FileNotFoundException("File not found.", filePath);
+		}
+
+		return new FileInfo(filePath).Length;
 	}
 }
