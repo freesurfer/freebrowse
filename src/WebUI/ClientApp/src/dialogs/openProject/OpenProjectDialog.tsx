@@ -2,37 +2,27 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Tabs } from '@/components/Tabs';
-import { MyComputerDialogTab } from '@/dialogs/openProject/MyComputerDialogTab';
+import { useProjectDialogState } from '@/dialogs/openProject/hooks/useProjectDialogState';
+import { MyComputerDialogTab } from '@/dialogs/openProject/tabs/my-computer/MyComputerDialogTab';
 import * as WebApi from '@/generated/web-api-client';
+import type { ProjectDto } from '@/generated/web-api-client';
 import { getApiUrl } from '@/utils';
 import { ArrowUpTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { createContext, useState } from 'react';
 import Modal from 'react-modal';
 
-type ResolveCreateProjectDialogResult =
+export type ResolveCreateProjectDialogResult =
 	| {
 			projectId: number;
 	  }
 	| 'canceled';
 
-export interface FileLoadMetadata {
-	file: File;
-	progress: number;
-	selection?: 'grayscale' | 'lookupTable';
-	resampleRAS?: boolean;
-}
-
-export enum LOAD_DIALOG_ERROR {
-	DIALOG_OPENED_ALREADY = 'DIALOG_OPENED_ALREADY',
-	UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-}
-
-interface IOpenProjectDialog {
+export interface IOpenProjectDialog {
 	/**
 	 * open the modal dialog
 	 */
 	readonly createProject: () => Promise<ResolveCreateProjectDialogResult>;
-	readonly editProject: () => Promise<void>;
+	readonly editProject: (project: ProjectDto | undefined) => Promise<void>;
 }
 
 export const OpenProjectDialogContext = createContext<IOpenProjectDialog>({
@@ -76,217 +66,133 @@ export const OpenProjectDialog = ({
 }: {
 	children: React.ReactElement;
 }): React.ReactElement => {
-	const [modalHandle, setModalHandle] = useState<
-		| {
-				resolve: (closeReason: ResolveCreateProjectDialogResult) => void;
-				reject: (error: LOAD_DIALOG_ERROR) => void;
-				isNewProject: boolean;
-		  }
-		| undefined
-	>(undefined);
-
-	const [files, updateFiles] = useState<Record<string, FileLoadMetadata>>({});
-
-	const [projectName, setProjectName] = useState<string>(
-		'Subject_Walter_White'
-	);
-
-	/**
-	 * this callbacks will be accessible from everywhere in the app
-	 * using the useContext hook
-	 */
-	const modalContextValue: IOpenProjectDialog = {
-		createProject: async (): Promise<ResolveCreateProjectDialogResult> => {
-			if (modalHandle !== undefined)
-				throw new Error(LOAD_DIALOG_ERROR.DIALOG_OPENED_ALREADY);
-
-			const promise = new Promise<ResolveCreateProjectDialogResult>(
-				(resolve, reject) => {
-					setModalHandle({ resolve, reject, isNewProject: true });
-				}
-			);
-
-			// close modal dialog on any result
-			promise.finally(() => setModalHandle(undefined));
-			return await promise;
-		},
-		editProject: async (): Promise<void> => {
-			if (modalHandle !== undefined)
-				throw new Error(LOAD_DIALOG_ERROR.DIALOG_OPENED_ALREADY);
-
-			const promise = new Promise<void>((resolve, reject) => {
-				setModalHandle({
-					resolve: () => resolve(),
-					reject,
-					isNewProject: false,
-				});
-			});
-
-			// close modal dialog on any result
-			promise.finally(() => setModalHandle(undefined));
-			return await promise;
-		},
-	};
-
-	const getBase64 = async (file: File | undefined): Promise<string> => {
-		return await new Promise<string>((resolve, reject) => {
-			if (file === undefined) throw new Error('no file given');
-			const reader = new FileReader();
-			reader.readAsDataURL(file);
-			reader.onload = () => {
-				if (reader.result === null) {
-					reject(new Error('result is null'));
-					return;
-				}
-				if (reader.result instanceof ArrayBuffer) {
-					reject(
-						new Error('result is an ArrayBuffer instead of expected string')
-					);
-					return;
-				}
-				resolve(reader.result);
-			};
-			reader.onerror = (error) => {
-				reject(error);
-			};
-		});
-	};
+	const {
+		context,
+		isOpen,
+		projectFiles,
+		setProjectFiles,
+		projectName,
+		setProjectName,
+		projectDto,
+		resolve,
+		reject,
+	} = useProjectDialogState();
 
 	const onOpenClick = async (): Promise<void> => {
-		// const client = new WebApi.ProjectsClient(getApiUrl());
-
-		const fileNames = Object.keys(files);
-		const volumeFileNames = fileNames.filter((fileName) => {
-			if (fileName.endsWith('.mgz')) return true;
-			if (fileName.endsWith('.nii.gz')) return true;
-			return false;
-		});
-		const surfaceFileNames = fileNames.filter((fileName) => {
-			if (fileName.endsWith('.inflated')) return true;
-			if (fileName.endsWith('.pial')) return true;
-			if (fileName.endsWith('.white')) return true;
-			if (fileName.endsWith('.sphere')) return true;
-			return false;
-		});
-
-		/*
-		const volumes = await Promise.all(
-			volumeFileNames.map(async (fileName) => {
-				return new WebApi.VolumeDto2({
-					base64: await getBase64(files[fileName]?.file),
-					fileName,
-				});
-			})
-		);
-
-		const surfaces = await Promise.all(
-			surfaceFileNames.map(async (fileName) => {
-				return new WebApi.SurfaceDto2({
-					base64: await getBase64(files[fileName]?.file),
-					fileName,
-				});
-			})
-		);
-		*/
-
-		try {
-			/*
-			const createProjectResponse = await client.create(
-				new WebApi.CreateProjectCommand({
-					name: projectName,
-					volumes,
-					surfaces,
-				})
-			);
-			*/
-			// BERE only mock for now, unit i'm able to test it properly
-			const createProjectResponse: WebApi.CreateProjectResponseDto =
-				new WebApi.CreateProjectResponseDto({
-					id: 123,
-					volumes: [
-						new WebApi.VolumeResponseDto({
-							id: 1,
-							fileName: 'test1',
-						}),
-					],
-					surfaces: [
-						new WebApi.VolumeResponseDto({
-							id: 2,
-							fileName: 'test2',
-						}),
-					],
-				});
-
-			if (createProjectResponse.id === undefined)
-				throw new Error('no project id received from backend');
-
-			modalHandle?.resolve({ projectId: createProjectResponse.id });
-		} catch (error) {
-			console.error('something went wrong', error);
-			modalHandle?.reject(LOAD_DIALOG_ERROR.UNKNOWN_ERROR);
+		if (
+			projectFiles === undefined ||
+			resolve === undefined ||
+			reject === undefined
+		) {
+			console.error('modal state is not correct');
+			return;
 		}
+
+		const createProjectInBackend = async (): Promise<void> => {
+			const client = new WebApi.ProjectsClient(getApiUrl());
+
+			try {
+				const createProjectResponse = await client.create(
+					new WebApi.CreateProjectCommand({
+						name: projectName,
+						volumes: await projectFiles.getLocalVolumesToUpload(),
+						surfaces: await projectFiles.getLocalSurfacesToUpload(),
+					})
+				);
+
+				if (createProjectResponse.id === undefined)
+					throw new Error('no project id received from backend');
+
+				resolve({ projectId: createProjectResponse.id });
+			} catch (error) {
+				console.error('something went wrong', error);
+				reject('UNKNOWN_ERROR');
+			}
+		};
+
+		const updateProjectInBackend = async (): Promise<void> => {
+			// TODO implement edit command
+			// const client = new WebApi.ProjectsClient(getApiUrl());
+		};
+
+		if (projectDto === undefined) {
+			await createProjectInBackend();
+			return;
+		}
+
+		await updateProjectInBackend();
 	};
 
 	return (
 		<>
-			<OpenProjectDialogContext.Provider value={modalContextValue}>
+			<OpenProjectDialogContext.Provider value={context}>
 				{children}
 			</OpenProjectDialogContext.Provider>
 			<Modal
-				isOpen={modalHandle !== undefined}
+				isOpen={isOpen}
 				style={customStyles}
 				contentLabel="Load volumes & surfaces"
 			>
-				<div className="flex gap-4 items-center m-4">
-					<ArrowUpTrayIcon className="text-gray-500 h-8 w-8 shrink-0"></ArrowUpTrayIcon>
-					<h1 className="text-xl text-gray-500 font-bold mr-12">
-						Load volumes & surfaces
-					</h1>
-				</div>
-				<button
-					onClick={() => modalHandle?.resolve('canceled')}
-					className="text-gray-600 absolute right-0 top-0 p-2"
-				>
-					<XMarkIcon className="h-6 w-6 shrink-0"></XMarkIcon>
-				</button>
+				{projectFiles !== undefined &&
+				setProjectFiles !== undefined &&
+				setProjectName !== undefined &&
+				resolve !== undefined &&
+				reject !== undefined ? (
+					<>
+						<div className="flex gap-4 items-center m-4">
+							<ArrowUpTrayIcon className="text-gray-500 h-8 w-8 shrink-0"></ArrowUpTrayIcon>
+							<h1 className="text-xl text-gray-500 font-bold mr-12">
+								Load volumes & surfaces
+							</h1>
+						</div>
+						<button
+							onClick={() => resolve('canceled')}
+							className="text-gray-600 absolute right-0 top-0 p-2"
+						>
+							<XMarkIcon className="h-6 w-6 shrink-0"></XMarkIcon>
+						</button>
 
-				<Tabs
-					tabs={[
-						{
-							title: 'My computer',
-							content: (
-								<MyComputerDialogTab
-									updateFiles={(files) => updateFiles(files)}
-									files={files}
-									projectName={projectName}
-									setProjectName={setProjectName}
-									isNewProject={modalHandle?.isNewProject ?? false}
-								></MyComputerDialogTab>
-							),
-						},
-						{
-							title: 'Cloud',
-							content: <></>,
-						},
-					]}
-				/>
+						<Tabs
+							tabs={[
+								{
+									title: 'My computer',
+									content: (
+										<MyComputerDialogTab
+											projectFiles={projectFiles}
+											setProjectFiles={setProjectFiles}
+											projectName={projectName}
+											setProjectName={setProjectName}
+											projectDto={projectDto}
+										></MyComputerDialogTab>
+									),
+								},
+								{
+									title: 'Cloud',
+									content: <></>,
+								},
+							]}
+						/>
 
-				<div className="flex justify-end m-2">
-					<button
-						className="m-2 bg-gray-200 text-gray-500 text-sm font-semibold px-5 py-3 rounded-md"
-						onClick={() => modalHandle?.resolve('canceled')}
-					>
-						Cancel
-					</button>
-					<button
-						className="m-2 bg-gray-500 text-white text-sm font-semibold px-5 py-3 rounded-md"
-						onClick={() => {
-							void onOpenClick();
-						}}
-					>
-						Open
-					</button>
-				</div>
+						<div className="flex justify-end m-2">
+							<button
+								className="m-2 bg-gray-200 text-gray-500 text-sm font-semibold px-5 py-3 rounded-md"
+								onClick={() => resolve('canceled')}
+							>
+								Cancel
+							</button>
+							<button
+								className="m-2 bg-gray-500 text-white text-sm font-semibold px-5 py-3 rounded-md"
+								onClick={() => {
+									void onOpenClick();
+								}}
+							>
+								{projectDto === undefined ? 'Open' : 'Update'}
+							</button>
+						</div>
+					</>
+				) : (
+					<span>wrong state</span>
+				)}
 			</Modal>
 		</>
 	);

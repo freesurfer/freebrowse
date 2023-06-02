@@ -1,9 +1,6 @@
 import { Collapse } from '@/components/Collapse';
 import { OrderList } from '@/components/OrderList';
-import {
-	OpenProjectDialogContext,
-	LOAD_DIALOG_ERROR,
-} from '@/dialogs/openProject/OpenProjectDialog';
+import { OpenProjectDialogContext } from '@/dialogs/openProject/OpenProjectDialog';
 import { ProjectContext } from '@/pages/project/ProjectPage';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { useContext } from 'react';
@@ -14,9 +11,8 @@ export const LoadedFiles = (): React.ReactElement => {
 
 	const loadFiles = async (): Promise<void> => {
 		try {
-			await editProject();
+			await editProject(project);
 		} catch (error) {
-			if (error === LOAD_DIALOG_ERROR.DIALOG_OPENED_ALREADY) return;
 			console.error('something went wrong opening files', error);
 		}
 	};

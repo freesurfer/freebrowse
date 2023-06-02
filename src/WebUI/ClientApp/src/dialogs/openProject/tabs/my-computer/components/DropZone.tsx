@@ -1,3 +1,7 @@
+import {
+	FileType,
+	ProjectFileBase,
+} from '@/dialogs/openProject/models/ProjectFiles';
 import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
@@ -22,12 +26,8 @@ export const DropZone = ({
 				message: 'There is no name given with the file to validate with',
 			};
 
-		if (file.name.endsWith('.mgz')) return null;
-		if (file.name.endsWith('.nii.gz')) return null;
-		if (file.name.endsWith('.inflated')) return null;
-		if (file.name.endsWith('.pial')) return null;
-		if (file.name.endsWith('.white')) return null;
-		if (file.name.endsWith('.sphere')) return null;
+		if (ProjectFileBase.typeFromFileExtension(file.name) !== FileType.UNKNOWN)
+			return null;
 
 		return {
 			code: 'type-not-supported',

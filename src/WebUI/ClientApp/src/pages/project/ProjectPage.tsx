@@ -4,6 +4,7 @@ import { LeftBar } from '@/pages/project/components/leftBar/LeftBar';
 import { RightBar } from '@/pages/project/components/rightBar/RightBar';
 import { TopBar } from '@/pages/project/components/topBar/TopBar';
 import { useFetchProject } from '@/pages/project/hooks/useFetchProject';
+import { getApiUrl } from '@/utils';
 import type { LocationData } from '@niivue/niivue';
 import { Niivue } from '@niivue/niivue';
 import { createContext, useEffect, useRef, useState } from 'react';
@@ -32,6 +33,7 @@ export const ProjectContext = createContext<IProjectContext>({
 
 export const ProjectPage = (): React.ReactElement => {
 	const { projectId } = useParams();
+
 	const { project } = useFetchProject(projectId);
 	const [selectedFile, setSelectedFile] = useState<string | undefined>();
 	const [location, setLocation] = useState<LocationData | undefined>();
@@ -65,19 +67,19 @@ export const ProjectPage = (): React.ReactElement => {
 			niivue.current.opts.isOrientCube = true;
 
 			for (const volume of project?.volumes ?? []) {
-				if (volume?.fileName === undefined) continue;
+				if (volume.id === undefined) continue;
 				await niivue.current.loadVolumes([
 					{
-						url: `https://niivue.github.io/niivue-demo-images/${volume.fileName}`,
+						url: `${getApiUrl()}/api/Volume?Id=${String(volume.id)}`,
 						name: volume.fileName,
 					},
 				]);
 			}
 			for (const surface of project?.surfaces ?? []) {
-				if (surface?.fileName === undefined) continue;
+				if (surface.id === undefined) continue;
 				await niivue.current.loadMeshes([
 					{
-						url: `https://niivue.github.io/niivue/images/${surface.fileName}`,
+						url: `${getApiUrl()}/api/Surface?Id=${String(surface.id)}`,
 						name: surface.fileName,
 					},
 				]);
