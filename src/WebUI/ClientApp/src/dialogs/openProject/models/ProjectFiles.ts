@@ -93,7 +93,11 @@ export class LocalFile extends ProjectFileBase {
 export class CloudFile extends ProjectFileBase {
 	public readonly url: string;
 
-	private constructor(fileDto: SurfaceDto | VolumeDto, fileType: FileType) {
+	private constructor(
+		fileDto: SurfaceDto | VolumeDto,
+		fileType: FileType,
+		size: number | undefined
+	) {
 		if (fileDto.fileName === undefined)
 			throw new Error('a cloud file instance need to have a fileName');
 		if (fileDto.id === undefined)
@@ -102,17 +106,17 @@ export class CloudFile extends ProjectFileBase {
 			throw new Error('the file type does not match the file name extension');
 
 		// TODO bere - add size from backend
-		super(fileDto.fileName, fileType, 0);
+		super(fileDto.fileName, fileType, size ?? 0);
 
 		this.url = `${getApiUrl()}/api/Volume?Id=${String(fileDto.id)}`;
 	}
 
 	public static fromVolume(volumeDto: VolumeDto): CloudFile {
-		return new CloudFile(volumeDto, FileType.VOLUME);
+		return new CloudFile(volumeDto, FileType.VOLUME, volumeDto.fileSize);
 	}
 
 	public static fromSurface(surfaceDto: SurfaceDto): CloudFile {
-		return new CloudFile(surfaceDto, FileType.SURFACE);
+		return new CloudFile(surfaceDto, FileType.SURFACE, surfaceDto.fileSize);
 	}
 }
 
