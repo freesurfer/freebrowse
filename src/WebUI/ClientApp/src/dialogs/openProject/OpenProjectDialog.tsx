@@ -1,14 +1,26 @@
-// TODO remove
-
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Tabs } from '@/components/Tabs';
 import { useProjectDialogState } from '@/dialogs/openProject/hooks/useProjectDialogState';
+import {
+	CloudSurfaceFile,
+	CloudVolumeFile,
+	LocalSurfaceFile,
+	LocalVolumeFile,
+} from '@/dialogs/openProject/models/ProjectFile';
 import { MyComputerDialogTab } from '@/dialogs/openProject/tabs/my-computer/MyComputerDialogTab';
-import * as WebApi from '@/generated/web-api-client';
+import {
+	CreateSurfacesCommand,
+	CreateVolumesCommand,
+	DeleteSurfaceCommand,
+	DeleteVolumeCommand,
+	SurfaceClient,
+	VolumeClient,
+	CreateProjectCommand,
+	ProjectsClient,
+} from '@/generated/web-api-client';
 import type { ProjectDto } from '@/generated/web-api-client';
 import { getApiUrl } from '@/utils';
 import { ArrowUpTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { createContext, useState } from 'react';
+import { createContext } from 'react';
 import Modal from 'react-modal';
 
 export type ResolveCreateProjectDialogResult =
@@ -89,11 +101,11 @@ export const OpenProjectDialog = ({
 		}
 
 		const createProjectInBackend = async (): Promise<void> => {
-			const client = new WebApi.ProjectsClient(getApiUrl());
+			const projectClient = new ProjectsClient(getApiUrl());
 
 			try {
-				const createProjectResponse = await client.create(
-					new WebApi.CreateProjectCommand({
+				const createProjectResponse = await projectClient.create(
+					new CreateProjectCommand({
 						name: projectName,
 						volumes: await projectFiles.getLocalVolumesToUpload(),
 						surfaces: await projectFiles.getLocalSurfacesToUpload(),
@@ -111,8 +123,105 @@ export const OpenProjectDialog = ({
 		};
 
 		const updateProjectInBackend = async (): Promise<void> => {
-			// TODO implement edit command
-			// const client = new WebApi.ProjectsClient(getApiUrl());
+			if (projectDto?.id === undefined) {
+				console.error('update not possible without existing project');
+				return;
+			}
+
+			const surfaceClient = new SurfaceClient(getApiUrl());
+			const volumeClient = new VolumeClient(getApiUrl());
+
+			const deletedSurfaces =
+				projectDto.surfaces?.filter(
+					(backendFile) =>
+						projectFiles.surfaceFiles.find(
+							(tmpFile) => tmpFile.name === backendFile.fileName
+						) === undefined
+				) ?? [];
+			for (const deletedSurface of deletedSurfaces) {
+				await surfaceClient.delete(
+					new DeleteSurfaceCommand({ id: deletedSurface.id })
+				);
+			}
+
+			const addedSurfaces = projectFiles.surfaceFiles.filter(
+				(tmpFile) =>
+					projectDto.surfaces?.find(
+						(backendFile) => backendFile.fileName === tmpFile.name
+					) === undefined
+			);
+
+			const addedCloudSurfaceFiles = addedSurfaces.filter(
+				(file): file is CloudSurfaceFile => file instanceof CloudSurfaceFile
+			);
+			for (const addedCloudSurfaceFile of addedCloudSurfaceFiles)
+				console.warn(
+					'it is not possible to add a file as cloud file directly',
+					addedCloudSurfaceFile.name
+				);
+
+			const addedLocalSurfaceFiles = addedSurfaces.filter(
+				(file): file is LocalSurfaceFile => file instanceof LocalSurfaceFile
+			);
+			if (addedLocalSurfaceFiles.length > 0) {
+				await surfaceClient.create(
+					new CreateSurfacesCommand({
+						projectId: projectDto.id,
+						surfaces: await Promise.all(
+							addedLocalSurfaceFiles.map(
+								async (addedSurfaceFile) =>
+									await addedSurfaceFile.toSurfaceDto3()
+							)
+						),
+					})
+				);
+			}
+
+			const deletedVolumes =
+				projectDto.volumes?.filter(
+					(backendFile) =>
+						projectFiles.volumeFiles.find(
+							(tmpFile) => tmpFile.name === backendFile.fileName
+						) === undefined
+				) ?? [];
+			for (const deletedVolume of deletedVolumes) {
+				await volumeClient.delete(
+					new DeleteVolumeCommand({ id: deletedVolume.id })
+				);
+			}
+
+			const addedVolumes = projectFiles.volumeFiles.filter(
+				(tmpFile) =>
+					projectDto.volumes?.find(
+						(backendFile) => backendFile.fileName === tmpFile.name
+					) === undefined
+			);
+			const addedCloudVolumeFiles = addedVolumes.filter(
+				(file): file is CloudVolumeFile => file instanceof CloudVolumeFile
+			);
+			for (const addedCloudVolumeFile of addedCloudVolumeFiles)
+				console.warn(
+					'it is not possible to add a file as cloud file directly',
+					addedCloudVolumeFile.name
+				);
+
+			const addedLocalVolumeFiles = addedVolumes.filter(
+				(file): file is LocalVolumeFile => file instanceof LocalVolumeFile
+			);
+			if (addedLocalVolumeFiles.length > 0) {
+				await volumeClient.create(
+					new CreateVolumesCommand({
+						projectId: projectDto.id,
+						volumes: await Promise.all(
+							addedLocalVolumeFiles.map(
+								async (addedVolumeFile) => await addedVolumeFile.toVolumeDto3()
+							)
+						),
+					})
+				);
+			}
+
+			resolve({ projectId: projectDto.id });
 		};
 
 		if (projectDto === undefined) {
@@ -191,7 +300,7 @@ export const OpenProjectDialog = ({
 						</div>
 					</>
 				) : (
-					<span>wrong state</span>
+					<></>
 				)}
 			</Modal>
 		</>

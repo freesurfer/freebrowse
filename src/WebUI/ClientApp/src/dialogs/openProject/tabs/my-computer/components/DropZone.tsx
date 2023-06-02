@@ -1,7 +1,7 @@
 import {
 	FileType,
 	ProjectFileBase,
-} from '@/dialogs/openProject/models/ProjectFiles';
+} from '@/dialogs/openProject/models/ProjectFile';
 import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';

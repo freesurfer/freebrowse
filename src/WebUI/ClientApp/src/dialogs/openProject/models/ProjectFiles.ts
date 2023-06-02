@@ -1,126 +1,22 @@
+import {
+	LocalFile,
+	CloudSurfaceFile,
+	CloudVolumeFile,
+	LocalSurfaceFile,
+	LocalVolumeFile,
+} from '@/dialogs/openProject/models/ProjectFile';
+import type {
+	ProjectFile,
+	ProjectSurfaceFile,
+	ProjectVolumeFile,
+} from '@/dialogs/openProject/models/ProjectFile';
 import type {
 	SurfaceDto,
 	VolumeDto,
 	ProjectDto,
+	VolumeDto2,
+	SurfaceDto2,
 } from '@/generated/web-api-client';
-import { VolumeDto2, SurfaceDto2 } from '@/generated/web-api-client';
-import { getApiUrl } from '@/utils';
-
-export enum FileType {
-	UNKNOWN,
-	VOLUME,
-	SURFACE,
-}
-
-/**
- * all properties each file has
- * probably mostly about the configuration
- */
-export abstract class ProjectFileBase {
-	readonly selection?: 'grayscale' | 'lookupTable';
-	readonly resampleRAS?: boolean;
-
-	constructor(
-		public readonly name: string,
-		public readonly type: FileType,
-		private readonly size: number
-	) {}
-
-	/**
-	 * method to compute a readable representation of the file size
-	 */
-	public sizeReadable(): string {
-		return `${Math.floor(this.size / 10000) / 100} MB`;
-	}
-
-	public static typeFromFileExtension(fileName: string): FileType {
-		if (fileName.endsWith('.mgz')) return FileType.VOLUME;
-		if (fileName.endsWith('.nii.gz')) return FileType.VOLUME;
-
-		if (fileName.endsWith('.inflated')) return FileType.SURFACE;
-		if (fileName.endsWith('.pial')) return FileType.SURFACE;
-		if (fileName.endsWith('.white')) return FileType.SURFACE;
-		if (fileName.endsWith('.sphere')) return FileType.SURFACE;
-
-		return FileType.UNKNOWN;
-	}
-}
-
-/**
- * files added by the user from the hard drive to upload
- */
-export class LocalFile extends ProjectFileBase {
-	progress = 100;
-
-	constructor(protected readonly file: File) {
-		super(file.name, CloudFile.typeFromFileExtension(file.name), file.size);
-	}
-
-	public async getBase64(): Promise<string> {
-		return await new Promise<string>((resolve, reject) => {
-			const reader = new FileReader();
-			reader.readAsDataURL(this.file);
-			reader.onload = () => {
-				if (reader.result === null) {
-					reject(new Error('result is null'));
-					return;
-				}
-				if (reader.result instanceof ArrayBuffer) {
-					reject(
-						new Error('result is an ArrayBuffer instead of expected string')
-					);
-					return;
-				}
-				const arr = reader.result.split(',');
-				const base64 = arr[arr.length - 1];
-				if (base64 === undefined) {
-					reject(new Error('not possible'));
-					return;
-				}
-
-				resolve(base64);
-			};
-			reader.onerror = (error) => {
-				reject(error);
-			};
-		});
-	}
-}
-
-/**
- * files stored in the backend
- */
-export class CloudFile extends ProjectFileBase {
-	public readonly url: string;
-
-	private constructor(
-		fileDto: SurfaceDto | VolumeDto,
-		fileType: FileType,
-		size: number | undefined
-	) {
-		if (fileDto.fileName === undefined)
-			throw new Error('a cloud file instance need to have a fileName');
-		if (fileDto.id === undefined)
-			throw new Error('a cloud file instance need to have a id');
-		if (CloudFile.typeFromFileExtension(fileDto.fileName) !== fileType)
-			throw new Error('the file type does not match the file name extension');
-
-		// TODO bere - add size from backend
-		super(fileDto.fileName, fileType, size ?? 0);
-
-		this.url = `${getApiUrl()}/api/Volume?Id=${String(fileDto.id)}`;
-	}
-
-	public static fromVolume(volumeDto: VolumeDto): CloudFile {
-		return new CloudFile(volumeDto, FileType.VOLUME, volumeDto.fileSize);
-	}
-
-	public static fromSurface(surfaceDto: SurfaceDto): CloudFile {
-		return new CloudFile(surfaceDto, FileType.SURFACE, surfaceDto.fileSize);
-	}
-}
-
-export type ProjectFile = CloudFile | LocalFile;
 
 /**
  * mutable instance keeps the state of the project files
@@ -129,9 +25,14 @@ export type ProjectFile = CloudFile | LocalFile;
  * - the once the user opened from the drive, which need to get uploaded
  */
 export class ProjectFiles {
-	private readonly cloudFiles: readonly CloudFile[] = [];
+	private readonly localSurfaceFiles: readonly LocalSurfaceFile[];
+	private readonly localVolumeFiles: readonly LocalVolumeFile[];
+	private readonly cloudSurfaceFiles: readonly CloudSurfaceFile[];
+	private readonly cloudVolumeFiles: readonly CloudVolumeFile[];
 
-	private readonly localFiles: readonly LocalFile[] = [];
+	public readonly surfaceFiles: readonly ProjectSurfaceFile[];
+	public readonly volumeFiles: readonly ProjectVolumeFile[];
+	public readonly files: readonly ProjectFile[];
 
 	/**
 	 * the project files instance can be created
@@ -142,34 +43,47 @@ export class ProjectFiles {
 	constructor(
 		initState?:
 			| { projectDto: ProjectDto }
-			| { cloudFiles: readonly CloudFile[]; localFiles: readonly LocalFile[] }
+			| {
+					localSurfaceFiles: readonly LocalSurfaceFile[];
+					localVolumeFiles: readonly LocalVolumeFile[];
+					cloudSurfaceFiles: readonly CloudSurfaceFile[];
+					cloudVolumeFiles: readonly CloudVolumeFile[];
+			  }
 			| undefined
 	) {
-		if (initState === undefined) return;
-
-		if ('projectDto' in initState) {
-			this.cloudFiles = [
-				...ProjectFiles.cloudFileFromVolumeDto(initState.projectDto.volumes),
-				...ProjectFiles.cloudFileFromSurfaceDto(initState.projectDto.surfaces),
-			];
+		if (initState === undefined) {
+			// new empty class
+			this.localSurfaceFiles = [];
+			this.localVolumeFiles = [];
+			this.cloudSurfaceFiles = [];
+			this.cloudVolumeFiles = [];
+			this.surfaceFiles = [];
+			this.volumeFiles = [];
+			this.files = [];
 			return;
 		}
 
-		// create new instance of class for state management
-		this.localFiles = initState.localFiles;
-		this.cloudFiles = initState.cloudFiles;
-	}
+		if ('projectDto' in initState) {
+			// new class from given backend state
+			this.localSurfaceFiles = [];
+			this.localVolumeFiles = [];
+			this.cloudSurfaceFiles = ProjectFiles.cloudFileFromSurfaceDto(
+				initState.projectDto.surfaces
+			);
+			this.cloudVolumeFiles = ProjectFiles.cloudFileFromVolumeDto(
+				initState.projectDto.volumes
+			);
+		} else {
+			// new class from given file set
+			this.localSurfaceFiles = initState.localSurfaceFiles;
+			this.localVolumeFiles = initState.localVolumeFiles;
+			this.cloudSurfaceFiles = initState.cloudSurfaceFiles;
+			this.cloudVolumeFiles = initState.cloudVolumeFiles;
+		}
 
-	public get files(): readonly ProjectFile[] {
-		return [...this.cloudFiles, ...this.localFiles];
-	}
-
-	public get surfaces(): readonly ProjectFile[] {
-		return this.files.filter((file) => file.type === FileType.SURFACE);
-	}
-
-	public get volumes(): readonly ProjectFile[] {
-		return this.files.filter((file) => file.type === FileType.VOLUME);
+		this.surfaceFiles = [...this.cloudSurfaceFiles, ...this.localSurfaceFiles];
+		this.volumeFiles = [...this.cloudVolumeFiles, ...this.localVolumeFiles];
+		this.files = [...this.surfaceFiles, ...this.volumeFiles];
 	}
 
 	/**
@@ -179,84 +93,98 @@ export class ProjectFiles {
 	public fromAddedLocalFiles(files: File[]): ProjectFiles {
 		const newFiles = files
 			.map((newFile) => {
-				// remove duplicates
+				// do not add if file name exists already
 				if (this.files.find((file) => file.name === newFile.name) !== undefined)
 					return undefined;
-				return new LocalFile(newFile);
+				return LocalFile.fromFile(newFile);
 			})
-			.filter((file): file is LocalFile => file !== undefined);
+			.filter(
+				(file): file is LocalSurfaceFile | LocalVolumeFile => file !== undefined
+			);
 
 		return new ProjectFiles({
-			cloudFiles: [...this.cloudFiles],
-			localFiles: [...this.localFiles, ...newFiles],
+			cloudVolumeFiles: [...this.cloudVolumeFiles],
+			cloudSurfaceFiles: [...this.cloudSurfaceFiles],
+			localVolumeFiles: [
+				...this.localVolumeFiles,
+				...newFiles.filter(
+					(newFile): newFile is LocalVolumeFile =>
+						newFile instanceof LocalVolumeFile
+				),
+			],
+			localSurfaceFiles: [
+				...this.localSurfaceFiles,
+				...newFiles.filter(
+					(newFile): newFile is LocalSurfaceFile =>
+						newFile instanceof LocalSurfaceFile
+				),
+			],
 		});
 	}
 
 	public fromDeletedFile(fileNameToDelete: string): ProjectFiles {
 		return new ProjectFiles({
-			cloudFiles: [
-				...this.cloudFiles.filter((file) => file.name !== fileNameToDelete),
+			cloudSurfaceFiles: [
+				...this.cloudSurfaceFiles.filter(
+					(file) => file.name !== fileNameToDelete
+				),
 			],
-			localFiles: [
-				...this.localFiles.filter((file) => file.name !== fileNameToDelete),
+			cloudVolumeFiles: [
+				...this.cloudVolumeFiles.filter(
+					(file) => file.name !== fileNameToDelete
+				),
+			],
+			localSurfaceFiles: [
+				...this.localSurfaceFiles.filter(
+					(file) => file.name !== fileNameToDelete
+				),
+			],
+			localVolumeFiles: [
+				...this.localVolumeFiles.filter(
+					(file) => file.name !== fileNameToDelete
+				),
 			],
 		});
 	}
 
 	public async getLocalVolumesToUpload(): Promise<VolumeDto2[]> {
 		return await Promise.all(
-			this.localFiles
-				.filter((file) => file.type === FileType.VOLUME)
-				.map(
-					async (file) =>
-						new VolumeDto2({
-							base64: await file.getBase64(),
-							fileName: file.name,
-						})
-				)
+			this.localVolumeFiles.map(async (file) => await file.toVolumeDto2())
 		);
 	}
 
 	public async getLocalSurfacesToUpload(): Promise<SurfaceDto2[]> {
 		return await Promise.all(
-			this.localFiles
-				.filter((file) => file.type === FileType.SURFACE)
-				.map(
-					async (file) =>
-						new SurfaceDto2({
-							base64: await file.getBase64(),
-							fileName: file.name,
-						})
-				)
+			this.localSurfaceFiles.map(async (file) => await file.toSurfaceDto2())
 		);
 	}
 
 	private static cloudFileFromVolumeDto(
 		fileModel: VolumeDto[] | undefined
-	): CloudFile[] {
+	): CloudVolumeFile[] {
 		if (fileModel === undefined) return [];
 
 		return fileModel
-			.map<CloudFile | undefined>((fileDto) => {
+			.map<CloudVolumeFile | undefined>((fileDto) => {
 				if (fileDto?.fileName === undefined) return undefined;
-				return CloudFile.fromVolume(fileDto);
+				return new CloudVolumeFile(fileDto);
 			})
-			.filter<CloudFile>(
-				(cloudFile): cloudFile is CloudFile => cloudFile !== undefined
+			.filter<CloudVolumeFile>(
+				(cloudFile): cloudFile is CloudVolumeFile => cloudFile !== undefined
 			);
 	}
 
 	private static cloudFileFromSurfaceDto(
 		fileModel: SurfaceDto[] | undefined
-	): CloudFile[] {
+	): CloudSurfaceFile[] {
 		if (fileModel === undefined) return [];
 		return fileModel
-			.map<CloudFile | undefined>((fileDto) => {
+			.map<CloudSurfaceFile | undefined>((fileDto) => {
 				if (fileDto?.fileName === undefined) return undefined;
-				return CloudFile.fromSurface(fileDto);
+				return new CloudSurfaceFile(fileDto);
 			})
-			.filter<CloudFile>(
-				(cloudFile): cloudFile is CloudFile => cloudFile !== undefined
+			.filter<CloudSurfaceFile>(
+				(cloudFile): cloudFile is CloudSurfaceFile => cloudFile !== undefined
 			);
 	}
 }
