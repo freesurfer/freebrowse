@@ -479,8 +479,8 @@ declare module '@niivue/niivue' {
 		loadingText: any;
 		subscriptions: any;
 		volumes: NVImage[];
-		set meshes(arg: any);
-		get meshes(): any;
+		set meshes(arg: NVMesh[]);
+		get meshes(): NVMesh[];
 		set drawBitmap(arg: any);
 		get drawBitmap(): any;
 		/**

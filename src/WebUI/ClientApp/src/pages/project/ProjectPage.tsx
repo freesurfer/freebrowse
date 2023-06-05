@@ -61,6 +61,7 @@ export const ProjectPage = (): React.ReactElement => {
 		new Niivue({
 			show3Dcrosshair: false,
 			onLocationChange: (location) => setLocation(location),
+			dragAndDropEnabled: false,
 		})
 	);
 
@@ -84,8 +85,12 @@ export const ProjectPage = (): React.ReactElement => {
 			niivue.current.volumes.forEach((volume) => {
 				niivue.current.removeVolume(volume);
 			});
+			niivue.current.meshes.forEach((mesh) => {
+				niivue.current.removeMesh(mesh);
+			});
 
 			if (projectState === undefined) return;
+			niivue.current.setSliceType(niivue.current.sliceTypeMultiplanar);
 
 			niivue.current.setHighResolutionCapable(false);
 			niivue.current.opts.isOrientCube = false;
@@ -109,6 +114,7 @@ export const ProjectPage = (): React.ReactElement => {
 			}
 
 			niivue.current.setMeshThicknessOn2D(0);
+			niivue.current.updateGLVolume();
 		};
 		void loadData();
 	}, [projectState]);
