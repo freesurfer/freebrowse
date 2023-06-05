@@ -4,7 +4,6 @@ import {
 	VolumeDto2,
 	VolumeDto3,
 } from '@/generated/web-api-client';
-import type { SurfaceDto, VolumeDto } from '@/generated/web-api-client';
 import { getApiUrl } from '@/utils';
 
 export enum FileType {
@@ -22,7 +21,7 @@ export abstract class ProjectFileBase {
 	readonly resampleRAS?: boolean;
 	abstract readonly type: FileType;
 
-	constructor(public readonly name: string, private readonly size: number) {}
+	constructor(public readonly name: string, public readonly size: number) {}
 
 	/**
 	 * method to compute a readable representation of the file size
@@ -139,49 +138,38 @@ export class LocalSurfaceFile extends LocalFile {
  */
 export abstract class CloudFile extends ProjectFileBase {
 	constructor(
-		fileDto: SurfaceDto | VolumeDto,
 		public readonly id: number,
+		name: string,
+		size: number,
 		/**
 		 * url for niivue to load the image from
 		 */
 		public readonly url: string
 	) {
-		if (fileDto.fileName === undefined)
+		if (name === undefined)
 			throw new Error('a cloud file instance need to have a fileName');
-		if (fileDto.id === undefined)
+		if (size === undefined)
 			throw new Error('a cloud file instance need to have a id');
 
-		super(fileDto.fileName, fileDto.fileSize ?? 0);
+		super(name, size);
 	}
 }
 
 export class CloudVolumeFile extends CloudFile {
 	public readonly type = FileType.VOLUME;
 
-	constructor(volumeDto: VolumeDto) {
-		if (volumeDto.id === undefined)
-			throw new Error('no id for cloud volume file');
-
-		super(
-			volumeDto,
-			volumeDto.id,
-			`${getApiUrl()}/api/Volume?Id=${String(volumeDto.id)}`
-		);
+	constructor(id: number, name: string, size: number) {
+		if (id === undefined) throw new Error('no id for cloud volume file');
+		super(id, name, size, `${getApiUrl()}/api/Volume?Id=${String(id)}`);
 	}
 }
 
 export class CloudSurfaceFile extends CloudFile {
 	public readonly type = FileType.SURFACE;
 
-	constructor(surfaceDto: SurfaceDto) {
-		if (surfaceDto.id === undefined)
-			throw new Error('no id for cloud surface file');
-
-		super(
-			surfaceDto,
-			surfaceDto.id,
-			`${getApiUrl()}/api/Surface?Id=${String(surfaceDto.id)}`
-		);
+	constructor(id: number, name: string, size: number) {
+		if (id === undefined) throw new Error('no id for cloud surface file');
+		super(id, name, size, `${getApiUrl()}/api/Surface?Id=${String(id)}`);
 	}
 }
 

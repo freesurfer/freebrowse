@@ -139,13 +139,14 @@ export const OpenProjectDialog = ({
 				return;
 			}
 
+			let temporaryProjectFiles = projectFiles;
 			const surfaceClient = new SurfaceClient(getApiUrl());
 			const volumeClient = new VolumeClient(getApiUrl());
 
 			const deletedSurfaces =
 				projectState.files.surfaces?.filter(
 					(backendFile) =>
-						projectFiles.surfaces.find(
+						temporaryProjectFiles.surfaces.find(
 							(tmpFile) => tmpFile.name === backendFile.name
 						) === undefined
 				) ?? [];
@@ -159,7 +160,7 @@ export const OpenProjectDialog = ({
 				} else throw new Error('should not happen');
 			}
 
-			const addedSurfaces = projectFiles.surfaces.filter(
+			const addedSurfaces = temporaryProjectFiles.surfaces.filter(
 				(tmpFile) =>
 					projectState.files.surfaces?.find(
 						(backendFile) => backendFile.name === tmpFile.name
@@ -179,7 +180,7 @@ export const OpenProjectDialog = ({
 				(file): file is LocalSurfaceFile => file instanceof LocalSurfaceFile
 			);
 			if (addedLocalSurfaceFiles.length > 0) {
-				await surfaceClient.create(
+				const response = await surfaceClient.create(
 					new CreateSurfacesCommand({
 						projectId: projectState.id,
 						surfaces: await Promise.all(
@@ -190,12 +191,14 @@ export const OpenProjectDialog = ({
 						),
 					})
 				);
+				temporaryProjectFiles =
+					temporaryProjectFiles.fromUploadedSurfaces(response);
 			}
 
 			const deletedVolumes =
 				projectState.files.volumes?.filter(
 					(backendFile) =>
-						projectFiles.volumes.find(
+						temporaryProjectFiles.volumes.find(
 							(tmpFile) => tmpFile.name === backendFile.name
 						) === undefined
 				) ?? [];
@@ -228,7 +231,7 @@ export const OpenProjectDialog = ({
 				(file): file is LocalVolumeFile => file instanceof LocalVolumeFile
 			);
 			if (addedLocalVolumeFiles.length > 0) {
-				await volumeClient.create(
+				const response = await volumeClient.create(
 					new CreateVolumesCommand({
 						projectId: projectState.id,
 						volumes: await Promise.all(
@@ -238,9 +241,15 @@ export const OpenProjectDialog = ({
 						),
 					})
 				);
+				temporaryProjectFiles =
+					temporaryProjectFiles.fromUploadedVolumes(response);
 			}
 
-			resolve({ projectId: projectState.id, projectFiles });
+			setProjectFiles?.(temporaryProjectFiles);
+			resolve({
+				projectId: projectState.id,
+				projectFiles: temporaryProjectFiles,
+			});
 		};
 
 		if (projectState === undefined) {

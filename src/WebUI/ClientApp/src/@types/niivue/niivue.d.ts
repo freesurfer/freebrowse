@@ -478,18 +478,7 @@ declare module '@niivue/niivue' {
 		currentDrawUndoBitmap: any;
 		loadingText: any;
 		subscriptions: any;
-		volumes: {
-			name: string;
-			opacity: number;
-			cal_min: number;
-			cal_max: number;
-			robust_min: number;
-			robust_max: number;
-			id: string;
-			frame4D: number;
-			colorMap: string;
-			// TODO not complete
-		}[];
+		volumes: NVImage[];
 		set meshes(arg: any);
 		get meshes(): any;
 		set drawBitmap(arg: any);

@@ -11,7 +11,6 @@ export const LoadedFiles = (): React.ReactElement => {
 	const { editProject } = useContext(OpenProjectDialogContext);
 
 	if (projectState === undefined) {
-		console.error('missing project state');
 		return <></>;
 	}
 

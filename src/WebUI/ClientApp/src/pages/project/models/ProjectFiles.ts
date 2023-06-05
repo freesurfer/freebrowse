@@ -4,6 +4,8 @@ import type {
 	ProjectDto,
 	VolumeDto2,
 	SurfaceDto2,
+	CreateVolumeResponseDto,
+	CreateSurfaceResponseDto,
 } from '@/generated/web-api-client';
 import {
 	LocalFile,
@@ -44,10 +46,10 @@ export class ProjectFiles {
 		initState?:
 			| { backendState: ProjectDto }
 			| {
-					localSurfaceFiles: readonly LocalSurfaceFile[];
-					localVolumeFiles: readonly LocalVolumeFile[];
-					cloudSurfaceFiles: readonly CloudSurfaceFile[];
-					cloudVolumeFiles: readonly CloudVolumeFile[];
+					localSurfaces: readonly LocalSurfaceFile[];
+					localVolumes: readonly LocalVolumeFile[];
+					cloudSurfaces: readonly CloudSurfaceFile[];
+					cloudVolumes: readonly CloudVolumeFile[];
 			  }
 			| undefined
 	) {
@@ -75,10 +77,10 @@ export class ProjectFiles {
 			);
 		} else {
 			// new class from given file set
-			this.localSurfaces = initState.localSurfaceFiles;
-			this.localVolumes = initState.localVolumeFiles;
-			this.cloudSurfaces = initState.cloudSurfaceFiles;
-			this.cloudVolumes = initState.cloudVolumeFiles;
+			this.localSurfaces = initState.localSurfaces;
+			this.localVolumes = initState.localVolumes;
+			this.cloudSurfaces = initState.cloudSurfaces;
+			this.cloudVolumes = initState.cloudVolumes;
 		}
 
 		this.surfaces = [...this.cloudSurfaces, ...this.localSurfaces];
@@ -103,16 +105,16 @@ export class ProjectFiles {
 			);
 
 		return new ProjectFiles({
-			cloudVolumeFiles: [...this.cloudVolumes],
-			cloudSurfaceFiles: [...this.cloudSurfaces],
-			localVolumeFiles: [
+			cloudVolumes: [...this.cloudVolumes],
+			cloudSurfaces: [...this.cloudSurfaces],
+			localVolumes: [
 				...this.localVolumes,
 				...newFiles.filter(
 					(newFile): newFile is LocalVolumeFile =>
 						newFile instanceof LocalVolumeFile
 				),
 			],
-			localSurfaceFiles: [
+			localSurfaces: [
 				...this.localSurfaces,
 				...newFiles.filter(
 					(newFile): newFile is LocalSurfaceFile =>
@@ -124,17 +126,101 @@ export class ProjectFiles {
 
 	public fromDeletedFile(fileNameToDelete: string): ProjectFiles {
 		return new ProjectFiles({
-			cloudSurfaceFiles: [
+			cloudSurfaces: [
 				...this.cloudSurfaces.filter((file) => file.name !== fileNameToDelete),
 			],
-			cloudVolumeFiles: [
+			cloudVolumes: [
 				...this.cloudVolumes.filter((file) => file.name !== fileNameToDelete),
 			],
-			localSurfaceFiles: [
+			localSurfaces: [
 				...this.localSurfaces.filter((file) => file.name !== fileNameToDelete),
 			],
-			localVolumeFiles: [
+			localVolumes: [
 				...this.localVolumes.filter((file) => file.name !== fileNameToDelete),
+			],
+		});
+	}
+
+	public fromUploadedSurfaces(
+		uploadResponses: CreateSurfaceResponseDto[]
+	): ProjectFiles {
+		return new ProjectFiles({
+			cloudSurfaces: [
+				...this.cloudSurfaces,
+				...uploadResponses.map((uploadResponse) => {
+					if (uploadResponse.id === undefined)
+						throw new Error('there needs to be a id for each cloud file');
+					if (uploadResponse.fileName === undefined)
+						throw new Error('there needs to be a name for each cloud file');
+
+					// workaround as long as we do not receive the size as response
+					const localFile = this.localSurfaces.find(
+						(localSurface) => localSurface.name === uploadResponse.fileName
+					);
+
+					if (localFile === undefined)
+						throw new Error(
+							'there should be a local file for each uploaded cloud file'
+						);
+
+					return new CloudSurfaceFile(
+						uploadResponse.id,
+						uploadResponse.fileName,
+						localFile.size
+					);
+				}),
+			],
+			cloudVolumes: this.cloudVolumes,
+			localSurfaces: [
+				...this.localSurfaces.filter(
+					(localSurface) =>
+						!uploadResponses
+							.map((uploadResponse) => uploadResponse.fileName)
+							.includes(localSurface.name)
+				),
+			],
+			localVolumes: this.localVolumes,
+		});
+	}
+
+	public fromUploadedVolumes(
+		uploadResponses: CreateVolumeResponseDto[]
+	): ProjectFiles {
+		return new ProjectFiles({
+			cloudSurfaces: this.cloudSurfaces,
+			cloudVolumes: [
+				...this.cloudVolumes,
+				...uploadResponses.map((uploadResponse) => {
+					if (uploadResponse.id === undefined)
+						throw new Error('there needs to be a id for each cloud file');
+					if (uploadResponse.fileName === undefined)
+						throw new Error('there needs to be a name for each cloud file');
+
+					// workaround as long as we do not receive the size as response
+					const localFile = this.localVolumes.find(
+						(localVolume) => localVolume.name === uploadResponse.fileName
+					);
+
+					if (localFile === undefined)
+						throw new Error(
+							'there should be a local file for each uploaded cloud file'
+						);
+
+					return new CloudVolumeFile(
+						uploadResponse.id,
+						uploadResponse.fileName,
+						localFile.size
+					);
+				}),
+			],
+			localSurfaces: this.localSurfaces,
+			localVolumes: [
+				...this.localVolumes.filter(
+					(localVolume) =>
+						!uploadResponses
+							.map((uploadResponse) => uploadResponse.fileName)
+							.includes(localVolume.name)
+				),
 			],
 		});
 	}
@@ -157,9 +243,24 @@ export class ProjectFiles {
 		if (fileModel === undefined) return [];
 
 		return fileModel
-			.map<CloudVolumeFile | undefined>((fileDto) => {
-				if (fileDto?.fileName === undefined) return undefined;
-				return new CloudVolumeFile(fileDto);
+			.map<CloudVolumeFile>((fileDto) => {
+				if (fileDto === undefined)
+					throw new Error('undefined array entry is not allowed');
+
+				if (fileDto?.id === undefined)
+					throw new Error('no file without file id');
+
+				if (fileDto?.fileName === undefined)
+					throw new Error('no file without file name');
+
+				if (fileDto?.fileSize === undefined)
+					throw new Error('no file without file size');
+
+				return new CloudVolumeFile(
+					fileDto.id,
+					fileDto.fileName,
+					fileDto.fileSize
+				);
 			})
 			.filter<CloudVolumeFile>(
 				(cloudFile): cloudFile is CloudVolumeFile => cloudFile !== undefined
@@ -172,8 +273,23 @@ export class ProjectFiles {
 		if (fileModel === undefined) return [];
 		return fileModel
 			.map<CloudSurfaceFile | undefined>((fileDto) => {
-				if (fileDto?.fileName === undefined) return undefined;
-				return new CloudSurfaceFile(fileDto);
+				if (fileDto === undefined)
+					throw new Error('undefined array entry is not allowed');
+
+				if (fileDto?.id === undefined)
+					throw new Error('no file without file id');
+
+				if (fileDto?.fileName === undefined)
+					throw new Error('no file without file name');
+
+				if (fileDto?.fileSize === undefined)
+					throw new Error('no file without file size');
+
+				return new CloudSurfaceFile(
+					fileDto.id,
+					fileDto.fileName,
+					fileDto.fileSize
+				);
 			})
 			.filter<CloudSurfaceFile>(
 				(cloudFile): cloudFile is CloudSurfaceFile => cloudFile !== undefined

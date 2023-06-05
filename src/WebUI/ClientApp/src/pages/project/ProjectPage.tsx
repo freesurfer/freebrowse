@@ -59,7 +59,7 @@ export const ProjectPage = (): React.ReactElement => {
 
 	const niivue = useRef<Niivue>(
 		new Niivue({
-			show3Dcrosshair: true,
+			show3Dcrosshair: false,
 			onLocationChange: (location) => setLocation(location),
 		})
 	);
@@ -81,11 +81,14 @@ export const ProjectPage = (): React.ReactElement => {
 		document.addEventListener('keyup', handleKeyUp);
 
 		const loadData = async (): Promise<void> => {
+			niivue.current.volumes.forEach((volume) => {
+				niivue.current.removeVolume(volume);
+			});
+
 			if (projectState === undefined) return;
-			if (niivue.current.volumes.length > 0) return;
 
 			niivue.current.setHighResolutionCapable(false);
-			niivue.current.opts.isOrientCube = true;
+			niivue.current.opts.isOrientCube = false;
 
 			for (const cloudVolumeFile of projectState.files.cloudVolumes) {
 				await niivue.current.loadVolumes([
