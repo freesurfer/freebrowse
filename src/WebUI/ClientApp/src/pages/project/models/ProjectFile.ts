@@ -140,6 +140,7 @@ export class LocalSurfaceFile extends LocalFile {
 export abstract class CloudFile extends ProjectFileBase {
 	constructor(
 		fileDto: SurfaceDto | VolumeDto,
+		public readonly id: number,
 		/**
 		 * url for niivue to load the image from
 		 */
@@ -158,7 +159,14 @@ export class CloudVolumeFile extends CloudFile {
 	public readonly type = FileType.VOLUME;
 
 	constructor(volumeDto: VolumeDto) {
-		super(volumeDto, `${getApiUrl()}/api/Volume?Id=${String(volumeDto.id)}`);
+		if (volumeDto.id === undefined)
+			throw new Error('no id for cloud volume file');
+
+		super(
+			volumeDto,
+			volumeDto.id,
+			`${getApiUrl()}/api/Volume?Id=${String(volumeDto.id)}`
+		);
 	}
 }
 
@@ -166,7 +174,14 @@ export class CloudSurfaceFile extends CloudFile {
 	public readonly type = FileType.SURFACE;
 
 	constructor(surfaceDto: SurfaceDto) {
-		super(surfaceDto, `${getApiUrl()}/api/Surface?Id=${String(surfaceDto.id)}`);
+		if (surfaceDto.id === undefined)
+			throw new Error('no id for cloud surface file');
+
+		super(
+			surfaceDto,
+			surfaceDto.id,
+			`${getApiUrl()}/api/Surface?Id=${String(surfaceDto.id)}`
+		);
 	}
 }
 

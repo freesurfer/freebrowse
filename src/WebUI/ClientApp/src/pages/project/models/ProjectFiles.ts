@@ -1,15 +1,3 @@
-import {
-	LocalFile,
-	CloudSurfaceFile,
-	CloudVolumeFile,
-	LocalSurfaceFile,
-	LocalVolumeFile,
-} from '@/dialogs/openProject/models/ProjectFile';
-import type {
-	ProjectFile,
-	ProjectSurfaceFile,
-	ProjectVolumeFile,
-} from '@/dialogs/openProject/models/ProjectFile';
 import type {
 	SurfaceDto,
 	VolumeDto,
@@ -17,6 +5,18 @@ import type {
 	VolumeDto2,
 	SurfaceDto2,
 } from '@/generated/web-api-client';
+import {
+	LocalFile,
+	CloudSurfaceFile,
+	CloudVolumeFile,
+	LocalSurfaceFile,
+	LocalVolumeFile,
+} from '@/pages/project/models/ProjectFile';
+import type {
+	ProjectFile,
+	ProjectSurfaceFile,
+	ProjectVolumeFile,
+} from '@/pages/project/models/ProjectFile';
 
 /**
  * mutable instance keeps the state of the project files
@@ -25,24 +25,24 @@ import type {
  * - the once the user opened from the drive, which need to get uploaded
  */
 export class ProjectFiles {
-	private readonly localSurfaceFiles: readonly LocalSurfaceFile[];
-	private readonly localVolumeFiles: readonly LocalVolumeFile[];
-	private readonly cloudSurfaceFiles: readonly CloudSurfaceFile[];
-	private readonly cloudVolumeFiles: readonly CloudVolumeFile[];
+	private readonly localSurfaces: readonly LocalSurfaceFile[];
+	private readonly localVolumes: readonly LocalVolumeFile[];
+	public readonly cloudSurfaces: readonly CloudSurfaceFile[];
+	public readonly cloudVolumes: readonly CloudVolumeFile[];
 
-	public readonly surfaceFiles: readonly ProjectSurfaceFile[];
-	public readonly volumeFiles: readonly ProjectVolumeFile[];
-	public readonly files: readonly ProjectFile[];
+	public readonly surfaces: readonly ProjectSurfaceFile[];
+	public readonly volumes: readonly ProjectVolumeFile[];
+	public readonly all: readonly ProjectFile[];
 
 	/**
 	 * the project files instance can be created
 	 * - empty
 	 * - from another project files instance
-	 * - from a given projectDto state
+	 * - from a given backendState state
 	 */
 	constructor(
 		initState?:
-			| { projectDto: ProjectDto }
+			| { backendState: ProjectDto }
 			| {
 					localSurfaceFiles: readonly LocalSurfaceFile[];
 					localVolumeFiles: readonly LocalVolumeFile[];
@@ -53,37 +53,37 @@ export class ProjectFiles {
 	) {
 		if (initState === undefined) {
 			// new empty class
-			this.localSurfaceFiles = [];
-			this.localVolumeFiles = [];
-			this.cloudSurfaceFiles = [];
-			this.cloudVolumeFiles = [];
-			this.surfaceFiles = [];
-			this.volumeFiles = [];
-			this.files = [];
+			this.localSurfaces = [];
+			this.localVolumes = [];
+			this.cloudSurfaces = [];
+			this.cloudVolumes = [];
+			this.surfaces = [];
+			this.volumes = [];
+			this.all = [];
 			return;
 		}
 
-		if ('projectDto' in initState) {
+		if ('backendState' in initState) {
 			// new class from given backend state
-			this.localSurfaceFiles = [];
-			this.localVolumeFiles = [];
-			this.cloudSurfaceFiles = ProjectFiles.cloudFileFromSurfaceDto(
-				initState.projectDto.surfaces
+			this.localSurfaces = [];
+			this.localVolumes = [];
+			this.cloudSurfaces = ProjectFiles.cloudFileFromSurfaceDto(
+				initState.backendState.surfaces
 			);
-			this.cloudVolumeFiles = ProjectFiles.cloudFileFromVolumeDto(
-				initState.projectDto.volumes
+			this.cloudVolumes = ProjectFiles.cloudFileFromVolumeDto(
+				initState.backendState.volumes
 			);
 		} else {
 			// new class from given file set
-			this.localSurfaceFiles = initState.localSurfaceFiles;
-			this.localVolumeFiles = initState.localVolumeFiles;
-			this.cloudSurfaceFiles = initState.cloudSurfaceFiles;
-			this.cloudVolumeFiles = initState.cloudVolumeFiles;
+			this.localSurfaces = initState.localSurfaceFiles;
+			this.localVolumes = initState.localVolumeFiles;
+			this.cloudSurfaces = initState.cloudSurfaceFiles;
+			this.cloudVolumes = initState.cloudVolumeFiles;
 		}
 
-		this.surfaceFiles = [...this.cloudSurfaceFiles, ...this.localSurfaceFiles];
-		this.volumeFiles = [...this.cloudVolumeFiles, ...this.localVolumeFiles];
-		this.files = [...this.surfaceFiles, ...this.volumeFiles];
+		this.surfaces = [...this.cloudSurfaces, ...this.localSurfaces];
+		this.volumes = [...this.cloudVolumes, ...this.localVolumes];
+		this.all = [...this.surfaces, ...this.volumes];
 	}
 
 	/**
@@ -94,7 +94,7 @@ export class ProjectFiles {
 		const newFiles = files
 			.map((newFile) => {
 				// do not add if file name exists already
-				if (this.files.find((file) => file.name === newFile.name) !== undefined)
+				if (this.all.find((file) => file.name === newFile.name) !== undefined)
 					return undefined;
 				return LocalFile.fromFile(newFile);
 			})
@@ -103,17 +103,17 @@ export class ProjectFiles {
 			);
 
 		return new ProjectFiles({
-			cloudVolumeFiles: [...this.cloudVolumeFiles],
-			cloudSurfaceFiles: [...this.cloudSurfaceFiles],
+			cloudVolumeFiles: [...this.cloudVolumes],
+			cloudSurfaceFiles: [...this.cloudSurfaces],
 			localVolumeFiles: [
-				...this.localVolumeFiles,
+				...this.localVolumes,
 				...newFiles.filter(
 					(newFile): newFile is LocalVolumeFile =>
 						newFile instanceof LocalVolumeFile
 				),
 			],
 			localSurfaceFiles: [
-				...this.localSurfaceFiles,
+				...this.localSurfaces,
 				...newFiles.filter(
 					(newFile): newFile is LocalSurfaceFile =>
 						newFile instanceof LocalSurfaceFile
@@ -125,37 +125,29 @@ export class ProjectFiles {
 	public fromDeletedFile(fileNameToDelete: string): ProjectFiles {
 		return new ProjectFiles({
 			cloudSurfaceFiles: [
-				...this.cloudSurfaceFiles.filter(
-					(file) => file.name !== fileNameToDelete
-				),
+				...this.cloudSurfaces.filter((file) => file.name !== fileNameToDelete),
 			],
 			cloudVolumeFiles: [
-				...this.cloudVolumeFiles.filter(
-					(file) => file.name !== fileNameToDelete
-				),
+				...this.cloudVolumes.filter((file) => file.name !== fileNameToDelete),
 			],
 			localSurfaceFiles: [
-				...this.localSurfaceFiles.filter(
-					(file) => file.name !== fileNameToDelete
-				),
+				...this.localSurfaces.filter((file) => file.name !== fileNameToDelete),
 			],
 			localVolumeFiles: [
-				...this.localVolumeFiles.filter(
-					(file) => file.name !== fileNameToDelete
-				),
+				...this.localVolumes.filter((file) => file.name !== fileNameToDelete),
 			],
 		});
 	}
 
 	public async getLocalVolumesToUpload(): Promise<VolumeDto2[]> {
 		return await Promise.all(
-			this.localVolumeFiles.map(async (file) => await file.toVolumeDto2())
+			this.localVolumes.map(async (file) => await file.toVolumeDto2())
 		);
 	}
 
 	public async getLocalSurfacesToUpload(): Promise<SurfaceDto2[]> {
 		return await Promise.all(
-			this.localSurfaceFiles.map(async (file) => await file.toSurfaceDto2())
+			this.localSurfaces.map(async (file) => await file.toSurfaceDto2())
 		);
 	}
 

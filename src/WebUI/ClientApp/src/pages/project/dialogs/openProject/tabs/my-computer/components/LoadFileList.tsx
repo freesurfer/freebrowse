@@ -1,6 +1,6 @@
 import { Checkbox } from '@/components/Checkbox';
-import type { ProjectFiles } from '@/dialogs/openProject/models/ProjectFiles';
-import { ProgressBar } from '@/dialogs/openProject/tabs/my-computer/components/ProgressBar';
+import { ProgressBar } from '@/pages/project/dialogs/openProject/tabs/my-computer/components/ProgressBar';
+import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import Select from 'react-select';
 
@@ -20,7 +20,7 @@ export const LoadFileList = ({
 }): React.ReactElement => {
 	return (
 		<div className={className}>
-			{projectFiles.files.map((file) => {
+			{projectFiles.all.map((file) => {
 				if (file === undefined) return <></>;
 				return (
 					<div key={file.name} className="flex gap-3 pb-3 pt-3 border-b">

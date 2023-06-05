@@ -1,20 +1,20 @@
-import type { ProjectFiles } from '@/dialogs/openProject/models/ProjectFiles';
-import { DropZone } from '@/dialogs/openProject/tabs/my-computer/components/DropZone';
-import { LoadFileList } from '@/dialogs/openProject/tabs/my-computer/components/LoadFileList';
-import type { ProjectDto } from '@/generated/web-api-client';
+import { DropZone } from '@/pages/project/dialogs/openProject/tabs/my-computer/components/DropZone';
+import { LoadFileList } from '@/pages/project/dialogs/openProject/tabs/my-computer/components/LoadFileList';
+import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import type { ProjectState } from '@/pages/project/models/ProjectState';
 
 export const MyComputerDialogTab = ({
 	projectFiles,
 	setProjectFiles,
 	projectName,
 	setProjectName,
-	projectDto,
+	projectState,
 }: {
 	projectFiles: ProjectFiles;
 	setProjectFiles: (projectFiles: ProjectFiles) => void;
 	projectName: string | undefined;
 	setProjectName: (projectName: string) => void;
-	projectDto: ProjectDto | undefined;
+	projectState: ProjectState | undefined;
 }): React.ReactElement => {
 	return (
 		<div
@@ -28,7 +28,7 @@ export const MyComputerDialogTab = ({
 					type="text"
 					value={projectName}
 					onChange={(event) => setProjectName(event.target.value)}
-					readOnly={projectDto !== undefined}
+					readOnly={projectState !== undefined}
 				></input>
 			</div>
 			<DropZone

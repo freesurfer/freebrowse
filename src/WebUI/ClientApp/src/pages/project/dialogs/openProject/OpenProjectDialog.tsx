@@ -1,12 +1,4 @@
 import { Tabs } from '@/components/Tabs';
-import { useProjectDialogState } from '@/dialogs/openProject/hooks/useProjectDialogState';
-import {
-	CloudSurfaceFile,
-	CloudVolumeFile,
-	LocalSurfaceFile,
-	LocalVolumeFile,
-} from '@/dialogs/openProject/models/ProjectFile';
-import { MyComputerDialogTab } from '@/dialogs/openProject/tabs/my-computer/MyComputerDialogTab';
 import {
 	CreateSurfacesCommand,
 	CreateVolumesCommand,
@@ -17,7 +9,16 @@ import {
 	CreateProjectCommand,
 	ProjectsClient,
 } from '@/generated/web-api-client';
-import type { ProjectDto } from '@/generated/web-api-client';
+import { useProjectDialogState } from '@/pages/project/dialogs/openProject/hooks/useProjectDialogState';
+import { MyComputerDialogTab } from '@/pages/project/dialogs/openProject/tabs/my-computer/MyComputerDialogTab';
+import {
+	CloudSurfaceFile,
+	CloudVolumeFile,
+	LocalSurfaceFile,
+	LocalVolumeFile,
+} from '@/pages/project/models/ProjectFile';
+import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { getApiUrl } from '@/utils';
 import { ArrowUpTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { createContext } from 'react';
@@ -33,8 +34,15 @@ export interface IOpenProjectDialog {
 	/**
 	 * open the modal dialog
 	 */
-	readonly createProject: () => Promise<ResolveCreateProjectDialogResult>;
-	readonly editProject: (project: ProjectDto | undefined) => Promise<void>;
+	readonly createProject: () => Promise<
+		| {
+				projectId: number;
+		  }
+		| 'canceled'
+	>;
+	readonly editProject: (
+		projectState: ProjectState
+	) => Promise<ProjectFiles | 'canceled'>;
 }
 
 export const OpenProjectDialogContext = createContext<IOpenProjectDialog>({
@@ -85,7 +93,7 @@ export const OpenProjectDialog = ({
 		setProjectFiles,
 		projectName,
 		setProjectName,
-		projectDto,
+		projectState,
 		resolve,
 		reject,
 	} = useProjectDialogState();
@@ -115,7 +123,10 @@ export const OpenProjectDialog = ({
 				if (createProjectResponse.id === undefined)
 					throw new Error('no project id received from backend');
 
-				resolve({ projectId: createProjectResponse.id });
+				resolve({
+					projectId: createProjectResponse.id,
+					projectFiles,
+				});
 			} catch (error) {
 				console.error('something went wrong', error);
 				reject('UNKNOWN_ERROR');
@@ -123,7 +134,7 @@ export const OpenProjectDialog = ({
 		};
 
 		const updateProjectInBackend = async (): Promise<void> => {
-			if (projectDto?.id === undefined) {
+			if (projectState === undefined) {
 				console.error('update not possible without existing project');
 				return;
 			}
@@ -132,22 +143,26 @@ export const OpenProjectDialog = ({
 			const volumeClient = new VolumeClient(getApiUrl());
 
 			const deletedSurfaces =
-				projectDto.surfaces?.filter(
+				projectState.files.surfaces?.filter(
 					(backendFile) =>
-						projectFiles.surfaceFiles.find(
-							(tmpFile) => tmpFile.name === backendFile.fileName
+						projectFiles.surfaces.find(
+							(tmpFile) => tmpFile.name === backendFile.name
 						) === undefined
 				) ?? [];
 			for (const deletedSurface of deletedSurfaces) {
-				await surfaceClient.delete(
-					new DeleteSurfaceCommand({ id: deletedSurface.id })
-				);
+				if (deletedSurface instanceof CloudSurfaceFile) {
+					await surfaceClient.delete(
+						new DeleteSurfaceCommand({ id: deletedSurface.id })
+					);
+				} else if (deletedSurface instanceof LocalSurfaceFile) {
+					continue;
+				} else throw new Error('should not happen');
 			}
 
-			const addedSurfaces = projectFiles.surfaceFiles.filter(
+			const addedSurfaces = projectFiles.surfaces.filter(
 				(tmpFile) =>
-					projectDto.surfaces?.find(
-						(backendFile) => backendFile.fileName === tmpFile.name
+					projectState.files.surfaces?.find(
+						(backendFile) => backendFile.name === tmpFile.name
 					) === undefined
 			);
 
@@ -166,7 +181,7 @@ export const OpenProjectDialog = ({
 			if (addedLocalSurfaceFiles.length > 0) {
 				await surfaceClient.create(
 					new CreateSurfacesCommand({
-						projectId: projectDto.id,
+						projectId: projectState.id,
 						surfaces: await Promise.all(
 							addedLocalSurfaceFiles.map(
 								async (addedSurfaceFile) =>
@@ -178,22 +193,26 @@ export const OpenProjectDialog = ({
 			}
 
 			const deletedVolumes =
-				projectDto.volumes?.filter(
+				projectState.files.volumes?.filter(
 					(backendFile) =>
-						projectFiles.volumeFiles.find(
-							(tmpFile) => tmpFile.name === backendFile.fileName
+						projectFiles.volumes.find(
+							(tmpFile) => tmpFile.name === backendFile.name
 						) === undefined
 				) ?? [];
 			for (const deletedVolume of deletedVolumes) {
-				await volumeClient.delete(
-					new DeleteVolumeCommand({ id: deletedVolume.id })
-				);
+				if (deletedVolume instanceof CloudVolumeFile) {
+					await volumeClient.delete(
+						new DeleteVolumeCommand({ id: deletedVolume.id })
+					);
+				} else if (deletedVolume instanceof LocalVolumeFile) {
+					continue;
+				} else throw new Error('should not happen');
 			}
 
-			const addedVolumes = projectFiles.volumeFiles.filter(
+			const addedVolumes = projectFiles.volumes.filter(
 				(tmpFile) =>
-					projectDto.volumes?.find(
-						(backendFile) => backendFile.fileName === tmpFile.name
+					projectState.files.volumes?.find(
+						(backendFile) => backendFile.name === tmpFile.name
 					) === undefined
 			);
 			const addedCloudVolumeFiles = addedVolumes.filter(
@@ -211,7 +230,7 @@ export const OpenProjectDialog = ({
 			if (addedLocalVolumeFiles.length > 0) {
 				await volumeClient.create(
 					new CreateVolumesCommand({
-						projectId: projectDto.id,
+						projectId: projectState.id,
 						volumes: await Promise.all(
 							addedLocalVolumeFiles.map(
 								async (addedVolumeFile) => await addedVolumeFile.toVolumeDto3()
@@ -221,10 +240,10 @@ export const OpenProjectDialog = ({
 				);
 			}
 
-			resolve({ projectId: projectDto.id });
+			resolve({ projectId: projectState.id, projectFiles });
 		};
 
-		if (projectDto === undefined) {
+		if (projectState === undefined) {
 			await createProjectInBackend();
 			return;
 		}
@@ -271,7 +290,7 @@ export const OpenProjectDialog = ({
 											setProjectFiles={setProjectFiles}
 											projectName={projectName}
 											setProjectName={setProjectName}
-											projectDto={projectDto}
+											projectState={projectState}
 										></MyComputerDialogTab>
 									),
 								},
@@ -295,7 +314,7 @@ export const OpenProjectDialog = ({
 									void onOpenClick();
 								}}
 							>
-								{projectDto === undefined ? 'Open' : 'Update'}
+								{projectState === undefined ? 'Open' : 'Update'}
 							</button>
 						</div>
 					</>
