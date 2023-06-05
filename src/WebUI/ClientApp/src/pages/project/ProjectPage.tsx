@@ -35,6 +35,7 @@ export const ProjectPage = (): React.ReactElement => {
 	const { project } = useFetchProject(projectId);
 	const [selectedFile, setSelectedFile] = useState<string | undefined>();
 	const [location, setLocation] = useState<LocationData | undefined>();
+	const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
 	const niivue = useRef<Niivue>(
 		new Niivue({
@@ -44,6 +45,21 @@ export const ProjectPage = (): React.ReactElement => {
 	);
 
 	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent): void => {
+			if (event.key === 'Control') {
+				setIsCtrlPressed(true);
+			}
+		};
+
+		const handleKeyUp = (event: KeyboardEvent): void => {
+			if (event.key === 'Control') {
+				setIsCtrlPressed(false);
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown);
+		document.addEventListener('keyup', handleKeyUp);
+
 		const loadData = async (): Promise<void> => {
 			niivue.current.setHighResolutionCapable(false);
 			niivue.current.opts.isOrientCube = true;
@@ -70,6 +86,14 @@ export const ProjectPage = (): React.ReactElement => {
 		};
 		void loadData();
 	}, [project]);
+
+	useEffect(() => {
+		if (isCtrlPressed) {
+			niivue.current.opts.dragMode = niivue.current.dragModes.pan;
+		} else {
+			niivue.current.opts.dragMode = niivue.current.dragModes.none;
+		}
+	}, [isCtrlPressed]);
 
 	return (
 		<ProjectContext.Provider
