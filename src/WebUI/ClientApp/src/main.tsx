@@ -1,6 +1,6 @@
 import { MainRouter } from '@/MainRouter';
-import { OpenProjectDialog } from '@/dialogs/openProject/OpenProjectDialog';
 import '@/index.css';
+import { OpenProjectDialog } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 

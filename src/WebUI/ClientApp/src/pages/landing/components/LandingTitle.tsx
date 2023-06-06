@@ -1,5 +1,5 @@
-import { OpenProjectDialogContext } from '@/dialogs/openProject/OpenProjectDialog';
 import brain from '@/pages/landing/assets/brain_fancy.jpg';
+import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
 import { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 

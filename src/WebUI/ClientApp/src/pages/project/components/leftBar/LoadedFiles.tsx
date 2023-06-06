@@ -1,22 +1,25 @@
 import { Collapse } from '@/components/Collapse';
 import { OrderList } from '@/components/OrderList';
-import {
-	OpenProjectDialogContext,
-	LOAD_DIALOG_ERROR,
-} from '@/dialogs/openProject/OpenProjectDialog';
 import { ProjectContext } from '@/pages/project/ProjectPage';
+import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { useContext } from 'react';
 
 export const LoadedFiles = (): React.ReactElement => {
-	const { project, selectedFile, setSelectedFile } = useContext(ProjectContext);
+	const { projectState, setProjectState, selectedFile, setSelectedFile } =
+		useContext(ProjectContext);
 	const { editProject } = useContext(OpenProjectDialogContext);
+
+	if (projectState === undefined) {
+		return <></>;
+	}
 
 	const loadFiles = async (): Promise<void> => {
 		try {
-			await editProject();
+			const projectFiles = await editProject(projectState);
+			if (projectFiles === 'canceled') return;
+			setProjectState(projectState.fromFiles(projectFiles));
 		} catch (error) {
-			if (error === LOAD_DIALOG_ERROR.DIALOG_OPENED_ALREADY) return;
 			console.error('something went wrong opening files', error);
 		}
 	};
@@ -42,18 +45,21 @@ export const LoadedFiles = (): React.ReactElement => {
 					title={<span className="border-b border-gray-300 grow">Volumes</span>}
 				>
 					<OrderList
-						entries={project?.volumes?.map((entry) => ({
-							label: entry.fileName,
+						entries={projectState.files.volumes.map((entry) => ({
+							label: entry.name,
 						}))}
 						activeFileName={selectedFile}
 						setActiveFileName={setSelectedFile}
 						updateOrder={(entries) => {
 							entries.forEach((entry) => {
-								const innerEntry = project?.volumes?.find(
-									(innerEntry) => entry.label === innerEntry.fileName
+								/*
+								const innerEntry = projectState.files.volumes.find(
+									(findEntry) => entry.label === findEntry.name
 								);
-								if (innerEntry === undefined) return;
-								innerEntry.order = entry.order;
+								// TODO update order
+								// if (innerEntry === undefined) return;
+								// innerEntry.order = entry.order;
+								*/
 							});
 						}}
 					></OrderList>
@@ -64,18 +70,21 @@ export const LoadedFiles = (): React.ReactElement => {
 					}
 				>
 					<OrderList
-						entries={project?.surfaces?.map((entry) => ({
-							label: entry.fileName,
+						entries={projectState.files.surfaces.map((entry) => ({
+							label: entry.name,
 						}))}
 						activeFileName={selectedFile}
 						setActiveFileName={setSelectedFile}
 						updateOrder={(entries) => {
 							entries.forEach((entry) => {
-								const innerEntry = project?.surfaces?.find(
-									(innerEntry) => entry.label === innerEntry.fileName
+								/*
+								const innerEntry = projectState.files.surfaces.find(
+									(findEntry) => entry.label === findEntry.name
 								);
-								if (innerEntry === undefined) return;
-								innerEntry.order = entry.order;
+								// TODO update order
+								// if (innerEntry === undefined) return;
+								// innerEntry.order = entry.order;
+								*/
 							});
 						}}
 					></OrderList>

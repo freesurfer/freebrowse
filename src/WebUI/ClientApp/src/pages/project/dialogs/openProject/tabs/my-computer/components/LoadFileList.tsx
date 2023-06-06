@@ -1,6 +1,6 @@
 import { Checkbox } from '@/components/Checkbox';
-import type { FileLoadMetadata } from '@/dialogs/openProject/OpenProjectDialog';
-import { ProgressBar } from '@/dialogs/openProject/ProgressBar';
+import { ProgressBar } from '@/pages/project/dialogs/openProject/tabs/my-computer/components/ProgressBar';
+import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import Select from 'react-select';
 
@@ -11,48 +11,34 @@ const options = [
 
 export const LoadFileList = ({
 	className,
-	files,
-	updateFiles,
+	projectFiles,
+	setProjectFiles,
 }: {
 	className?: string;
-	files: Record<string, FileLoadMetadata>;
-	updateFiles: (files: Record<string, FileLoadMetadata>) => void;
+	projectFiles: ProjectFiles;
+	setProjectFiles: (projectFiles: ProjectFiles) => void;
 }): React.ReactElement => {
 	return (
 		<div className={className}>
-			{Object.keys(files).map((fileName) => {
-				const fileMeta = files[fileName];
-				if (fileMeta === undefined) return <></>;
+			{projectFiles.all.map((file) => {
+				if (file === undefined) return <></>;
 				return (
-					<div key={fileName} className="flex gap-3 pb-3 pt-3 border-b">
+					<div key={file.name} className="flex gap-3 pb-3 pt-3 border-b">
 						<div>
 							<div className="flex justify-between text-xs text-gray-500">
-								<span>{fileName}</span>
-								<span>{`${
-									Math.floor(fileMeta.file.size / 10000) / 100
-								} MB`}</span>
+								<span>{file.name}</span>
+								<span>{file.sizeReadable()}</span>
 							</div>
-							<ProgressBar
-								className="mt-1 w-60"
-								progress={fileMeta.progress}
-							></ProgressBar>
+							<ProgressBar className="mt-1 w-60" progress={100}></ProgressBar>
 						</div>
 						<button
 							onClick={() =>
-								updateFiles(
-									Object.keys(files).reduce((result, innerFileName) => {
-										if (innerFileName === fileName) return result;
-										return {
-											...result,
-											[innerFileName]: files[innerFileName],
-										};
-									}, {})
-								)
+								setProjectFiles(projectFiles.fromDeletedFile(file.name))
 							}
 						>
 							<XMarkIcon className="w-6 text-gray-600"></XMarkIcon>
 						</button>
-						{fileMeta.selection !== undefined ? (
+						{file.selection !== undefined ? (
 							<>
 								<Select
 									className="w-40 min-w-[10rem]"
@@ -63,7 +49,7 @@ export const LoadFileList = ({
 										menu: () => 'text-xs',
 									}}
 									value={options.find(
-										(option) => option.value === fileMeta.selection
+										(option) => option.value === file.selection
 									)}
 								/>
 								<div className="flex items-center text-xs text-gray-500 gap-1">

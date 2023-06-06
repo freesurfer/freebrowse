@@ -1,9 +1,10 @@
-import type { ProjectDto } from '@/generated/web-api-client';
+import { ProjectsClient } from '@/generated/web-api-client';
 import { MainView } from '@/pages/project/components/MainView';
 import { LeftBar } from '@/pages/project/components/leftBar/LeftBar';
 import { RightBar } from '@/pages/project/components/rightBar/RightBar';
 import { TopBar } from '@/pages/project/components/topBar/TopBar';
-import { useFetchProject } from '@/pages/project/hooks/useFetchProject';
+import { ProjectState } from '@/pages/project/models/ProjectState';
+import { getApiUrl } from '@/utils';
 import type { LocationData } from '@niivue/niivue';
 import { Niivue } from '@niivue/niivue';
 import { createContext, useEffect, useRef, useState } from 'react';
@@ -11,7 +12,8 @@ import { useParams } from 'react-router-dom';
 
 interface IProjectContext {
 	niivue: Niivue | undefined;
-	project: ProjectDto | undefined;
+	projectState: ProjectState | undefined;
+	setProjectState: (projectState: ProjectState) => void;
 	/**
 	 * file name of selected file
 	 */
@@ -22,7 +24,10 @@ interface IProjectContext {
 
 export const ProjectContext = createContext<IProjectContext>({
 	niivue: undefined,
-	project: undefined,
+	projectState: undefined,
+	setProjectState: (projectState: ProjectState): void => {
+		throw new Error('method not initialized yet');
+	},
 	selectedFile: undefined,
 	setSelectedFile: (fileName: string | undefined): void => {
 		throw new Error('method not initialized yet');
@@ -32,15 +37,31 @@ export const ProjectContext = createContext<IProjectContext>({
 
 export const ProjectPage = (): React.ReactElement => {
 	const { projectId } = useParams();
-	const { project } = useFetchProject(projectId);
+	const [projectState, setProjectState] = useState<ProjectState | undefined>();
+
 	const [selectedFile, setSelectedFile] = useState<string | undefined>();
 	const [location, setLocation] = useState<LocationData | undefined>();
 	const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
+	useEffect(() => {
+		const fetchData = async (): Promise<void> => {
+			const client = new ProjectsClient(getApiUrl());
+			if (projectId === undefined) {
+				console.error('no project id given');
+				return;
+			}
+
+			const backendState = await client.getProject(Number(projectId));
+			setProjectState(new ProjectState({ backendState }));
+		};
+		void fetchData();
+	}, [projectId]);
+
 	const niivue = useRef<Niivue>(
 		new Niivue({
-			show3Dcrosshair: true,
+			show3Dcrosshair: false,
 			onLocationChange: (location) => setLocation(location),
+			dragAndDropEnabled: false,
 		})
 	);
 
@@ -61,31 +82,42 @@ export const ProjectPage = (): React.ReactElement => {
 		document.addEventListener('keyup', handleKeyUp);
 
 		const loadData = async (): Promise<void> => {
-			niivue.current.setHighResolutionCapable(false);
-			niivue.current.opts.isOrientCube = true;
+			niivue.current.volumes.forEach((volume) => {
+				niivue.current.removeVolume(volume);
+			});
+			niivue.current.meshes.forEach((mesh) => {
+				niivue.current.removeMesh(mesh);
+			});
 
-			for (const volume of project?.volumes ?? []) {
-				if (volume?.fileName === undefined) continue;
+			if (projectState === undefined) return;
+			niivue.current.setSliceType(niivue.current.sliceTypeMultiplanar);
+
+			niivue.current.setHighResolutionCapable(false);
+			niivue.current.opts.isOrientCube = false;
+
+			for (const cloudVolumeFile of projectState.files.cloudVolumes) {
 				await niivue.current.loadVolumes([
 					{
-						url: `https://niivue.github.io/niivue-demo-images/${volume.fileName}`,
-						name: volume.fileName,
+						url: cloudVolumeFile.url,
+						name: cloudVolumeFile.name,
 					},
 				]);
 			}
-			for (const surface of project?.surfaces ?? []) {
-				if (surface?.fileName === undefined) continue;
+
+			for (const cloudSurfaceFile of projectState.files.cloudSurfaces) {
 				await niivue.current.loadMeshes([
 					{
-						url: `https://niivue.github.io/niivue/images/${surface.fileName}`,
-						name: surface.fileName,
+						url: cloudSurfaceFile.url,
+						name: cloudSurfaceFile.name,
 					},
 				]);
 			}
+
 			niivue.current.setMeshThicknessOn2D(0);
+			niivue.current.updateGLVolume();
 		};
 		void loadData();
-	}, [project]);
+	}, [projectState]);
 
 	useEffect(() => {
 		if (isCtrlPressed) {
@@ -98,7 +130,8 @@ export const ProjectPage = (): React.ReactElement => {
 	return (
 		<ProjectContext.Provider
 			value={{
-				project,
+				projectState,
+				setProjectState,
 				niivue: niivue.current,
 				selectedFile,
 				setSelectedFile,
