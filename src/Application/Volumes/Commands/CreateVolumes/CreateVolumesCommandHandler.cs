@@ -48,7 +48,8 @@ public class CreateVolumeCommandHandler : IRequestHandler<CreateVolumesCommand, 
 				var responseDto = new CreateVolumeResponseDto
 				{
 					Id = volume.Id,
-					FileName = volume.FileName
+					FileName = volume.FileName,
+					FileSize = new FileInfo(filePath).Length
 				};
 
 				result.Add(responseDto);

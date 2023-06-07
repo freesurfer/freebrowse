@@ -46,8 +46,9 @@ public class CreateSurfaceCommandHandler : IRequestHandler<CreateSurfacesCommand
 				var responseDto = new CreateSurfaceResponseDto
 				{
 					Id = surface.Id,
-					FileName = surface.FileName
-				};
+					FileName = surface.FileName,
+					FileSize = new FileInfo(filePath).Length
+			};
 
 				result.Add(responseDto);
 			}
