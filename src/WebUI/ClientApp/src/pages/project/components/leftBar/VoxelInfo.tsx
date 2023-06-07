@@ -1,6 +1,6 @@
 import { Collapse } from '@/components/Collapse';
 import { ProjectContext } from '@/pages/project/ProjectPage';
-import { useContext } from 'react';
+import { useContext, Fragment } from 'react';
 
 export const VoxelInfo = (): React.ReactElement => {
 	const { location } = useContext(ProjectContext);
@@ -11,34 +11,36 @@ export const VoxelInfo = (): React.ReactElement => {
 			title={<span className="font-semibold">Voxel Info</span>}
 		>
 			<div className="mt-2 mr-1">
-				<div className="flex">
-					<span className="grow">Voxel value</span>
-					<span>
-						{location?.values[0]?.value !== undefined
-							? Math.round(location?.values[0]?.value * 1000) / 1000
-							: '-'}
-					</span>
-				</div>
-
-				<div className="grid text-end grid-cols-4 mt-2">
+				<div className="grid text-end grid-cols-5 mt-2">
 					<span></span>
 					<span className="font-bold">x</span>
 					<span className="font-bold">y</span>
 					<span className="font-bold">z</span>
-					<span className="text-start">Voxel:</span>
-					<span>
-						{location?.mm[0] !== undefined ? Math.round(location.mm[0]) : '-'}
-					</span>
-					<span>
-						{location?.mm[1] !== undefined ? Math.round(location.mm[1]) : '-'}
-					</span>
-					<span>
-						{location?.mm[2] !== undefined ? Math.round(location.mm[2]) : '-'}
-					</span>
+					<span className="font-bold">Val</span>
 					<span className="text-start">RAS:</span>
-					<span>-23.35</span>
-					<span>0.00</span>
-					<span>12.97</span>
+					<span>
+						{location?.mm[0] !== undefined ? location.mm[0].toFixed(2) : '-'}
+					</span>
+					<span>
+						{location?.mm[1] !== undefined ? location.mm[1].toFixed(2) : '-'}
+					</span>
+					<span>
+						{location?.mm[2] !== undefined ? location.mm[2].toFixed(2) : '-'}
+					</span>
+					<span>-</span>
+					{location?.values.map((value, index) => (
+						<Fragment key={index}>
+							<span className="text-start">
+								{value?.name !== undefined ? value.name.split('.')[0] : '-'}:
+							</span>
+							<span>{value?.vox[0] !== undefined ? value.vox[0] : '-'}</span>
+							<span>{value?.vox[1] !== undefined ? value.vox[1] : '-'}</span>
+							<span>{value?.vox[2] !== undefined ? value.vox[2] : '-'}</span>
+							<span>
+								{value?.value !== undefined ? Math.round(value.value) : '-'}
+							</span>
+						</Fragment>
+					))}
 				</div>
 			</div>
 		</Collapse>
