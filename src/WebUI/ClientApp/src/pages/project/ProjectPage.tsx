@@ -104,8 +104,9 @@ export const ProjectPage = (): React.ReactElement => {
 	}, [projectState, niivue]);
 
 	useEffect(() => {
+		if (niivue === undefined) return;
+
 		const handleKeyDown = (event: KeyboardEvent): void => {
-			if (niivue === undefined) return;
 			switch (event.key) {
 				case 'Control':
 					niivue.opts.dragMode = niivue.dragModes.none;
@@ -122,14 +123,12 @@ export const ProjectPage = (): React.ReactElement => {
 		};
 
 		const handleKeyUp = (event: KeyboardEvent): void => {
-			if (niivue === undefined) return;
 			if (event.key === 'Control') {
 				niivue.opts.dragMode = niivue.dragModes.pan;
 			}
 		};
 
 		const handleMouseMove = (event: MouseEvent): void => {
-			if (niivue === undefined) return;
 			const rect = niivue.canvas.getBoundingClientRect();
 			const x = (event.clientX - rect.left) * niivue.uiData.dpr;
 			const y = (event.clientY - rect.top) * niivue.uiData.dpr;
