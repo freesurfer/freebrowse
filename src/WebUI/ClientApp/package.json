@@ -8,7 +8,7 @@
 		"prestart": "node scripts/aspnetcore-https && node scripts/aspnetcore-react",
 		"lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
 		"test": "jest",
-		"server": "dotnet run --environment \"Development\" ../../../FreeBrowse.sln --project ..",
+		"server": "dotnet build ../../../FreeBrowse.sln --configuration \"Development.mac\" --os \"mac\" && dotnet run --environment \"Development\" ../../../FreeBrowse.sln --project ..",
 		"start": "vite --mode development",
 		"build": "tsc && vite build",
 		"lint-staged": "lint-staged --config lint-staged.cjs"
