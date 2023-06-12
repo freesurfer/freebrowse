@@ -85,23 +85,23 @@ export const ProjectPage = (): React.ReactElement => {
 			niivue.setHighResolutionCapable(false);
 			niivue.opts.isOrientCube = false;
 
-			for (const cloudVolumeFile of projectState.files.cloudVolumes) {
-				await niivue.loadVolumes([
-					{
-						url: cloudVolumeFile.url,
-						name: cloudVolumeFile.name,
-					},
-				]);
-			}
+			await niivue.loadVolumes(
+				projectState.files.cloudVolumes.map((file) => {
+					return {
+						url: file.url,
+						name: file.name,
+					};
+				})
+			);
 
-			for (const cloudSurfaceFile of projectState.files.cloudSurfaces) {
-				await niivue.loadMeshes([
-					{
-						url: cloudSurfaceFile.url,
-						name: cloudSurfaceFile.name,
-					},
-				]);
-			}
+			await niivue.loadMeshes(
+				projectState.files.cloudSurfaces.map((file) => {
+					return {
+						url: file.url,
+						name: file.name,
+					};
+				})
+			);
 
 			niivue.setMeshThicknessOn2D(0.5);
 			niivue.updateGLVolume();
