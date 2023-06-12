@@ -72,12 +72,6 @@ export const ProjectPage = (): React.ReactElement => {
 	useEffect(() => {
 		const loadData = async (): Promise<void> => {
 			if (niivue === undefined) return;
-			niivue.volumes.forEach((volume) => {
-				niivue.removeVolume(volume);
-			});
-			niivue.meshes.forEach((mesh) => {
-				niivue.removeMesh(mesh);
-			});
 
 			if (projectState === undefined) return;
 			niivue.setSliceType(niivue.sliceTypeMultiplanar);
