@@ -72,7 +72,6 @@ export const ProjectPage = (): React.ReactElement => {
 	useEffect(() => {
 		const loadData = async (): Promise<void> => {
 			if (niivue === undefined) return;
-
 			if (projectState === undefined) return;
 			niivue.setSliceType(niivue.sliceTypeMultiplanar);
 
