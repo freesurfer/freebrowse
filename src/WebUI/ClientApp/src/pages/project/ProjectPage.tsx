@@ -99,7 +99,7 @@ export const ProjectPage = (): React.ReactElement => {
 				]);
 			}
 
-			niivue.current.setMeshThicknessOn2D(0);
+			niivue.current.setMeshThicknessOn2D(0.5);
 			niivue.current.updateGLVolume();
 			niivue.current.createOnLocationChange();
 		};
