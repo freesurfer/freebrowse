@@ -1110,9 +1110,9 @@ declare module '@niivue/niivue' {
 		 * @returns {array} an array of colormap strings
 		 * @example
 		 * niivue = new Niivue()
-		 * colormaps = niivue.colorMaps()
+		 * colormaps = niivue.colormaps()
 		 */
-		colorMaps(): string[];
+		colormaps(): string[];
 		/**
 		 * create a new colormap
 		 * @param {string} key name of new colormap

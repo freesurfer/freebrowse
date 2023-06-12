@@ -7,7 +7,7 @@ declare module '@niivue/niivue' {
 		gamma: number;
 		cluts: {};
 		addColormap(key: any, cmap: any): void;
-		colorMaps(): string[];
+		colormaps(): string[];
 		colormapFromKey(name: any): any;
 		colormap(key?: string): Uint8ClampedArray;
 		makeDrawLut(name: any): {

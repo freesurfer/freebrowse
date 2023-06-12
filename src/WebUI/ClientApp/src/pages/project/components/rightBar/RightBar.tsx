@@ -26,8 +26,8 @@ export const RightBar = (): React.ReactElement => {
 	const niivueVolume = niivue.volumes[0];
 	const niivueVolumeIndex = 0;
 
-	const colorMapOptions = niivue.colorMaps().map((colorMap) => {
-		return { value: colorMap, label: colorMap };
+	const colorMapOptions = niivue.colormaps().map((colormap) => {
+		return { value: colormap, label: colormap };
 	});
 
 	return (

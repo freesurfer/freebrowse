@@ -41,7 +41,7 @@ export const ProjectPage = (): React.ReactElement => {
 
 	const [selectedFile, setSelectedFile] = useState<string | undefined>();
 	const [location, setLocation] = useState<LocationData | undefined>();
-	const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+	const hooveredView = useRef(0);
 
 	useEffect(() => {
 		const fetchData = async (): Promise<void> => {
@@ -62,25 +62,11 @@ export const ProjectPage = (): React.ReactElement => {
 			show3Dcrosshair: false,
 			onLocationChange: (location) => setLocation(location),
 			dragAndDropEnabled: false,
+			dragMode: 3,
 		})
 	);
 
 	useEffect(() => {
-		const handleKeyDown = (event: KeyboardEvent): void => {
-			if (event.key === 'Control') {
-				setIsCtrlPressed(true);
-			}
-		};
-
-		const handleKeyUp = (event: KeyboardEvent): void => {
-			if (event.key === 'Control') {
-				setIsCtrlPressed(false);
-			}
-		};
-
-		document.addEventListener('keydown', handleKeyDown);
-		document.addEventListener('keyup', handleKeyUp);
-
 		const loadData = async (): Promise<void> => {
 			niivue.current.volumes.forEach((volume) => {
 				niivue.current.removeVolume(volume);
@@ -121,12 +107,72 @@ export const ProjectPage = (): React.ReactElement => {
 	}, [projectState]);
 
 	useEffect(() => {
-		if (isCtrlPressed) {
-			niivue.current.opts.dragMode = niivue.current.dragModes.pan;
-		} else {
-			niivue.current.opts.dragMode = niivue.current.dragModes.none;
+		const handleKeyDown = (event: KeyboardEvent): void => {
+			switch (event.key) {
+				case 'Control':
+					niivue.current.opts.dragMode = niivue.current.dragModes.none;
+					break;
+				case 'ArrowUp':
+					moveSlices(1);
+					break;
+				case 'ArrowDown':
+					moveSlices(-1);
+					break;
+				default:
+					break;
+			}
+		};
+
+		const handleKeyUp = (event: KeyboardEvent): void => {
+			if (event.key === 'Control') {
+				niivue.current.opts.dragMode = niivue.current.dragModes.pan;
+			}
+		};
+
+		const handleMouseMove = (event: MouseEvent): void => {
+			const rect = niivue.current.canvas.getBoundingClientRect();
+			const x = (event.clientX - rect.left) * niivue.current.uiData.dpr;
+			const y = (event.clientY - rect.top) * niivue.current.uiData.dpr;
+			for (let i = 0; i < niivue.current.screenSlices.length; i++) {
+				const axCorSag = niivue.current.screenSlices[i].axCorSag;
+				if (axCorSag > 3) continue;
+				const texFrac = niivue.current.screenXY2TextureFrac(x, y, i);
+				if (
+					texFrac[0] === undefined ||
+					texFrac[0] < 0 ||
+					axCorSag === hooveredView
+				)
+					continue;
+				hooveredView.current = axCorSag;
+			}
+			if (
+				niivue.current.opts.dragMode === niivue.current.dragModes.none &&
+				(niivue.current.uiData.mouseButtonCenterDown as boolean)
+			) {
+				moveSlices(event.movementY);
+			}
+		};
+
+		function moveSlices(sliceValue: number): void {
+			if (hooveredView.current === 2) {
+				niivue.current.moveCrosshairInVox(sliceValue, 0, 0);
+			} else if (hooveredView.current === 1) {
+				niivue.current.moveCrosshairInVox(0, sliceValue, 0);
+			} else {
+				niivue.current.moveCrosshairInVox(0, 0, sliceValue);
+			}
 		}
-	}, [isCtrlPressed]);
+
+		document.addEventListener('keydown', handleKeyDown);
+		document.addEventListener('keyup', handleKeyUp);
+		document.addEventListener('mousemove', handleMouseMove);
+
+		return () => {
+			document.removeEventListener('keydown', handleKeyDown);
+			document.removeEventListener('keyup', handleKeyUp);
+			document.removeEventListener('mousemove', handleMouseMove);
+		};
+	}, []);
 
 	return (
 		<ProjectContext.Provider
