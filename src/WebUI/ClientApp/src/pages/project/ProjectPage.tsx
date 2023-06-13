@@ -63,12 +63,14 @@ export const ProjectPage = (): React.ReactElement => {
 	}, [projectId, canvas]);
 
 	useEffect(() => {
-		if (projectState === undefined) return;
-		if (niivueWrapper === undefined) return;
-		if (niivueWrapper.current === undefined || niivueWrapper.current === null)
+		if (
+			projectState === undefined ||
+			niivueWrapper === undefined ||
+			niivueWrapper.current === undefined ||
+			niivueWrapper.current === null
+		)
 			return;
-
-		void niivueWrapper.current.loadData(projectState.files);
+		niivueWrapper.current.loadDataAsync(projectState.files);
 	}, [projectState, niivueWrapper]);
 
 	useEffect(() => {

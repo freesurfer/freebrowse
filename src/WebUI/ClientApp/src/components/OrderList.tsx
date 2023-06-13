@@ -122,13 +122,12 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 		this.dragState = undefined;
 		this.recomputeOrder();
 
-		/* TODO trigger only on change
+		// TODO trigger only on change
 		const newFiles = this.rows.map(
 			(row) => row.projectFile.fromOrder(row.order) as T_FILE_TYPE
 		);
 
 		this.setFiles(newFiles);
-		*/
 	}
 
 	private cropToBounds(newPosition: number): number {

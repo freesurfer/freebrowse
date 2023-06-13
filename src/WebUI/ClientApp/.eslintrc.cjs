@@ -44,5 +44,6 @@ module.exports = {
 		'lines-between-class-members': 'warn',
 		'no-return-assign': ['error', 'always'],
 		'import/no-relative-parent-imports': 'error',
+		'@typescript-eslint/prefer-readonly': 'warn',
 	},
 };

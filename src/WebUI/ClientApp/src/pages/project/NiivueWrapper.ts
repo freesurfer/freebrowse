@@ -14,9 +14,14 @@ export class NiivueWrapper {
 		dragAndDropEnabled: false,
 		dragMode: 3,
 		meshThicknessOn2D: 0.5,
+		isHighResolutionCapable: false,
+		isOrientCube: false,
 	});
 
 	private hooveredView = 0;
+
+	private readonly loadDataQueue: ProjectFiles[] = [];
+	private loadDataInProgress = false;
 
 	public readonly id = Math.random();
 
@@ -29,17 +34,42 @@ export class NiivueWrapper {
 		void this.niivue.attachToCanvas(canvasRef);
 	}
 
-	public async loadData(files: ProjectFiles | undefined): Promise<void> {
+	public loadDataAsync(files: ProjectFiles | undefined): void {
 		if (files === undefined) return;
 
+		this.loadDataQueue.push(files);
+
+		void this.executeLoadDataQueue();
+	}
+
+	private async executeLoadDataQueue(): Promise<void> {
+		if (this.loadDataInProgress) return;
+		this.loadDataInProgress = true;
+
+		const files = this.loadDataQueue.shift();
+		if (files !== undefined) {
+			await this.executeLoadDataChunk(files);
+			this.loadDataInProgress = false;
+			await this.executeLoadDataQueue();
+			return;
+		}
+
+		this.loadDataInProgress = false;
+	}
+
+	private async executeLoadDataChunk(files: ProjectFiles): Promise<void> {
+		if (!files.hasChanged(this.niivue.volumes, this.niivue.meshes)) {
+			return;
+		}
+
 		try {
+			/*
+			 * clearing the volumes and meshes is needed here,
+			 * otherwise on load volumes the meshes are getting drawn
+			 * what leads to showing the 3d view only
+			 */
 			this.niivue.volumes = [];
 			this.niivue.meshes = [];
-
-			this.niivue.setHighResolutionCapable(false);
-			this.niivue.opts.isOrientCube = false;
-
-			if (!files.hasChanged(this.niivue.volumes, this.niivue.meshes)) return;
 
 			await this.niivue.loadVolumes(
 				files.cloudVolumes.map((file) => {
