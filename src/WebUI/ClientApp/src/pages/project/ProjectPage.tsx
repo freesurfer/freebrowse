@@ -41,9 +41,18 @@ export const ProjectPage = (): React.ReactElement => {
 
 	const [selectedFile, setSelectedFile] = useState<string | undefined>();
 	const [location, setLocation] = useState<LocationData | undefined>();
+	const [niivue, setNiivue] = useState<Niivue | undefined>();
 	const hooveredView = useRef(0);
 
 	useEffect(() => {
+		setNiivue(
+			new Niivue({
+				show3Dcrosshair: false,
+				onLocationChange: (location) => setLocation(location),
+				dragAndDropEnabled: false,
+				dragMode: 3,
+			})
+		);
 		const fetchData = async (): Promise<void> => {
 			const client = new ProjectsClient(getApiUrl());
 			if (projectId === undefined) {
@@ -55,62 +64,53 @@ export const ProjectPage = (): React.ReactElement => {
 			setProjectState(new ProjectState({ backendState }));
 		};
 		void fetchData();
+		return () => {
+			setNiivue(undefined);
+		};
 	}, [projectId]);
-
-	const niivue = useRef<Niivue>(
-		new Niivue({
-			show3Dcrosshair: false,
-			onLocationChange: (location) => setLocation(location),
-			dragAndDropEnabled: false,
-			dragMode: 3,
-		})
-	);
 
 	useEffect(() => {
 		const loadData = async (): Promise<void> => {
-			niivue.current.volumes.forEach((volume) => {
-				niivue.current.removeVolume(volume);
-			});
-			niivue.current.meshes.forEach((mesh) => {
-				niivue.current.removeMesh(mesh);
-			});
-
+			if (niivue === undefined) return;
 			if (projectState === undefined) return;
-			niivue.current.setSliceType(niivue.current.sliceTypeMultiplanar);
+			niivue.volumes = [];
+			niivue.meshes = [];
 
-			niivue.current.setHighResolutionCapable(false);
-			niivue.current.opts.isOrientCube = false;
+			niivue.setHighResolutionCapable(false);
+			niivue.opts.isOrientCube = false;
 
-			for (const cloudVolumeFile of projectState.files.cloudVolumes) {
-				await niivue.current.loadVolumes([
-					{
-						url: cloudVolumeFile.url,
-						name: cloudVolumeFile.name,
-					},
-				]);
-			}
+			await niivue.loadVolumes(
+				projectState.files.cloudVolumes.map((file) => {
+					return {
+						url: file.url,
+						name: file.name,
+					};
+				})
+			);
 
-			for (const cloudSurfaceFile of projectState.files.cloudSurfaces) {
-				await niivue.current.loadMeshes([
-					{
-						url: cloudSurfaceFile.url,
-						name: cloudSurfaceFile.name,
-					},
-				]);
-			}
+			await niivue.loadMeshes(
+				projectState.files.cloudSurfaces.map((file) => {
+					return {
+						url: file.url,
+						name: file.name,
+					};
+				})
+			);
 
-			niivue.current.setMeshThicknessOn2D(0);
-			niivue.current.updateGLVolume();
-			niivue.current.createOnLocationChange();
+			niivue.setMeshThicknessOn2D(0.5);
+			niivue.updateGLVolume();
+			niivue.createOnLocationChange();
 		};
 		void loadData();
-	}, [projectState]);
+	}, [projectState, niivue]);
 
 	useEffect(() => {
+		if (niivue === undefined) return;
+
 		const handleKeyDown = (event: KeyboardEvent): void => {
 			switch (event.key) {
 				case 'Control':
-					niivue.current.opts.dragMode = niivue.current.dragModes.none;
+					niivue.opts.dragMode = niivue.dragModes.none;
 					break;
 				case 'ArrowUp':
 					moveSlices(1);
@@ -125,18 +125,18 @@ export const ProjectPage = (): React.ReactElement => {
 
 		const handleKeyUp = (event: KeyboardEvent): void => {
 			if (event.key === 'Control') {
-				niivue.current.opts.dragMode = niivue.current.dragModes.pan;
+				niivue.opts.dragMode = niivue.dragModes.pan;
 			}
 		};
 
 		const handleMouseMove = (event: MouseEvent): void => {
-			const rect = niivue.current.canvas.getBoundingClientRect();
-			const x = (event.clientX - rect.left) * niivue.current.uiData.dpr;
-			const y = (event.clientY - rect.top) * niivue.current.uiData.dpr;
-			for (let i = 0; i < niivue.current.screenSlices.length; i++) {
-				const axCorSag = niivue.current.screenSlices[i].axCorSag;
+			const rect = niivue.canvas.getBoundingClientRect();
+			const x = (event.clientX - rect.left) * niivue.uiData.dpr;
+			const y = (event.clientY - rect.top) * niivue.uiData.dpr;
+			for (let i = 0; i < niivue.screenSlices.length; i++) {
+				const axCorSag = niivue.screenSlices[i].axCorSag;
 				if (axCorSag > 3) continue;
-				const texFrac = niivue.current.screenXY2TextureFrac(x, y, i);
+				const texFrac = niivue.screenXY2TextureFrac(x, y, i);
 				if (
 					texFrac[0] === undefined ||
 					texFrac[0] < 0 ||
@@ -146,20 +146,21 @@ export const ProjectPage = (): React.ReactElement => {
 				hooveredView.current = axCorSag;
 			}
 			if (
-				niivue.current.opts.dragMode === niivue.current.dragModes.none &&
-				(niivue.current.uiData.mouseButtonCenterDown as boolean)
+				niivue.opts.dragMode === niivue.dragModes.none &&
+				(niivue.uiData.mouseButtonCenterDown as boolean)
 			) {
 				moveSlices(event.movementY);
 			}
 		};
 
 		function moveSlices(sliceValue: number): void {
+			if (niivue === undefined) return;
 			if (hooveredView.current === 2) {
-				niivue.current.moveCrosshairInVox(sliceValue, 0, 0);
+				niivue.moveCrosshairInVox(sliceValue, 0, 0);
 			} else if (hooveredView.current === 1) {
-				niivue.current.moveCrosshairInVox(0, sliceValue, 0);
+				niivue.moveCrosshairInVox(0, sliceValue, 0);
 			} else {
-				niivue.current.moveCrosshairInVox(0, 0, sliceValue);
+				niivue.moveCrosshairInVox(0, 0, sliceValue);
 			}
 		}
 
@@ -172,14 +173,14 @@ export const ProjectPage = (): React.ReactElement => {
 			document.removeEventListener('keyup', handleKeyUp);
 			document.removeEventListener('mousemove', handleMouseMove);
 		};
-	}, []);
+	}, [niivue]);
 
 	return (
 		<ProjectContext.Provider
 			value={{
 				projectState,
 				setProjectState,
-				niivue: niivue.current,
+				niivue,
 				selectedFile,
 				setSelectedFile,
 				location,
