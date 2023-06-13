@@ -367,7 +367,7 @@ declare module '@niivue/niivue' {
 		 * let niivue = new Niivue({crosshairColor: [0,1,0,0.5], textHeight: 0.5}) // a see-through green crosshair, and larger text labels
 		 */
 		constructor(options?: NiivueOptions);
-		canvas: HTMLCanvasElement;
+		canvas: HTMLCanvasElement | undefined;
 		gl: any;
 		isBusy: any;
 		needsRefresh: any;

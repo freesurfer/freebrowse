@@ -7,9 +7,13 @@ import Select from 'react-select';
 export const RightBar = (): React.ReactElement => {
 	// TODO remove
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const { selectedFile, niivue } = useContext(ProjectContext);
+	const { niivueWrapper } = useContext(ProjectContext);
 
-	if (niivue === undefined) {
+	if (
+		niivueWrapper === undefined ||
+		niivueWrapper.current === undefined ||
+		niivueWrapper.current === null
+	) {
 		return (
 			<div className="w-[16rem] grow-0 bg-gray-100 border border-gray-500">
 				<span className="m-4 block text-gray-500 text-xs text-center">
@@ -23,12 +27,14 @@ export const RightBar = (): React.ReactElement => {
 	// const niivueVolume = niivue?.volumes.find(
 	// 	(volume) => volume.name === selectedFile
 	// );
-	const niivueVolume = niivue.volumes[0];
+	const niivueVolume = niivueWrapper.current.niivue.volumes[0];
 	const niivueVolumeIndex = 0;
 
-	const colorMapOptions = niivue.colormaps().map((colormap) => {
-		return { value: colormap, label: colormap };
-	});
+	const colorMapOptions = niivueWrapper.current.niivue
+		.colormaps()
+		.map((colormap) => {
+			return { value: colormap, label: colormap };
+		});
 
 	return (
 		<div className="w-[16rem] grow-0 bg-gray-100 border border-gray-500">
@@ -52,7 +58,10 @@ export const RightBar = (): React.ReactElement => {
 							defaultValue={niivueVolume.opacity * 100}
 							unit="%"
 							onChange={(value) => {
-								niivue.setOpacity(niivueVolumeIndex, value / 100);
+								niivueWrapper?.current?.niivue.setOpacity(
+									niivueVolumeIndex,
+									value / 100
+								);
 							}}
 						></Slider>
 						<div className="flex items-center mb-4">
@@ -71,7 +80,7 @@ export const RightBar = (): React.ReactElement => {
 								onChange={(colorMap) => {
 									if (colorMap === null) return;
 									niivueVolume.colorMap = colorMap.value;
-									niivue.updateGLVolume();
+									niivueWrapper?.current?.niivue.updateGLVolume();
 								}}
 							/>
 						</div>
@@ -82,7 +91,7 @@ export const RightBar = (): React.ReactElement => {
 							defaultValue={niivueVolume.cal_min}
 							onChange={(value) => {
 								niivueVolume.cal_min = value;
-								niivue.updateGLVolume();
+								niivueWrapper?.current?.niivue.updateGLVolume();
 							}}
 						></Slider>
 						<Slider
@@ -91,7 +100,7 @@ export const RightBar = (): React.ReactElement => {
 							defaultValue={niivueVolume.cal_max}
 							onChange={(value) => {
 								niivueVolume.cal_max = value;
-								niivue.updateGLVolume();
+								niivueWrapper?.current?.niivue.updateGLVolume();
 							}}
 						></Slider>
 					</>
