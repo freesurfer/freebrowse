@@ -14,11 +14,6 @@ interface IProjectContext {
 	niivue: Niivue | undefined;
 	projectState: ProjectState | undefined;
 	setProjectState: (projectState: ProjectState) => void;
-	/**
-	 * file name of selected file
-	 */
-	selectedFile: string | undefined;
-	setSelectedFile: (fileName: string | undefined) => void;
 	location: LocationData | undefined;
 }
 
@@ -28,10 +23,6 @@ export const ProjectContext = createContext<IProjectContext>({
 	setProjectState: (projectState: ProjectState): void => {
 		throw new Error('method not initialized yet');
 	},
-	selectedFile: undefined,
-	setSelectedFile: (fileName: string | undefined): void => {
-		throw new Error('method not initialized yet');
-	},
 	location: undefined,
 });
 
@@ -39,7 +30,6 @@ export const ProjectPage = (): React.ReactElement => {
 	const { projectId } = useParams();
 	const [projectState, setProjectState] = useState<ProjectState | undefined>();
 
-	const [selectedFile, setSelectedFile] = useState<string | undefined>();
 	const [location, setLocation] = useState<LocationData | undefined>();
 	const [niivue, setNiivue] = useState<Niivue | undefined>();
 	const hooveredView = useRef(0);
@@ -70,14 +60,17 @@ export const ProjectPage = (): React.ReactElement => {
 	}, [projectId]);
 
 	useEffect(() => {
+		if (projectState === undefined) return;
+
 		const loadData = async (): Promise<void> => {
 			if (niivue === undefined) return;
-			if (projectState === undefined) return;
 			niivue.volumes = [];
 			niivue.meshes = [];
 
 			niivue.setHighResolutionCapable(false);
 			niivue.opts.isOrientCube = false;
+
+			if (!projectState.files.hasChanged(niivue.volumes, niivue.meshes)) return;
 
 			await niivue.loadVolumes(
 				projectState.files.cloudVolumes.map((file) => {
@@ -181,8 +174,6 @@ export const ProjectPage = (): React.ReactElement => {
 				projectState,
 				setProjectState,
 				niivue,
-				selectedFile,
-				setSelectedFile,
 				location,
 			}}
 		>

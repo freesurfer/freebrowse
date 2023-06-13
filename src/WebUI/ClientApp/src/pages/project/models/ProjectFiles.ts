@@ -19,6 +19,7 @@ import type {
 	ProjectSurfaceFile,
 	ProjectVolumeFile,
 } from '@/pages/project/models/ProjectFile';
+import type { NVImage, NVMesh } from '@niivue/niivue';
 
 /**
  * mutable instance keeps the state of the project files
@@ -69,11 +70,12 @@ export class ProjectFiles {
 			// new class from given backend state
 			this.localSurfaces = [];
 			this.localVolumes = [];
-			this.cloudSurfaces = ProjectFiles.cloudFileFromSurfaceDto(
-				initState.backendState.surfaces
-			);
 			this.cloudVolumes = ProjectFiles.cloudFileFromVolumeDto(
 				initState.backendState.volumes
+			);
+			this.cloudSurfaces = ProjectFiles.cloudFileFromSurfaceDto(
+				initState.backendState.surfaces,
+				this.cloudVolumes.length === 0
 			);
 		} else {
 			// new class from given file set
@@ -86,6 +88,52 @@ export class ProjectFiles {
 		this.surfaces = [...this.cloudSurfaces, ...this.localSurfaces];
 		this.volumes = [...this.cloudVolumes, ...this.localVolumes];
 		this.all = [...this.surfaces, ...this.volumes];
+	}
+
+	/**
+	 * immutable instance recreation for volumes
+	 * for adapted file metadata like
+	 * - order
+	 * - isActive
+	 * - isChecked
+	 * - opacity
+	 * - ...
+	 */
+	public fromAdaptedVolumes(volumes: ProjectVolumeFile[]): ProjectFiles {
+		return new ProjectFiles({
+			localVolumes: volumes.filter(
+				(volume): volume is LocalVolumeFile => volume instanceof LocalVolumeFile
+			),
+			localSurfaces: this.localSurfaces,
+			cloudVolumes: volumes.filter(
+				(volume): volume is CloudVolumeFile => volume instanceof CloudVolumeFile
+			),
+			cloudSurfaces: this.cloudSurfaces,
+		});
+	}
+
+	/**
+	 * immutable instance recreation for surfaces
+	 * for adapted file metadata like
+	 * - order
+	 * - isActive
+	 * - isChecked
+	 * - opacity
+	 * - ...
+	 */
+	public fromAdaptedSurfaces(surfaces: ProjectSurfaceFile[]): ProjectFiles {
+		return new ProjectFiles({
+			localVolumes: this.localVolumes,
+			localSurfaces: surfaces.filter(
+				(surface): surface is LocalSurfaceFile =>
+					surface instanceof LocalSurfaceFile
+			),
+			cloudVolumes: this.cloudVolumes,
+			cloudSurfaces: surfaces.filter(
+				(surface): surface is CloudSurfaceFile =>
+					surface instanceof CloudSurfaceFile
+			),
+		});
 	}
 
 	/**
@@ -166,7 +214,11 @@ export class ProjectFiles {
 					return new CloudSurfaceFile(
 						uploadResponse.id,
 						uploadResponse.fileName,
-						localFile.size
+						localFile.size,
+						true,
+						localFile.isChecked,
+						localFile.order,
+						localFile.opacity
 					);
 				}),
 			],
@@ -209,7 +261,13 @@ export class ProjectFiles {
 					return new CloudVolumeFile(
 						uploadResponse.id,
 						uploadResponse.fileName,
-						localFile.size
+						localFile.size,
+						true,
+						localFile.isChecked,
+						localFile.order,
+						localFile.opacity,
+						localFile.contrastMin,
+						localFile.contrastMax
 					);
 				}),
 			],
@@ -223,6 +281,50 @@ export class ProjectFiles {
 				),
 			],
 		});
+	}
+
+	/**
+	 * compare the niivue state with the ProjectFile state
+	 * the niivue files need only to get updated, if the state has changed
+	 */
+	hasChanged(niivueVolumes: NVImage[], niivueSurfaces: NVMesh[]): boolean {
+		for (const niivueVolume of niivueVolumes) {
+			if (
+				this.cloudVolumes.find(
+					(cloudVolume) => cloudVolume.name === niivueVolume.name
+				) === undefined
+			)
+				return true;
+		}
+
+		for (const cloudVolume of this.cloudVolumes) {
+			if (
+				niivueVolumes.find(
+					(niivueVolume) => niivueVolume.name === cloudVolume.name
+				) === undefined
+			)
+				return true;
+		}
+
+		for (const niivueSurface of niivueSurfaces) {
+			if (
+				this.cloudSurfaces.find(
+					(cloudSurface) => cloudSurface.name === niivueSurface.name
+				) === undefined
+			)
+				return true;
+		}
+
+		for (const cloudSurface of this.cloudSurfaces) {
+			if (
+				niivueSurfaces.find(
+					(niivueSurface) => niivueSurface.name === cloudSurface.name
+				) === undefined
+			)
+				return true;
+		}
+
+		return false;
 	}
 
 	public async getLocalVolumesToUpload(): Promise<VolumeDto2[]> {
@@ -241,58 +343,64 @@ export class ProjectFiles {
 		fileModel: VolumeDto[] | undefined
 	): CloudVolumeFile[] {
 		if (fileModel === undefined) return [];
+		let setIsActive = true;
 
-		return fileModel
-			.map<CloudVolumeFile>((fileDto) => {
-				if (fileDto === undefined)
-					throw new Error('undefined array entry is not allowed');
+		return fileModel.map<CloudVolumeFile>((fileDto) => {
+			if (fileDto === undefined)
+				throw new Error('undefined array entry is not allowed');
 
-				if (fileDto?.id === undefined)
-					throw new Error('no file without file id');
+			if (fileDto?.id === undefined) throw new Error('no file without file id');
 
-				if (fileDto?.fileName === undefined)
-					throw new Error('no file without file name');
+			if (fileDto?.fileName === undefined)
+				throw new Error('no file without file name');
 
-				if (fileDto?.fileSize === undefined)
-					throw new Error('no file without file size');
+			if (fileDto?.fileSize === undefined)
+				throw new Error('no file without file size');
 
-				return new CloudVolumeFile(
-					fileDto.id,
-					fileDto.fileName,
-					fileDto.fileSize
-				);
-			})
-			.filter<CloudVolumeFile>(
-				(cloudFile): cloudFile is CloudVolumeFile => cloudFile !== undefined
+			const file = new CloudVolumeFile(
+				fileDto.id,
+				fileDto.fileName,
+				fileDto.fileSize,
+				setIsActive,
+				true,
+				fileDto.order,
+				fileDto.opacity ?? 100,
+				fileDto.contrastMin ?? 0,
+				fileDto.contrastMax ?? 100
 			);
+			setIsActive = false;
+			return file;
+		});
 	}
 
 	private static cloudFileFromSurfaceDto(
-		fileModel: SurfaceDto[] | undefined
+		fileModel: SurfaceDto[] | undefined,
+		setIsActive: boolean
 	): CloudSurfaceFile[] {
 		if (fileModel === undefined) return [];
-		return fileModel
-			.map<CloudSurfaceFile | undefined>((fileDto) => {
-				if (fileDto === undefined)
-					throw new Error('undefined array entry is not allowed');
+		return fileModel.map<CloudSurfaceFile>((fileDto) => {
+			if (fileDto === undefined)
+				throw new Error('undefined array entry is not allowed');
 
-				if (fileDto?.id === undefined)
-					throw new Error('no file without file id');
+			if (fileDto?.id === undefined) throw new Error('no file without file id');
 
-				if (fileDto?.fileName === undefined)
-					throw new Error('no file without file name');
+			if (fileDto?.fileName === undefined)
+				throw new Error('no file without file name');
 
-				if (fileDto?.fileSize === undefined)
-					throw new Error('no file without file size');
+			if (fileDto?.fileSize === undefined)
+				throw new Error('no file without file size');
 
-				return new CloudSurfaceFile(
-					fileDto.id,
-					fileDto.fileName,
-					fileDto.fileSize
-				);
-			})
-			.filter<CloudSurfaceFile>(
-				(cloudFile): cloudFile is CloudSurfaceFile => cloudFile !== undefined
+			const file = new CloudSurfaceFile(
+				fileDto.id,
+				fileDto.fileName,
+				fileDto.fileSize,
+				setIsActive,
+				true,
+				fileDto.order,
+				fileDto.opacity ?? 100
 			);
+			setIsActive = false;
+			return file;
+		});
 	}
 }

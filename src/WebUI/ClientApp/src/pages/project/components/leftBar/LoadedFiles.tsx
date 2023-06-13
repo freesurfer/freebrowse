@@ -6,8 +6,7 @@ import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { useContext } from 'react';
 
 export const LoadedFiles = (): React.ReactElement => {
-	const { projectState, setProjectState, selectedFile, setSelectedFile } =
-		useContext(ProjectContext);
+	const { projectState, setProjectState } = useContext(ProjectContext);
 	const { editProject } = useContext(OpenProjectDialogContext);
 
 	if (projectState === undefined) {
@@ -45,23 +44,14 @@ export const LoadedFiles = (): React.ReactElement => {
 					title={<span className="border-b border-gray-300 grow">Volumes</span>}
 				>
 					<OrderList
-						entries={projectState.files.volumes.map((entry) => ({
-							label: entry.name,
-						}))}
-						activeFileName={selectedFile}
-						setActiveFileName={setSelectedFile}
-						updateOrder={(entries) => {
-							entries.forEach((entry) => {
-								/*
-								const innerEntry = projectState.files.volumes.find(
-									(findEntry) => entry.label === findEntry.name
-								);
-								// TODO update order
-								// if (innerEntry === undefined) return;
-								// innerEntry.order = entry.order;
-								*/
-							});
-						}}
+						files={projectState.files.volumes}
+						setFiles={(files) =>
+							setProjectState(
+								projectState.fromFiles(
+									projectState.files.fromAdaptedVolumes(files)
+								)
+							)
+						}
 					></OrderList>
 				</Collapse>
 				<Collapse
@@ -70,23 +60,14 @@ export const LoadedFiles = (): React.ReactElement => {
 					}
 				>
 					<OrderList
-						entries={projectState.files.surfaces.map((entry) => ({
-							label: entry.name,
-						}))}
-						activeFileName={selectedFile}
-						setActiveFileName={setSelectedFile}
-						updateOrder={(entries) => {
-							entries.forEach((entry) => {
-								/*
-								const innerEntry = projectState.files.surfaces.find(
-									(findEntry) => entry.label === findEntry.name
-								);
-								// TODO update order
-								// if (innerEntry === undefined) return;
-								// innerEntry.order = entry.order;
-								*/
-							});
-						}}
+						files={projectState.files.surfaces}
+						setFiles={(files) =>
+							setProjectState(
+								projectState.fromFiles(
+									projectState.files.fromAdaptedSurfaces(files)
+								)
+							)
+						}
 					></OrderList>
 				</Collapse>
 			</>
