@@ -16,6 +16,9 @@ Run the docker container
 ```bash
 docker run --cap-add SYS_PTRACE -e 'ACCEPT_EULA=1' -e 'MSSQL_SA_PASSWORD=yourStrong(!)Password' -p 1433:1433 --name azuresqledge -d mcr.microsoft.com/azure-sql-edge
 ```
+
+You need to copy the `ConnectionStrings` from the `appsettings.Development.mac.json` to `appsettings.Development.json`, since i have not found a way yet to include it automatically without messing up the configuration for windows users.
+
 Afterwards you can start the project using
 - the Visual Studio run button
 - F5 in visual studio code
