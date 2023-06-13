@@ -73,7 +73,8 @@ export const ProjectPage = (): React.ReactElement => {
 		const loadData = async (): Promise<void> => {
 			if (niivue === undefined) return;
 			if (projectState === undefined) return;
-			niivue.setSliceType(niivue.sliceTypeMultiplanar);
+			niivue.volumes = [];
+			niivue.meshes = [];
 
 			niivue.setHighResolutionCapable(false);
 			niivue.opts.isOrientCube = false;
