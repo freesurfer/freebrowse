@@ -30,7 +30,7 @@ export const VoxelInfo = (): React.ReactElement => {
 					<span>-</span>
 					{location?.values.map((value, index) => (
 						<Fragment key={index}>
-							<span className="text-start">
+							<span className="text-start text-ellipsis overflow-hidden">
 								{value?.name !== undefined ? value.name.split('.')[0] : '-'}:
 							</span>
 							<span>{value?.vox[0] !== undefined ? value.vox[0] : '-'}</span>

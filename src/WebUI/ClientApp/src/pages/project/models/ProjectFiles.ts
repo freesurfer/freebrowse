@@ -237,6 +237,9 @@ export class ProjectFiles {
 		});
 	}
 
+	/**
+	 * removes the local files and adding the uploaded once instead to the file state
+	 */
 	public fromUploadedVolumes(
 		uploadResponses: CreateVolumeResponseDto[]
 	): ProjectFiles {
