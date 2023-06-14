@@ -1,12 +1,20 @@
 import { Collapse } from '@/components/Collapse';
 import { OrderList } from '@/components/OrderList';
-import { ProjectContext } from '@/pages/project/ProjectPage';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
+import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { useContext } from 'react';
+import type { SetStateAction } from 'react';
 
-export const LoadedFiles = (): React.ReactElement => {
-	const { projectState, setProjectState } = useContext(ProjectContext);
+export const LoadedFiles = ({
+	projectState,
+	setProjectState,
+}: {
+	projectState: ProjectState | undefined;
+	setProjectState: (
+		projectState: SetStateAction<ProjectState | undefined>
+	) => void;
+}): React.ReactElement => {
 	const { editProject } = useContext(OpenProjectDialogContext);
 
 	if (projectState === undefined) {
@@ -15,9 +23,16 @@ export const LoadedFiles = (): React.ReactElement => {
 
 	const loadFiles = async (): Promise<void> => {
 		try {
-			const projectFiles = await editProject(projectState);
+			let currentProjectState: ProjectState | undefined;
+			// to prevent stale projectState
+			setProjectState((projectState) => {
+				currentProjectState = projectState;
+				return projectState;
+			});
+			if (currentProjectState === undefined) return;
+			const projectFiles = await editProject(currentProjectState);
 			if (projectFiles === 'canceled') return;
-			setProjectState(projectState.fromFiles(projectFiles));
+			setProjectState((projectState) => projectState?.fromFiles(projectFiles));
 		} catch (error) {
 			console.error('something went wrong opening files', error);
 		}
@@ -45,13 +60,17 @@ export const LoadedFiles = (): React.ReactElement => {
 				>
 					<OrderList
 						files={projectState.files.volumes}
-						setFiles={(files) =>
-							setProjectState(
-								projectState.fromFiles(
+						setFiles={(files) => {
+							/*
+							 * it is very important here to use the update representation of the setter
+							 * https://stackoverflow.com/questions/56782079/react-hooks-stale-state
+							 */
+							setProjectState((projectState) =>
+								projectState?.fromFiles(
 									projectState.files.fromAdaptedVolumes(files)
 								)
-							)
-						}
+							);
+						}}
 					></OrderList>
 				</Collapse>
 				<Collapse
@@ -61,13 +80,17 @@ export const LoadedFiles = (): React.ReactElement => {
 				>
 					<OrderList
 						files={projectState.files.surfaces}
-						setFiles={(files) =>
-							setProjectState(
-								projectState.fromFiles(
+						setFiles={(files) => {
+							/*
+							 * it is very important here to use the update representation of the setter
+							 * https://stackoverflow.com/questions/56782079/react-hooks-stale-state
+							 */
+							setProjectState((projectState) =>
+								projectState?.fromFiles(
 									projectState.files.fromAdaptedSurfaces(files)
 								)
-							)
-						}
+							);
+						}}
 					></OrderList>
 				</Collapse>
 			</>

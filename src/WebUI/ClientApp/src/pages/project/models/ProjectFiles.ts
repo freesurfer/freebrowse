@@ -28,6 +28,8 @@ import type { NVImage, NVMesh } from '@niivue/niivue';
  * - the once the user opened from the drive, which need to get uploaded
  */
 export class ProjectFiles {
+	public id = Math.random();
+
 	private readonly localSurfaces: readonly LocalSurfaceFile[];
 	private readonly localVolumes: readonly LocalVolumeFile[];
 	public readonly cloudSurfaces: readonly CloudSurfaceFile[];
@@ -285,6 +287,7 @@ export class ProjectFiles {
 
 	/**
 	 * compare the niivue state with the ProjectFile state
+	 * if all file NAMEs are the same
 	 * the niivue files need only to get updated, if the state has changed
 	 */
 	hasChanged(niivueVolumes: NVImage[], niivueSurfaces: NVMesh[]): boolean {

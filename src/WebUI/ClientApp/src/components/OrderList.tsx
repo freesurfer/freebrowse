@@ -1,7 +1,9 @@
 import { Checkbox } from '@/components/Checkbox';
 import type { ProjectFile } from '@/pages/project/models/ProjectFile';
 import { ArrowsUpDownIcon } from '@heroicons/react/24/outline';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+const CLICK_THRESHOLD = 3;
 
 interface IRow<T_FILE_TYPE extends ProjectFile> {
 	projectFile: T_FILE_TYPE;
@@ -22,6 +24,7 @@ interface IDragState<T_FILE_TYPE extends ProjectFile> {
 	entry: IRow<T_FILE_TYPE>;
 	mouseStart: number;
 	topStart: number;
+	isClick: boolean;
 }
 
 const ROW_HEIGHT = 30;
@@ -39,7 +42,10 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 
 	private rows: IRow<T_FILE_TYPE>[] = [];
 
-	constructor(private readonly setFiles: (files: T_FILE_TYPE[]) => void) {}
+	constructor(
+		private readonly setFiles: (files: T_FILE_TYPE[]) => void,
+		private readonly setRows: (rows: IRow<T_FILE_TYPE>[]) => void
+	) {}
 
 	updateSource(files: readonly T_FILE_TYPE[]): void {
 		const filesWithOrder = files?.filter((file) => file?.order !== undefined);
@@ -50,53 +56,71 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 			(a, b) => (a?.order ?? 0) - (b?.order ?? 0)
 		);
 
-		let orderCount = -1;
+		let order = 0;
 
 		this.rows = [
 			...(sortedFilesWithOrder ?? []),
 			...(filesWithoutOrder ?? []),
 		].map((file): IRow<T_FILE_TYPE> => {
-			orderCount++;
+			const currentOrder = order;
+			order = order + 1;
 
 			const existsAlready = this.rows.find(
 				(row) => row.projectFile.name === file?.name
 			);
+
 			if (existsAlready === undefined) {
 				return {
 					projectFile: file,
 					label: file?.name,
-					order: orderCount,
-					top: orderCount * ROW_HEIGHT,
+					order: currentOrder,
+					top: currentOrder * ROW_HEIGHT,
 					isActive: file?.isActive ?? false,
 					isChecked: file?.isChecked ?? false,
 				};
 			}
 
-			existsAlready.order = orderCount;
-			existsAlready.top = orderCount * ROW_HEIGHT;
+			existsAlready.order = currentOrder;
+			existsAlready.top = currentOrder * ROW_HEIGHT;
 			existsAlready.isActive = file?.isActive;
 			existsAlready.isChecked = file?.isChecked;
 			existsAlready.projectFile = file;
 
 			return existsAlready;
 		});
+		this.setRows(this.rows);
+		this.pushNewOrder();
 	}
 
-	getRows(): IRow<T_FILE_TYPE>[] {
-		return this.rows;
+	private pushNewOrder(): void {
+		const newFiles: T_FILE_TYPE[] = [];
+		let orderHasChanged = false;
+		for (const row of this.rows) {
+			if (row.projectFile.order !== row.order) orderHasChanged = true;
+			newFiles.push(row.projectFile.fromOrder(row.order) as T_FILE_TYPE);
+		}
+		if (orderHasChanged) {
+			this.setFiles(newFiles);
+		}
 	}
 
 	startDrag(mouseStart: number, entry: IRow<T_FILE_TYPE>): void {
-		console.log('BERE', this.getRows()[0]?.ref);
 		this.dragState = {
 			mouseStart,
 			entry,
 			topStart: entry.top,
+			isClick: true,
 		};
 	}
 
 	updateDrag(positionMove: number): void {
 		if (this.dragState === undefined) return;
+
+		if (
+			this.dragState.isClick &&
+			Math.abs(this.dragState.mouseStart - positionMove) > CLICK_THRESHOLD
+		)
+			this.dragState.isClick = false;
 
 		const entry = this.dragState.entry;
 		if (entry.ref === null || entry.ref === undefined) return;
@@ -119,15 +143,24 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 	}
 
 	drop(): void {
+		const dragState = this.dragState;
 		this.dragState = undefined;
+
+		if (dragState === undefined) return;
+
+		if (dragState.isClick) {
+			this.setFiles(
+				this.rows.map((row) => {
+					if (row.projectFile === dragState.entry.projectFile)
+						return row.projectFile.fromIsActive(true) as T_FILE_TYPE;
+					return row.projectFile.fromIsActive(false) as T_FILE_TYPE;
+				})
+			);
+			return;
+		}
+
 		this.recomputeOrder();
-
-		// TODO trigger only on change
-		const newFiles = this.rows.map(
-			(row) => row.projectFile.fromOrder(row.order) as T_FILE_TYPE
-		);
-
-		this.setFiles(newFiles);
+		this.pushNewOrder();
 	}
 
 	private cropToBounds(newPosition: number): number {
@@ -138,11 +171,12 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 	}
 
 	private recomputeOrder(): void {
-		let orderCount = -1;
+		let order = 0;
 		for (const entry of this.rows.sort(
 			(a, b) => a.top - ROW_HEIGHT / 2 - b.top
 		)) {
-			entry.order = orderCount++;
+			entry.order = order;
+			order = order + 1;
 			if (entry.ref === this.dragState?.entry.ref) {
 				if (entry.ref === undefined || entry.ref === null) continue;
 				entry.style = {
@@ -154,7 +188,7 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 				continue;
 			}
 
-			entry.top = orderCount * ROW_HEIGHT;
+			entry.top = entry.order * ROW_HEIGHT;
 			entry.style = {
 				transition: `transform .2s ease-in-out`,
 				transform: `translateY(${entry.top}px)`,
@@ -177,8 +211,9 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 	files: readonly T_FILE_TYPE[];
 	setFiles: (files: T_FILE_TYPE[]) => void;
 }): React.ReactElement => {
+	const [rows, setRows] = useState<IRow<T_FILE_TYPE>[]>();
 	const state = useRef<OrderState<T_FILE_TYPE>>(
-		new OrderState((files) => setFiles(files))
+		new OrderState((files) => setFiles(files), setRows)
 	);
 
 	useEffect(() => {
@@ -199,9 +234,9 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 				position: 'relative',
 			}}
 			onMouseMove={(event) => state.current.updateDrag(event.pageY)}
-			onMouseLeave={(event) => handleDrop()}
+			onMouseLeave={() => handleDrop()}
 		>
-			{state.current.getRows().map((row) => {
+			{rows?.map((row) => {
 				if (row.label === undefined) return <></>;
 				return (
 					<div
@@ -218,6 +253,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 					>
 						<button
 							className={`flex text-start items-center w-full`}
+							/*
 							onClick={(event) => {
 								setFiles(
 									state.current.getRows().map((tmpRow) => {
@@ -231,6 +267,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 								);
 								event.stopPropagation();
 							}}
+							*/
 							onMouseDown={(event) => state.current.startDrag(event.pageY, row)}
 						>
 							<Checkbox defaultState={true}></Checkbox>

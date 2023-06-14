@@ -59,6 +59,35 @@ export class NiivueWrapper {
 
 	private async executeLoadDataChunk(files: ProjectFiles): Promise<void> {
 		if (!files.hasChanged(this.niivue.volumes, this.niivue.meshes)) {
+			for (const volumeFile of files.volumes) {
+				const niivueVolume = this.niivue.volumes.find(
+					(niivueVolume) => volumeFile.name === niivueVolume.name
+				);
+				if (niivueVolume === undefined) {
+					console.error('can not happen');
+					return;
+				}
+				if (
+					this.niivue.getVolumeIndexByID(niivueVolume.id) === volumeFile.order
+				) {
+					continue;
+				}
+				this.niivue.setVolume(niivueVolume, volumeFile.order);
+			}
+
+			for (const surfaceFile of files.surfaces) {
+				const niivueMesh = this.niivue.meshes.find(
+					(niivueMesh) => surfaceFile.name === niivueMesh.name
+				);
+				if (niivueMesh === undefined) {
+					console.error('can not happen');
+					return;
+				}
+				if (this.niivue.getMeshIndexByID(niivueMesh.id) === surfaceFile.order) {
+					continue;
+				}
+				this.niivue.setMesh(niivueMesh, surfaceFile.order);
+			}
 			return;
 		}
 
@@ -72,21 +101,25 @@ export class NiivueWrapper {
 			this.niivue.meshes = [];
 
 			await this.niivue.loadVolumes(
-				files.cloudVolumes.map((file) => {
-					return {
-						url: file.url,
-						name: file.name,
-					};
-				})
+				Array.from(files.cloudVolumes)
+					.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+					.map((file) => {
+						return {
+							url: file.url,
+							name: file.name,
+						};
+					})
 			);
 
 			await this.niivue.loadMeshes(
-				files.cloudSurfaces.map((file) => {
-					return {
-						url: file.url,
-						name: file.name,
-					};
-				})
+				Array.from(files.cloudSurfaces)
+					.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+					.map((file) => {
+						return {
+							url: file.url,
+							name: file.name,
+						};
+					})
 			);
 
 			this.niivue.createOnLocationChange();
