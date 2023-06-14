@@ -255,10 +255,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 							row.isActive ? 'bg-gray-500' : 'bg-gray-100'
 						}`}
 					>
-						<button
-							className={`flex text-start items-center w-full`}
-							onMouseDown={(event) => state.current.startDrag(event.pageY, row)}
-						>
+						<div className="flex items-center w-full">
 							<Checkbox
 								defaultState={true}
 								setValue={(value) =>
@@ -270,19 +267,26 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 									)
 								}
 							></Checkbox>
-							<span
-								className={`grow cursor-default text-ellipsis overflow-hidden ${
-									row.isActive ? 'text-white' : ''
-								}`}
+							<button
+								className="flex text-start items-center w-full"
+								onMouseDown={(event) =>
+									state.current.startDrag(event.pageY, row)
+								}
 							>
-								{row.label}
-							</span>
-							<ArrowsUpDownIcon
-								className={`w-5 shrink-0 m-1 ${
-									row.isActive ? 'text-white' : 'text-gray-500'
-								}`}
-							></ArrowsUpDownIcon>
-						</button>
+								<span
+									className={`grow cursor-default text-ellipsis overflow-hidden ${
+										row.isActive ? 'text-white' : ''
+									}`}
+								>
+									{row.label}
+								</span>
+								<ArrowsUpDownIcon
+									className={`w-5 shrink-0 m-1 ${
+										row.isActive ? 'text-white' : 'text-gray-500'
+									}`}
+								></ArrowsUpDownIcon>
+							</button>
+						</div>
 					</div>
 				);
 			})}
