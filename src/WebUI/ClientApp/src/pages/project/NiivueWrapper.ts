@@ -64,15 +64,21 @@ export class NiivueWrapper {
 					(niivueVolume) => volumeFile.name === niivueVolume.name
 				);
 				if (niivueVolume === undefined) {
-					console.error('can not happen');
+					console.error('no volume in niivue - can not happen');
 					return;
 				}
-				if (
-					this.niivue.getVolumeIndexByID(niivueVolume.id) === volumeFile.order
-				) {
+
+				if (volumeFile.order === undefined) {
+					console.warn('no order defined - should not happen');
 					continue;
 				}
-				this.niivue.setVolume(niivueVolume, volumeFile.order);
+
+				const invertedOrder = files.volumes.length - volumeFile.order;
+
+				if (this.niivue.getVolumeIndexByID(niivueVolume.id) === invertedOrder) {
+					continue;
+				}
+				this.niivue.setVolume(niivueVolume, invertedOrder);
 			}
 
 			for (const surfaceFile of files.surfaces) {
@@ -80,13 +86,20 @@ export class NiivueWrapper {
 					(niivueMesh) => surfaceFile.name === niivueMesh.name
 				);
 				if (niivueMesh === undefined) {
-					console.error('can not happen');
+					console.error('no surface in niivue - can not happen');
 					return;
 				}
-				if (this.niivue.getMeshIndexByID(niivueMesh.id) === surfaceFile.order) {
+
+				if (surfaceFile.order === undefined) {
+					console.warn('no order defined - should not happen');
 					continue;
 				}
-				this.niivue.setMesh(niivueMesh, surfaceFile.order);
+				const invertedOrder = files.volumes.length - surfaceFile.order;
+
+				if (this.niivue.getMeshIndexByID(niivueMesh.id) === invertedOrder) {
+					continue;
+				}
+				this.niivue.setMesh(niivueMesh, invertedOrder);
 			}
 			return;
 		}
@@ -102,7 +115,7 @@ export class NiivueWrapper {
 
 			await this.niivue.loadVolumes(
 				Array.from(files.cloudVolumes)
-					.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+					.sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
 					.map((file) => {
 						return {
 							url: file.url,
@@ -113,7 +126,7 @@ export class NiivueWrapper {
 
 			await this.niivue.loadMeshes(
 				Array.from(files.cloudSurfaces)
-					.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+					.sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
 					.map((file) => {
 						return {
 							url: file.url,

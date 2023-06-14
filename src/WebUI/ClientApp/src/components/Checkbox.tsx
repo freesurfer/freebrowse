@@ -17,8 +17,8 @@ export const Checkbox = ({
 				className="hidden"
 				checked={isChecked}
 				onChange={() => {
-					setValue?.(!isChecked);
 					setIsChecked(!isChecked);
+					setValue?.(!isChecked);
 				}}
 			></input>
 			<div

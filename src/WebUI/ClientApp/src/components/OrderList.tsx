@@ -160,7 +160,10 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 		}
 
 		this.recomputeOrder();
-		this.pushNewOrder();
+		// run async to not block UI
+		setTimeout(() => {
+			this.pushNewOrder();
+		}, 0);
 	}
 
 	private cropToBounds(newPosition: number): number {
@@ -221,6 +224,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 	}, [files]);
 
 	const handleDrop = useCallback(() => state?.current.drop(), []);
+
 	useEffect(() => {
 		window.addEventListener('mouseup', handleDrop);
 		return () => window.removeEventListener('mouseup', handleDrop);

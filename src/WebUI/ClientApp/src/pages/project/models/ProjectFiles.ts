@@ -287,7 +287,7 @@ export class ProjectFiles {
 
 	/**
 	 * compare the niivue state with the ProjectFile state
-	 * if all file NAMEs are the same
+	 * if files has been added or removed (by names)
 	 * the niivue files need only to get updated, if the state has changed
 	 */
 	hasChanged(niivueVolumes: NVImage[], niivueSurfaces: NVMesh[]): boolean {
