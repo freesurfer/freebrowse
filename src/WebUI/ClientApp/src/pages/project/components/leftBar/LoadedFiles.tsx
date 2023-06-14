@@ -3,7 +3,7 @@ import { OrderList } from '@/components/OrderList';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import type { Dispatch } from 'react';
 
 export const LoadedFiles = ({
@@ -17,26 +17,20 @@ export const LoadedFiles = ({
 }): React.ReactElement => {
 	const { editProject } = useContext(OpenProjectDialogContext);
 
-	if (projectState === undefined) {
-		return <></>;
-	}
-
-	const loadFiles = async (): Promise<void> => {
+	const loadFiles = useCallback(async (): Promise<void> => {
 		try {
-			let currentProjectState: ProjectState | undefined;
-			// to prevent stale projectState
-			setProjectState((projectState) => {
-				currentProjectState = projectState;
-				return projectState;
-			});
-			if (currentProjectState === undefined) return;
-			const projectFiles = await editProject(currentProjectState);
+			if (projectState === undefined) return;
+			const projectFiles = await editProject(projectState);
 			if (projectFiles === 'canceled') return;
 			setProjectState((projectState) => projectState?.fromFiles(projectFiles));
 		} catch (error) {
 			console.error('something went wrong opening files', error);
 		}
-	};
+	}, [projectState, editProject, setProjectState]);
+
+	if (projectState === undefined) {
+		return <></>;
+	}
 
 	return (
 		<Collapse
