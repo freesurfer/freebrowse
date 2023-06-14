@@ -249,7 +249,7 @@ export class ProjectFiles {
 						uploadResponse.id,
 						uploadResponse.fileName,
 						localFile.size,
-						true,
+						localFile.isActive,
 						localFile.isChecked,
 						localFile.order,
 						localFile.opacity
@@ -299,7 +299,7 @@ export class ProjectFiles {
 						uploadResponse.id,
 						uploadResponse.fileName,
 						localFile.size,
-						true,
+						localFile.isActive,
 						localFile.isChecked,
 						localFile.order,
 						localFile.opacity,
@@ -329,13 +329,15 @@ export class ProjectFiles {
 		for (const niivueVolume of niivueVolumes) {
 			if (
 				this.cloudVolumes.find(
-					(cloudVolume) => cloudVolume.name === niivueVolume.name
+					(cloudVolume) =>
+						cloudVolume.isChecked && cloudVolume.name === niivueVolume.name
 				) === undefined
 			)
 				return true;
 		}
 
 		for (const cloudVolume of this.cloudVolumes) {
+			if (!cloudVolume.isChecked) continue;
 			if (
 				niivueVolumes.find(
 					(niivueVolume) => niivueVolume.name === cloudVolume.name
@@ -347,13 +349,15 @@ export class ProjectFiles {
 		for (const niivueSurface of niivueSurfaces) {
 			if (
 				this.cloudSurfaces.find(
-					(cloudSurface) => cloudSurface.name === niivueSurface.name
+					(cloudSurface) =>
+						cloudSurface.isChecked && cloudSurface.name === niivueSurface.name
 				) === undefined
 			)
 				return true;
 		}
 
 		for (const cloudSurface of this.cloudSurfaces) {
+			if (!cloudSurface.isChecked) continue;
 			if (
 				niivueSurfaces.find(
 					(niivueSurface) => niivueSurface.name === cloudSurface.name
@@ -381,7 +385,6 @@ export class ProjectFiles {
 		fileModel: VolumeDto[] | undefined
 	): CloudVolumeFile[] {
 		if (fileModel === undefined) return [];
-		let setIsActive = true;
 
 		return fileModel.map<CloudVolumeFile>((fileDto) => {
 			if (fileDto === undefined)
@@ -399,14 +402,13 @@ export class ProjectFiles {
 				fileDto.id,
 				fileDto.fileName,
 				fileDto.fileSize,
-				setIsActive,
+				false,
 				true,
 				fileDto.order,
 				fileDto.opacity ?? 100,
 				fileDto.contrastMin ?? 0,
 				fileDto.contrastMax ?? 100
 			);
-			setIsActive = false;
 			return file;
 		});
 	}

@@ -153,8 +153,11 @@ export const RightBar = ({
 										defaultValue={surface.opacity * 100}
 										unit="%"
 										onChange={(value) => {
-											surface.opacity = value / 100;
-											niivueWrapper.current?.niivue.drawScene();
+											niivueWrapper.current?.niivue.setMeshProperty(
+												surface.id,
+												'opacity',
+												value / 100
+											);
 										}}
 									></Slider>
 								</>

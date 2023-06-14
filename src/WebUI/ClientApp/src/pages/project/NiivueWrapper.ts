@@ -113,7 +113,8 @@ export class NiivueWrapper {
 			this.niivue.meshes = [];
 
 			await this.niivue.loadVolumes(
-				Array.from(files.cloudVolumes)
+				files.cloudVolumes
+					.filter((file) => file.isChecked)
 					.sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
 					.map((file) => {
 						return {
@@ -124,7 +125,8 @@ export class NiivueWrapper {
 			);
 
 			await this.niivue.loadMeshes(
-				Array.from(files.cloudSurfaces)
+				files.cloudSurfaces
+					.filter((file) => file.isChecked)
 					.sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
 					.map((file) => {
 						return {
