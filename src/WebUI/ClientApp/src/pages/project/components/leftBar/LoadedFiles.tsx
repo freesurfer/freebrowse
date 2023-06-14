@@ -65,6 +65,13 @@ export const LoadedFiles = ({
 								)
 							);
 						}}
+						setFileActive={(file) => {
+							setProjectState((projectState) =>
+								projectState?.fromFiles(
+									projectState.files.fromOneVolumeActivated(file)
+								)
+							);
+						}}
 					></OrderList>
 				</Collapse>
 				<Collapse
@@ -82,6 +89,13 @@ export const LoadedFiles = ({
 							setProjectState((projectState) =>
 								projectState?.fromFiles(
 									projectState.files.fromAdaptedSurfaces(files)
+								)
+							);
+						}}
+						setFileActive={(file) => {
+							setProjectState((projectState) =>
+								projectState?.fromFiles(
+									projectState.files.fromOneSurfaceActivated(file)
 								)
 							);
 						}}

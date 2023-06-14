@@ -115,6 +115,22 @@ export class ProjectFiles {
 	}
 
 	/**
+	 * when the user clicks on a volume, we want to highlight only that one volume as active and deactivate all the others
+	 */
+	public fromOneVolumeActivated(volume: ProjectVolumeFile): ProjectFiles {
+		return new ProjectFiles({
+			localVolumes: this.localVolumes.map((file) =>
+				file === volume ? file.fromIsActive(true) : file.fromIsActive(false)
+			),
+			localSurfaces: this.localSurfaces.map((file) => file.fromIsActive(false)),
+			cloudVolumes: this.cloudVolumes.map((file) =>
+				file === volume ? file.fromIsActive(true) : file.fromIsActive(false)
+			),
+			cloudSurfaces: this.cloudSurfaces.map((file) => file.fromIsActive(false)),
+		});
+	}
+
+	/**
 	 * immutable instance recreation for surfaces
 	 * for adapted file metadata like
 	 * - order
@@ -134,6 +150,22 @@ export class ProjectFiles {
 			cloudSurfaces: surfaces.filter(
 				(surface): surface is CloudSurfaceFile =>
 					surface instanceof CloudSurfaceFile
+			),
+		});
+	}
+
+	/**
+	 * when the user clicks on a surface, we want to highlight only that one surface as active and deactivate all the others
+	 */
+	public fromOneSurfaceActivated(surface: ProjectSurfaceFile): ProjectFiles {
+		return new ProjectFiles({
+			localVolumes: this.localVolumes.map((file) => file.fromIsActive(false)),
+			localSurfaces: this.localSurfaces.map((file) =>
+				file === surface ? file.fromIsActive(true) : file.fromIsActive(false)
+			),
+			cloudVolumes: this.cloudVolumes.map((file) => file.fromIsActive(false)),
+			cloudSurfaces: this.cloudSurfaces.map((file) =>
+				file === surface ? file.fromIsActive(true) : file.fromIsActive(false)
 			),
 		});
 	}

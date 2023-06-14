@@ -44,7 +44,8 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 
 	constructor(
 		private readonly setFiles: (files: T_FILE_TYPE[]) => void,
-		private readonly setRows: (rows: IRow<T_FILE_TYPE>[]) => void
+		private readonly setRows: (rows: IRow<T_FILE_TYPE>[]) => void,
+		private readonly setFileActive: (file: T_FILE_TYPE) => void
 	) {}
 
 	updateSource(files: readonly T_FILE_TYPE[]): void {
@@ -149,13 +150,7 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 		if (dragState === undefined) return;
 
 		if (dragState.isClick) {
-			this.setFiles(
-				this.rows.map((row) => {
-					if (row.projectFile === dragState.entry.projectFile)
-						return row.projectFile.fromIsActive(true) as T_FILE_TYPE;
-					return row.projectFile.fromIsActive(false) as T_FILE_TYPE;
-				})
-			);
+			this.setFileActive(dragState.entry.projectFile);
 			return;
 		}
 
@@ -210,13 +205,15 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 	files,
 	setFiles,
+	setFileActive,
 }: {
 	files: readonly T_FILE_TYPE[];
 	setFiles: (files: T_FILE_TYPE[]) => void;
+	setFileActive: (file: T_FILE_TYPE) => void;
 }): React.ReactElement => {
 	const [rows, setRows] = useState<IRow<T_FILE_TYPE>[]>();
 	const state = useRef<OrderState<T_FILE_TYPE>>(
-		new OrderState((files) => setFiles(files), setRows)
+		new OrderState(setFiles, setRows, setFileActive)
 	);
 
 	useEffect(() => {
