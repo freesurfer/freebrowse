@@ -156,7 +156,7 @@ export const ProjectPage = (): React.ReactElement => {
 							setCanvas(newCanvas);
 						}}
 					></MainView>
-					<RightBar></RightBar>
+					<RightBar projectState={projectState}></RightBar>
 				</div>
 			</div>
 		</ProjectContext.Provider>
