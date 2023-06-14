@@ -75,28 +75,8 @@ export class NiivueWrapper {
 				}
 
 				const invertedOrder = files.volumes.length - volumeFile.order;
-
-				if (this.niivue.getVolumeIndexByID(niivueVolume.id) === invertedOrder) {
-					console.log('BERE do not update', niivueVolume.name);
-					continue;
-				}
 				this.niivue.setVolume(niivueVolume, invertedOrder);
 			}
-
-			console.log(
-				'BERE volume order',
-				'\n',
-				this.niivue.volumes
-					.map(
-						(volume) =>
-							`${volume.name} ${this.niivue.getVolumeIndexByID(volume.id)}`
-					)
-					.join(),
-				'\n',
-				files.volumes
-					.map((volume) => `${volume.name} ${volume.order ?? '-'}`)
-					.join()
-			);
 
 			/* we need to reverse the order here twice, to change the lowest index first */
 			for (const surfaceFile of Array.from(files.surfaces).reverse()) {

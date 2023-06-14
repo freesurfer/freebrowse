@@ -36,6 +36,7 @@ const projectStateReducer = (
 		if (
 			newProjectState.files.cloudVolumes !== currentState.files.cloudVolumes
 		) {
+			// TODO this part is waiting for the backend to support the order property
 			// const client = new VolumeClient(getApiUrl());
 			for (const cloudVolume of stateToUpload.files.cloudVolumes) {
 				console.log('BERE upload', {
