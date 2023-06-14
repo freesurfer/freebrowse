@@ -5,8 +5,6 @@ import { useContext } from 'react';
 import Select from 'react-select';
 
 export const RightBar = (): React.ReactElement => {
-	// TODO remove
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const { niivueWrapper } = useContext(ProjectContext);
 
 	if (

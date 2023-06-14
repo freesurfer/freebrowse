@@ -59,7 +59,8 @@ export class NiivueWrapper {
 
 	private async executeLoadDataChunk(files: ProjectFiles): Promise<void> {
 		if (!files.hasChanged(this.niivue.volumes, this.niivue.meshes)) {
-			for (const volumeFile of files.volumes) {
+			/* we need to reverse the order here twice, to change the lowest index first */
+			for (const volumeFile of Array.from(files.volumes).reverse()) {
 				const niivueVolume = this.niivue.volumes.find(
 					(niivueVolume) => volumeFile.name === niivueVolume.name
 				);
@@ -76,12 +77,29 @@ export class NiivueWrapper {
 				const invertedOrder = files.volumes.length - volumeFile.order;
 
 				if (this.niivue.getVolumeIndexByID(niivueVolume.id) === invertedOrder) {
+					console.log('BERE do not update', niivueVolume.name);
 					continue;
 				}
 				this.niivue.setVolume(niivueVolume, invertedOrder);
 			}
 
-			for (const surfaceFile of files.surfaces) {
+			console.log(
+				'BERE volume order',
+				'\n',
+				this.niivue.volumes
+					.map(
+						(volume) =>
+							`${volume.name} ${this.niivue.getVolumeIndexByID(volume.id)}`
+					)
+					.join(),
+				'\n',
+				files.volumes
+					.map((volume) => `${volume.name} ${volume.order ?? '-'}`)
+					.join()
+			);
+
+			/* we need to reverse the order here twice, to change the lowest index first */
+			for (const surfaceFile of Array.from(files.surfaces).reverse()) {
 				const niivueMesh = this.niivue.meshes.find(
 					(niivueMesh) => surfaceFile.name === niivueMesh.name
 				);
@@ -101,6 +119,7 @@ export class NiivueWrapper {
 				}
 				this.niivue.setMesh(niivueMesh, invertedOrder);
 			}
+
 			return;
 		}
 
