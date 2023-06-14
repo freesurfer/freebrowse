@@ -7,7 +7,7 @@ import { TopBar } from '@/pages/project/components/topBar/TopBar';
 import { ProjectState } from '@/pages/project/models/ProjectState';
 import { getApiUrl } from '@/utils';
 import type { LocationData } from '@niivue/niivue';
-import { createContext, useEffect, useRef, useState } from 'react';
+import { createContext, useEffect, useReducer, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -21,12 +21,58 @@ export const ProjectContext = createContext<IProjectContext>({
 	location: undefined,
 });
 
+const projectStateReducer = (
+	currentState: ProjectState | undefined,
+	newState: (currentState: ProjectState | undefined) => ProjectState | undefined
+): ProjectState | undefined => {
+	const newProjectState = newState(currentState);
+
+	if (currentState === undefined) return newProjectState;
+	if (newProjectState === undefined) return undefined;
+
+	const uploadToBackend = async (
+		stateToUpload: ProjectState
+	): Promise<void> => {
+		if (
+			newProjectState.files.cloudVolumes !== currentState.files.cloudVolumes
+		) {
+			// const client = new VolumeClient(getApiUrl());
+			for (const cloudVolume of stateToUpload.files.cloudVolumes) {
+				console.log('BERE upload', {
+					id: cloudVolume.id,
+					order: cloudVolume.order,
+					isChecked: cloudVolume.isChecked,
+					contrastMin: cloudVolume.contrastMin,
+					contrastMax: cloudVolume.contrastMax,
+				});
+				/*
+			await client.edit(
+				new EditVolumeCommand({
+					id: cloudVolume.id,
+					// order: cloudVolume.order,
+					contrastMin: cloudVolume.contrastMin,
+					contrastMax: cloudVolume.contrastMax,
+				})
+			);
+			*/
+			}
+		}
+	};
+
+	void uploadToBackend(newProjectState);
+
+	return newProjectState;
+};
+
 export const ProjectPage = (): React.ReactElement => {
 	const { projectId } = useParams();
 
 	const [canvas, setCanvas] = useState<HTMLCanvasElement | null>();
 	const [location, setLocation] = useState<LocationData | undefined>();
-	const [projectState, setProjectState] = useState<ProjectState | undefined>();
+	const [projectState, setProjectState] = useReducer(
+		projectStateReducer,
+		undefined
+	);
 
 	// we should use a reference here, since the Niivue library is not immutable
 	// this could lead to confusions, if the state of the library changes, without rerendering is getting triggered
@@ -48,7 +94,7 @@ export const ProjectPage = (): React.ReactElement => {
 			}
 
 			const backendState = await client.getProject(Number(projectId));
-			setProjectState(new ProjectState({ backendState }));
+			setProjectState(() => new ProjectState({ backendState }));
 		};
 		void fetchData();
 		return () => {
@@ -90,34 +136,6 @@ export const ProjectPage = (): React.ReactElement => {
 			);
 		};
 	}, [niivueWrapper]);
-
-	/*
-	// TODO add order to volume setter
-	// TODO handle as useReduce hook or useEffect
-	const postProjectStateToBackend = async (
-		newProjectState: ProjectState,
-		projectState: ProjectState | undefined
-	): Promise<void> => {
-		if (projectState === undefined) return;
-
-		if (
-			newProjectState.files.cloudVolumes !== projectState.files.cloudVolumes
-		) {
-			const client = new VolumeClient(getApiUrl());
-
-			for (const cloudVolume of newProjectState.files.cloudVolumes) {
-				await client.edit(
-					new EditVolumeCommand({
-						id: cloudVolume.id,
-						order: cloudVolume.order,
-						contrastMin: cloudVolume.contrastMin,
-						contrastMax: cloudVolume.contrastMax,
-					})
-				);
-			}
-		}
-	};
-	*/
 
 	return (
 		<ProjectContext.Provider

@@ -44,6 +44,7 @@ export abstract class ProjectFileBase {
 	}
 
 	public abstract fromIsActive(isActive: boolean): ProjectFileBase;
+	public abstract fromIsChecked(isChecked: boolean): ProjectFileBase;
 	public abstract fromOrder(order: number): ProjectFileBase;
 
 	public static typeFromFileExtension(fileName: string): FileType {
@@ -163,6 +164,18 @@ export class LocalVolumeFile extends LocalFile {
 		);
 	}
 
+	public override fromIsChecked(isChecked: boolean): LocalVolumeFile {
+		return new LocalVolumeFile(
+			this.file,
+			this.isActive,
+			isChecked,
+			this.order,
+			this.opacity,
+			this.contrastMin,
+			this.contrastMax
+		);
+	}
+
 	public override fromOrder(order: number): LocalVolumeFile {
 		return new LocalVolumeFile(
 			this.file,
@@ -198,6 +211,16 @@ export class LocalSurfaceFile extends LocalFile {
 			this.file,
 			isActive,
 			this.isChecked,
+			this.order,
+			this.opacity
+		);
+	}
+
+	public override fromIsChecked(isChecked: boolean): LocalSurfaceFile {
+		return new LocalSurfaceFile(
+			this.file,
+			this.isActive,
+			isChecked,
 			this.order,
 			this.opacity
 		);
@@ -281,6 +304,20 @@ export class CloudVolumeFile extends CloudFile {
 		);
 	}
 
+	public override fromIsChecked(isChecked: boolean): CloudVolumeFile {
+		return new CloudVolumeFile(
+			this.id,
+			this.name,
+			this.size,
+			this.isActive,
+			isChecked,
+			this.order,
+			this.opacity,
+			this.contrastMin,
+			this.contrastMax
+		);
+	}
+
 	public override fromOrder(order: number): CloudVolumeFile {
 		return new CloudVolumeFile(
 			this.id,
@@ -328,6 +365,18 @@ export class CloudSurfaceFile extends CloudFile {
 			this.size,
 			isActive,
 			this.isChecked,
+			this.order,
+			this.opacity
+		);
+	}
+
+	public override fromIsChecked(isChecked: boolean): CloudSurfaceFile {
+		return new CloudSurfaceFile(
+			this.id,
+			this.name,
+			this.size,
+			this.isActive,
+			isChecked,
 			this.order,
 			this.opacity
 		);

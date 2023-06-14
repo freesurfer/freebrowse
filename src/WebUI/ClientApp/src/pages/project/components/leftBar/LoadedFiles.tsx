@@ -4,16 +4,16 @@ import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/Op
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { useContext } from 'react';
-import type { SetStateAction } from 'react';
+import type { Dispatch } from 'react';
 
 export const LoadedFiles = ({
 	projectState,
 	setProjectState,
 }: {
 	projectState: ProjectState | undefined;
-	setProjectState: (
-		projectState: SetStateAction<ProjectState | undefined>
-	) => void;
+	setProjectState: Dispatch<
+		(currentState: ProjectState | undefined) => ProjectState | undefined
+	>;
 }): React.ReactElement => {
 	const { editProject } = useContext(OpenProjectDialogContext);
 

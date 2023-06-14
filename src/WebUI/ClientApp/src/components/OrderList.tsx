@@ -253,24 +253,19 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 					>
 						<button
 							className={`flex text-start items-center w-full`}
-							/*
-							onClick={(event) => {
-								setFiles(
-									state.current.getRows().map((tmpRow) => {
-										if (tmpRow.projectFile === row.projectFile) {
-											return tmpRow.projectFile.fromIsActive(
-												true
-											) as T_FILE_TYPE;
-										}
-										return tmpRow.projectFile;
-									})
-								);
-								event.stopPropagation();
-							}}
-							*/
 							onMouseDown={(event) => state.current.startDrag(event.pageY, row)}
 						>
-							<Checkbox defaultState={true}></Checkbox>
+							<Checkbox
+								defaultState={true}
+								setValue={(value) =>
+									setFiles(
+										files.map((file) => {
+											if (file !== row.projectFile) return file;
+											return file.fromIsChecked(value) as T_FILE_TYPE;
+										})
+									)
+								}
+							></Checkbox>
 							<span
 								className={`grow cursor-default text-ellipsis overflow-hidden ${
 									row.isActive ? 'text-white' : ''
