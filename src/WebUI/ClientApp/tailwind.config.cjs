@@ -8,43 +8,43 @@ export default {
 			/**
 			 * Primary Color
 			 */
-			pc: '#1aafd9',
+			primary: '#1aafd9',
 			/**
 			 * Secondary Color
 			 */
-			sc: '#cfd8dc',
+			secondary: '#cfd8dc',
 			/**
 			 * White
 			 */
-			w: '#ffffff',
+			white: '#ffffff',
 			/**
 			 * Black
 			 */
-			b: '#000000',
+			black: '#000000',
 			/**
 			 * FontColor
 			 */
-			fc: '#333333',
+			front: '#333333',
 			/**
 			 * Red
 			 */
-			r: '#dc2626',
+			red: '#dc2626',
 			/**
 			 * Green
 			 */
-			g: '#059669',
+			green: '#059669',
 			/**
 			 * Blue dark
 			 */
-			bd: '#2563eb',
+			'blue-dark': '#2563eb',
 			/**
 			 * Blue light
 			 */
-			bl: '#2563eb',
+			'blue-light': '#60a5fa',
 			/**
 			 * Gray (Cool)
 			 */
-			gc: '#e5e7eb',
+			gray: '#e5e7eb',
 		},
 	},
 	plugins: [],

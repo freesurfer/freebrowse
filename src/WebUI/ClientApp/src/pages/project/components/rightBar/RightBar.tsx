@@ -18,8 +18,8 @@ export const RightBar = ({
 		niivueWrapper.current === null
 	) {
 		return (
-			<div className="w-[16rem] grow-0 bg-gray-100 border border-gray-500">
-				<span className="m-4 block text-gray-500 text-xs text-center">
+			<div className="bg-gray-100 border-gray-500 w-[16rem] grow-0 border">
+				<span className="text-gray-500 m-4 block text-center text-xs">
 					Niivue is not initialized
 				</span>
 			</div>
@@ -57,9 +57,9 @@ export const RightBar = ({
 		});
 
 	return (
-		<div className="w-[16rem] grow-0 bg-gray-100 border border-gray-500">
+		<div className="bg-gray-100 border-gray-500 w-[16rem] grow-0 border">
 			{selectedFiles.length === 0 ? (
-				<span className="m-4 block text-gray-500 text-xs text-center">
+				<span className="text-gray-500 m-4 block text-center text-xs">
 					Select a volume to use this section.
 				</span>
 			) : (
@@ -69,17 +69,17 @@ export const RightBar = ({
 						return (
 							<Collapse
 								key={volume?.name}
-								className="border-b border-gray-300 pl-1 pt-1 pr-4"
+								className="border-gray-300 border-b"
 								title={
 									<span className="font-semibold">
 										{volume.name ?? 'No file selected'}
 									</span>
 								}
 							>
-								<>
+								<div className="mr-4">
 									<Slider
 										className="mt-1"
-										label="Opacity"
+										label="Opacity:"
 										defaultValue={volume.opacity * 100}
 										unit="%"
 										onChange={(value) => {
@@ -91,8 +91,8 @@ export const RightBar = ({
 											);
 										}}
 									></Slider>
-									<div className="flex items-center mb-4">
-										<span className="grow mr-2">Color Map:</span>
+									<div className="mb-4 flex items-center">
+										<span className="mr-2 grow">Color Map:</span>
 										<Select
 											options={colorMapOptions}
 											classNames={{
@@ -114,7 +114,7 @@ export const RightBar = ({
 									<span>Contrast & Brightness</span>
 									<Slider
 										className="mt-1"
-										label="Minimum"
+										label="Minimum:"
 										defaultValue={volume.cal_min}
 										onChange={(value) => {
 											volume.cal_min = value;
@@ -123,14 +123,14 @@ export const RightBar = ({
 									></Slider>
 									<Slider
 										className="mt-1"
-										label="Maximum"
+										label="Maximum:"
 										defaultValue={volume.cal_max}
 										onChange={(value) => {
 											volume.cal_max = value;
 											niivueWrapper?.current?.niivue.updateGLVolume();
 										}}
 									></Slider>
-								</>
+								</div>
 							</Collapse>
 						);
 					})}
@@ -139,7 +139,7 @@ export const RightBar = ({
 						return (
 							<Collapse
 								key={surface?.name}
-								className="border-b border-gray-300 pl-1 pt-1 pr-4"
+								className="border-gray-300 border-b pl-1 pr-4 pt-1"
 								title={
 									<span className="font-semibold">
 										{surface.name ?? 'No file selected'}
@@ -149,7 +149,7 @@ export const RightBar = ({
 								<>
 									<Slider
 										className="mt-1"
-										label="Opacity"
+										label="Opacity:"
 										defaultValue={surface.opacity * 100}
 										unit="%"
 										onChange={(value) => {
@@ -159,6 +159,9 @@ export const RightBar = ({
 												value / 100
 											);
 										}}
+										onEnd={(value) =>
+											console.log('TODO persist new opacity value', value)
+										}
 									></Slider>
 								</>
 							</Collapse>
