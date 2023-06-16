@@ -7,10 +7,10 @@ export const VoxelInfo = (): React.ReactElement => {
 
 	return (
 		<Collapse
-			className="border-b border-gray p-1"
+			className="mt-1 border-b border-gray text-xs"
 			title={<span className="text-xs font-semibold">Voxel Info</span>}
 		>
-			<div className="mr-4 mt-2">
+			<div className="my-2 mr-4 pl-1">
 				<div className="mt-2 grid grid-cols-[auto_1fr_1fr_1fr_1fr] gap-2 text-end text-xs">
 					<span></span>
 					<span className="font-bold">x</span>

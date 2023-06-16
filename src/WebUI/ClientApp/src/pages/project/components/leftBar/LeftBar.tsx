@@ -16,7 +16,7 @@ export const LeftBar = ({
 	return (
 		<div
 			className="flex h-full flex-col overflow-y-auto overflow-x-hidden pt-2"
-			style={{ width: '250px' }}
+			style={{ width: '250px', minWidth: '250px' }}
 		>
 			<LoadedFiles
 				projectState={projectState}

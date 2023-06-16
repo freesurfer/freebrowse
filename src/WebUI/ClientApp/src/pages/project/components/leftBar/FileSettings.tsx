@@ -55,14 +55,15 @@ export const FileSettings = ({
 		.map((colormap) => {
 			return { value: colormap, label: colormap };
 		});
+
 	return (
 		<Collapse
 			className="mt-1 border-b border-gray text-xs"
 			title={<span className="text-xs font-semibold">File Settings</span>}
 		>
 			{selectedFiles.length === 0 ? (
-				<span className="m-4 block text-center text-xs text-font">
-					Select a volume to use this section.
+				<span className="my-2 ml-1 mr-1 block text-left text-xs text-gray-500">
+					Select a file to use this section.
 				</span>
 			) : (
 				<>
@@ -71,7 +72,7 @@ export const FileSettings = ({
 						return (
 							<Collapse
 								key={volume?.name}
-								className="mb-2 pl-1 pr-4 pt-1"
+								className="mb-2 mt-1 pl-4 pr-4"
 								title={
 									<span className="grow border-b border-gray text-xs">
 										{volume.name ?? 'No file selected'}

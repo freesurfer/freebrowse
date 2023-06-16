@@ -265,13 +265,13 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 								}
 							></Checkbox>
 							<button
-								className="ml-1 flex w-full items-center text-start text-xs"
+								className="flex w-full items-center pl-1 text-start text-xs"
 								onMouseDown={(event) =>
 									state.current.startDrag(event.pageY, row)
 								}
 							>
 								<span
-									className={`grow cursor-default overflow-hidden text-ellipsis ${
+									className={`grow overflow-hidden text-ellipsis ${
 										row.isActive ? 'font-bold text-white' : ''
 									}`}
 								>
