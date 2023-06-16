@@ -37,7 +37,7 @@ export const DropZone = ({
 	return (
 		<div
 			{...getRootProps()}
-			className={`flex flex-row items-center p-6 border border-dashed border-gray-400 text-sm font-bold text-gray-500 justify-center cursor-default ${
+			className={`border-gray-400 text-gray-500 flex cursor-default flex-row items-center justify-center border border-dashed p-6 text-sm font-bold ${
 				className ?? ''
 			}`}
 		>
@@ -45,7 +45,7 @@ export const DropZone = ({
 			<CloudArrowUpIcon className="w-8"></CloudArrowUpIcon>
 			<span className="ml-2">
 				Drop files to attach, or{' '}
-				<span className="underline cursor-pointer text-gray-500">browse</span>
+				<span className="text-gray-500 cursor-pointer underline">browse</span>
 			</span>
 		</div>
 	);

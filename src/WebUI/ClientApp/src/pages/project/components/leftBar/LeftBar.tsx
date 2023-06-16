@@ -1,4 +1,4 @@
-import { FileInfo } from '@/pages/project/components/leftBar/FileInfo';
+import { FileSettings } from '@/pages/project/components/leftBar/FileSettings';
 import { LoadedFiles } from '@/pages/project/components/leftBar/LoadedFiles';
 import { VoxelInfo } from '@/pages/project/components/leftBar/VoxelInfo';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
@@ -14,12 +14,15 @@ export const LeftBar = ({
 	>;
 }): React.ReactElement => {
 	return (
-		<div className="bg-gray-100 w-[16rem] border border-gray-500 flex flex-col">
+		<div
+			className="flex h-full flex-col overflow-y-auto overflow-x-hidden pt-2"
+			style={{ width: '250px', minWidth: '250px' }}
+		>
 			<LoadedFiles
 				projectState={projectState}
 				setProjectState={setProjectState}
 			></LoadedFiles>
-			<FileInfo></FileInfo>
+			<FileSettings projectState={projectState}></FileSettings>
 			<VoxelInfo></VoxelInfo>
 		</div>
 	);

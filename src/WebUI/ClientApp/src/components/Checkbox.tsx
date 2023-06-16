@@ -11,7 +11,7 @@ export const Checkbox = ({
 	const [isChecked, setIsChecked] = useState<boolean>(defaultState ?? true);
 
 	return (
-		<label className="cursor-pointer text-gray-500 m-1">
+		<label className="m-1 cursor-pointer text-gray">
 			<input
 				type="checkbox"
 				className="hidden"
@@ -24,12 +24,12 @@ export const Checkbox = ({
 				}}
 			></input>
 			<div
-				className={`w-5 h-5 border rounded-[3px] ${
-					isChecked ? 'bg-gray-500' : 'bg-white'
+				className={`h-4 w-4 rounded-[4px] border ${
+					isChecked ? 'bg-blue-light' : 'bg-white'
 				}`}
 			>
 				{isChecked ? (
-					<CheckIcon className="w-full h-full p-0.5 text-white "></CheckIcon>
+					<CheckIcon className="h-full w-full p-0.5 font-bold text-white"></CheckIcon>
 				) : (
 					<></>
 				)}

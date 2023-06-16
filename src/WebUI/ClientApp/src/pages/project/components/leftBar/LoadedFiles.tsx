@@ -34,23 +34,26 @@ export const LoadedFiles = ({
 
 	return (
 		<Collapse
-			className="border-b border-gray-300 p-1"
-			title={<span className="font-semibold">Loaded Files</span>}
+			className="border-b border-gray"
+			title={<span className="text-xs font-semibold">Loaded Files</span>}
 			button={
 				<button
 					onClick={(event) => {
 						event.stopPropagation();
 						void loadFiles();
 					}}
-					className="bg-gray-500 text-white grow-0 w-6 h-6 items-center justify-center p-2 rounded-md flex"
+					className="mr-4 flex h-6 w-6 grow-0 items-center justify-center rounded-md bg-blue-light p-2 text-white"
 				>
 					<ArrowUpTrayIcon className="h-4 w-4 shrink-0"></ArrowUpTrayIcon>
 				</button>
 			}
 		>
-			<>
+			<div className="mb-2 mr-4">
 				<Collapse
-					title={<span className="border-b border-gray-300 grow">Volumes</span>}
+					className="mt-2"
+					title={
+						<span className="grow border-b border-gray text-xs">Volumes</span>
+					}
 				>
 					<OrderList
 						files={projectState.files.volumes}
@@ -75,8 +78,9 @@ export const LoadedFiles = ({
 					></OrderList>
 				</Collapse>
 				<Collapse
+					className="mt-2"
 					title={
-						<span className="border-b border-gray-300 grow">Surfaces</span>
+						<span className="grow border-b border-gray text-xs">Surfaces</span>
 					}
 				>
 					<OrderList
@@ -101,7 +105,7 @@ export const LoadedFiles = ({
 						}}
 					></OrderList>
 				</Collapse>
-			</>
+			</div>
 		</Collapse>
 	);
 };

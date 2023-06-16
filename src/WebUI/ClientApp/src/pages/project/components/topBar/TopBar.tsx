@@ -1,59 +1,65 @@
-import { FieldSet } from '@/pages/project/components/topBar/FieldSet';
+import EqualSplitView from '@/assets/EqualSplitView.svg';
+import Navigate from '@/assets/Navigate.svg';
+import SaveAll from '@/assets/SaveAll.svg';
 import { ToolButton } from '@/pages/project/components/topBar/ToolButton';
 import {
 	ArrowUturnLeftIcon,
 	ArrowUturnRightIcon,
-	ArrowsPointingOutIcon,
-	BookmarkSquareIcon,
-	CursorArrowRaysIcon,
+	CircleStackIcon,
 	DocumentIcon,
-	DocumentPlusIcon,
-	PencilIcon,
-	PencilSquareIcon,
-	TableCellsIcon,
 } from '@heroicons/react/24/outline';
+
+const ICON_STYLE = 'h-7 w-7 shrink-0 text-white';
 
 export const TopBar = (): React.ReactElement => {
 	return (
-		<div className="px-2 pb-1 border border-gray-500 bg-gray-100 flex gap-4 items-baseline">
-			<FieldSet legend="Projects">
-				<ToolButton title="New">
-					<DocumentPlusIcon className="h-6 w-6 text-gray-500 shrink-0" />
-				</ToolButton>
-				<ToolButton title="Open">
-					<DocumentIcon className="h-6 w-6 text-gray-500 shrink-0" />
-				</ToolButton>
-			</FieldSet>
-			<FieldSet legend="Modes">
-				<ToolButton title="Navigate" active={true}>
-					<ArrowsPointingOutIcon className="h-6 w-6 text-gray-500 shrink-0" />
-				</ToolButton>
-				<ToolButton title="Edit Voxel">
-					<PencilIcon className="h-6 w-6 text-gray-500 shrink-0" />
-				</ToolButton>
-				<ToolButton title="Edit Points">
-					<PencilSquareIcon className="h-6 w-6 text-gray-500 shrink-0" />
-				</ToolButton>
-			</FieldSet>
-			<FieldSet legend="Create">
-				<ToolButton title="Point Set">
-					<CursorArrowRaysIcon className="h-6 w-6 text-gray-500 shrink-0" />
-				</ToolButton>
-			</FieldSet>
-			<FieldSet legend="Views">
-				<ToolButton title="Equal Split">
-					<TableCellsIcon className="h-6 w-6 text-gray-500 shrink-0" />
-				</ToolButton>
-			</FieldSet>
-			<ToolButton title="Undo">
-				<ArrowUturnLeftIcon className="h-6 w-6 text-gray-500 shrink-0" />
-			</ToolButton>
-			<ToolButton title="Redo">
-				<ArrowUturnRightIcon className="h-6 w-6 text-gray-500 shrink-0" />
-			</ToolButton>
-			<ToolButton title="Save">
-				<BookmarkSquareIcon className="h-6 w-6 text-gray-500 shrink-0" />
-			</ToolButton>
+		<div className="flex items-baseline bg-font px-4">
+			<ToolButton
+				title="Load Project"
+				isExpandable={true}
+				icon={<DocumentIcon className={ICON_STYLE} />}
+			></ToolButton>
+			<ToolButton
+				title="Navigate"
+				isExpandable={true}
+				isActive={true}
+				icon={<img src={Navigate} className={ICON_STYLE} alt="Navigate" />}
+			></ToolButton>
+			{/* <ToolButton
+				title="Edit Voxel"
+				isExpandable={true}
+				isActive={true}
+				icon={<PencilIcon className={ICON_STYLE} />}
+			></ToolButton> */}
+			<ToolButton
+				title="Equal Split"
+				isExpandable={true}
+				icon={
+					<img
+						src={EqualSplitView}
+						className={ICON_STYLE}
+						alt="EqualSplitView"
+					/>
+				}
+			></ToolButton>
+			<ToolButton
+				title="PointSet"
+				isExpandable={true}
+				icon={<CircleStackIcon className={ICON_STYLE} />}
+			></ToolButton>
+			<ToolButton
+				title="Save All"
+				isExpandable={true}
+				icon={<img src={SaveAll} className={ICON_STYLE} alt="EqualSplitView" />}
+			></ToolButton>
+			<ToolButton
+				title="Undo"
+				icon={<ArrowUturnLeftIcon className={ICON_STYLE} />}
+			/>
+			<ToolButton
+				title="Redo"
+				icon={<ArrowUturnRightIcon className={ICON_STYLE} />}
+			/>
 		</div>
 	);
 };

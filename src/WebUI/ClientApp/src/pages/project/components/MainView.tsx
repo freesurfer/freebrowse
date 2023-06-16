@@ -4,8 +4,8 @@ export const MainView = ({
 	setCanvas: (ref: HTMLCanvasElement | null) => void;
 }): React.ReactElement => {
 	return (
-		<div className="border-2 border-gray-500 relative grow">
-			<canvas className="absolute" ref={(canvas) => setCanvas(canvas)} />
+		<div className="relative grow overflow-hidden">
+			<canvas className="" ref={(canvas) => setCanvas(canvas)} />
 		</div>
 	);
 };

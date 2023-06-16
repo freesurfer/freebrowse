@@ -1,21 +1,34 @@
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import type { ReactElement } from 'react';
+
 export const ToolButton = ({
 	title,
-	children,
-	active = false,
+	icon,
+	isActive = false,
+	isExpandable = false,
 }: {
 	title: string;
-	children: React.ReactElement;
-	active?: boolean;
-}): React.ReactElement => {
+	icon: ReactElement;
+	isExpandable?: boolean;
+	isActive?: boolean;
+}): ReactElement => {
 	return (
 		<>
 			<button
-				className={`flex flex-col items-center px-3 pt-2 pb-1 min-w-[4rem] rounded ${
-					active ? 'bg-white' : ''
+				className={`flex h-full w-20 shrink-0 flex-col items-center rounded pb-3 pt-4 ${
+					isActive ? 'bg-blue-light' : ''
 				}`}
 			>
-				{children}
-				<span className="text-gray-500 text-xs mt-1 whitespace-nowrap">
+				<div className="flex items-center">
+					{icon}
+					{isExpandable ? (
+						<ChevronDownIcon className="h-4 w-4 shrink-0 text-white" />
+					) : (
+						<></>
+					)}
+				</div>
+
+				<span className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white">
 					{title}
 				</span>
 			</button>

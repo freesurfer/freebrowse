@@ -69,22 +69,19 @@ export abstract class LocalFile extends ProjectFileBase {
 	/**
 	 * factory method to create the correct class instance according to the file extension
 	 */
-	static fromFile(
-		file: File,
-		isActive = false
-	): LocalVolumeFile | LocalSurfaceFile | undefined {
+	static fromFile(file: File): LocalVolumeFile | LocalSurfaceFile | undefined {
 		switch (CloudFile.typeFromFileExtension(file.name)) {
 			case FileType.VOLUME:
-				return new LocalVolumeFile(file, isActive);
+				return new LocalVolumeFile(file);
 			case FileType.SURFACE:
-				return new LocalSurfaceFile(file, isActive);
+				return new LocalSurfaceFile(file);
 		}
 		return undefined;
 	}
 
 	constructor(
 		protected readonly file: File,
-		isActive: boolean,
+		isActive = false,
 		isChecked = true,
 		order: number | undefined = undefined,
 		opacity = 100
@@ -128,7 +125,7 @@ export class LocalVolumeFile extends LocalFile {
 
 	constructor(
 		file: File,
-		isActive: boolean,
+		isActive = false,
 		isChecked?: boolean,
 		order?: number | undefined,
 		opacity?: number,

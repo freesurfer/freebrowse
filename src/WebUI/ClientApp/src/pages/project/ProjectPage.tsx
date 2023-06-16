@@ -36,6 +36,7 @@ const projectStateReducer = (
 		if (
 			newProjectState.files.cloudVolumes !== currentState.files.cloudVolumes
 		) {
+			// TODO this part is waiting for the backend to support the order property
 			// const client = new VolumeClient(getApiUrl());
 			for (const cloudVolume of stateToUpload.files.cloudVolumes) {
 				console.log('BERE upload', {
@@ -144,9 +145,9 @@ export const ProjectPage = (): React.ReactElement => {
 				location,
 			}}
 		>
-			<div className="flex flex-col h-full">
+			<div className="flex h-full flex-col">
 				<TopBar></TopBar>
-				<div className="flex flex-row h-full">
+				<div className="border-5 flex h-full flex-row border-red">
 					<LeftBar
 						projectState={projectState}
 						setProjectState={setProjectState}
@@ -156,7 +157,7 @@ export const ProjectPage = (): React.ReactElement => {
 							setCanvas(newCanvas);
 						}}
 					></MainView>
-					<RightBar projectState={projectState}></RightBar>
+					<RightBar></RightBar>
 				</div>
 			</div>
 		</ProjectContext.Provider>

@@ -24,18 +24,18 @@ export const Collapse = ({
 	return (
 		<div className={className}>
 			<div className="flex">
-				<button {...getToggleProps()} className="w-full flex items-center">
+				<button {...getToggleProps()} className="flex w-full items-center">
 					<ChevronUpIcon
-						className={`w-5 mr-1 transition-transform ${
+						className={`mx-1 w-4 transition-transform ${
 							isExpanded ? 'rotate-180' : ''
 						}`}
 					></ChevronUpIcon>
-					<div className="grow text-start flex items-center">{title}</div>
+					<div className="flex grow items-center text-start">{title}</div>
 				</button>
 				{button}
 			</div>
-			<section {...getCollapseProps()} className="ml-6">
-				{children}
+			<section {...getCollapseProps()}>
+				<div className="ml-5">{children}</div>
 			</section>
 		</div>
 	);

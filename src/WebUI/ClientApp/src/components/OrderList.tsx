@@ -27,7 +27,7 @@ interface IDragState<T_FILE_TYPE extends ProjectFile> {
 	isClick: boolean;
 }
 
-const ROW_HEIGHT = 30;
+const ROW_HEIGHT = 26;
 
 /**
  * this class should maintain the view state
@@ -41,6 +41,7 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 	public dragState: IDragState<T_FILE_TYPE> | undefined = undefined;
 
 	private rows: IRow<T_FILE_TYPE>[] = [];
+	private isControlKeyPressed = false;
 
 	constructor(
 		private readonly setFiles: (files: T_FILE_TYPE[]) => void,
@@ -150,7 +151,19 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 		if (dragState === undefined) return;
 
 		if (dragState.isClick) {
-			this.setFileActive(dragState.entry.projectFile);
+			if (!this.isControlKeyPressed) {
+				this.setFileActive(dragState.entry.projectFile);
+				return;
+			}
+			this.setFiles(
+				this.rows.map((row) =>
+					row.projectFile === dragState.entry.projectFile
+						? (row.projectFile.fromIsActive(
+								!row.projectFile.isActive
+						  ) as T_FILE_TYPE)
+						: row.projectFile
+				)
+			);
 			return;
 		}
 
@@ -160,6 +173,26 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 			this.pushNewOrder();
 		}, 0);
 	}
+
+	handleKeyDown = (key: string): void => {
+		const isMac = window.navigator.userAgent.includes('Mac');
+		const controlKey = isMac ? 'Meta' : 'Control';
+		switch (key) {
+			case controlKey:
+				this.isControlKeyPressed = true;
+				break;
+		}
+	};
+
+	handleKeyUp = (key: string): void => {
+		const isMac = window.navigator.userAgent.includes('Mac');
+		const controlKey = isMac ? 'Meta' : 'Control';
+		switch (key) {
+			case controlKey:
+				this.isControlKeyPressed = false;
+				break;
+		}
+	};
 
 	private cropToBounds(newPosition: number): number {
 		if (newPosition < 0) return 0;
@@ -221,11 +254,29 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 	}, [files]);
 
 	const handleDrop = useCallback(() => state?.current.drop(), []);
+	const handleMove = useCallback(
+		(event: MouseEvent) => state?.current.updateDrag(event.pageY),
+		[]
+	);
+	const handleKeyDown = useCallback(
+		(event: KeyboardEvent) => state?.current.handleKeyDown(event.key),
+		[]
+	);
+	const handleKeyUp = useCallback(
+		(event: KeyboardEvent) => state?.current.handleKeyUp(event.key),
+		[]
+	);
 
 	useEffect(() => {
-		window.addEventListener('mouseup', handleDrop);
-		return () => window.removeEventListener('mouseup', handleDrop);
-	}, [handleDrop]);
+		document.addEventListener('mousemove', handleMove);
+		document.addEventListener('mouseup', handleDrop);
+		document.addEventListener('keydown', handleKeyDown);
+		document.addEventListener('keyup', handleKeyUp);
+		return () => {
+			document.removeEventListener('mousemove', handleMove);
+			document.removeEventListener('mouseup', handleDrop);
+		};
+	}, [handleDrop, handleMove, handleKeyDown, handleKeyUp]);
 
 	return (
 		<div
@@ -234,8 +285,6 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 				marginBottom: 2,
 				position: 'relative',
 			}}
-			onMouseMove={(event) => state.current.updateDrag(event.pageY)}
-			onMouseLeave={() => handleDrop()}
 		>
 			{rows?.map((row) => {
 				if (row.label === undefined) return <></>;
@@ -248,11 +297,11 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 						style={{
 							transform: `translateY(${row.top}px)`,
 						}}
-						className={`absolute rounded h-7 mt-0.5 top-0 left-0 right-0 ${
-							row.isActive ? 'bg-gray-500' : 'bg-gray-100'
+						className={`absolute left-0 right-0 top-0 mt-0.5 rounded ${
+							row.isActive ? 'bg-blue-light' : 'bg-white'
 						}`}
 					>
-						<div className="flex items-center w-full">
+						<div className="flex w-full items-center">
 							<Checkbox
 								defaultState={true}
 								setValue={(value) =>
@@ -265,21 +314,21 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 								}
 							></Checkbox>
 							<button
-								className="flex text-start items-center w-full"
+								className="flex w-full items-center pl-1 text-start text-xs"
 								onMouseDown={(event) =>
 									state.current.startDrag(event.pageY, row)
 								}
 							>
 								<span
-									className={`grow cursor-default text-ellipsis overflow-hidden ${
-										row.isActive ? 'text-white' : ''
+									className={`grow overflow-hidden text-ellipsis ${
+										row.isActive ? 'font-bold text-white' : ''
 									}`}
 								>
-									{row.label}
+									{row.label.split('.')[0]}
 								</span>
 								<ArrowsUpDownIcon
-									className={`w-5 shrink-0 m-1 ${
-										row.isActive ? 'text-white' : 'text-gray-500'
+									className={`m-1 w-4 shrink-0 ${
+										row.isActive ? 'text-white' : 'text-font'
 									}`}
 								></ArrowsUpDownIcon>
 							</button>

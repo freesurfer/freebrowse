@@ -7,11 +7,11 @@ export const VoxelInfo = (): React.ReactElement => {
 
 	return (
 		<Collapse
-			className="border-b border-gray-300 p-1"
-			title={<span className="font-semibold">Voxel Info</span>}
+			className="mt-1 border-b border-gray text-xs"
+			title={<span className="text-xs font-semibold">Voxel Info</span>}
 		>
-			<div className="mt-2 mr-1">
-				<div className="grid text-end grid-cols-5 mt-2">
+			<div className="my-2 mr-4 pl-1">
+				<div className="mt-2 grid grid-cols-[auto_1fr_1fr_1fr_1fr] gap-2 text-end text-xs">
 					<span></span>
 					<span className="font-bold">x</span>
 					<span className="font-bold">y</span>
@@ -30,7 +30,7 @@ export const VoxelInfo = (): React.ReactElement => {
 					<span>-</span>
 					{location?.values.map((value, index) => (
 						<Fragment key={index}>
-							<span className="text-start text-ellipsis overflow-hidden">
+							<span className="overflow-hidden text-ellipsis text-start">
 								{value?.name !== undefined ? value.name.split('.')[0] : '-'}:
 							</span>
 							<span>{value?.vox[0] !== undefined ? value.vox[0] : '-'}</span>
