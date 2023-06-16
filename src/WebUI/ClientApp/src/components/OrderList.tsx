@@ -221,11 +221,19 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 	}, [files]);
 
 	const handleDrop = useCallback(() => state?.current.drop(), []);
+	const handleMove = useCallback(
+		(event: MouseEvent) => state?.current.updateDrag(event.pageY),
+		[]
+	);
 
 	useEffect(() => {
-		window.addEventListener('mouseup', handleDrop);
-		return () => window.removeEventListener('mouseup', handleDrop);
-	}, [handleDrop]);
+		document.addEventListener('mousemove', handleMove);
+		document.addEventListener('mouseup', handleDrop);
+		return () => {
+			document.removeEventListener('mousemove', handleMove);
+			document.removeEventListener('mouseup', handleDrop);
+		};
+	}, [handleDrop, handleMove]);
 
 	return (
 		<div
@@ -234,8 +242,6 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 				marginBottom: 2,
 				position: 'relative',
 			}}
-			onMouseMove={(event) => state.current.updateDrag(event.pageY)}
-			onMouseLeave={() => handleDrop()}
 		>
 			{rows?.map((row) => {
 				if (row.label === undefined) return <></>;

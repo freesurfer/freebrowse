@@ -132,12 +132,10 @@ export const Slider = ({
 	useEffect(() => {
 		document.addEventListener('mousemove', onMove);
 		document.addEventListener('mouseup', onDrop);
-		document.addEventListener('mouseleave', onDrop);
 
 		return () => {
 			document.removeEventListener('mousemove', onMove);
 			document.removeEventListener('mouseup', onDrop);
-			document.removeEventListener('mouseleave', onDrop);
 		};
 	}, [onDrop, onMove]);
 
