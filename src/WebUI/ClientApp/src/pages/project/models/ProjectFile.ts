@@ -139,6 +139,7 @@ export class LocalVolumeFile extends LocalFile {
 		return new CreateProjectVolumeDto({
 			base64: await this.getBase64(),
 			fileName: this.name,
+			visible: this.isChecked,
 		});
 	}
 
@@ -146,6 +147,7 @@ export class LocalVolumeFile extends LocalFile {
 		return new CreateVolumeDto({
 			base64: await this.getBase64(),
 			fileName: this.name,
+			visible: this.isChecked,
 		});
 	}
 
@@ -193,6 +195,7 @@ export class LocalSurfaceFile extends LocalFile {
 		return new CreateProjectSurfaceDto({
 			base64: await this.getBase64(),
 			fileName: this.name,
+			visible: this.isChecked,
 		});
 	}
 
@@ -200,6 +203,7 @@ export class LocalSurfaceFile extends LocalFile {
 		return new CreateSurfaceDto({
 			base64: await this.getBase64(),
 			fileName: this.name,
+			visible: this.isChecked,
 		});
 	}
 

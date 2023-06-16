@@ -76,8 +76,7 @@ export class ProjectFiles {
 				initState.backendState.volumes
 			);
 			this.cloudSurfaces = ProjectFiles.cloudFileFromSurfaceDto(
-				initState.backendState.surfaces,
-				this.cloudVolumes.length === 0
+				initState.backendState.surfaces
 			);
 		} else {
 			// new class from given file set
@@ -408,24 +407,22 @@ export class ProjectFiles {
 			if (fileDto?.fileSize === undefined)
 				throw new Error('no file without file size');
 
-			const file = new CloudVolumeFile(
+			return new CloudVolumeFile(
 				fileDto.id,
 				fileDto.fileName,
 				fileDto.fileSize,
 				false,
-				true,
+				fileDto.visible,
 				fileDto.order,
 				fileDto.opacity ?? 100,
 				fileDto.contrastMin ?? 0,
 				fileDto.contrastMax ?? 100
 			);
-			return file;
 		});
 	}
 
 	private static cloudFileFromSurfaceDto(
-		fileModel: GetProjectSurfaceDto[] | undefined,
-		setIsActive: boolean
+		fileModel: GetProjectSurfaceDto[] | undefined
 	): CloudSurfaceFile[] {
 		if (fileModel === undefined) return [];
 		return fileModel.map<CloudSurfaceFile>((fileDto) => {
@@ -440,17 +437,15 @@ export class ProjectFiles {
 			if (fileDto?.fileSize === undefined)
 				throw new Error('no file without file size');
 
-			const file = new CloudSurfaceFile(
+			return new CloudSurfaceFile(
 				fileDto.id,
 				fileDto.fileName,
 				fileDto.fileSize,
-				setIsActive,
-				true,
+				false,
+				fileDto.visible,
 				fileDto.order,
 				fileDto.opacity ?? 100
 			);
-			setIsActive = false;
-			return file;
 		});
 	}
 }

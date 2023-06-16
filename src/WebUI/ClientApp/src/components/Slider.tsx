@@ -117,8 +117,9 @@ export const Slider = ({
 
 	const onDrop = useCallback((): void => {
 		state.current.startState = undefined;
+		onChange?.(state.current.value);
 		onEnd?.(state.current.value);
-	}, [onEnd]);
+	}, [onEnd, onChange]);
 
 	const jumpTo = useCallback(
 		(position: number, startPagePosition: number): void => {
@@ -149,7 +150,10 @@ export const Slider = ({
 					}}
 					type="number"
 					onChange={(event) => setValue(Number(event.target.value))}
-					onBlur={() => onEnd?.(state.current.value)}
+					onBlur={() => {
+						onChange?.(state.current.value);
+						onEnd?.(state.current.value);
+					}}
 					defaultValue={String(state.current.value)}
 					step={1}
 					min={0}

@@ -50,6 +50,8 @@ const projectStateReducer = (
 						order: cloudVolume.order,
 						contrastMin: cloudVolume.contrastMin,
 						contrastMax: cloudVolume.contrastMax,
+						opacity: cloudVolume.opacity,
+						visible: cloudVolume.isChecked,
 					})
 				);
 			}
@@ -62,6 +64,8 @@ const projectStateReducer = (
 					new EditSurfaceCommand({
 						id: cloudSurface.id,
 						order: cloudSurface.order,
+						opacity: cloudSurface.opacity,
+						visible: cloudSurface.isChecked,
 					})
 				);
 			}
