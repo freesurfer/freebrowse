@@ -1,8 +1,8 @@
 import {
-	SurfaceDto3,
-	SurfaceDto2,
-	VolumeDto2,
-	VolumeDto3,
+	CreateProjectSurfaceDto,
+	CreateProjectVolumeDto,
+	CreateSurfaceDto,
+	CreateVolumeDto,
 } from '@/generated/web-api-client';
 import { getApiUrl } from '@/utils';
 
@@ -135,15 +135,15 @@ export class LocalVolumeFile extends LocalFile {
 		super(file, isActive, isChecked, order, opacity);
 	}
 
-	async toVolumeDto2(): Promise<VolumeDto2> {
-		return new VolumeDto2({
+	async toCreateProjectVolumeDto(): Promise<CreateProjectVolumeDto> {
+		return new CreateProjectVolumeDto({
 			base64: await this.getBase64(),
 			fileName: this.name,
 		});
 	}
 
-	async toVolumeDto3(): Promise<VolumeDto3> {
-		return new VolumeDto3({
+	async toCreateVolumeDto(): Promise<CreateVolumeDto> {
+		return new CreateVolumeDto({
 			base64: await this.getBase64(),
 			fileName: this.name,
 		});
@@ -189,15 +189,15 @@ export class LocalVolumeFile extends LocalFile {
 export class LocalSurfaceFile extends LocalFile {
 	public readonly type = FileType.SURFACE;
 
-	async toSurfaceDto2(): Promise<SurfaceDto2> {
-		return new SurfaceDto2({
+	async toCreateProjectSurfaceDto(): Promise<CreateProjectSurfaceDto> {
+		return new CreateProjectSurfaceDto({
 			base64: await this.getBase64(),
 			fileName: this.name,
 		});
 	}
 
-	async toSurfaceDto3(): Promise<SurfaceDto3> {
-		return new SurfaceDto3({
+	async toCreateSurfaceDto(): Promise<CreateSurfaceDto> {
+		return new CreateSurfaceDto({
 			base64: await this.getBase64(),
 			fileName: this.name,
 		});

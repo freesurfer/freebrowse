@@ -25,7 +25,7 @@ export const LoadFileList = ({
 				return (
 					<div key={file.name} className="flex gap-3 border-b pb-3 pt-3">
 						<div>
-							<div className="text-gray-500 flex justify-between text-xs">
+							<div className="flex justify-between text-xs text-gray-500">
 								<span>{file.name}</span>
 								<span>{file.sizeReadable()}</span>
 							</div>
@@ -36,7 +36,7 @@ export const LoadFileList = ({
 								setProjectFiles(projectFiles.fromDeletedFile(file.name))
 							}
 						>
-							<XMarkIcon className="text-gray-600 w-6"></XMarkIcon>
+							<XMarkIcon className="w-6 text-gray-600"></XMarkIcon>
 						</button>
 						{file.selection !== undefined ? (
 							<>
@@ -52,7 +52,7 @@ export const LoadFileList = ({
 										(option) => option.value === file.selection
 									)}
 								/>
-								<div className="text-gray-500 flex items-center gap-1 text-xs">
+								<div className="flex items-center gap-1 text-xs text-gray-500">
 									<Checkbox></Checkbox>
 									<span className="whitespace-nowrap">Resample to RAS</span>
 								</div>

@@ -186,7 +186,7 @@ export const OpenProjectDialog = ({
 						surfaces: await Promise.all(
 							addedLocalSurfaceFiles.map(
 								async (addedSurfaceFile) =>
-									await addedSurfaceFile.toSurfaceDto3()
+									await addedSurfaceFile.toCreateSurfaceDto()
 							)
 						),
 					})
@@ -236,7 +236,8 @@ export const OpenProjectDialog = ({
 						projectId: projectState.id,
 						volumes: await Promise.all(
 							addedLocalVolumeFiles.map(
-								async (addedVolumeFile) => await addedVolumeFile.toVolumeDto3()
+								async (addedVolumeFile) =>
+									await addedVolumeFile.toCreateVolumeDto()
 							)
 						),
 					})
@@ -277,14 +278,14 @@ export const OpenProjectDialog = ({
 				reject !== undefined ? (
 					<>
 						<div className="m-4 flex items-center gap-4">
-							<ArrowUpTrayIcon className="text-gray-500 h-8 w-8 shrink-0"></ArrowUpTrayIcon>
-							<h1 className="text-gray-500 mr-12 text-xl font-bold">
+							<ArrowUpTrayIcon className="h-8 w-8 shrink-0 text-gray-500"></ArrowUpTrayIcon>
+							<h1 className="mr-12 text-xl font-bold text-gray-500">
 								Load volumes & surfaces
 							</h1>
 						</div>
 						<button
 							onClick={() => resolve('canceled')}
-							className="text-gray-600 absolute right-0 top-0 p-2"
+							className="absolute right-0 top-0 p-2 text-gray-600"
 						>
 							<XMarkIcon className="h-6 w-6 shrink-0"></XMarkIcon>
 						</button>
@@ -312,13 +313,13 @@ export const OpenProjectDialog = ({
 
 						<div className="m-2 flex justify-end">
 							<button
-								className="bg-gray-200 text-gray-500 m-2 rounded-md px-5 py-3 text-sm font-semibold"
+								className="m-2 rounded-md bg-gray-200 px-5 py-3 text-sm font-semibold text-gray-500"
 								onClick={() => resolve('canceled')}
 							>
 								Cancel
 							</button>
 							<button
-								className="bg-gray-500 m-2 rounded-md px-5 py-3 text-sm font-semibold text-white"
+								className="m-2 rounded-md bg-gray-500 px-5 py-3 text-sm font-semibold text-white"
 								onClick={() => {
 									void onOpenClick();
 								}}
