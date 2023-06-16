@@ -1,28 +1,36 @@
 import { Collapse } from '@/components/Collapse';
 import { OrderList } from '@/components/OrderList';
-import { ProjectContext } from '@/pages/project/ProjectPage';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
+import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
+import type { Dispatch } from 'react';
 
-export const LoadedFiles = (): React.ReactElement => {
-	const { projectState, setProjectState, selectedFile, setSelectedFile } =
-		useContext(ProjectContext);
+export const LoadedFiles = ({
+	projectState,
+	setProjectState,
+}: {
+	projectState: ProjectState | undefined;
+	setProjectState: Dispatch<
+		(currentState: ProjectState | undefined) => ProjectState | undefined
+	>;
+}): React.ReactElement => {
 	const { editProject } = useContext(OpenProjectDialogContext);
+
+	const loadFiles = useCallback(async (): Promise<void> => {
+		try {
+			if (projectState === undefined) return;
+			const projectFiles = await editProject(projectState);
+			if (projectFiles === 'canceled') return;
+			setProjectState((projectState) => projectState?.fromFiles(projectFiles));
+		} catch (error) {
+			console.error('something went wrong opening files', error);
+		}
+	}, [projectState, editProject, setProjectState]);
 
 	if (projectState === undefined) {
 		return <></>;
 	}
-
-	const loadFiles = async (): Promise<void> => {
-		try {
-			const projectFiles = await editProject(projectState);
-			if (projectFiles === 'canceled') return;
-			setProjectState(projectState.fromFiles(projectFiles));
-		} catch (error) {
-			console.error('something went wrong opening files', error);
-		}
-	};
 
 	return (
 		<Collapse
@@ -45,22 +53,24 @@ export const LoadedFiles = (): React.ReactElement => {
 					title={<span className="border-b border-gray-300 grow">Volumes</span>}
 				>
 					<OrderList
-						entries={projectState.files.volumes.map((entry) => ({
-							label: entry.name,
-						}))}
-						activeFileName={selectedFile}
-						setActiveFileName={setSelectedFile}
-						updateOrder={(entries) => {
-							entries.forEach((entry) => {
-								/*
-								const innerEntry = projectState.files.volumes.find(
-									(findEntry) => entry.label === findEntry.name
-								);
-								// TODO update order
-								// if (innerEntry === undefined) return;
-								// innerEntry.order = entry.order;
-								*/
-							});
+						files={projectState.files.volumes}
+						setFiles={(files) => {
+							/*
+							 * it is very important here to use the update representation of the setter
+							 * https://stackoverflow.com/questions/56782079/react-hooks-stale-state
+							 */
+							setProjectState((projectState) =>
+								projectState?.fromFiles(
+									projectState.files.fromAdaptedVolumes(files)
+								)
+							);
+						}}
+						setFileActive={(file) => {
+							setProjectState((projectState) =>
+								projectState?.fromFiles(
+									projectState.files.fromOneVolumeActivated(file)
+								)
+							);
 						}}
 					></OrderList>
 				</Collapse>
@@ -70,22 +80,24 @@ export const LoadedFiles = (): React.ReactElement => {
 					}
 				>
 					<OrderList
-						entries={projectState.files.surfaces.map((entry) => ({
-							label: entry.name,
-						}))}
-						activeFileName={selectedFile}
-						setActiveFileName={setSelectedFile}
-						updateOrder={(entries) => {
-							entries.forEach((entry) => {
-								/*
-								const innerEntry = projectState.files.surfaces.find(
-									(findEntry) => entry.label === findEntry.name
-								);
-								// TODO update order
-								// if (innerEntry === undefined) return;
-								// innerEntry.order = entry.order;
-								*/
-							});
+						files={projectState.files.surfaces}
+						setFiles={(files) => {
+							/*
+							 * it is very important here to use the update representation of the setter
+							 * https://stackoverflow.com/questions/56782079/react-hooks-stale-state
+							 */
+							setProjectState((projectState) =>
+								projectState?.fromFiles(
+									projectState.files.fromAdaptedSurfaces(files)
+								)
+							);
+						}}
+						setFileActive={(file) => {
+							setProjectState((projectState) =>
+								projectState?.fromFiles(
+									projectState.files.fromOneSurfaceActivated(file)
+								)
+							);
 						}}
 					></OrderList>
 				</Collapse>

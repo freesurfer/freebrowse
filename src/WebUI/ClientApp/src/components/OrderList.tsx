@@ -1,23 +1,30 @@
 import { Checkbox } from '@/components/Checkbox';
+import type { ProjectFile } from '@/pages/project/models/ProjectFile';
 import { ArrowsUpDownIcon } from '@heroicons/react/24/outline';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-interface IOrderedListEntry {
-	label: string | undefined;
-	order?: number | undefined;
-}
+const CLICK_THRESHOLD = 3;
 
-interface IOrderedListCacheEntry {
+interface IRow<T_FILE_TYPE extends ProjectFile> {
+	projectFile: T_FILE_TYPE;
 	label: string | undefined;
 	ref?: HTMLDivElement | null;
+	style?: {
+		transition: string;
+		transform: string;
+		zIndex: string;
+	};
 	order: number;
 	top: number;
+	isActive: boolean;
+	isChecked: boolean;
 }
 
-interface IDragState {
-	entry: IOrderedListCacheEntry;
+interface IDragState<T_FILE_TYPE extends ProjectFile> {
+	entry: IRow<T_FILE_TYPE>;
 	mouseStart: number;
 	topStart: number;
+	isClick: boolean;
 }
 
 const ROW_HEIGHT = 30;
@@ -30,175 +37,253 @@ const ROW_HEIGHT = 30;
  * - keeps drag/drop state
  * - update view on source list changes, without loosing order
  */
-class OrderState {
-	public dragState: IDragState | undefined = undefined;
+class OrderState<T_FILE_TYPE extends ProjectFile> {
+	public dragState: IDragState<T_FILE_TYPE> | undefined = undefined;
 
-	#list: IOrderedListCacheEntry[] = [];
+	private rows: IRow<T_FILE_TYPE>[] = [];
 
 	constructor(
-		private readonly updateOrder:
-			| ((entries: IOrderedListEntry[]) => void)
-			| undefined
+		private readonly setFiles: (files: T_FILE_TYPE[]) => void,
+		private readonly setRows: (rows: IRow<T_FILE_TYPE>[]) => void,
+		private readonly setFileActive: (file: T_FILE_TYPE) => void
 	) {}
 
-	updateAndGet(
-		entries: (IOrderedListEntry | undefined)[] | undefined
-	): IOrderedListCacheEntry[] {
-		const entriesWithOrder = entries?.filter(
-			(entry) => entry?.order !== undefined
+	updateSource(files: readonly T_FILE_TYPE[]): void {
+		const filesWithOrder = files?.filter((file) => file?.order !== undefined);
+		const filesWithoutOrder = files?.filter(
+			(file) => file?.order === undefined
 		);
-		const entriesWithoutOrder = entries?.filter(
-			(entry) => entry?.order === undefined
-		);
-		const sortedEntriesWithOrder = entriesWithOrder?.sort(
+		const sortedFilesWithOrder = filesWithOrder?.sort(
 			(a, b) => (a?.order ?? 0) - (b?.order ?? 0)
 		);
 
-		let orderCount = -1;
+		let order = 0;
 
-		this.#list = [
-			...(sortedEntriesWithOrder ?? []),
-			...(entriesWithoutOrder ?? []),
-		].map((entry) => {
-			orderCount++;
-			return {
-				label: entry?.label,
-				order: orderCount,
-				top: orderCount * ROW_HEIGHT,
-			};
+		this.rows = [
+			...(sortedFilesWithOrder ?? []),
+			...(filesWithoutOrder ?? []),
+		].map((file): IRow<T_FILE_TYPE> => {
+			const currentOrder = order;
+			order = order + 1;
+
+			const existsAlready = this.rows.find(
+				(row) => row.projectFile.name === file?.name
+			);
+
+			if (existsAlready === undefined) {
+				return {
+					projectFile: file,
+					label: file?.name,
+					order: currentOrder,
+					top: currentOrder * ROW_HEIGHT,
+					isActive: file?.isActive ?? false,
+					isChecked: file?.isChecked ?? false,
+				};
+			}
+
+			existsAlready.order = currentOrder;
+			existsAlready.top = currentOrder * ROW_HEIGHT;
+			existsAlready.isActive = file?.isActive;
+			existsAlready.isChecked = file?.isChecked;
+			existsAlready.projectFile = file;
+
+			return existsAlready;
 		});
-		return this.#list;
+		this.setRows(this.rows);
+		this.pushNewOrder();
 	}
 
-	startDrag(mouseStart: number, entry: IOrderedListCacheEntry): void {
+	private pushNewOrder(): void {
+		const newFiles: T_FILE_TYPE[] = [];
+		let orderHasChanged = false;
+		for (const row of this.rows) {
+			if (row.projectFile.order !== row.order) orderHasChanged = true;
+			newFiles.push(row.projectFile.fromOrder(row.order) as T_FILE_TYPE);
+		}
+		if (orderHasChanged) {
+			this.setFiles(newFiles);
+		}
+	}
+
+	startDrag(mouseStart: number, entry: IRow<T_FILE_TYPE>): void {
 		this.dragState = {
 			mouseStart,
 			entry,
 			topStart: entry.top,
+			isClick: true,
 		};
 	}
 
 	updateDrag(positionMove: number): void {
 		if (this.dragState === undefined) return;
 
-		const ref = this.dragState.entry.ref;
-		if (ref === null || ref === undefined) return;
+		if (
+			this.dragState.isClick &&
+			Math.abs(this.dragState.mouseStart - positionMove) > CLICK_THRESHOLD
+		)
+			this.dragState.isClick = false;
+
+		const entry = this.dragState.entry;
+		if (entry.ref === null || entry.ref === undefined) return;
 
 		const moveDistance = positionMove - (this.dragState?.mouseStart ?? 0);
 
-		this.dragState.entry.top = this.#cropToBounds(
+		this.dragState.entry.top = this.cropToBounds(
 			this.dragState.topStart + moveDistance
 		);
 
-		ref.style.transition = `none`;
-		ref.style.transform = `translateY(${this.dragState.entry.top}px)`;
+		entry.style = {
+			transition: `none`,
+			transform: `translateY(${this.dragState.entry.top}px)`,
+			zIndex: entry.style?.zIndex ?? '',
+		};
+		entry.ref.style.transition = entry.style.transition;
+		entry.ref.style.transform = entry.style.transform;
 
-		this.#recomputeOrder();
+		this.recomputeOrder();
 	}
 
 	drop(): void {
+		const dragState = this.dragState;
 		this.dragState = undefined;
-		this.#recomputeOrder();
-		this.updateOrder?.(
-			this.#list.map((entry) => ({
-				label: entry.label,
-				order: entry.order,
-			}))
-		);
+
+		if (dragState === undefined) return;
+
+		if (dragState.isClick) {
+			this.setFileActive(dragState.entry.projectFile);
+			return;
+		}
+
+		this.recomputeOrder();
+		// run async to not block UI
+		setTimeout(() => {
+			this.pushNewOrder();
+		}, 0);
 	}
 
-	#cropToBounds(newPosition: number): number {
+	private cropToBounds(newPosition: number): number {
 		if (newPosition < 0) return 0;
-		if (newPosition > (this.#list.length - 1) * ROW_HEIGHT)
-			return (this.#list.length - 1) * ROW_HEIGHT;
+		if (newPosition > (this.rows.length - 1) * ROW_HEIGHT)
+			return (this.rows.length - 1) * ROW_HEIGHT;
 		return newPosition;
 	}
 
-	#recomputeOrder(): void {
-		let orderCount = -1;
-		for (const entry of this.#list.sort(
+	private recomputeOrder(): void {
+		let order = 0;
+		for (const entry of this.rows.sort(
 			(a, b) => a.top - ROW_HEIGHT / 2 - b.top
 		)) {
-			entry.order = orderCount++;
-			if (entry.ref === this.dragState?.entry.ref) continue;
-			entry.top = orderCount * ROW_HEIGHT;
+			entry.order = order;
+			order = order + 1;
+			if (entry.ref === this.dragState?.entry.ref) {
+				if (entry.ref === undefined || entry.ref === null) continue;
+				entry.style = {
+					transition: entry.style?.transition ?? '',
+					transform: entry.style?.transform ?? '',
+					zIndex: '1',
+				};
+				entry.ref.style.zIndex = entry.style.zIndex;
+				continue;
+			}
+
+			entry.top = entry.order * ROW_HEIGHT;
+			entry.style = {
+				transition: `transform .2s ease-in-out`,
+				transform: `translateY(${entry.top}px)`,
+				zIndex: '0',
+			};
+
 			if (entry.ref === undefined || entry.ref === null) continue;
-			entry.ref.style.transition = `transform .2s ease-in-out`;
-			entry.ref.style.transform = `translateY(${entry.top}px)`;
+
+			entry.ref.style.transition = entry.style.transition;
+			entry.ref.style.transform = entry.style.transform;
+			entry.ref.style.zIndex = entry.style.zIndex;
 		}
 	}
 }
 
-export const OrderList = ({
-	entries,
-	activeFileName,
-	setActiveFileName,
-	updateOrder,
+export const OrderList = <T_FILE_TYPE extends ProjectFile>({
+	files,
+	setFiles,
+	setFileActive,
 }: {
-	entries: (IOrderedListEntry | undefined)[] | undefined;
-	activeFileName: string | undefined;
-	setActiveFileName: (fileName: string | undefined) => void;
-	updateOrder?: (entries: IOrderedListEntry[]) => void;
+	files: readonly T_FILE_TYPE[];
+	setFiles: (files: T_FILE_TYPE[]) => void;
+	setFileActive: (file: T_FILE_TYPE) => void;
 }): React.ReactElement => {
-	const state = useRef<OrderState>(new OrderState(updateOrder));
+	const [rows, setRows] = useState<IRow<T_FILE_TYPE>[]>();
+	const state = useRef<OrderState<T_FILE_TYPE>>(
+		new OrderState(setFiles, setRows, setFileActive)
+	);
+
+	useEffect(() => {
+		state.current.updateSource(files);
+	}, [files]);
 
 	const handleDrop = useCallback(() => state?.current.drop(), []);
+
 	useEffect(() => {
 		window.addEventListener('mouseup', handleDrop);
 		return () => window.removeEventListener('mouseup', handleDrop);
-	}, [state, handleDrop]);
+	}, [handleDrop]);
 
 	return (
 		<div
 			style={{
-				height: `${(entries?.length ?? 0) * ROW_HEIGHT}px`,
+				height: `${(files?.length ?? 0) * ROW_HEIGHT}px`,
 				marginBottom: 2,
 				position: 'relative',
 			}}
 			onMouseMove={(event) => state.current.updateDrag(event.pageY)}
+			onMouseLeave={() => handleDrop()}
 		>
-			{state.current.updateAndGet(entries)?.map((entry) => {
-				if (entry === undefined) return <></>;
-				const fileName = entry.label;
-				if (fileName === undefined) return <></>;
-				const isActive =
-					activeFileName !== undefined && activeFileName === fileName;
+			{rows?.map((row) => {
+				if (row.label === undefined) return <></>;
 				return (
 					<div
-						key={fileName}
+						key={row.label}
 						ref={(ref) => {
-							entry.ref = ref;
+							row.ref = ref;
 						}}
 						style={{
-							transform: `translateY(${entry.top}px)`,
+							transform: `translateY(${row.top}px)`,
 						}}
 						className={`absolute rounded h-7 mt-0.5 top-0 left-0 right-0 ${
-							isActive ? 'bg-gray-500' : ''
+							row.isActive ? 'bg-gray-500' : 'bg-gray-100'
 						}`}
 					>
-						<button
-							className={`flex text-start items-center w-full`}
-							onClick={() => setActiveFileName(fileName)}
-						>
-							<Checkbox defaultState={true}></Checkbox>
-							<span
-								className={`grow cursor-default text-ellipsis overflow-hidden ${
-									isActive ? 'text-white' : ''
-								}`}
-							>
-								{fileName}
-							</span>
-							<ArrowsUpDownIcon
-								onMouseDown={(event) =>
-									state.current.startDrag(event.pageY, entry)
+						<div className="flex items-center w-full">
+							<Checkbox
+								defaultState={true}
+								setValue={(value) =>
+									setFiles(
+										files.map((file) => {
+											if (file !== row.projectFile) return file;
+											return file.fromIsChecked(value) as T_FILE_TYPE;
+										})
+									)
 								}
-								// onMouseUp={(event) => state.current.drop()}
-								onClick={(event) => event.stopPropagation()}
-								className={`w-5 shrink-0 text-gray-500 m-1 ${
-									isActive ? 'text-white' : ''
-								}`}
-							></ArrowsUpDownIcon>
-						</button>
+							></Checkbox>
+							<button
+								className="flex text-start items-center w-full"
+								onMouseDown={(event) =>
+									state.current.startDrag(event.pageY, row)
+								}
+							>
+								<span
+									className={`grow cursor-default text-ellipsis overflow-hidden ${
+										row.isActive ? 'text-white' : ''
+									}`}
+								>
+									{row.label}
+								</span>
+								<ArrowsUpDownIcon
+									className={`w-5 shrink-0 m-1 ${
+										row.isActive ? 'text-white' : 'text-gray-500'
+									}`}
+								></ArrowsUpDownIcon>
+							</button>
+						</div>
 					</div>
 				);
 			})}

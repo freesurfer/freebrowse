@@ -3,8 +3,10 @@ import { useState } from 'react';
 
 export const Checkbox = ({
 	defaultState,
+	setValue,
 }: {
 	defaultState?: boolean;
+	setValue?: (value: boolean) => void;
 }): React.ReactElement => {
 	const [isChecked, setIsChecked] = useState<boolean>(defaultState ?? true);
 
@@ -14,7 +16,12 @@ export const Checkbox = ({
 				type="checkbox"
 				className="hidden"
 				checked={isChecked}
-				onChange={() => setIsChecked(!isChecked)}
+				onChange={() => {
+					setIsChecked((isChecked) => {
+						setValue?.(!isChecked);
+						return !isChecked;
+					});
+				}}
 			></input>
 			<div
 				className={`w-5 h-5 border rounded-[3px] ${

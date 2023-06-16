@@ -255,7 +255,7 @@ declare module '@niivue/niivue' {
 		DT_COMPLEX128: any;
 		DT_COMPLEX256: any;
 		DT_RGBA32: any;
-		name: any;
+		name: string;
 		id: any;
 		_colorMap: any;
 		_opacity: any;
