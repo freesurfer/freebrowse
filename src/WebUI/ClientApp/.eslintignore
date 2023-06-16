@@ -1,3 +1,4 @@
 src/app/web-api-client.ts
 scripts/aspnetcore-*
 prettier.config.cjs
+vite.config.ts

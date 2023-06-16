@@ -276,9 +276,9 @@ export const OpenProjectDialog = ({
 				resolve !== undefined &&
 				reject !== undefined ? (
 					<>
-						<div className="flex gap-4 items-center m-4">
+						<div className="m-4 flex items-center gap-4">
 							<ArrowUpTrayIcon className="text-gray-500 h-8 w-8 shrink-0"></ArrowUpTrayIcon>
-							<h1 className="text-xl text-gray-500 font-bold mr-12">
+							<h1 className="text-gray-500 mr-12 text-xl font-bold">
 								Load volumes & surfaces
 							</h1>
 						</div>
@@ -310,15 +310,15 @@ export const OpenProjectDialog = ({
 							]}
 						/>
 
-						<div className="flex justify-end m-2">
+						<div className="m-2 flex justify-end">
 							<button
-								className="m-2 bg-gray-200 text-gray-500 text-sm font-semibold px-5 py-3 rounded-md"
+								className="bg-gray-200 text-gray-500 m-2 rounded-md px-5 py-3 text-sm font-semibold"
 								onClick={() => resolve('canceled')}
 							>
 								Cancel
 							</button>
 							<button
-								className="m-2 bg-gray-500 text-white text-sm font-semibold px-5 py-3 rounded-md"
+								className="bg-gray-500 m-2 rounded-md px-5 py-3 text-sm font-semibold text-white"
 								onClick={() => {
 									void onOpenClick();
 								}}

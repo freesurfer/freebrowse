@@ -1,6 +1,3 @@
-/* eslint-disable jsx-a11y/click-events-have-key-events */
-
-/* eslint-disable jsx-a11y/no-static-element-interactions */
 import { useRef, useCallback, useEffect } from 'react';
 
 const normalizeValue = (value: number): number => {
@@ -145,7 +142,6 @@ export const Slider = ({
 	}, [onDrop, onMove]);
 
 	return (
-		// eslint-disable-next-line jsx-a11y/no-static-element-interactions
 		<div className={className}>
 			<div className="flex items-center">
 				<label className="grow">{label}</label>
@@ -164,38 +160,41 @@ export const Slider = ({
 				></input>
 				{unit !== undefined ? <span className="ml-1">{unit}</span> : <></>}
 			</div>
-			<div
-				className="relative my-2 h-4 grow"
-				onMouseDown={(e) =>
-					jumpTo(e.clientX - e.currentTarget.offsetLeft, e.pageX)
-				}
-			>
+			{
+				// eslint-disable-next-line jsx-a11y/no-static-element-interactions
 				<div
-					ref={(ref) => {
-						state.current.rangeRef = ref;
-					}}
-					className="absolute mt-1 h-2 w-full rounded bg-gray"
-				></div>
-				<div
-					style={{ width: `${state.current.value}%` }}
-					ref={(ref) => {
-						state.current.progressRef = ref;
-					}}
-					className="absolute mt-1 h-2 rounded bg-blue-light"
-				></div>
-				<button
-					ref={(ref) => {
-						state.current.knopRef = ref;
-					}}
-					onMouseDown={(event) => {
-						event.preventDefault();
-						event.stopPropagation();
-						onStart(event.pageX);
-					}}
-					style={{ marginLeft: `${state.current.value}%` }}
-					className="absolute -left-2 h-4 w-4 cursor-pointer rounded-full border-2 border-blue-light bg-white"
-				></button>
-			</div>
+					className="relative my-2 h-4 grow"
+					onMouseDown={(e) =>
+						jumpTo(e.clientX - e.currentTarget.offsetLeft, e.pageX)
+					}
+				>
+					<div
+						ref={(ref) => {
+							state.current.rangeRef = ref;
+						}}
+						className="absolute mt-1 h-2 w-full rounded bg-gray"
+					></div>
+					<div
+						style={{ width: `${state.current.value}%` }}
+						ref={(ref) => {
+							state.current.progressRef = ref;
+						}}
+						className="absolute mt-1 h-2 rounded bg-blue-light"
+					></div>
+					<button
+						ref={(ref) => {
+							state.current.knopRef = ref;
+						}}
+						onMouseDown={(event) => {
+							event.preventDefault();
+							event.stopPropagation();
+							onStart(event.pageX);
+						}}
+						style={{ marginLeft: `${state.current.value}%` }}
+						className="absolute -left-2 h-4 w-4 cursor-pointer rounded-full border-2 border-blue-light bg-white"
+					></button>
+				</div>
+			}
 		</div>
 	);
 };

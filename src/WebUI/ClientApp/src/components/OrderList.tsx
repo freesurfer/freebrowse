@@ -27,7 +27,7 @@ interface IDragState<T_FILE_TYPE extends ProjectFile> {
 	isClick: boolean;
 }
 
-const ROW_HEIGHT = 30;
+const ROW_HEIGHT = 26;
 
 /**
  * this class should maintain the view state
@@ -248,11 +248,11 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 						style={{
 							transform: `translateY(${row.top}px)`,
 						}}
-						className={`absolute rounded h-7 mt-0.5 top-0 left-0 right-0 ${
-							row.isActive ? 'bg-gray-500' : 'bg-gray-100'
+						className={`absolute left-0 right-0 top-0 mt-0.5 rounded ${
+							row.isActive ? 'bg-blue-light' : 'bg-white'
 						}`}
 					>
-						<div className="flex items-center w-full">
+						<div className="flex w-full items-center">
 							<Checkbox
 								defaultState={true}
 								setValue={(value) =>
@@ -265,21 +265,21 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 								}
 							></Checkbox>
 							<button
-								className="flex text-start items-center w-full"
+								className="ml-1 flex w-full items-center text-start text-xs"
 								onMouseDown={(event) =>
 									state.current.startDrag(event.pageY, row)
 								}
 							>
 								<span
-									className={`grow cursor-default text-ellipsis overflow-hidden ${
-										row.isActive ? 'text-white' : ''
+									className={`grow cursor-default overflow-hidden text-ellipsis ${
+										row.isActive ? 'font-bold text-white' : ''
 									}`}
 								>
-									{row.label}
+									{row.label.split('.')[0]}
 								</span>
 								<ArrowsUpDownIcon
-									className={`w-5 shrink-0 m-1 ${
-										row.isActive ? 'text-white' : 'text-gray-500'
+									className={`m-1 w-4 shrink-0 ${
+										row.isActive ? 'text-white' : 'text-font'
 									}`}
 								></ArrowsUpDownIcon>
 							</button>

@@ -24,7 +24,7 @@ export default {
 			/**
 			 * FontColor
 			 */
-			front: '#333333',
+			font: '#333333',
 			/**
 			 * Red
 			 */
