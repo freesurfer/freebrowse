@@ -41,6 +41,7 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 	public dragState: IDragState<T_FILE_TYPE> | undefined = undefined;
 
 	private rows: IRow<T_FILE_TYPE>[] = [];
+	private isControlKeyPressed = false;
 
 	constructor(
 		private readonly setFiles: (files: T_FILE_TYPE[]) => void,
@@ -150,7 +151,19 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 		if (dragState === undefined) return;
 
 		if (dragState.isClick) {
-			this.setFileActive(dragState.entry.projectFile);
+			if (!this.isControlKeyPressed) {
+				this.setFileActive(dragState.entry.projectFile);
+				return;
+			}
+			this.setFiles(
+				this.rows.map((row) =>
+					row.projectFile === dragState.entry.projectFile
+						? (row.projectFile.fromIsActive(
+								!row.projectFile.isActive
+						  ) as T_FILE_TYPE)
+						: row.projectFile
+				)
+			);
 			return;
 		}
 
@@ -160,6 +173,26 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 			this.pushNewOrder();
 		}, 0);
 	}
+
+	handleKeyDown = (key: string): void => {
+		const isMac = window.navigator.userAgent.includes('Mac');
+		const controlKey = isMac ? 'Meta' : 'Control';
+		switch (key) {
+			case controlKey:
+				this.isControlKeyPressed = true;
+				break;
+		}
+	};
+
+	handleKeyUp = (key: string): void => {
+		const isMac = window.navigator.userAgent.includes('Mac');
+		const controlKey = isMac ? 'Meta' : 'Control';
+		switch (key) {
+			case controlKey:
+				this.isControlKeyPressed = false;
+				break;
+		}
+	};
 
 	private cropToBounds(newPosition: number): number {
 		if (newPosition < 0) return 0;
@@ -225,15 +258,25 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 		(event: MouseEvent) => state?.current.updateDrag(event.pageY),
 		[]
 	);
+	const handleKeyDown = useCallback(
+		(event: KeyboardEvent) => state?.current.handleKeyDown(event.key),
+		[]
+	);
+	const handleKeyUp = useCallback(
+		(event: KeyboardEvent) => state?.current.handleKeyUp(event.key),
+		[]
+	);
 
 	useEffect(() => {
 		document.addEventListener('mousemove', handleMove);
 		document.addEventListener('mouseup', handleDrop);
+		document.addEventListener('keydown', handleKeyDown);
+		document.addEventListener('keyup', handleKeyUp);
 		return () => {
 			document.removeEventListener('mousemove', handleMove);
 			document.removeEventListener('mouseup', handleDrop);
 		};
-	}, [handleDrop, handleMove]);
+	}, [handleDrop, handleMove, handleKeyDown, handleKeyUp]);
 
 	return (
 		<div
