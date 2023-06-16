@@ -1,5 +1,4 @@
-﻿
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FreeBrowse.Application.Surfaces.Queries.GetSurface;

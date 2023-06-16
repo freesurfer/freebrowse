@@ -1,4 +1,5 @@
-﻿using FreeBrowse.Application.Common.Interfaces;
+﻿using AutoMapper;
+using FreeBrowse.Application.Common.Interfaces;
 using FreeBrowse.Domain.Entities;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -9,12 +10,14 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 {
 	private readonly IApplicationDbContext context;
 	private readonly IFileStorage fileStorage;
+	private readonly IMapper mapper;
 	private readonly ILogger<CreateProjectCommandHandler> logger;
 
-	public CreateProjectCommandHandler(IApplicationDbContext context, IFileStorage fileStorage, ILogger<CreateProjectCommandHandler> logger)
+	public CreateProjectCommandHandler(IApplicationDbContext context, IFileStorage fileStorage, IMapper mapper, ILogger<CreateProjectCommandHandler> logger)
 	{
 		this.context = context;
 		this.fileStorage = fileStorage;
+		this.mapper = mapper;
 		this.logger = logger;
 	}
 
@@ -28,13 +31,16 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 		{
 			var project = new Project
 			{
-				Name = request.Name
+				Name = request.Name,
+				MeshThicknessOn2D = request.MeshThicknessOn2D
 			};
 
 			this.context.Projects.Add(project);
 
 			await this.context.SaveChangesAsync(cancellationToken);
 			result.Id = project.Id;
+			result.Name = project.Name;
+			result.MeshThicknessOn2D = project.MeshThicknessOn2D;
 
 			this.fileStorage.CreateDirectory(result.Id);
 
@@ -57,7 +63,7 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 		return result;
 	}
 
-	private async Task<List<VolumeResponseDto>> CreateVolumes(List<VolumeDto> volumes, int projectId, CancellationToken cancellationToken)
+	private async Task<List<VolumeResponseDto>> CreateVolumes(List<CreateProjectVolumeDto> volumes, int projectId, CancellationToken cancellationToken)
 	{
 		var result = new List<VolumeResponseDto>();
 
@@ -69,8 +75,11 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 			{
 				Path = filePath,
 				FileName = v.FileName,
+				Base64 = v.Base64,
 				Order = v.Order,
+				ColorMap = v.ColorMap,
 				Opacity = v.Opacity,
+				Visible = v.Visible,
 				ContrastMax = v.ContrastMax,
 				ContrastMin = v.ContrastMin,
 				ProjectId = projectId
@@ -80,11 +89,8 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 
 			await this.context.SaveChangesAsync(cancellationToken);
 
-			var responseDto = new VolumeResponseDto
-			{
-				Id = volume.Id,
-				FileName = volume.FileName
-			};
+			var responseDto = this.mapper.Map<VolumeResponseDto>(volume);
+			responseDto.FileSize = this.CalculateFileSize(filePath);
 
 			result.Add(responseDto);
 		}
@@ -92,7 +98,7 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 		return result;
 	}
 
-	private async Task<List<SurfaceResponseDto>> CreateSurfaces(List<SurfaceDto> surfaces, int  projectId, CancellationToken cancellationToken)
+	private async Task<List<SurfaceResponseDto>> CreateSurfaces(List<CreateProjectSurfaceDto> surfaces, int  projectId, CancellationToken cancellationToken)
 	{
 		var result = new List<SurfaceResponseDto>();
 
@@ -104,8 +110,11 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 			{
 				Path = filePath,
 				FileName = s.FileName,
+				Base64 = s.Base64,
 				Order = s.Order,
+				Color = s.Color,
 				Opacity = s.Opacity,
+				Visible = s.Visible,
 				ProjectId = projectId
 			};
 
@@ -113,15 +122,22 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 
 			await this.context.SaveChangesAsync(cancellationToken);
 
-			var responseDto = new SurfaceResponseDto
-			{
-				Id = surface.Id,
-				FileName = surface.FileName
-			};
+			var responseDto = this.mapper.Map<SurfaceResponseDto>(surface);
+			responseDto.FileSize = this.CalculateFileSize(filePath);
 
 			result.Add(responseDto);
 		}
 
 		return result;
+	}
+
+	private long CalculateFileSize(string filePath)
+	{
+		if (!File.Exists(filePath))
+		{
+			throw new FileNotFoundException("File not found.", filePath);
+		}
+
+		return new FileInfo(filePath).Length;
 	}
 }

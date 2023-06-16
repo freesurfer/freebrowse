@@ -6,5 +6,5 @@ public record CreateVolumesCommand : IRequest<CreateVolumeResponseDto[]>
 {
 	public int ProjectId { get; set; }
 
-	public VolumeDto[] Volumes { get; set; } = null!;
+	public CreateVolumeDto[] Volumes { get; set; } = null!;
 }

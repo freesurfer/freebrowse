@@ -20,16 +20,25 @@ public class EditVolumeCommandHandler : IRequestHandler<EditVolumeCommand, int>
 
 	public async Task<int> Handle(EditVolumeCommand request, CancellationToken cancellationToken)
 	{
-		var volume = await this.context.Volumes.SingleOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+		var volume = await this.context.Volumes.FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
-		if(volume == null)
+		if (volume == null)
 		{
 			throw new NotFoundException(nameof(Volume), request.Id);
 		}
 
-		volume.Opacity = request.Opacity;
-		volume.ContrastMax = request.ContrastMax;
-		volume.ContrastMin = request.ContrastMin;
+		if (request != null && request.Base64 != null && request.Base64 != volume.Base64)
+		{
+			volume.Base64 = request.Base64 ?? volume.Base64;
+			File.WriteAllBytes(volume.Path, Convert.FromBase64String(request.Base64));
+		}
+
+		volume.Order = request.Order ?? volume.Order;
+		volume.ColorMap = request.ColorMap ?? volume.ColorMap;
+		volume.Opacity = request.Opacity ?? volume.Opacity;
+		volume.Visible = request.Visible ?? volume.Visible;
+		volume.ContrastMax = request.ContrastMax ?? volume.ContrastMax;
+		volume.ContrastMin = request.ContrastMin ?? volume.ContrastMin;
 
 		try
 		{

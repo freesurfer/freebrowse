@@ -6,7 +6,9 @@ public record CreateProjectCommand : IRequest<CreateProjectResponseDto>
 {
 	public string Name { get; set; } = null!;
 
-	public List<VolumeDto> Volumes { get; set; } = new List<VolumeDto>();
+	public double MeshThicknessOn2D { get; set; }
+
+	public List<CreateProjectVolumeDto> Volumes { get; set; } = new List<CreateProjectVolumeDto>();
 	
-	public List<SurfaceDto> Surfaces { get; set; } = new List<SurfaceDto>();
+	public List<CreateProjectSurfaceDto> Surfaces { get; set; } = new List<CreateProjectSurfaceDto>();
 }

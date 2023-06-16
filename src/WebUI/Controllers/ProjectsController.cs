@@ -11,7 +11,7 @@ namespace WebUI.Controllers;
 public class ProjectsController : ApiControllerBase
 {
 	[HttpGet]
-	public async Task<ActionResult<ProjectDto>> GetProject([FromQuery] GetProjectQuery query)
+	public async Task<ActionResult<GetProjectDto>> GetProject([FromQuery] GetProjectQuery query)
 	{
 		return await this.Mediator.Send(query);
 	}

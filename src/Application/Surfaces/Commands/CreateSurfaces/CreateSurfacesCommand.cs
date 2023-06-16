@@ -6,5 +6,5 @@ public record CreateSurfacesCommand : IRequest<CreateSurfaceResponseDto[]>
 {
 	public int ProjectId { get; set; }
 
-	public SurfaceDto[] Surfaces { get; set; } = null!;
+	public CreateSurfaceDto[] Surfaces { get; set; } = null!;
 }

@@ -20,15 +20,24 @@ public class EditSurfaceCommandHandler : IRequestHandler<EditSurfaceCommand, int
 
 	public async Task<int> Handle(EditSurfaceCommand request, CancellationToken cancellationToken)
 	{
-		var surface = await this.context.Surfaces.SingleOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+		var surface = await this.context.Surfaces.FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
-		if(surface == null)
+		if (surface == null)
 		{
 			throw new NotFoundException(nameof(Surface), request.Id);
 		}
 
-		surface.Order = request.Order;
-		surface.Opacity = request.Opacity;
+		if (request != null && request.Base64 != null && request.Base64 != surface.Base64)
+		{
+			surface.Base64 = request.Base64 ?? surface.Base64;
+			File.WriteAllBytes(surface.Path, Convert.FromBase64String(request.Base64));
+		}
+
+		surface.Base64 = request.Base64 ?? surface.Base64;
+		surface.Order = request.Order ?? surface.Order;
+		surface.Color = request.Color ?? surface.Color;
+		surface.Opacity = request.Opacity ?? surface.Opacity;
+		surface.Visible = request.Visible ?? surface.Visible;
 
 		try
 		{

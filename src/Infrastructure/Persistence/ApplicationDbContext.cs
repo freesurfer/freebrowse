@@ -31,6 +31,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<Surface> Surfaces => this.Set<Surface>();
 
+	public DbSet<Overlay> Overlays => this.Set<Overlay>();
+
+	public DbSet<Annotation> Annotations => this.Set<Annotation>();
+
 	protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

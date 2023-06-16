@@ -1,4 +1,5 @@
-﻿using FreeBrowse.Application.Common.Interfaces;
+﻿using AutoMapper;
+using FreeBrowse.Application.Common.Interfaces;
 using FreeBrowse.Domain.Entities;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -9,12 +10,14 @@ public class CreateVolumeCommandHandler : IRequestHandler<CreateVolumesCommand, 
 {
 	private readonly IApplicationDbContext context;
 	private readonly IFileStorage fileStorage;
+	private readonly IMapper mapper;
 	private readonly ILogger<CreateVolumeCommandHandler> logger;
 
-	public CreateVolumeCommandHandler(IApplicationDbContext context, IFileStorage fileStorage, ILogger<CreateVolumeCommandHandler> logger)
+	public CreateVolumeCommandHandler(IApplicationDbContext context, IFileStorage fileStorage, IMapper mapper, ILogger<CreateVolumeCommandHandler> logger)
 	{
 		this.context = context;
 		this.fileStorage = fileStorage;
+		this.mapper = mapper;
 		this.logger = logger;
 	}
 
@@ -35,7 +38,9 @@ public class CreateVolumeCommandHandler : IRequestHandler<CreateVolumesCommand, 
 					Path = filePath,
 					FileName = v.FileName,
 					Order = v.Order,
+					ColorMap = v.ColorMap,
 					Opacity = v.Opacity,
+					Visible = v.Visible,
 					ContrastMax = v.ContrastMax,
 					ContrastMin = v.ContrastMin,
 					ProjectId = request.ProjectId
@@ -45,12 +50,8 @@ public class CreateVolumeCommandHandler : IRequestHandler<CreateVolumesCommand, 
 
 				await this.context.SaveChangesAsync(cancellationToken);
 
-				var responseDto = new CreateVolumeResponseDto
-				{
-					Id = volume.Id,
-					FileName = volume.FileName,
-					FileSize = new FileInfo(filePath).Length
-				};
+				var responseDto = this.mapper.Map<CreateVolumeResponseDto>(volume);
+				responseDto.FileSize = new FileInfo(filePath).Length;
 
 				result.Add(responseDto);
 			}

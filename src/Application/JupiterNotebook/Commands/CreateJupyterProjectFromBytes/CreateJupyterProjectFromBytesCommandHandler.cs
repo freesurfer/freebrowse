@@ -101,7 +101,7 @@ public class CreateJupyterProjectFromBytesCommandHandler : IRequestHandler<Creat
 		return project.Id;
 	}
 
-	private async Task CreateVolume(int projectId, FilesDto f, CancellationToken cancellationToken)
+	private async Task CreateVolume(int projectId, FileDto f, CancellationToken cancellationToken)
 	{
 		var filePath = await this.fileStorage.SaveFileAsync(f.FileData, projectId, f.FileName);
 
@@ -117,7 +117,7 @@ public class CreateJupyterProjectFromBytesCommandHandler : IRequestHandler<Creat
 		await this.context.SaveChangesAsync(cancellationToken);
 	}
 
-	private async Task CreateSurface(int projectId, FilesDto f, CancellationToken cancellationToken)
+	private async Task CreateSurface(int projectId, FileDto f, CancellationToken cancellationToken)
 	{
 		var filePath = await this.fileStorage.SaveFileAsync(f.FileData, projectId, f.FileName);
 

@@ -22,6 +22,106 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("FreeBrowse.Domain.Entities.Annotation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Base64")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Color")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Opacity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SurfaceId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Visible")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SurfaceId");
+
+                    b.ToTable("Annotations");
+                });
+
+            modelBuilder.Entity("FreeBrowse.Domain.Entities.Overlay", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Base64")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Color")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Opacity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SurfaceId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Visible")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SurfaceId");
+
+                    b.ToTable("Overlays");
+                });
+
             modelBuilder.Entity("FreeBrowse.Domain.Entities.Project", b =>
                 {
                     b.Property<int>("Id")
@@ -42,6 +142,9 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<double>("MeshThicknessOn2D")
+                        .HasColumnType("float");
+
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
@@ -57,6 +160,12 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Base64")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Color")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime2");
@@ -85,6 +194,9 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("Visible")
+                        .HasColumnType("bit");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProjectId");
@@ -99,6 +211,12 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Base64")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ColorMap")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("ContrastMax")
                         .HasColumnType("int");
@@ -133,6 +251,9 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("Visible")
+                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
@@ -544,6 +665,28 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.ToTable("OpenIddictTokens", (string)null);
                 });
 
+            modelBuilder.Entity("FreeBrowse.Domain.Entities.Annotation", b =>
+                {
+                    b.HasOne("FreeBrowse.Domain.Entities.Surface", "Surface")
+                        .WithMany("Annotations")
+                        .HasForeignKey("SurfaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Surface");
+                });
+
+            modelBuilder.Entity("FreeBrowse.Domain.Entities.Overlay", b =>
+                {
+                    b.HasOne("FreeBrowse.Domain.Entities.Surface", "Surface")
+                        .WithMany("Overlays")
+                        .HasForeignKey("SurfaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Surface");
+                });
+
             modelBuilder.Entity("FreeBrowse.Domain.Entities.Surface", b =>
                 {
                     b.HasOne("FreeBrowse.Domain.Entities.Project", "Project")
@@ -646,6 +789,13 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.Navigation("Surfaces");
 
                     b.Navigation("Volumes");
+                });
+
+            modelBuilder.Entity("FreeBrowse.Domain.Entities.Surface", b =>
+                {
+                    b.Navigation("Annotations");
+
+                    b.Navigation("Overlays");
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>

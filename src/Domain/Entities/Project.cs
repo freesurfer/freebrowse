@@ -10,6 +10,8 @@ public class Project : BaseAuditableEntity
 
 	public string? Name { get; set; }
 
+	public double MeshThicknessOn2D { get; set; }
+
 	public ICollection<Volume> Volumes { get; set; }
 
 	public ICollection<Surface> Surfaces { get; set; }

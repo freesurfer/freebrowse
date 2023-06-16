@@ -1,4 +1,5 @@
-﻿using FreeBrowse.Application.Common.Exceptions;
+﻿using AutoMapper;
+using FreeBrowse.Application.Common.Exceptions;
 using FreeBrowse.Application.Common.Interfaces;
 using FreeBrowse.Domain.Entities;
 using MediatR;
@@ -10,17 +11,19 @@ namespace FreeBrowse.Application.Projects.Commands.EditProject;
 public class EditProjectCommandHandler : IRequestHandler<EditProjectCommand, EditProjectResponseDto>
 {
 	private readonly IApplicationDbContext context;
+	private readonly IMapper mapper;
 	private readonly ILogger<EditProjectCommandHandler> logger;
 
-	public EditProjectCommandHandler(IApplicationDbContext context, ILogger<EditProjectCommandHandler> logger)
+	public EditProjectCommandHandler(IApplicationDbContext context,IMapper mapper, ILogger<EditProjectCommandHandler> logger)
 	{
 		this.context = context;
+		this.mapper = mapper;
 		this.logger = logger;
 	}
 
 	public async Task<EditProjectResponseDto> Handle(EditProjectCommand request, CancellationToken cancellationToken)
 	{
-		var project = await this.context.Projects.SingleOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+		var project = await this.context.Projects.FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
 		if (project == null)
 		{
@@ -28,6 +31,7 @@ public class EditProjectCommandHandler : IRequestHandler<EditProjectCommand, Edi
 		}
 
 		project.Name = request.Name;
+		project.MeshThicknessOn2D = request.MeshThicknessOn2D;
 
 		try
 		{
@@ -39,11 +43,7 @@ public class EditProjectCommandHandler : IRequestHandler<EditProjectCommand, Edi
 			throw;
 		}
 
-		var result = new EditProjectResponseDto
-		{
-			Id = project.Id,
-			Name = project.Name
-		};
+		var result = this.mapper.Map<EditProjectResponseDto>(project);
 
 		return result;
 	}

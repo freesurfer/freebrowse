@@ -1,6 +1,6 @@
 ﻿namespace FreeBrowse.Application.JupiterNotebook.Commands.CreateJupyterProject;
 
-public record FilesDto
+public record Base64Dto
 {
 	public string FileName { get; set; } = null!;
 

@@ -4,5 +4,5 @@ namespace FreeBrowse.Application.JupiterNotebook.Commands.CreateJupyterProject;
 
 public record CreateJupyterProjectCommand : IRequest<CreateJupyterProjectResponseDto>
 {
-	public FilesDto[] Files { get; set; } = null!;
+	public Base64Dto[] Files { get; set; } = null!;
 }

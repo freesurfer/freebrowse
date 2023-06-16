@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FreeBrowse.Application.Projects.Queries.GetProject;
 
-public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, ProjectDto>
+public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, GetProjectDto>
 {
 	private readonly IApplicationDbContext context;
 	private readonly IMapper mapper;
@@ -18,7 +18,7 @@ public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, ProjectDt
 		this.mapper = mapper;
 	}
 
-	public async Task<ProjectDto> Handle(GetProjectQuery request, CancellationToken cancellationToken)
+	public async Task<GetProjectDto> Handle(GetProjectQuery request, CancellationToken cancellationToken)
 	{
 		var project = await this.context.Projects
 			.Include(s => s.Volumes)
@@ -30,7 +30,7 @@ public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, ProjectDt
 			throw new NotFoundException(nameof(Project), request.Id);
 		}
 
-		var projectDto = this.mapper.Map<ProjectDto>(project);
+		var projectDto = this.mapper.Map<GetProjectDto>(project);
 
 		foreach (var volumeDto in projectDto.Volumes)
 		{

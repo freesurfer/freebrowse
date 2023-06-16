@@ -12,6 +12,10 @@ public interface IApplicationDbContext
 
 	DbSet<Surface> Surfaces { get; }
 
+	DbSet<Overlay> Overlays { get; }
+
+	DbSet<Annotation> Annotations { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 
 	Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken);

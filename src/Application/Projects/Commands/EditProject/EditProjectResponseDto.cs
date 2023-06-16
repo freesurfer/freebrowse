@@ -1,7 +1,13 @@
-﻿namespace FreeBrowse.Application.Projects.Commands.EditProject;
+﻿using FreeBrowse.Application.Common.Mappings;
+using FreeBrowse.Domain.Entities;
 
-public record EditProjectResponseDto
+namespace FreeBrowse.Application.Projects.Commands.EditProject;
+
+public record EditProjectResponseDto : IMapFrom<Project>
 {	
 	public int Id { get; set; }
+
 	public string Name { get; set; } = null!;
+
+	public double MeshThicknessOn2D { get; set; }
 }

@@ -58,6 +58,132 @@
         }
       }
     },
+    "/api/Annotation": {
+      "get": {
+        "tags": [
+          "Annotation"
+        ],
+        "operationId": "Annotation_Get",
+        "parameters": [
+          {
+            "name": "Id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Annotation"
+        ],
+        "operationId": "Annotation_Create",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAnnotationsCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CreateAnnotationResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Annotation"
+        ],
+        "operationId": "Annotation_Edit",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditAnnotationCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Annotation"
+        ],
+        "operationId": "Annotation_Delete",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAnnotationCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unit"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Jupyter/Create": {
       "post": {
         "tags": [
@@ -115,6 +241,132 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreateJupyterProjectFromBytesResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Overlay": {
+      "get": {
+        "tags": [
+          "Overlay"
+        ],
+        "operationId": "Overlay_Get",
+        "parameters": [
+          {
+            "name": "Id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Overlay"
+        ],
+        "operationId": "Overlay_Create",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOverlaysCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CreateOverlayResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Overlay"
+        ],
+        "operationId": "Overlay_Edit",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditOverlayCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Overlay"
+        ],
+        "operationId": "Overlay_Delete",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteOverlayCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unit"
                 }
               }
             }
@@ -512,6 +764,123 @@
           }
         }
       },
+      "CreateAnnotationResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateAnnotationsCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "surfaceId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "annotations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnotationDto"
+            }
+          }
+        }
+      },
+      "AnnotationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "base64": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EditAnnotationCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "visible": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "Unit": {
+        "type": "object",
+        "description": "Represents a void type, since Void is not a valid return type in C#.",
+        "additionalProperties": false
+      },
+      "DeleteAnnotationCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "CreateJupyterProjectResponseDto": {
         "type": "object",
         "additionalProperties": false,
@@ -581,6 +950,118 @@
           }
         }
       },
+      "CreateOverlayResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateOverlaysCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "surfaceId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "overlays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OverlayDto"
+            }
+          }
+        }
+      },
+      "OverlayDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "base64": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EditOverlayCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "visible": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "DeleteOverlayCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ProjectDto": {
         "type": "object",
         "additionalProperties": false,
@@ -592,6 +1073,10 @@
           "name": {
             "type": "string",
             "nullable": true
+          },
+          "meshThicknessOn2D": {
+            "type": "number",
+            "format": "double"
           },
           "volumes": {
             "type": "array",
@@ -625,13 +1110,24 @@
             "type": "integer",
             "format": "int64"
           },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          },
           "order": {
             "type": "integer",
             "format": "int32"
           },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
             "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
           },
           "contrastMin": {
             "type": "integer",
@@ -662,13 +1158,24 @@
             "type": "integer",
             "format": "int64"
           },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          },
           "order": {
             "type": "integer",
             "format": "int32"
           },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
             "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
           }
         }
       },
@@ -679,6 +1186,14 @@
           "id": {
             "type": "integer",
             "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "meshThicknessOn2D": {
+            "type": "number",
+            "format": "double"
           },
           "volumes": {
             "type": "array",
@@ -702,8 +1217,42 @@
             "type": "integer",
             "format": "int32"
           },
+          "path": {
+            "type": "string"
+          },
           "fileName": {
             "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "contrastMin": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contrastMax": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -715,8 +1264,35 @@
             "type": "integer",
             "format": "int32"
           },
-          "fileName": {
+          "path": {
             "type": "string"
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
           }
         }
       },
@@ -726,6 +1302,10 @@
         "properties": {
           "name": {
             "type": "string"
+          },
+          "meshThicknessOn2D": {
+            "type": "number",
+            "format": "double"
           },
           "volumes": {
             "type": "array",
@@ -755,9 +1335,16 @@
             "type": "integer",
             "format": "int32"
           },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
             "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
           },
           "contrastMin": {
             "type": "integer",
@@ -783,6 +1370,13 @@
             "type": "integer",
             "format": "int32"
           },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "visible": {
+            "type": "boolean"
+          },
           "opacity": {
             "type": "integer",
             "format": "int32"
@@ -799,6 +1393,10 @@
           },
           "name": {
             "type": "string"
+          },
+          "meshThicknessOn2D": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -812,13 +1410,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "meshThicknessOn2D": {
+            "type": "number",
+            "format": "double"
           }
         }
-      },
-      "Unit": {
-        "type": "object",
-        "description": "Represents a void type, since Void is not a valid return type in C#.",
-        "additionalProperties": false
       },
       "DeleteProjectCommand": {
         "type": "object",
@@ -838,12 +1435,34 @@
             "type": "integer",
             "format": "int32"
           },
+          "path": {
+            "type": "string"
+          },
           "fileName": {
             "type": "string"
+          },
+          "base64": {
+            "type": "string",
+            "nullable": true
           },
           "fileSize": {
             "type": "integer",
             "format": "int64"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
           }
         }
       },
@@ -877,9 +1496,15 @@
             "type": "integer",
             "format": "int32"
           },
+          "color": {
+            "type": "string"
+          },
           "opacity": {
             "type": "integer",
             "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
           }
         }
       },
@@ -891,13 +1516,27 @@
             "type": "integer",
             "format": "int32"
           },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          },
           "order": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
           },
           "opacity": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
+          },
+          "visible": {
+            "type": "boolean",
+            "nullable": true
           }
         }
       },
@@ -919,12 +1558,41 @@
             "type": "integer",
             "format": "int32"
           },
+          "path": {
+            "type": "string"
+          },
           "fileName": {
+            "type": "string"
+          },
+          "base64": {
             "type": "string"
           },
           "fileSize": {
             "type": "integer",
             "format": "int64"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "contrastMin": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contrastMax": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -958,9 +1626,16 @@
             "type": "integer",
             "format": "int32"
           },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
             "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
           },
           "contrastMin": {
             "type": "integer",
@@ -980,17 +1655,37 @@
             "type": "integer",
             "format": "int32"
           },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
+          },
+          "visible": {
+            "type": "boolean",
+            "nullable": true
           },
           "contrastMin": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "contrastMax": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           }
         }
       },

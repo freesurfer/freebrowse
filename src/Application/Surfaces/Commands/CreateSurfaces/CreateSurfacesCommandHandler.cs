@@ -1,4 +1,5 @@
-﻿using FreeBrowse.Application.Common.Interfaces;
+﻿using AutoMapper;
+using FreeBrowse.Application.Common.Interfaces;
 using FreeBrowse.Domain.Entities;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -9,12 +10,14 @@ public class CreateSurfaceCommandHandler : IRequestHandler<CreateSurfacesCommand
 {
 	private readonly IApplicationDbContext context;
 	private readonly IFileStorage fileStorage;
+	private readonly IMapper mapper;
 	private readonly ILogger<CreateSurfaceCommandHandler> logger;
 
-	public CreateSurfaceCommandHandler(IApplicationDbContext context, IFileStorage fileStorage, ILogger<CreateSurfaceCommandHandler> logger)
+	public CreateSurfaceCommandHandler(IApplicationDbContext context, IFileStorage fileStorage,IMapper mapper, ILogger<CreateSurfaceCommandHandler> logger)
 	{
 		this.context = context;
 		this.fileStorage = fileStorage;
+		this.mapper = mapper;
 		this.logger = logger;
 	}
 
@@ -35,7 +38,9 @@ public class CreateSurfaceCommandHandler : IRequestHandler<CreateSurfacesCommand
 					Path = filePath,
 					FileName = s.FileName,
 					Order = s.Order,
+					Color = s.Color,
 					Opacity = s.Opacity,
+					Visible = s.Visible,
 					ProjectId = request.ProjectId
 				};
 
@@ -43,12 +48,8 @@ public class CreateSurfaceCommandHandler : IRequestHandler<CreateSurfacesCommand
 
 				await this.context.SaveChangesAsync(cancellationToken);
 
-				var responseDto = new CreateSurfaceResponseDto
-				{
-					Id = surface.Id,
-					FileName = surface.FileName,
-					FileSize = new FileInfo(filePath).Length
-			};
+				var responseDto = this.mapper.Map<CreateSurfaceResponseDto>(surface);
+				responseDto.FileSize = new FileInfo(filePath).Length;
 
 				result.Add(responseDto);
 			}
