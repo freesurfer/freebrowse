@@ -13,7 +13,14 @@ import { TopBar } from '@/pages/project/components/topBar/TopBar';
 import { ProjectState } from '@/pages/project/models/ProjectState';
 import { getApiUrl } from '@/utils';
 import type { LocationData } from '@niivue/niivue';
-import { createContext, useEffect, useReducer, useRef, useState } from 'react';
+import {
+	createContext,
+	useCallback,
+	useEffect,
+	useReducer,
+	useRef,
+	useState,
+} from 'react';
 import type { RefObject } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -126,29 +133,32 @@ export const ProjectPage = (): React.ReactElement => {
 		niivueWrapper.current.loadDataAsync(projectState.files);
 	}, [projectState, niivueWrapper]);
 
-	useEffect(() => {
-		const niivueWrapperInstance = niivueWrapper.current;
-		if (niivueWrapperInstance === undefined) return;
+	const handleKeyDown = useCallback((event: KeyboardEvent) => {
+		if (niivueWrapper.current === undefined) return;
+		niivueWrapper.current.handleKeyDown(event);
+	}, []);
 
-		document.addEventListener('keydown', niivueWrapperInstance.handleKeyDown);
-		document.addEventListener('keyup', niivueWrapperInstance.handleKeyUp);
-		document.addEventListener(
-			'mousemove',
-			niivueWrapperInstance.handleMouseMove
-		);
+	const handleKeyUp = useCallback((event: KeyboardEvent) => {
+		if (niivueWrapper.current === undefined) return;
+		niivueWrapper.current.handleKeyUp(event);
+	}, []);
+
+	const handleMouseMove = useCallback((event: MouseEvent) => {
+		if (niivueWrapper.current === undefined) return;
+		niivueWrapper.current.handleMouseMove(event);
+	}, []);
+
+	useEffect(() => {
+		document.addEventListener('keydown', handleKeyDown);
+		document.addEventListener('keyup', handleKeyUp);
+		document.addEventListener('mousemove', handleMouseMove);
 
 		return () => {
-			document.removeEventListener(
-				'keydown',
-				niivueWrapperInstance.handleKeyDown
-			);
-			document.removeEventListener('keyup', niivueWrapperInstance.handleKeyUp);
-			document.removeEventListener(
-				'mousemove',
-				niivueWrapperInstance.handleMouseMove
-			);
+			document.removeEventListener('keydown', handleKeyDown);
+			document.removeEventListener('keyup', handleKeyUp);
+			document.removeEventListener('mousemove', handleMouseMove);
 		};
-	}, [niivueWrapper]);
+	}, [handleKeyDown, handleKeyUp, handleMouseMove]);
 
 	return (
 		<ProjectContext.Provider
