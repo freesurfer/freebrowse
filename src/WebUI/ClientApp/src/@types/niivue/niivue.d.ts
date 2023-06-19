@@ -204,6 +204,26 @@ declare module '@niivue/niivue' {
 		 */
 		dragMode?: DragModes[keyof DragModes];
 		/**
+		 * enable border highlight on hover
+		 */
+		enableBorderHighlight?: boolean;
+		/**
+		 * green in rgb values (1 -> 255, 0 -> 0) last number is the transparency a. If a is smaller than 0 the default red color is shown
+		 */
+		borderHighlightColor?: number[];
+		/**
+		 * enable border highlight on hover
+		 */
+		borderHighlightWidth?: number;
+		/**
+		 *  whether or not the current slice and total slice number are shown on the canvas
+		 */
+		displaySliceInfo?: boolean;
+		/**
+		 * the text height relative to canvas width and height labels (0 to 1). Zero for no text labels
+		 */
+		displaySliceScale?: number;
+		/**
 		 * when both voxel-based image and mesh is loaded, will depth picking be able to detect mesh or only voxels
 		 */
 		isDepthPickMesh?: boolean;

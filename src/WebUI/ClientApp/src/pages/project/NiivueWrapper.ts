@@ -16,6 +16,8 @@ export class NiivueWrapper {
 		meshThicknessOn2D: 0.5,
 		isHighResolutionCapable: false,
 		isOrientCube: false,
+		enableBorderHighlight: true,
+		displaySliceInfo: true,
 	});
 
 	private hooveredView = 0;
