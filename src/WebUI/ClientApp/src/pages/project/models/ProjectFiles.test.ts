@@ -24,28 +24,28 @@ describe('ProjectFiles', () => {
 		});
 
 		expect(
-			projectFiles.hasChanged(
+			projectFiles.isRemovedOrAdded(
 				[{ name: FILE_NAME_VOLUME_1 } as unknown as NVImage],
 				[{ name: FILE_NAME_SURFACE_1 } as unknown as NVMesh]
 			)
 		).toBeFalsy();
 
 		expect(
-			projectFiles.hasChanged(
+			projectFiles.isRemovedOrAdded(
 				[{ name: FILE_NAME_SURFACE_1 } as unknown as NVImage],
 				[{ name: FILE_NAME_VOLUME_1 } as unknown as NVMesh]
 			)
 		).toBeTruthy();
 
 		expect(
-			projectFiles.hasChanged(
+			projectFiles.isRemovedOrAdded(
 				[{ name: FILE_NAME_VOLUME_1 } as unknown as NVImage],
 				[]
 			)
 		).toBeTruthy();
 
 		expect(
-			projectFiles.hasChanged(
+			projectFiles.isRemovedOrAdded(
 				[],
 				[{ name: FILE_NAME_VOLUME_1 } as unknown as NVMesh]
 			)

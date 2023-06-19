@@ -58,11 +58,14 @@ export class NiivueWrapper {
 	}
 
 	private async executeLoadDataChunk(files: ProjectFiles): Promise<void> {
-		if (!files.hasChanged(this.niivue.volumes, this.niivue.meshes)) {
+		if (!files.isRemovedOrAdded(this.niivue.volumes, this.niivue.meshes)) {
 			/* we need to reverse the order here twice, to change the lowest index first */
-			for (const volumeFile of Array.from(files.volumes).reverse()) {
-				if (!volumeFile.isChecked) continue;
-
+			const volumeFiles = files.volumes
+				.filter((volume) => volume.isChecked)
+				.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
+			// needed to compute order of visible files only
+			let tmpOrder = 0;
+			for (const volumeFile of volumeFiles) {
 				const niivueVolume = this.niivue.volumes.find(
 					(niivueVolume) => volumeFile.name === niivueVolume.name
 				);
@@ -71,19 +74,18 @@ export class NiivueWrapper {
 					return;
 				}
 
-				if (volumeFile.order === undefined) {
-					console.warn('no order defined - should not happen');
+				if (this.niivue.getVolumeIndexByID(niivueVolume.id) === tmpOrder++)
 					continue;
-				}
 
-				const invertedOrder = files.volumes.length - volumeFile.order;
-				this.niivue.setVolume(niivueVolume, invertedOrder);
+				this.niivue.setVolume(niivueVolume, tmpOrder);
 			}
 
 			/* we need to reverse the order here twice, to change the lowest index first */
-			for (const surfaceFile of Array.from(files.surfaces).reverse()) {
-				if (!surfaceFile.isChecked) continue;
-
+			const surfaceFiles = files.surfaces
+				.filter((surface) => surface.isChecked)
+				.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
+			tmpOrder = 0;
+			for (const surfaceFile of surfaceFiles) {
 				const niivueMesh = this.niivue.meshes.find(
 					(niivueMesh) => surfaceFile.name === niivueMesh.name
 				);
@@ -92,16 +94,11 @@ export class NiivueWrapper {
 					return;
 				}
 
-				if (surfaceFile.order === undefined) {
-					console.warn('no order defined - should not happen');
+				if (this.niivue.getMeshIndexByID(niivueMesh.id) === tmpOrder++) {
 					continue;
 				}
-				const invertedOrder = files.volumes.length - surfaceFile.order;
 
-				if (this.niivue.getMeshIndexByID(niivueMesh.id) === invertedOrder) {
-					continue;
-				}
-				this.niivue.setMesh(niivueMesh, invertedOrder);
+				this.niivue.setMesh(niivueMesh, tmpOrder);
 			}
 
 			return;

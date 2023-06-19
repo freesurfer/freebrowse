@@ -140,6 +140,11 @@ export class LocalVolumeFile extends LocalFile {
 			base64: await this.getBase64(),
 			fileName: this.name,
 			visible: this.isChecked,
+			order: this.order,
+			colorMap: undefined,
+			opacity: this.opacity,
+			contrastMin: this.contrastMin,
+			contrastMax: this.contrastMax,
 		});
 	}
 
@@ -148,6 +153,11 @@ export class LocalVolumeFile extends LocalFile {
 			base64: await this.getBase64(),
 			fileName: this.name,
 			visible: this.isChecked,
+			order: this.order,
+			colorMap: undefined,
+			opacity: this.opacity,
+			contrastMin: this.contrastMin,
+			contrastMax: this.contrastMax,
 		});
 	}
 
@@ -196,6 +206,9 @@ export class LocalSurfaceFile extends LocalFile {
 			base64: await this.getBase64(),
 			fileName: this.name,
 			visible: this.isChecked,
+			order: this.order,
+			color: undefined,
+			opacity: this.opacity,
 		});
 	}
 
@@ -204,6 +217,9 @@ export class LocalSurfaceFile extends LocalFile {
 			base64: await this.getBase64(),
 			fileName: this.name,
 			visible: this.isChecked,
+			order: this.order,
+			color: undefined,
+			opacity: this.opacity,
 		});
 	}
 
