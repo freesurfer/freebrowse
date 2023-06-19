@@ -397,7 +397,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectDto"
+                  "$ref": "#/components/schemas/GetProjectDto"
                 }
               }
             }
@@ -811,12 +811,12 @@
           "annotations": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AnnotationDto"
+              "$ref": "#/components/schemas/CreateAnnotationDto"
             }
           }
         }
       },
-      "AnnotationDto": {
+      "CreateAnnotationDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -898,12 +898,12 @@
           "files": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/FilesDto"
+              "$ref": "#/components/schemas/Base64Dto"
             }
           }
         }
       },
-      "FilesDto": {
+      "Base64Dto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -932,12 +932,12 @@
           "files": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/FilesDto2"
+              "$ref": "#/components/schemas/FileDto"
             }
           }
         }
       },
-      "FilesDto2": {
+      "FileDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -997,12 +997,12 @@
           "overlays": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OverlayDto"
+              "$ref": "#/components/schemas/CreateOverlayDto"
             }
           }
         }
       },
-      "OverlayDto": {
+      "CreateOverlayDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -1062,7 +1062,7 @@
           }
         }
       },
-      "ProjectDto": {
+      "GetProjectDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -1081,18 +1081,18 @@
           "volumes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/VolumeDto"
+              "$ref": "#/components/schemas/GetProjectVolumeDto"
             }
           },
           "surfaces": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SurfaceDto"
+              "$ref": "#/components/schemas/GetProjectSurfaceDto"
             }
           }
         }
       },
-      "VolumeDto": {
+      "GetProjectVolumeDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -1139,7 +1139,7 @@
           }
         }
       },
-      "SurfaceDto": {
+      "GetProjectSurfaceDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -1310,18 +1310,18 @@
           "volumes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/VolumeDto2"
+              "$ref": "#/components/schemas/CreateProjectVolumeDto"
             }
           },
           "surfaces": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SurfaceDto2"
+              "$ref": "#/components/schemas/CreateProjectSurfaceDto"
             }
           }
         }
       },
-      "VolumeDto2": {
+      "CreateProjectVolumeDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -1356,7 +1356,7 @@
           }
         }
       },
-      "SurfaceDto2": {
+      "CreateProjectSurfaceDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -1477,12 +1477,12 @@
           "surfaces": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SurfaceDto3"
+              "$ref": "#/components/schemas/CreateSurfaceDto"
             }
           }
         }
       },
-      "SurfaceDto3": {
+      "CreateSurfaceDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -1607,12 +1607,12 @@
           "volumes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/VolumeDto3"
+              "$ref": "#/components/schemas/CreateVolumeDto"
             }
           }
         }
       },
-      "VolumeDto3": {
+      "CreateVolumeDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {

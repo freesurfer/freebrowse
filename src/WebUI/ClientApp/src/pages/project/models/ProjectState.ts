@@ -1,4 +1,4 @@
-import type { ProjectDto } from '@/generated/web-api-client';
+import type { GetProjectDto } from '@/generated/web-api-client';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 
 /**
@@ -18,7 +18,7 @@ export class ProjectState {
 	/**
 	 * state of data received on the last fetch
 	 */
-	public readonly backendState: ProjectDto;
+	public readonly backendState: GetProjectDto;
 	/**
 	 * all files related to the project
 	 */
@@ -27,7 +27,7 @@ export class ProjectState {
 	constructor(
 		initialState:
 			| {
-					backendState: ProjectDto;
+					backendState: GetProjectDto;
 			  }
 			| { projectState: ProjectState; projectFiles: ProjectFiles }
 	) {

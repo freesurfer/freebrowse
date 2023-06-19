@@ -21,15 +21,15 @@ export const LandingTitle = ({
 		<div className={`${className ?? ''} flex flex-row`}>
 			<div className="flex h-full w-full grow items-center">
 				<div className="flex flex-col items-start p-24">
-					<span className="text-gray-500 text-4xl font-bold">Welcome to</span>
-					<span className="text-gray-500 mt-3 text-5xl font-bold">
+					<span className="text-4xl font-bold text-gray-500">Welcome to</span>
+					<span className="mt-3 text-5xl font-bold text-gray-500">
 						Freebrowse
 					</span>
 					<button
 						onClick={() => {
 							void onGetStartedClick();
 						}}
-						className="bg-gray-500 hover:bg-gray-600 active:bg-gray-700 focus:ring-gray-300 mt-4 rounded-md px-6 py-4 font-bold text-white focus:outline-none focus:ring"
+						className="mt-4 rounded-md bg-gray-500 px-6 py-4 font-bold text-white hover:bg-gray-600 focus:outline-none focus:ring focus:ring-gray-300 active:bg-gray-700"
 					>
 						Get started
 					</button>

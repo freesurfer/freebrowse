@@ -61,6 +61,8 @@ export class NiivueWrapper {
 		if (!files.hasChanged(this.niivue.volumes, this.niivue.meshes)) {
 			/* we need to reverse the order here twice, to change the lowest index first */
 			for (const volumeFile of Array.from(files.volumes).reverse()) {
+				if (!volumeFile.isChecked) continue;
+
 				const niivueVolume = this.niivue.volumes.find(
 					(niivueVolume) => volumeFile.name === niivueVolume.name
 				);
@@ -80,6 +82,8 @@ export class NiivueWrapper {
 
 			/* we need to reverse the order here twice, to change the lowest index first */
 			for (const surfaceFile of Array.from(files.surfaces).reverse()) {
+				if (!surfaceFile.isChecked) continue;
+
 				const niivueMesh = this.niivue.meshes.find(
 					(niivueMesh) => surfaceFile.name === niivueMesh.name
 				);

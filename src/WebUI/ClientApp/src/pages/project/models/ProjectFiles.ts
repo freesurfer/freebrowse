@@ -1,11 +1,11 @@
 import type {
-	SurfaceDto,
-	VolumeDto,
-	ProjectDto,
-	VolumeDto2,
-	SurfaceDto2,
 	CreateVolumeResponseDto,
 	CreateSurfaceResponseDto,
+	GetProjectDto,
+	GetProjectVolumeDto,
+	CreateProjectSurfaceDto,
+	CreateProjectVolumeDto,
+	GetProjectSurfaceDto,
 } from '@/generated/web-api-client';
 import {
 	LocalFile,
@@ -47,7 +47,7 @@ export class ProjectFiles {
 	 */
 	constructor(
 		initState?:
-			| { backendState: ProjectDto }
+			| { backendState: GetProjectDto }
 			| {
 					localSurfaces: readonly LocalSurfaceFile[];
 					localVolumes: readonly LocalVolumeFile[];
@@ -76,8 +76,7 @@ export class ProjectFiles {
 				initState.backendState.volumes
 			);
 			this.cloudSurfaces = ProjectFiles.cloudFileFromSurfaceDto(
-				initState.backendState.surfaces,
-				this.cloudVolumes.length === 0
+				initState.backendState.surfaces
 			);
 		} else {
 			// new class from given file set
@@ -284,6 +283,12 @@ export class ProjectFiles {
 						throw new Error('there needs to be a id for each cloud file');
 					if (uploadResponse.fileName === undefined)
 						throw new Error('there needs to be a name for each cloud file');
+					if (uploadResponse.fileSize === undefined)
+						throw new Error('there needs to be a fileSize for each cloud file');
+					if (uploadResponse.order === undefined)
+						throw new Error('there needs to be a order for each cloud file');
+					if (uploadResponse.opacity === undefined)
+						throw new Error('there needs to be a opacity for each cloud file');
 
 					// workaround as long as we do not receive the size as response
 					const localFile = this.localVolumes.find(
@@ -298,13 +303,13 @@ export class ProjectFiles {
 					return new CloudVolumeFile(
 						uploadResponse.id,
 						uploadResponse.fileName,
-						localFile.size,
+						uploadResponse.fileSize,
 						localFile.isActive,
 						localFile.isChecked,
-						localFile.order,
-						localFile.opacity,
-						localFile.contrastMin,
-						localFile.contrastMax
+						uploadResponse.order,
+						uploadResponse.opacity,
+						uploadResponse.contrastMin,
+						uploadResponse.contrastMax
 					);
 				}),
 			],
@@ -369,20 +374,24 @@ export class ProjectFiles {
 		return false;
 	}
 
-	public async getLocalVolumesToUpload(): Promise<VolumeDto2[]> {
+	public async getLocalVolumesToUpload(): Promise<CreateProjectVolumeDto[]> {
 		return await Promise.all(
-			this.localVolumes.map(async (file) => await file.toVolumeDto2())
+			this.localVolumes.map(
+				async (file) => await file.toCreateProjectVolumeDto()
+			)
 		);
 	}
 
-	public async getLocalSurfacesToUpload(): Promise<SurfaceDto2[]> {
+	public async getLocalSurfacesToUpload(): Promise<CreateProjectSurfaceDto[]> {
 		return await Promise.all(
-			this.localSurfaces.map(async (file) => await file.toSurfaceDto2())
+			this.localSurfaces.map(
+				async (file) => await file.toCreateProjectSurfaceDto()
+			)
 		);
 	}
 
 	private static cloudFileFromVolumeDto(
-		fileModel: VolumeDto[] | undefined
+		fileModel: GetProjectVolumeDto[] | undefined
 	): CloudVolumeFile[] {
 		if (fileModel === undefined) return [];
 
@@ -398,24 +407,22 @@ export class ProjectFiles {
 			if (fileDto?.fileSize === undefined)
 				throw new Error('no file without file size');
 
-			const file = new CloudVolumeFile(
+			return new CloudVolumeFile(
 				fileDto.id,
 				fileDto.fileName,
 				fileDto.fileSize,
 				false,
-				true,
+				fileDto.visible,
 				fileDto.order,
 				fileDto.opacity ?? 100,
 				fileDto.contrastMin ?? 0,
 				fileDto.contrastMax ?? 100
 			);
-			return file;
 		});
 	}
 
 	private static cloudFileFromSurfaceDto(
-		fileModel: SurfaceDto[] | undefined,
-		setIsActive: boolean
+		fileModel: GetProjectSurfaceDto[] | undefined
 	): CloudSurfaceFile[] {
 		if (fileModel === undefined) return [];
 		return fileModel.map<CloudSurfaceFile>((fileDto) => {
@@ -430,17 +437,15 @@ export class ProjectFiles {
 			if (fileDto?.fileSize === undefined)
 				throw new Error('no file without file size');
 
-			const file = new CloudSurfaceFile(
+			return new CloudSurfaceFile(
 				fileDto.id,
 				fileDto.fileName,
 				fileDto.fileSize,
-				setIsActive,
-				true,
+				false,
+				fileDto.visible,
 				fileDto.order,
 				fileDto.opacity ?? 100
 			);
-			setIsActive = false;
-			return file;
 		});
 	}
 }

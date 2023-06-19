@@ -303,7 +303,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 					>
 						<div className="flex w-full items-center">
 							<Checkbox
-								defaultState={true}
+								defaultState={row.projectFile.isChecked}
 								setValue={(value) =>
 									setFiles(
 										files.map((file) => {

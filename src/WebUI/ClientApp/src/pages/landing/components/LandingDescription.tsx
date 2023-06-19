@@ -5,7 +5,7 @@ export const LandingDescription = ({
 }: {
 	className?: string;
 }): React.ReactElement => (
-	<div className={`${className ?? ''} bg-gray-100 flex flex-row`}>
+	<div className={`${className ?? ''} flex flex-row bg-gray-100`}>
 		<div className="flex w-full grow items-center justify-center">
 			<img
 				src={description}
@@ -15,10 +15,10 @@ export const LandingDescription = ({
 		</div>
 		<div className="flex w-full grow flex-col items-center">
 			<div className="flex h-full w-full grow flex-col justify-center">
-				<span className="text-l text-gray-500 font-bold">
+				<span className="text-l font-bold text-gray-500">
 					Short text describing FreeBrowse
 				</span>
-				<p className="text-l text-gray-500 mr-8 mt-2">
+				<p className="text-l mr-8 mt-2 text-gray-500">
 					Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
 					nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat,
 					sed diam voluptua.

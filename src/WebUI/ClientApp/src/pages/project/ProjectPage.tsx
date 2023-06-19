@@ -1,4 +1,10 @@
-import { ProjectsClient } from '@/generated/web-api-client';
+import {
+	EditSurfaceCommand,
+	EditVolumeCommand,
+	ProjectsClient,
+	SurfaceClient,
+	VolumeClient,
+} from '@/generated/web-api-client';
 import { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { MainView } from '@/pages/project/components/MainView';
 import { LeftBar } from '@/pages/project/components/leftBar/LeftBar';
@@ -36,26 +42,32 @@ const projectStateReducer = (
 		if (
 			newProjectState.files.cloudVolumes !== currentState.files.cloudVolumes
 		) {
-			// TODO this part is waiting for the backend to support the order property
-			// const client = new VolumeClient(getApiUrl());
+			const client = new VolumeClient(getApiUrl());
 			for (const cloudVolume of stateToUpload.files.cloudVolumes) {
-				console.log('BERE upload', {
-					id: cloudVolume.id,
-					order: cloudVolume.order,
-					isChecked: cloudVolume.isChecked,
-					contrastMin: cloudVolume.contrastMin,
-					contrastMax: cloudVolume.contrastMax,
-				});
-				/*
-			await client.edit(
-				new EditVolumeCommand({
-					id: cloudVolume.id,
-					// order: cloudVolume.order,
-					contrastMin: cloudVolume.contrastMin,
-					contrastMax: cloudVolume.contrastMax,
-				})
-			);
-			*/
+				await client.edit(
+					new EditVolumeCommand({
+						id: cloudVolume.id,
+						order: cloudVolume.order,
+						contrastMin: cloudVolume.contrastMin,
+						contrastMax: cloudVolume.contrastMax,
+						opacity: cloudVolume.opacity,
+						visible: cloudVolume.isChecked,
+					})
+				);
+			}
+		}
+
+		if (newProjectState.files.surfaces !== currentState.files.cloudSurfaces) {
+			const client = new SurfaceClient(getApiUrl());
+			for (const cloudSurface of stateToUpload.files.cloudSurfaces) {
+				await client.edit(
+					new EditSurfaceCommand({
+						id: cloudSurface.id,
+						order: cloudSurface.order,
+						opacity: cloudSurface.opacity,
+						visible: cloudSurface.isChecked,
+					})
+				);
 			}
 		}
 	};
