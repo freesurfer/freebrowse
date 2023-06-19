@@ -16,7 +16,7 @@ export const Collapse = ({
 	initialState?: boolean;
 }): React.ReactElement => {
 	const { getCollapseProps, getToggleProps, isExpanded, setExpanded } =
-		useCollapse();
+		useCollapse({ defaultExpanded: initialState });
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	useEffect(() => setExpanded(initialState), []);
