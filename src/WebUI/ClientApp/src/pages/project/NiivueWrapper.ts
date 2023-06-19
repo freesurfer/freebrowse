@@ -59,15 +59,13 @@ export class NiivueWrapper {
 
 	private async executeLoadDataChunk(files: ProjectFiles): Promise<void> {
 		if (!files.isRemovedOrAdded(this.niivue.volumes, this.niivue.meshes)) {
-			// needed to compute order of visible files only
-			let tmpOrder = this.niivue.volumes.length;
 			/* we need to reverse the order here twice, to change the lowest index first */
 			const volumeFiles = files.volumes
 				.filter((volume) => volume.isChecked)
 				.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
+			// needed to compute order of visible files only
+			let tmpOrder = 0;
 			for (const volumeFile of volumeFiles) {
-				tmpOrder = tmpOrder - 1;
-
 				const niivueVolume = this.niivue.volumes.find(
 					(niivueVolume) => volumeFile.name === niivueVolume.name
 				);
@@ -76,21 +74,18 @@ export class NiivueWrapper {
 					return;
 				}
 
-				const invertedOrder = volumeFiles.length - tmpOrder;
-				if (this.niivue.getVolumeIndexByID(niivueVolume.id) === invertedOrder)
+				if (this.niivue.getVolumeIndexByID(niivueVolume.id) === tmpOrder++)
 					continue;
 
-				this.niivue.setVolume(niivueVolume, invertedOrder);
+				this.niivue.setVolume(niivueVolume, tmpOrder);
 			}
 
-			tmpOrder = this.niivue.meshes.length;
 			/* we need to reverse the order here twice, to change the lowest index first */
 			const surfaceFiles = files.surfaces
 				.filter((surface) => surface.isChecked)
 				.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
+			tmpOrder = 0;
 			for (const surfaceFile of surfaceFiles) {
-				tmpOrder = tmpOrder - 1;
-
 				const niivueMesh = this.niivue.meshes.find(
 					(niivueMesh) => surfaceFile.name === niivueMesh.name
 				);
@@ -99,12 +94,11 @@ export class NiivueWrapper {
 					return;
 				}
 
-				const invertedOrder = surfaceFiles.length - tmpOrder;
-				if (this.niivue.getMeshIndexByID(niivueMesh.id) === invertedOrder) {
+				if (this.niivue.getMeshIndexByID(niivueMesh.id) === tmpOrder++) {
 					continue;
 				}
 
-				this.niivue.setMesh(niivueMesh, invertedOrder);
+				this.niivue.setMesh(niivueMesh, tmpOrder);
 			}
 
 			return;
