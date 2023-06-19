@@ -6,8 +6,6 @@ public class Overlay : BaseAuditableEntity
 
 	public string FileName { get; set; } = null!;
 
-	public string? Base64 { get; set; }
-
 	public string? Color { get; set; }
 
 	public int Opacity { get; set; }

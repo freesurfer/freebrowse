@@ -26,8 +26,6 @@ public class VolumeResponseDto : IMapFrom<Volume>
 
 	public long FileSize { get; set; }
 
-	public string? Base64 { get; set; }
-
 	public int Order { get; set; }
 
 	public string? ColorMap { get; set; }
@@ -50,8 +48,6 @@ public class SurfaceResponseDto : IMapFrom<Surface>
 	public string? FileName { get; set; }
 
 	public long FileSize { get; set; }
-
-	public string? Base64 { get; set; }
 
 	public int Order { get; set; }
 

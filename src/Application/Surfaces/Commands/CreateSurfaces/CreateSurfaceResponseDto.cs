@@ -11,8 +11,6 @@ public record CreateSurfaceResponseDto : IMapFrom<Surface>
 
 	public string FileName { get; set; } = null!;
 
-	public string? Base64 { get; set; }
-
 	public long FileSize { get; set; }
 
 	public int Order { get; set; }

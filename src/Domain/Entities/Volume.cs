@@ -6,8 +6,6 @@ public class Volume : BaseAuditableEntity
 
 	public string FileName { get; set; } = null!;
 
-	public string? Base64 { get; set; }
-
 	public int Order { get; set; }
 
 	public string? ColorMap { get; set; }

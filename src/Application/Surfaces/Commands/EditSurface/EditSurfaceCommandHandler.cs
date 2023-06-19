@@ -27,13 +27,11 @@ public class EditSurfaceCommandHandler : IRequestHandler<EditSurfaceCommand, int
 			throw new NotFoundException(nameof(Surface), request.Id);
 		}
 
-		if (request != null && request.Base64 != null && request.Base64 != surface.Base64)
+		if (request.Base64 != null)
 		{
-			surface.Base64 = request.Base64 ?? surface.Base64;
 			File.WriteAllBytes(surface.Path, Convert.FromBase64String(request.Base64));
 		}
 
-		surface.Base64 = request.Base64 ?? surface.Base64;
 		surface.Order = request.Order ?? surface.Order;
 		surface.Color = request.Color ?? surface.Color;
 		surface.Opacity = request.Opacity ?? surface.Opacity;

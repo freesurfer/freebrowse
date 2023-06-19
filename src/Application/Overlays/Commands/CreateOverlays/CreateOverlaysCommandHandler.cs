@@ -39,7 +39,6 @@ public class CreateOverlaysCommandHandler : IRequestHandler<CreateOverlaysComman
 				{
 					Path = filePath,
 					FileName = o.FileName,
-					Base64 = o.Base64,
 					Color = o.Color,
 					Opacity = o.Opacity,
 					Visible = o.Visible,

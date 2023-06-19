@@ -13,8 +13,6 @@ public record GetProjectSurfaceDto : IMapFrom<Surface>
 
 	public long FileSize { get; set; }
 
-	public string? Base64 { get; set; }
-
 	public int Order { get; set; }
 
 	public string? Color { get; set; }

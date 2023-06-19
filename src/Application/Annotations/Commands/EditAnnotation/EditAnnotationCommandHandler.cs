@@ -27,9 +27,8 @@ public class EditAnnotationCommandHandler : IRequestHandler<EditAnnotationComman
 			throw new NotFoundException(nameof(Annotation), request.Id);
 		}
 
-		if (request != null && request.Base64 != null && request.Base64 != annotation.Base64)
+		if (request.Base64 != null)
 		{
-			annotation.Base64 = request.Base64 ?? annotation.Base64;
 			File.WriteAllBytes(annotation.Path, Convert.FromBase64String(request.Base64));
 		}
 

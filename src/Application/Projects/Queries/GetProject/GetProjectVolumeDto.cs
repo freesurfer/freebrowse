@@ -13,8 +13,6 @@ public record GetProjectVolumeDto : IMapFrom<Volume>
 
 	public long FileSize { get; set; }
 
-	public string? Base64 { get; set; }
-
 	public int Order { get; set; }
 
 	public string? ColorMap { get; set; }

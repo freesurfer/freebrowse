@@ -18,6 +18,4 @@ public record CreateOverlayResponseDto : IMapFrom<Overlay>
 	public int Opacity { get; set; }
 
 	public bool Visible { get; set; }
-
-	public string? Base64 { get; set; }
 }

@@ -793,10 +793,6 @@
           },
           "visible": {
             "type": "boolean"
-          },
-          "base64": {
-            "type": "string",
-            "nullable": true
           }
         }
       },
@@ -979,10 +975,6 @@
           },
           "visible": {
             "type": "boolean"
-          },
-          "base64": {
-            "type": "string",
-            "nullable": true
           }
         }
       },
@@ -1110,10 +1102,6 @@
             "type": "integer",
             "format": "int64"
           },
-          "base64": {
-            "type": "string",
-            "nullable": true
-          },
           "order": {
             "type": "integer",
             "format": "int32"
@@ -1157,10 +1145,6 @@
           "fileSize": {
             "type": "integer",
             "format": "int64"
-          },
-          "base64": {
-            "type": "string",
-            "nullable": true
           },
           "order": {
             "type": "integer",
@@ -1227,10 +1211,6 @@
             "type": "integer",
             "format": "int64"
           },
-          "base64": {
-            "type": "string",
-            "nullable": true
-          },
           "order": {
             "type": "integer",
             "format": "int32"
@@ -1274,10 +1254,6 @@
           "fileSize": {
             "type": "integer",
             "format": "int64"
-          },
-          "base64": {
-            "type": "string",
-            "nullable": true
           },
           "order": {
             "type": "integer",
@@ -1441,10 +1417,6 @@
           "fileName": {
             "type": "string"
           },
-          "base64": {
-            "type": "string",
-            "nullable": true
-          },
           "fileSize": {
             "type": "integer",
             "format": "int64"
@@ -1562,9 +1534,6 @@
             "type": "string"
           },
           "fileName": {
-            "type": "string"
-          },
-          "base64": {
             "type": "string"
           },
           "fileSize": {

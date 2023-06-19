@@ -12,8 +12,6 @@ public class Surface : BaseAuditableEntity
 
 	public string? FileName { get; set; }
 
-	public string? Base64 { get; set; }
-
 	public int Order { get; set; }
 
 	public string? Color { get; set; }

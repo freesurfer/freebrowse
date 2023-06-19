@@ -27,9 +27,8 @@ public class EditVolumeCommandHandler : IRequestHandler<EditVolumeCommand, int>
 			throw new NotFoundException(nameof(Volume), request.Id);
 		}
 
-		if (request != null && request.Base64 != null && request.Base64 != volume.Base64)
+		if (request.Base64 != null)
 		{
-			volume.Base64 = request.Base64 ?? volume.Base64;
 			File.WriteAllBytes(volume.Path, Convert.FromBase64String(request.Base64));
 		}
 

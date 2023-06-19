@@ -11,8 +11,6 @@ public record CreateVolumeResponseDto : IMapFrom<Volume>
 
 	public string FileName { get; set; } = null!;
 
-	public string Base64 { get; set; } = null!;
-
 	public long FileSize { get; set; }
 
 	public int Order { get; set; }

@@ -27,9 +27,8 @@ public class EditOverlayCommandHandler : IRequestHandler<EditOverlayCommand, int
 			throw new NotFoundException(nameof(Overlay), request.Id);
 		}
 
-		if (request != null && request.Base64 != null && request.Base64 != overlay.Base64)
+		if (request.Base64 != null)
 		{
-			overlay.Base64 = request.Base64 ?? overlay.Base64;
 			File.WriteAllBytes(overlay.Path, Convert.FromBase64String(request.Base64));
 		}
 
