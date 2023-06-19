@@ -117,6 +117,7 @@ export const OpenProjectDialog = ({
 						name: projectName,
 						volumes: await projectFiles.getLocalVolumesToUpload(),
 						surfaces: await projectFiles.getLocalSurfacesToUpload(),
+						meshThicknessOn2D: 2,
 					})
 				);
 
