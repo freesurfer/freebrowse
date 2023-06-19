@@ -76,12 +76,7 @@ export const Slider = ({
 			if (state.current.knopRef !== null && state.current.rangeRef !== null)
 				state.current.knopRef.style.marginLeft = `${state.current.value}%`;
 
-			if (state.current.isLocked) return;
-			state.current.isLocked = true;
 			onChange?.(state.current.value);
-			setTimeout(() => {
-				state.current.isLocked = false;
-			}, 1000);
 		},
 		[onChange]
 	);
