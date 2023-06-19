@@ -58,7 +58,7 @@ export class NiivueWrapper {
 	}
 
 	private async executeLoadDataChunk(files: ProjectFiles): Promise<void> {
-		if (!files.hasChanged(this.niivue.volumes, this.niivue.meshes)) {
+		if (!files.isRemovedOrAdded(this.niivue.volumes, this.niivue.meshes)) {
 			/* we need to reverse the order here twice, to change the lowest index first */
 			for (const volumeFile of Array.from(files.volumes).reverse()) {
 				if (!volumeFile.isChecked) continue;
