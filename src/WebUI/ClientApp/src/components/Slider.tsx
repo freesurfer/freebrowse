@@ -112,8 +112,8 @@ export const Slider = ({
 
 	const onDrop = useCallback((): void => {
 		state.current.startState = undefined;
-		onChange?.(state.current.value);
-		onEnd?.(state.current.value);
+		if (onEnd !== undefined) onEnd?.(state.current.value);
+		else onChange?.(state.current.value);
 	}, [onEnd, onChange]);
 
 	const jumpTo = useCallback(

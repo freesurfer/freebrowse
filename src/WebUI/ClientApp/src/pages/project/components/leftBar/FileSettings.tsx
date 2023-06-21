@@ -1,11 +1,8 @@
 import { Collapse } from '@/components/Collapse';
 import { Slider } from '@/components/Slider';
+import type { ProjectFile } from '@/pages/project/models/ProjectFile';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
-import type { Dispatch } from 'react';
-
-const DEFAULT_OPACITY = 100;
-const DEFAULT_MIN = 0;
-const DEFAULT_MAX = 100;
+import { useCallback, type Dispatch } from 'react';
 
 export const FileSettings = ({
 	projectState,
@@ -23,6 +20,19 @@ export const FileSettings = ({
 		projectState?.files.surfaces.filter((surface) => surface.isActive) ?? [];
 
 	const selectedFiles = [...selectedVolumes, ...selectedSurfaces];
+
+	const updateFileOptions = useCallback(
+		<T_FILE_TYPE extends ProjectFile>(
+			file: T_FILE_TYPE,
+			options: Parameters<ProjectState['fromFileUpdate']>[1],
+			upload: boolean
+		) => {
+			setProjectState((currentProjectState) =>
+				currentProjectState?.fromFileUpdate(file, options, false)
+			);
+		},
+		[setProjectState]
+	);
 
 	return (
 		<Collapse
@@ -53,34 +63,12 @@ export const FileSettings = ({
 										label="Opacity:"
 										defaultValue={DEFAULT_OPACITY}
 										unit="%"
-										onChange={(value) => {
-											setProjectState((currentProjectState) =>
-												currentProjectState?.fromFiles(
-													currentProjectState.files.fromAdaptedVolumes(
-														currentProjectState.files.volumes.map((tmpVolume) =>
-															tmpVolume === volume
-																? tmpVolume.from({ opacity: value })
-																: tmpVolume
-														)
-													),
-													false
-												)
-											);
-										}}
-										onEnd={(value) => {
-											setProjectState((currentProjectState) =>
-												currentProjectState?.fromFiles(
-													currentProjectState.files.fromAdaptedVolumes(
-														currentProjectState.files.volumes.map((tmpVolume) =>
-															tmpVolume === volume
-																? tmpVolume.from({ opacity: value })
-																: tmpVolume
-														)
-													),
-													true
-												)
-											);
-										}}
+										onChange={(value) =>
+											updateFileOptions(volume, { opacity: value }, false)
+										}
+										onEnd={(value) =>
+											updateFileOptions(volume, { opacity: value }, true)
+										}
 									></Slider>
 									{/*
 									<div className="mb-4 flex items-center">
@@ -109,67 +97,23 @@ export const FileSettings = ({
 										className="mt-1"
 										label="Minimum:"
 										defaultValue={DEFAULT_MIN}
-										onChange={(value) => {
-											setProjectState((currentProjectState) =>
-												currentProjectState?.fromFiles(
-													currentProjectState.files.fromAdaptedVolumes(
-														currentProjectState.files.volumes.map((tmpVolume) =>
-															tmpVolume === volume
-																? tmpVolume.from({ contrastMin: value })
-																: tmpVolume
-														)
-													),
-													false
-												)
-											);
-										}}
-										onEnd={(value) => {
-											setProjectState((currentProjectState) =>
-												currentProjectState?.fromFiles(
-													currentProjectState.files.fromAdaptedVolumes(
-														currentProjectState.files.volumes.map((tmpVolume) =>
-															tmpVolume === volume
-																? tmpVolume.from({ contrastMin: value })
-																: tmpVolume
-														)
-													),
-													true
-												)
-											);
-										}}
+										onChange={(value) =>
+											updateFileOptions(volume, { contrastMin: value }, false)
+										}
+										onEnd={(value) =>
+											updateFileOptions(volume, { contrastMin: value }, true)
+										}
 									></Slider>
 									<Slider
 										className="mt-1"
 										label="Maximum:"
 										defaultValue={DEFAULT_MAX}
-										onChange={(value) => {
-											setProjectState((currentProjectState) =>
-												currentProjectState?.fromFiles(
-													currentProjectState.files.fromAdaptedVolumes(
-														currentProjectState.files.volumes.map((tmpVolume) =>
-															tmpVolume === volume
-																? tmpVolume.from({ contrastMax: value })
-																: tmpVolume
-														)
-													),
-													false
-												)
-											);
-										}}
-										onEnd={(value) => {
-											setProjectState((currentProjectState) =>
-												currentProjectState?.fromFiles(
-													currentProjectState.files.fromAdaptedVolumes(
-														currentProjectState.files.volumes.map((tmpVolume) =>
-															tmpVolume === volume
-																? tmpVolume.from({ contrastMax: value })
-																: tmpVolume
-														)
-													),
-													true
-												)
-											);
-										}}
+										onChange={(value) =>
+											updateFileOptions(volume, { contrastMax: value }, false)
+										}
+										onEnd={(value) =>
+											updateFileOptions(volume, { contrastMax: value }, true)
+										}
 									></Slider>
 								</div>
 							</Collapse>
@@ -193,35 +137,11 @@ export const FileSettings = ({
 										label="Opacity:"
 										defaultValue={DEFAULT_OPACITY}
 										unit="%"
-										onChange={(value) => {
-											setProjectState((currentProjectState) =>
-												currentProjectState?.fromFiles(
-													currentProjectState.files.fromAdaptedSurfaces(
-														currentProjectState.files.surfaces.map(
-															(tmpSurface) =>
-																tmpSurface === surface
-																	? tmpSurface.from({ opacity: value })
-																	: tmpSurface
-														)
-													),
-													false
-												)
-											);
-										}}
+										onChange={(value) =>
+											updateFileOptions(surface, { opacity: value }, false)
+										}
 										onEnd={(value) =>
-											setProjectState((currentProjectState) =>
-												currentProjectState?.fromFiles(
-													currentProjectState.files.fromAdaptedSurfaces(
-														currentProjectState.files.surfaces.map(
-															(tmpSurface) =>
-																tmpSurface === surface
-																	? tmpSurface.from({ opacity: value })
-																	: tmpSurface
-														)
-													),
-													true
-												)
-											)
+											updateFileOptions(surface, { opacity: value }, true)
 										}
 									></Slider>
 								</>

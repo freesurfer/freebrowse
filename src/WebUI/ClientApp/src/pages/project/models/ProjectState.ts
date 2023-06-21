@@ -1,4 +1,6 @@
 import type { GetProjectDto } from '@/generated/web-api-client';
+import { FileType } from '@/pages/project/models/ProjectFile';
+import type { ProjectFile } from '@/pages/project/models/ProjectFile';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 
 /**
@@ -57,5 +59,46 @@ export class ProjectState {
 
 	fromFiles(projectFiles: ProjectFiles, upload = true): ProjectState {
 		return new ProjectState({ projectState: this, projectFiles }, upload);
+	}
+
+	/**
+	 * to update a property of a file
+	 * @param file file to update the property on
+	 * @param options property value to update
+	 * @param upload flag, if the change should get pushed to the backend
+	 * @returns new instance of the project state
+	 */
+	fromFileUpdate<T_FILE_TYPE extends ProjectFile>(
+		file: T_FILE_TYPE,
+		options: Parameters<T_FILE_TYPE['from']>[0],
+		upload = true
+	): ProjectState {
+		if (file.type === FileType.VOLUME)
+			return new ProjectState(
+				{
+					projectState: this,
+					projectFiles: this.files.fromAdaptedVolumes(
+						this.files.volumes.map((tmpVolume) =>
+							tmpVolume === file ? tmpVolume.from(options) : tmpVolume
+						)
+					),
+				},
+				upload
+			);
+
+		if (file.type === FileType.SURFACE)
+			return new ProjectState(
+				{
+					projectState: this,
+					projectFiles: this.files.fromAdaptedSurfaces(
+						this.files.surfaces.map((tmpSurface) =>
+							tmpSurface === file ? tmpSurface.from(options) : tmpSurface
+						)
+					),
+				},
+				upload
+			);
+
+		throw new Error('file type unknown');
 	}
 }

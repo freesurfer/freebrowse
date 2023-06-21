@@ -343,6 +343,6 @@ export class CloudSurfaceFile extends CloudFile {
 	}
 }
 
-export type ProjectSurfaceFile = CloudSurfaceFile | LocalSurfaceFile;
-export type ProjectVolumeFile = CloudVolumeFile | LocalVolumeFile;
-export type ProjectFile = ProjectSurfaceFile | ProjectVolumeFile;
+export type SurfaceFile = CloudSurfaceFile | LocalSurfaceFile;
+export type VolumeFile = CloudVolumeFile | LocalVolumeFile;
+export type ProjectFile = SurfaceFile | VolumeFile;

@@ -24,7 +24,7 @@ export const useApi = (
 	useEffect(() => {
 		if (projectId === undefined) return;
 		if (projectState !== undefined) return;
-		if (projectState === lastUpload) return;
+		if (lastUpload !== undefined && projectState === lastUpload) return;
 
 		const fetchData = async (): Promise<void> => {
 			const client = new ProjectsClient(getApiUrl());

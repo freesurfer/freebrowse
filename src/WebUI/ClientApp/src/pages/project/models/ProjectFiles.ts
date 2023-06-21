@@ -16,8 +16,8 @@ import {
 } from '@/pages/project/models/ProjectFile';
 import type {
 	ProjectFile,
-	ProjectSurfaceFile,
-	ProjectVolumeFile,
+	SurfaceFile,
+	VolumeFile,
 } from '@/pages/project/models/ProjectFile';
 import type { NVImage, NVMesh } from '@niivue/niivue';
 
@@ -35,8 +35,8 @@ export class ProjectFiles {
 	public readonly cloudSurfaces: readonly CloudSurfaceFile[];
 	public readonly cloudVolumes: readonly CloudVolumeFile[];
 
-	public readonly surfaces: readonly ProjectSurfaceFile[];
-	public readonly volumes: readonly ProjectVolumeFile[];
+	public readonly surfaces: readonly SurfaceFile[];
+	public readonly volumes: readonly VolumeFile[];
 	public readonly all: readonly ProjectFile[];
 
 	/**
@@ -53,8 +53,8 @@ export class ProjectFiles {
 					localVolumes: readonly LocalVolumeFile[];
 					cloudSurfaces: readonly CloudSurfaceFile[];
 					cloudVolumes: readonly CloudVolumeFile[];
-					surfaces: readonly ProjectSurfaceFile[];
-					volumes: readonly ProjectVolumeFile[];
+					surfaces: readonly SurfaceFile[];
+					volumes: readonly VolumeFile[];
 					all: readonly ProjectFile[];
 			  }
 			| undefined
@@ -106,7 +106,7 @@ export class ProjectFiles {
 	 * - opacity
 	 * - ...
 	 */
-	public fromAdaptedVolumes(newVolumes: ProjectVolumeFile[]): ProjectFiles {
+	public fromAdaptedVolumes(newVolumes: VolumeFile[]): ProjectFiles {
 		const localVolumes = newVolumes.filter(
 			(volume): volume is LocalVolumeFile => volume instanceof LocalVolumeFile
 		);
@@ -129,7 +129,7 @@ export class ProjectFiles {
 	/**
 	 * when the user clicks on a volume, we want to highlight only that one volume as active and deactivate all the others
 	 */
-	public fromOneVolumeActivated(volume: ProjectVolumeFile): ProjectFiles {
+	public fromOneVolumeActivated(volume: VolumeFile): ProjectFiles {
 		const localVolumes = this.localVolumes.map((file) =>
 			file.from({ isActive: file === volume })
 		);
@@ -166,7 +166,7 @@ export class ProjectFiles {
 	 * - opacity
 	 * - ...
 	 */
-	public fromAdaptedSurfaces(newSurfaces: ProjectSurfaceFile[]): ProjectFiles {
+	public fromAdaptedSurfaces(newSurfaces: SurfaceFile[]): ProjectFiles {
 		const localSurfaces = newSurfaces.filter(
 			(surface): surface is LocalSurfaceFile =>
 				surface instanceof LocalSurfaceFile
@@ -193,7 +193,7 @@ export class ProjectFiles {
 	/**
 	 * when the user clicks on a surface, we want to highlight only that one surface as active and deactivate all the others
 	 */
-	public fromOneSurfaceActivated(surface: ProjectSurfaceFile): ProjectFiles {
+	public fromOneSurfaceActivated(surface: SurfaceFile): ProjectFiles {
 		const localVolumes = this.localVolumes.map((file) =>
 			file.from({ isActive: false })
 		);
