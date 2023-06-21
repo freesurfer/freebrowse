@@ -29,7 +29,8 @@ export class ProjectState {
 			| {
 					backendState: GetProjectDto;
 			  }
-			| { projectState: ProjectState; projectFiles: ProjectFiles }
+			| { projectState: ProjectState; projectFiles: ProjectFiles },
+		public readonly upload = true
 	) {
 		if ('backendState' in initialState) {
 			if (initialState.backendState.id === undefined)
@@ -54,7 +55,7 @@ export class ProjectState {
 		throw new Error('initial state is not as expected');
 	}
 
-	fromFiles(projectFiles: ProjectFiles): ProjectState {
-		return new ProjectState({ projectState: this, projectFiles });
+	fromFiles(projectFiles: ProjectFiles, upload = true): ProjectState {
+		return new ProjectState({ projectState: this, projectFiles }, upload);
 	}
 }

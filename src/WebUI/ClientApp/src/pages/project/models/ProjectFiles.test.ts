@@ -12,15 +12,21 @@ describe('ProjectFiles', () => {
 		const FILE_NAME_VOLUME_1 = 'Volume1.img';
 		const FILE_NAME_SURFACE_1 = 'Surface1.img';
 
+		const cloudVolumes = [
+			new CloudVolumeFile(1, FILE_NAME_VOLUME_1, 20, true, true, 0, 1, 0, 1),
+		];
+		const cloudSurfaces = [
+			new CloudSurfaceFile(2, FILE_NAME_SURFACE_1, 20, true, true, 0, 1),
+		];
+
 		const projectFiles = new ProjectFiles({
-			cloudVolumes: [
-				new CloudVolumeFile(1, FILE_NAME_VOLUME_1, 20, true, true, 0, 1, 0, 1),
-			],
-			cloudSurfaces: [
-				new CloudSurfaceFile(2, FILE_NAME_SURFACE_1, 20, true, true, 0, 1),
-			],
+			cloudVolumes,
+			cloudSurfaces,
 			localVolumes: [],
 			localSurfaces: [],
+			volumes: [...cloudVolumes],
+			surfaces: [...cloudSurfaces],
+			all: [...cloudVolumes, ...cloudSurfaces],
 		});
 
 		expect(

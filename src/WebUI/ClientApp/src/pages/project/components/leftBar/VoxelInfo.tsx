@@ -1,10 +1,13 @@
 import { Collapse } from '@/components/Collapse';
-import { ProjectContext } from '@/pages/project/ProjectPage';
-import { useContext, Fragment } from 'react';
+import type { LocationData } from '@niivue/niivue';
+import type { ReactElement } from 'react';
+import { Fragment } from 'react';
 
-export const VoxelInfo = (): React.ReactElement => {
-	const { location } = useContext(ProjectContext);
-
+export const VoxelInfo = ({
+	location,
+}: {
+	location: LocationData | undefined;
+}): ReactElement => {
 	return (
 		<Collapse
 			className="mt-1 border-b border-gray text-xs"

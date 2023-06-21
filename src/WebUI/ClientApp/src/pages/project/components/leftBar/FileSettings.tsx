@@ -1,60 +1,28 @@
 import { Collapse } from '@/components/Collapse';
 import { Slider } from '@/components/Slider';
-import { ProjectContext } from '@/pages/project/ProjectPage';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
-import { useContext } from 'react';
-import Select from 'react-select';
+import type { Dispatch } from 'react';
+
+const DEFAULT_OPACITY = 100;
+const DEFAULT_MIN = 0;
+const DEFAULT_MAX = 100;
 
 export const FileSettings = ({
 	projectState,
+	setProjectState,
 }: {
 	projectState: ProjectState | undefined;
+	setProjectState: Dispatch<
+		(currentState: ProjectState | undefined) => ProjectState | undefined
+	>;
 }): React.ReactElement => {
-	const { niivueWrapper } = useContext(ProjectContext);
-
-	if (
-		niivueWrapper === undefined ||
-		niivueWrapper.current === undefined ||
-		niivueWrapper.current === null
-	) {
-		return (
-			<div className="w-[16rem] grow-0 border border-gray">
-				<span className="m-4 block text-center text-xs text-font">
-					Niivue is not initialized
-				</span>
-			</div>
-		);
-	}
-
 	const selectedVolumes =
-		projectState?.files.volumes
-			.map((volumeFile) => {
-				if (!volumeFile.isActive) return undefined;
-				const niivueVolume = niivueWrapper.current?.niivue.volumes.find(
-					(niivueVolume) => volumeFile.name === niivueVolume.name
-				);
-				return niivueVolume;
-			})
-			.filter((value) => value !== undefined) ?? [];
+		projectState?.files.volumes.filter((volume) => volume.isActive) ?? [];
 
 	const selectedSurfaces =
-		projectState?.files.surfaces
-			.map((surfaceFile) => {
-				if (!surfaceFile.isActive) return undefined;
-				const niivueSurface = niivueWrapper.current?.niivue.meshes.find(
-					(niivueSurface) => surfaceFile.name === niivueSurface.name
-				);
-				return niivueSurface;
-			})
-			.filter((value) => value !== undefined) ?? [];
+		projectState?.files.surfaces.filter((surface) => surface.isActive) ?? [];
 
 	const selectedFiles = [...selectedVolumes, ...selectedSurfaces];
-
-	const colorMapOptions = niivueWrapper.current.niivue
-		.colormaps()
-		.map((colormap) => {
-			return { value: colormap, label: colormap };
-		});
 
 	return (
 		<Collapse
@@ -83,17 +51,38 @@ export const FileSettings = ({
 									<Slider
 										className="mt-1"
 										label="Opacity:"
-										defaultValue={volume.opacity * 100}
+										defaultValue={DEFAULT_OPACITY}
 										unit="%"
 										onChange={(value) => {
-											niivueWrapper?.current?.niivue.setOpacity(
-												niivueWrapper.current.niivue.getVolumeIndexByID(
-													volume.id
-												),
-												value / 100
+											setProjectState((currentProjectState) =>
+												currentProjectState?.fromFiles(
+													currentProjectState.files.fromAdaptedVolumes(
+														currentProjectState.files.volumes.map((tmpVolume) =>
+															tmpVolume === volume
+																? tmpVolume.from({ opacity: value })
+																: tmpVolume
+														)
+													),
+													false
+												)
+											);
+										}}
+										onEnd={(value) => {
+											setProjectState((currentProjectState) =>
+												currentProjectState?.fromFiles(
+													currentProjectState.files.fromAdaptedVolumes(
+														currentProjectState.files.volumes.map((tmpVolume) =>
+															tmpVolume === volume
+																? tmpVolume.from({ opacity: value })
+																: tmpVolume
+														)
+													),
+													true
+												)
 											);
 										}}
 									></Slider>
+									{/*
 									<div className="mb-4 flex items-center">
 										<span className="mr-2 grow">Color Map:</span>
 										<Select
@@ -114,23 +103,72 @@ export const FileSettings = ({
 											}}
 										/>
 									</div>
+									*/}
 									<span>Contrast & Brightness</span>
 									<Slider
 										className="mt-1"
 										label="Minimum:"
-										defaultValue={volume.cal_min}
+										defaultValue={DEFAULT_MIN}
 										onChange={(value) => {
-											volume.cal_min = value;
-											niivueWrapper?.current?.niivue.updateGLVolume();
+											setProjectState((currentProjectState) =>
+												currentProjectState?.fromFiles(
+													currentProjectState.files.fromAdaptedVolumes(
+														currentProjectState.files.volumes.map((tmpVolume) =>
+															tmpVolume === volume
+																? tmpVolume.from({ contrastMin: value })
+																: tmpVolume
+														)
+													),
+													false
+												)
+											);
+										}}
+										onEnd={(value) => {
+											setProjectState((currentProjectState) =>
+												currentProjectState?.fromFiles(
+													currentProjectState.files.fromAdaptedVolumes(
+														currentProjectState.files.volumes.map((tmpVolume) =>
+															tmpVolume === volume
+																? tmpVolume.from({ contrastMin: value })
+																: tmpVolume
+														)
+													),
+													true
+												)
+											);
 										}}
 									></Slider>
 									<Slider
 										className="mt-1"
 										label="Maximum:"
-										defaultValue={volume.cal_max}
+										defaultValue={DEFAULT_MAX}
 										onChange={(value) => {
-											volume.cal_max = value;
-											niivueWrapper?.current?.niivue.updateGLVolume();
+											setProjectState((currentProjectState) =>
+												currentProjectState?.fromFiles(
+													currentProjectState.files.fromAdaptedVolumes(
+														currentProjectState.files.volumes.map((tmpVolume) =>
+															tmpVolume === volume
+																? tmpVolume.from({ contrastMax: value })
+																: tmpVolume
+														)
+													),
+													false
+												)
+											);
+										}}
+										onEnd={(value) => {
+											setProjectState((currentProjectState) =>
+												currentProjectState?.fromFiles(
+													currentProjectState.files.fromAdaptedVolumes(
+														currentProjectState.files.volumes.map((tmpVolume) =>
+															tmpVolume === volume
+																? tmpVolume.from({ contrastMax: value })
+																: tmpVolume
+														)
+													),
+													true
+												)
+											);
 										}}
 									></Slider>
 								</div>
@@ -153,17 +191,37 @@ export const FileSettings = ({
 									<Slider
 										className="mt-1"
 										label="Opacity:"
-										defaultValue={surface.opacity * 100}
+										defaultValue={DEFAULT_OPACITY}
 										unit="%"
 										onChange={(value) => {
-											niivueWrapper.current?.niivue.setMeshProperty(
-												surface.id,
-												'opacity',
-												value / 100
+											setProjectState((currentProjectState) =>
+												currentProjectState?.fromFiles(
+													currentProjectState.files.fromAdaptedSurfaces(
+														currentProjectState.files.surfaces.map(
+															(tmpSurface) =>
+																tmpSurface === surface
+																	? tmpSurface.from({ opacity: value })
+																	: tmpSurface
+														)
+													),
+													false
+												)
 											);
 										}}
 										onEnd={(value) =>
-											console.log('TODO persist new opacity value', value)
+											setProjectState((currentProjectState) =>
+												currentProjectState?.fromFiles(
+													currentProjectState.files.fromAdaptedSurfaces(
+														currentProjectState.files.surfaces.map(
+															(tmpSurface) =>
+																tmpSurface === surface
+																	? tmpSurface.from({ opacity: value })
+																	: tmpSurface
+														)
+													),
+													true
+												)
+											)
 										}
 									></Slider>
 								</>

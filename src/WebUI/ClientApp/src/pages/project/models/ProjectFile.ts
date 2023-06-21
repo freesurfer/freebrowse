@@ -43,9 +43,12 @@ export abstract class ProjectFileBase {
 		return `${Math.floor(this.size / 10000) / 100} MB`;
 	}
 
-	public abstract fromIsActive(isActive: boolean): ProjectFileBase;
-	public abstract fromIsChecked(isChecked: boolean): ProjectFileBase;
-	public abstract fromOrder(order: number): ProjectFileBase;
+	public abstract from(options: {
+		order?: number;
+		isActive?: boolean;
+		isChecked?: boolean;
+		opacity?: number;
+	}): ProjectFileBase;
 
 	public static typeFromFileExtension(fileName: string): FileType {
 		if (fileName.endsWith('.mgz')) return FileType.VOLUME;
@@ -161,39 +164,22 @@ export class LocalVolumeFile extends LocalFile {
 		});
 	}
 
-	public override fromIsActive(isActive: boolean): LocalVolumeFile {
+	public override from(options: {
+		order?: number;
+		isActive?: boolean;
+		isChecked?: boolean;
+		opacity?: number;
+		contrastMin?: number;
+		contrastMax?: number;
+	}): LocalVolumeFile {
 		return new LocalVolumeFile(
 			this.file,
-			isActive,
-			this.isChecked,
-			this.order,
-			this.opacity,
-			this.contrastMin,
-			this.contrastMax
-		);
-	}
-
-	public override fromIsChecked(isChecked: boolean): LocalVolumeFile {
-		return new LocalVolumeFile(
-			this.file,
-			this.isActive,
-			isChecked,
-			this.order,
-			this.opacity,
-			this.contrastMin,
-			this.contrastMax
-		);
-	}
-
-	public override fromOrder(order: number): LocalVolumeFile {
-		return new LocalVolumeFile(
-			this.file,
-			this.isActive,
-			this.isChecked,
-			order,
-			this.opacity,
-			this.contrastMin,
-			this.contrastMax
+			options.isActive ?? this.isActive,
+			options.isChecked ?? this.isChecked,
+			options.order ?? this.order,
+			options.opacity ?? this.opacity,
+			options.contrastMin ?? this.contrastMin,
+			options.contrastMax ?? this.contrastMax
 		);
 	}
 }
@@ -223,33 +209,18 @@ export class LocalSurfaceFile extends LocalFile {
 		});
 	}
 
-	public override fromIsActive(isActive: boolean): LocalSurfaceFile {
+	public override from(options: {
+		order?: number;
+		isActive?: boolean;
+		isChecked?: boolean;
+		opacity?: number;
+	}): LocalSurfaceFile {
 		return new LocalSurfaceFile(
 			this.file,
-			isActive,
-			this.isChecked,
-			this.order,
-			this.opacity
-		);
-	}
-
-	public override fromIsChecked(isChecked: boolean): LocalSurfaceFile {
-		return new LocalSurfaceFile(
-			this.file,
-			this.isActive,
-			isChecked,
-			this.order,
-			this.opacity
-		);
-	}
-
-	public override fromOrder(order: number): LocalSurfaceFile {
-		return new LocalSurfaceFile(
-			this.file,
-			this.isActive,
-			this.isChecked,
-			order,
-			this.opacity
+			options.isActive ?? this.isActive,
+			options.isChecked ?? this.isChecked,
+			options.order ?? this.order,
+			options.opacity ?? this.opacity
 		);
 	}
 }
@@ -307,45 +278,24 @@ export class CloudVolumeFile extends CloudFile {
 		);
 	}
 
-	public override fromIsActive(isActive: boolean): CloudVolumeFile {
+	public override from(options: {
+		order?: number;
+		isActive?: boolean;
+		isChecked?: boolean;
+		opacity?: number;
+		contrastMin?: number;
+		contrastMax?: number;
+	}): CloudVolumeFile {
 		return new CloudVolumeFile(
 			this.id,
 			this.name,
 			this.size,
-			isActive,
-			this.isChecked,
-			this.order,
-			this.opacity,
-			this.contrastMin,
-			this.contrastMax
-		);
-	}
-
-	public override fromIsChecked(isChecked: boolean): CloudVolumeFile {
-		return new CloudVolumeFile(
-			this.id,
-			this.name,
-			this.size,
-			this.isActive,
-			isChecked,
-			this.order,
-			this.opacity,
-			this.contrastMin,
-			this.contrastMax
-		);
-	}
-
-	public override fromOrder(order: number): CloudVolumeFile {
-		return new CloudVolumeFile(
-			this.id,
-			this.name,
-			this.size,
-			this.isActive,
-			this.isChecked,
-			order,
-			this.opacity,
-			this.contrastMin,
-			this.contrastMax
+			options.isActive ?? this.isActive,
+			options.isChecked ?? this.isChecked,
+			options.order ?? this.order,
+			options.opacity ?? this.opacity,
+			options.contrastMin ?? this.contrastMin,
+			options.contrastMax ?? this.contrastMax
 		);
 	}
 }
@@ -375,39 +325,20 @@ export class CloudSurfaceFile extends CloudFile {
 		);
 	}
 
-	public override fromIsActive(isActive: boolean): CloudSurfaceFile {
+	public override from(options: {
+		order?: number;
+		isActive?: boolean;
+		isChecked?: boolean;
+		opacity?: number;
+	}): CloudSurfaceFile {
 		return new CloudSurfaceFile(
 			this.id,
 			this.name,
 			this.size,
-			isActive,
-			this.isChecked,
-			this.order,
-			this.opacity
-		);
-	}
-
-	public override fromIsChecked(isChecked: boolean): CloudSurfaceFile {
-		return new CloudSurfaceFile(
-			this.id,
-			this.name,
-			this.size,
-			this.isActive,
-			isChecked,
-			this.order,
-			this.opacity
-		);
-	}
-
-	public override fromOrder(order: number): CloudSurfaceFile {
-		return new CloudSurfaceFile(
-			this.id,
-			this.name,
-			this.size,
-			this.isActive,
-			this.isChecked,
-			order,
-			this.opacity
+			options.isActive ?? this.isActive,
+			options.isChecked ?? this.isChecked,
+			options.order ?? this.order,
+			options.opacity ?? this.opacity
 		);
 	}
 }

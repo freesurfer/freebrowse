@@ -131,30 +131,26 @@ export class ProjectFiles {
 	 */
 	public fromOneVolumeActivated(volume: ProjectVolumeFile): ProjectFiles {
 		const localVolumes = this.localVolumes.map((file) =>
-			file === volume ? file.fromIsActive(true) : file.fromIsActive(false)
+			file.from({ isActive: file === volume })
 		);
 		const localSurfaces = this.localSurfaces.map((file) =>
-			file.fromIsActive(false)
+			file.from({ isActive: false })
 		);
 		const cloudVolumes = this.cloudVolumes.map((file) =>
-			file === volume ? file.fromIsActive(true) : file.fromIsActive(false)
+			file.from({ isActive: file === volume })
 		);
 		const cloudSurfaces = this.cloudSurfaces.map((file) =>
-			file.fromIsActive(false)
+			file.from({ isActive: false })
 		);
 		const surfaces = [...cloudSurfaces, ...localSurfaces];
 		const volumes = [...cloudVolumes, ...localVolumes];
 		const all = [...surfaces, ...volumes];
 
 		return new ProjectFiles({
-			localVolumes: this.localVolumes.map((file) =>
-				file === volume ? file.fromIsActive(true) : file.fromIsActive(false)
-			),
-			localSurfaces: this.localSurfaces.map((file) => file.fromIsActive(false)),
-			cloudVolumes: this.cloudVolumes.map((file) =>
-				file === volume ? file.fromIsActive(true) : file.fromIsActive(false)
-			),
-			cloudSurfaces: this.cloudSurfaces.map((file) => file.fromIsActive(false)),
+			localVolumes,
+			localSurfaces,
+			cloudVolumes,
+			cloudSurfaces,
 			surfaces,
 			volumes,
 			all,
@@ -199,16 +195,16 @@ export class ProjectFiles {
 	 */
 	public fromOneSurfaceActivated(surface: ProjectSurfaceFile): ProjectFiles {
 		const localVolumes = this.localVolumes.map((file) =>
-			file.fromIsActive(false)
+			file.from({ isActive: false })
 		);
 		const localSurfaces = this.localSurfaces.map((file) =>
-			file === surface ? file.fromIsActive(true) : file.fromIsActive(false)
+			file.from({ isActive: file === surface })
 		);
 		const cloudVolumes = this.cloudVolumes.map((file) =>
-			file.fromIsActive(false)
+			file.from({ isActive: false })
 		);
 		const cloudSurfaces = this.cloudSurfaces.map((file) =>
-			file === surface ? file.fromIsActive(true) : file.fromIsActive(false)
+			file.from({ isActive: file === surface })
 		);
 
 		const surfaces = [...cloudSurfaces, ...localSurfaces];

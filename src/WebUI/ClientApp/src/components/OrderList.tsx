@@ -99,7 +99,7 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 		let orderHasChanged = false;
 		for (const row of this.rows) {
 			if (row.projectFile.order !== row.order) orderHasChanged = true;
-			newFiles.push(row.projectFile.fromOrder(row.order) as T_FILE_TYPE);
+			newFiles.push(row.projectFile.from({ order: row.order }) as T_FILE_TYPE);
 		}
 		if (orderHasChanged) {
 			this.setFiles(newFiles);
@@ -158,9 +158,9 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 			this.setFiles(
 				this.rows.map((row) =>
 					row.projectFile === dragState.entry.projectFile
-						? (row.projectFile.fromIsActive(
-								!row.projectFile.isActive
-						  ) as T_FILE_TYPE)
+						? (row.projectFile.from({
+								isActive: !row.projectFile.isActive,
+						  }) as T_FILE_TYPE)
 						: row.projectFile
 				)
 			);
@@ -308,7 +308,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 									setFiles(
 										files.map((file) => {
 											if (file !== row.projectFile) return file;
-											return file.fromIsChecked(value) as T_FILE_TYPE;
+											return file.from({ isChecked: value }) as T_FILE_TYPE;
 										})
 									)
 								}
