@@ -87,6 +87,7 @@ export class NiivueWrapper {
 			// if there are files added or remove
 			// we need to remove or add files
 			await this.addOrRemoveFiles(files);
+			this.niivue.setSliceType(3);
 			return;
 		}
 
