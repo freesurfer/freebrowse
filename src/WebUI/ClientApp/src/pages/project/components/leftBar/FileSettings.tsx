@@ -36,11 +36,11 @@ export const FileSettings = ({
 
 	return (
 		<Collapse
-			className="mt-1 border-b border-gray text-xs"
+			className="border-b border-gray py-2 text-xs"
 			title={<span className="text-xs font-semibold">File Settings</span>}
 		>
 			{selectedFiles.length === 0 ? (
-				<span className="my-2 ml-1 mr-1 block text-left text-xs text-gray-500">
+				<span className="ml-1 mr-1 mt-2 block text-left text-xs text-gray-500">
 					Select a file to use this section.
 				</span>
 			) : (
@@ -50,16 +50,16 @@ export const FileSettings = ({
 						return (
 							<Collapse
 								key={volume?.name}
-								className="mb-2 mt-1 pl-4 pr-4"
+								className="mt-2 pr-4"
 								title={
 									<span className="grow border-b border-gray text-xs">
 										{volume.name ?? 'No file selected'}
 									</span>
 								}
 							>
-								<div className="mr-4">
+								<div className="mr-4 pl-1">
 									<Slider
-										className="mt-1"
+										className="mt-2"
 										label="Opacity:"
 										value={volume.opacity}
 										unit="%"
@@ -92,9 +92,9 @@ export const FileSettings = ({
 										/>
 									</div>
 									*/}
-									<span>Contrast & Brightness</span>
+									<span className="font-semibold">Contrast & Brightness</span>
 									<Slider
-										className="mt-1"
+										className="mt-2"
 										label="Minimum:"
 										value={volume.contrastMin}
 										onChange={(value) =>
@@ -105,7 +105,7 @@ export const FileSettings = ({
 										}
 									></Slider>
 									<Slider
-										className="mt-1"
+										className="mt-2"
 										label="Maximum:"
 										value={volume.contrastMax}
 										onChange={(value) =>
@@ -124,16 +124,16 @@ export const FileSettings = ({
 						return (
 							<Collapse
 								key={surface?.name}
-								className="pl-1 pr-4 pt-1"
+								className="mt-1 pr-4"
 								title={
 									<span className="grow border-b border-gray text-xs">
 										{surface.name ?? 'No file selected'}
 									</span>
 								}
 							>
-								<>
+								<div className="mr-4 pl-1">
 									<Slider
-										className="mt-1"
+										className="mt-2"
 										label="Opacity:"
 										value={surface.opacity}
 										unit="%"
@@ -144,7 +144,7 @@ export const FileSettings = ({
 											updateFileOptions(surface, { opacity: value }, true)
 										}
 									></Slider>
-								</>
+								</div>
 							</Collapse>
 						);
 					})}

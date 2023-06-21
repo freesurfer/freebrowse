@@ -34,7 +34,7 @@ export const LoadedFiles = ({
 
 	return (
 		<Collapse
-			className="border-b border-gray"
+			className="border-b border-gray pb-2"
 			title={<span className="text-xs font-semibold">Loaded Files</span>}
 			button={
 				<button
@@ -48,7 +48,7 @@ export const LoadedFiles = ({
 				</button>
 			}
 		>
-			<div className="mb-2 mr-4">
+			<div className="mr-4">
 				<Collapse
 					className="mt-2"
 					title={
