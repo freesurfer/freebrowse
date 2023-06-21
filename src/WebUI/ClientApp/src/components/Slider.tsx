@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, createRef, useRef } from 'react';
 
 /**
  * time in milliseconds to un stress the render interval on value updates
+ * otherwise it was possible that react was terminating because of too much state updates
  */
 const UNBOUNCE_DELAY = 10;
 
@@ -11,6 +12,12 @@ const normalizeValue = (value: number): number => {
 	return Math.round(value);
 };
 
+/**
+ * our slider implementation
+ * react-slider is not working, since the thumbs are overlaying the module dialog
+ * also this custom plugin supports the difference between status updates for updating the UI only (onChange)
+ * and final updates, which should get propagated to the backend (onEnd)
+ */
 export const Slider = ({
 	className,
 	label,
@@ -26,10 +33,17 @@ export const Slider = ({
 	onChange?: (value: number) => void;
 	onEnd?: (value: number) => void;
 }): React.ReactElement => {
+	/**
+	 * the data needed for the mouseMove transition to know,
+	 * where it has started and that it's in progress right now
+	 */
 	const [startState, setStartState] = useState<{
 		position: number;
 		value: number;
 	}>();
+	/**
+	 * reference of the underlying slider to read the maximum range from it
+	 */
 	const widthRef = createRef<HTMLDivElement>();
 	const unStressState = useRef<{
 		isLocked: boolean;
@@ -66,6 +80,9 @@ export const Slider = ({
 		[onEnd, onChange]
 	);
 
+	/**
+	 * on mouse move, when the drag is in progress
+	 */
 	const onMove = useCallback(
 		(event: Event): void => {
 			if (
@@ -84,6 +101,9 @@ export const Slider = ({
 		[startState, widthRef, updateValue]
 	);
 
+	/**
+	 * when the user drops the thumb, it should update the value if the drag is in progress
+	 */
 	const onDrop = useCallback(
 		(event: Event): void => {
 			if (
@@ -104,6 +124,11 @@ export const Slider = ({
 		[updateValue, setStartState, startState, widthRef]
 	);
 
+	/**
+	 * method to jump to a specific place on the slider,
+	 * to enable the user to not only move the thumb,
+	 * but also click on other parts of the slider to adapt the value
+	 */
 	const jumpTo = useCallback(
 		(event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
 			event.preventDefault();

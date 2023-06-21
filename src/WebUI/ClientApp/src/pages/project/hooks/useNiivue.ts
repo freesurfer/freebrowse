@@ -3,12 +3,17 @@ import type { ProjectState } from '@/pages/project/models/ProjectState';
 import type { LocationData } from '@niivue/niivue';
 import { useRef, useState, useEffect, useCallback } from 'react';
 
+/**
+ * this hook is the react wrapper to maintain the state of the niivue library and provide all the handles needed to interact with that library
+ */
 export const useNiivue = (
 	canvas: HTMLCanvasElement | null | undefined,
 	projectState: ProjectState | undefined
 ): { location: LocationData | undefined } => {
-	// we should use a reference here, since the Niivue library is not immutable
-	// this could lead to confusions, if the state of the library changes, without rerendering is getting triggered
+	/**
+	 * the niivueWrapper instance is keeping the reference and the state of the niivue library
+	 * it will only get initialized once per project
+	 */
 	const niivueWrapper = useRef<NiivueWrapper | undefined>();
 	const [location, setLocation] = useState<LocationData | undefined>();
 

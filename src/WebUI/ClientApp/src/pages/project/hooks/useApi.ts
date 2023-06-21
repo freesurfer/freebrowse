@@ -18,7 +18,14 @@ export const useApi = (
 	projectId: string | undefined,
 	projectState: ProjectState | undefined
 ): { initialState: ProjectState | undefined } => {
+	/**
+	 * keeps the last updated state to have something to compare to
+	 */
 	const [lastUpload, setLastUpload] = useState<ProjectState>();
+
+	/**
+	 * provides the initial project state according to the project fetch request
+	 */
 	const [initialState, setInitialState] = useState<ProjectState>();
 
 	useEffect(() => {
@@ -26,6 +33,9 @@ export const useApi = (
 		if (projectState !== undefined) return;
 		if (lastUpload !== undefined && projectState === lastUpload) return;
 
+		/**
+		 * fetch project state from backend, when there is now project state defined yet
+		 */
 		const fetchData = async (): Promise<void> => {
 			const client = new ProjectsClient(getApiUrl());
 			if (projectId === undefined) {
@@ -43,6 +53,9 @@ export const useApi = (
 	}, [projectId, lastUpload, setLastUpload, projectState]);
 
 	useEffect(() => {
+		/**
+		 * detect updates in the project state and upload increments to the backend
+		 */
 		const uploadToBackend = async (): Promise<void> => {
 			if (projectState === undefined) return;
 			if (!projectState.upload) return;
