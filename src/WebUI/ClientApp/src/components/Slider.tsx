@@ -1,4 +1,9 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState, createRef, useRef } from 'react';
+
+/**
+ * time in milliseconds to un stress the render interval on value updates
+ */
+const UNBOUNCE_DELAY = 10;
 
 const normalizeValue = (value: number): number => {
 	if (value > 100) return 100;
@@ -21,57 +26,101 @@ export const Slider = ({
 	onChange?: (value: number) => void;
 	onEnd?: (value: number) => void;
 }): React.ReactElement => {
-	const state = useRef<{
-		/**
-		 * keeps dragging state
-		 * is undefined while no drag is in progress
-		 */
-		startState: { position: number; value: number } | undefined;
-		/**
-		 * reference to the whole part of the slider bar in the background
-		 */
-		width: number | undefined;
-	}>({
-		startState: undefined,
-		width: undefined,
-	});
+	const [startState, setStartState] = useState<{
+		position: number;
+		value: number;
+	}>();
+	const widthRef = createRef<HTMLDivElement>();
+	const unStressState = useRef<{
+		isLocked: boolean;
+		timeout: NodeJS.Timeout | undefined;
+		action: (() => void) | undefined;
+	}>({ isLocked: false, timeout: undefined, action: undefined });
+
+	const updateValue = useCallback(
+		(newValue: number, upload: boolean) => {
+			const doIt = (): void => {
+				if (upload) {
+					onChange?.(normalizeValue(newValue));
+					return;
+				}
+				onEnd?.(normalizeValue(newValue));
+			};
+
+			if (unStressState.current.isLocked) {
+				unStressState.current.action = doIt;
+				return;
+			}
+
+			unStressState.current.isLocked = true;
+			doIt();
+
+			unStressState.current.timeout = setTimeout(() => {
+				unStressState.current.timeout = undefined;
+				if (unStressState.current.action !== undefined)
+					unStressState.current.action();
+				unStressState.current.isLocked = false;
+				unStressState.current.action = undefined;
+			}, UNBOUNCE_DELAY);
+		},
+		[onEnd, onChange]
+	);
 
 	const onMove = useCallback(
 		(event: Event): void => {
 			if (
-				state.current.width === undefined ||
-				state.current.startState === undefined ||
+				widthRef.current === null ||
+				startState === undefined ||
 				!(event instanceof MouseEvent)
 			)
 				return;
 
-			onChange?.(
-				normalizeValue(
-					((event.pageX - state.current.startState.position) /
-						state.current.width) *
-						100 +
-						state.current.startState.value
-				)
-			);
+			const relativePosition =
+				((event.pageX - startState.position) / widthRef.current?.clientWidth) *
+				100;
+			updateValue(relativePosition + startState.value, false);
 		},
-		[onChange]
+		[startState, widthRef, updateValue]
 	);
 
-	const onDrop = useCallback((): void => {
-		state.current.startState = undefined;
-		onEnd?.(normalizeValue(value));
-	}, [onEnd, value]);
+	const onDrop = useCallback(
+		(event: Event): void => {
+			if (
+				widthRef.current === null ||
+				startState === undefined ||
+				!(event instanceof MouseEvent)
+			)
+				return;
+
+			setStartState(undefined);
+
+			const relativePosition =
+				((event.pageX - startState.position) / widthRef.current?.clientWidth) *
+				100;
+
+			updateValue(relativePosition + startState.value, false);
+		},
+		[updateValue, setStartState, startState, widthRef]
+	);
 
 	const jumpTo = useCallback(
-		(position: number, startPagePosition: number): void => {
-			if (state.current.width === undefined) return;
-			state.current.startState = {
-				position: startPagePosition,
-				value,
-			};
-			onChange?.(normalizeValue((position / state.current.width) * 100));
+		(event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
+			event.preventDefault();
+			event.stopPropagation();
+
+			if (widthRef.current === null || event.currentTarget === null) return;
+
+			const position = event.clientX - event.currentTarget.offsetLeft;
+			const newValue = (position / widthRef.current.clientWidth) * 100;
+
+			updateValue(newValue, false);
+
+			setStartState({
+				position: event.pageX,
+				value: newValue,
+			});
 		},
-		[onChange, value]
+		[widthRef, setStartState, updateValue]
 	);
 
 	useEffect(() => {
@@ -90,11 +139,9 @@ export const Slider = ({
 				<label className="grow">{label}</label>
 				<input
 					type="number"
-					onChange={(event) =>
-						onChange?.(normalizeValue(Number(event.target.value)))
-					}
+					onChange={(event) => updateValue(Number(event.target.value), false)}
 					onBlur={() => {
-						onEnd?.(normalizeValue(value));
+						updateValue(value, true);
 					}}
 					value={String(value)}
 					step={1}
@@ -106,16 +153,9 @@ export const Slider = ({
 			</div>
 			{
 				// eslint-disable-next-line jsx-a11y/no-static-element-interactions
-				<div
-					className="relative my-2 h-4 grow"
-					onMouseDown={(e) =>
-						jumpTo(e.clientX - e.currentTarget.offsetLeft, e.pageX)
-					}
-				>
+				<div className="relative my-2 h-4 grow" onMouseDown={jumpTo}>
 					<div
-						ref={(ref) => {
-							state.current.width = ref?.clientWidth;
-						}}
+						ref={widthRef}
 						className="absolute mt-1 h-2 w-full rounded bg-gray"
 					></div>
 					<div
@@ -126,10 +166,10 @@ export const Slider = ({
 						onMouseDown={(event) => {
 							event.preventDefault();
 							event.stopPropagation();
-							state.current.startState = {
+							setStartState({
 								position: event.pageX,
 								value,
-							};
+							});
 						}}
 						style={{ marginLeft: `${value}%` }}
 						className="absolute -left-2 h-4 w-4 cursor-pointer rounded-full border-2 border-blue-light bg-white"
