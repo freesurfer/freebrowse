@@ -1,5 +1,6 @@
 import { Collapse } from '@/components/Collapse';
 import { Slider } from '@/components/Slider';
+import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
 import type { ProjectFile } from '@/pages/project/models/ProjectFile';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { useCallback, type Dispatch } from 'react';
@@ -57,7 +58,7 @@ export const FileSettings = ({
 									</span>
 								}
 							>
-								<div className="mr-4 pl-1">
+								<div className="pl-1">
 									<Slider
 										className="mt-2"
 										label="Opacity:"
@@ -131,7 +132,7 @@ export const FileSettings = ({
 									</span>
 								}
 							>
-								<div className="mr-4 pl-1">
+								<div className="pl-1">
 									<Slider
 										className="mt-2"
 										label="Opacity:"
@@ -144,6 +145,10 @@ export const FileSettings = ({
 											updateFileOptions(surface, { opacity: value }, true)
 										}
 									></Slider>
+									<FileSelection
+										title="Overlay:"
+										className="mt-4"
+									></FileSelection>
 								</div>
 							</Collapse>
 						);
