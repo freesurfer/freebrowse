@@ -32,7 +32,7 @@ export class ProjectState {
 					backendState: GetProjectDto;
 			  }
 			| { projectState: ProjectState; projectFiles: ProjectFiles },
-		public readonly upload = true
+		public readonly upload: boolean
 	) {
 		if ('backendState' in initialState) {
 			if (initialState.backendState.id === undefined)
@@ -71,7 +71,7 @@ export class ProjectState {
 	fromFileUpdate<T_FILE_TYPE extends ProjectFile>(
 		file: T_FILE_TYPE,
 		options: Parameters<T_FILE_TYPE['from']>[0],
-		upload = true
+		upload: boolean
 	): ProjectState {
 		if (file.type === FileType.VOLUME)
 			return new ProjectState(

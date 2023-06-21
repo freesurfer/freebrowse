@@ -40,7 +40,7 @@ export const Slider = ({
 	const updateValue = useCallback(
 		(newValue: number, upload: boolean) => {
 			const doIt = (): void => {
-				if (upload) {
+				if (!upload) {
 					onChange?.(normalizeValue(newValue));
 					return;
 				}
@@ -78,6 +78,7 @@ export const Slider = ({
 			const relativePosition =
 				((event.pageX - startState.position) / widthRef.current?.clientWidth) *
 				100;
+
 			updateValue(relativePosition + startState.value, false);
 		},
 		[startState, widthRef, updateValue]
@@ -98,7 +99,7 @@ export const Slider = ({
 				((event.pageX - startState.position) / widthRef.current?.clientWidth) *
 				100;
 
-			updateValue(relativePosition + startState.value, false);
+			updateValue(relativePosition + startState.value, true);
 		},
 		[updateValue, setStartState, startState, widthRef]
 	);
@@ -113,7 +114,7 @@ export const Slider = ({
 			const position = event.clientX - event.currentTarget.offsetLeft;
 			const newValue = (position / widthRef.current.clientWidth) * 100;
 
-			updateValue(newValue, false);
+			updateValue(newValue, true);
 
 			setStartState({
 				position: event.pageX,
@@ -140,9 +141,7 @@ export const Slider = ({
 				<input
 					type="number"
 					onChange={(event) => updateValue(Number(event.target.value), false)}
-					onBlur={() => {
-						updateValue(value, true);
-					}}
+					onBlur={() => updateValue(value, true)}
 					value={String(value)}
 					step={1}
 					min={0}

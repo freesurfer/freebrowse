@@ -28,7 +28,7 @@ export const useNiivue = (
 			niivueWrapper.current === null
 		)
 			return;
-		niivueWrapper.current.loadDataAsync(projectState.files);
+		niivueWrapper.current.next(projectState);
 	}, [projectState, niivueWrapper]);
 
 	const handleKeyDown = useCallback((event: KeyboardEvent) => {

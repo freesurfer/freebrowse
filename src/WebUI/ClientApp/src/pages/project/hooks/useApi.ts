@@ -34,7 +34,7 @@ export const useApi = (
 			}
 
 			const backendState = await client.getProject(Number(projectId));
-			const initialProjectState = new ProjectState({ backendState });
+			const initialProjectState = new ProjectState({ backendState }, false);
 			setInitialState(initialProjectState);
 			setLastUpload(initialProjectState);
 		};
@@ -54,6 +54,13 @@ export const useApi = (
 			) {
 				const client = new VolumeClient(getApiUrl());
 				for (const cloudVolume of projectState.files.cloudVolumes) {
+					if (
+						lastUpload?.files.cloudVolumes.find(
+							(lastVolumeFile) => lastVolumeFile === cloudVolume
+						) !== undefined
+					)
+						continue;
+
 					await client.edit(
 						new EditVolumeCommand({
 							id: cloudVolume.id,
@@ -73,6 +80,13 @@ export const useApi = (
 			) {
 				const client = new SurfaceClient(getApiUrl());
 				for (const cloudSurface of projectState.files.cloudSurfaces) {
+					if (
+						lastUpload?.files.cloudSurfaces.find(
+							(lastSurfaceFile) => lastSurfaceFile === cloudSurface
+						) !== undefined
+					)
+						continue;
+
 					await client.edit(
 						new EditSurfaceCommand({
 							id: cloudSurface.id,
