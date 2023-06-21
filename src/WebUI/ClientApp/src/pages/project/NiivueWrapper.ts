@@ -23,9 +23,10 @@ export class NiivueWrapper {
 	});
 
 	private hooveredView = 0;
-
 	private nextState: ProjectState | undefined = undefined;
 	private isRunning = false;
+	private readonly volumeCache = new Map<string, NVImage>();
+	private readonly surfaceCache = new Map<string, NVMesh>();
 
 	constructor(
 		canvasRef: HTMLCanvasElement,
@@ -75,20 +76,128 @@ export class NiivueWrapper {
 	private async propagateState(projectState: ProjectState): Promise<void> {
 		const files = projectState.files;
 
-		if (!files.isRemovedOrAdded(this.niivue.volumes, this.niivue.meshes)) {
-			this.updateFileProperties(files);
+		if (this.volumeCache.size === 0 && this.surfaceCache.size === 0) {
+			// if there are no files cached yet, start from scratch
+			await this.loadInitialState(files);
+			this.fillReferences(files);
 			return;
 		}
 
-		try {
-			/*
-			 * clearing the volumes and meshes is needed here,
-			 * otherwise on load volumes the meshes are getting drawn
-			 * what leads to showing the 3d view only
-			 */
-			this.niivue.volumes = [];
-			this.niivue.meshes = [];
+		if (this.isRemovedOrAdded(files)) {
+			// if there are files added or remove
+			// we need to remove or add files
+			await this.addOrRemoveFiles(files);
+			return;
+		}
 
+		// otherwise we only need to update the options
+		this.updateFileProperties(files);
+		this.cleanUpCache(files);
+	}
+
+	/**
+	 * remove all references from cache, which are not contained in the project files state
+	 */
+	private cleanUpCache(files: ProjectFiles): void {
+		for (const cachedVolume of this.volumeCache.values()) {
+			if (
+				files.cloudVolumes.find(
+					(cloudVolume) => cloudVolume.name === cachedVolume.name
+				) !== undefined
+			)
+				continue;
+			this.volumeCache.delete(cachedVolume.name);
+		}
+
+		for (const cachedSurface of this.surfaceCache.values()) {
+			if (
+				files.cloudSurfaces.find(
+					(cloudSurface) => cloudSurface.name === cachedSurface.name
+				) !== undefined
+			)
+				continue;
+			this.surfaceCache.delete(cachedSurface.name);
+		}
+	}
+
+	private async addOrRemoveFiles(files: ProjectFiles): Promise<void> {
+		for (const niivueVolume of this.niivue.volumes) {
+			if (
+				files.cloudVolumes.find(
+					(cloudVolume) =>
+						cloudVolume.isChecked && cloudVolume.name === niivueVolume.name
+				) === undefined
+			) {
+				// files that are contained in niivue, but not in the project files
+				// delete them from niivue
+				this.niivue.setVolume(niivueVolume, -1);
+			}
+		}
+
+		for (const cloudVolume of files.cloudVolumes) {
+			if (!cloudVolume.isChecked) continue;
+			if (
+				this.niivue.volumes.find(
+					(niivueVolume) => niivueVolume.name === cloudVolume.name
+				) === undefined
+			) {
+				// files that are contained in the project files, but not in niivue
+				// add them to niivue
+				const cachedVolume = this.volumeCache.get(cloudVolume.name);
+				if (cachedVolume !== undefined) {
+					this.niivue.addVolume(cachedVolume);
+					continue;
+				}
+				const newVolumeToCache = await this.niivue.addVolumeFromUrl({
+					url: cloudVolume.url,
+					name: cloudVolume.name,
+					opacity: cloudVolume.opacity / 100,
+					cal_min: cloudVolume.contrastMin,
+					cal_max: cloudVolume.contrastMax,
+				});
+				this.volumeCache.set(newVolumeToCache.name, newVolumeToCache);
+			}
+		}
+
+		for (const niivueSurface of this.niivue.meshes) {
+			if (
+				files.cloudSurfaces.find(
+					(cloudSurface) =>
+						cloudSurface.isChecked && cloudSurface.name === niivueSurface.name
+				) === undefined
+			) {
+				// files that are contained in niivue, but not in the project files
+				// delete them from niivue
+				this.niivue.setMesh(niivueSurface, -1);
+			}
+		}
+
+		for (const cloudSurface of files.cloudSurfaces) {
+			if (!cloudSurface.isChecked) continue;
+			if (
+				this.niivue.meshes.find(
+					(niivueSurface) => niivueSurface.name === cloudSurface.name
+				) === undefined
+			) {
+				// files that are contained in the project files, but not in niivue
+				// add them to niivue
+				const cachedSurface = this.surfaceCache.get(cloudSurface.name);
+				if (cachedSurface !== undefined) {
+					this.niivue.addMesh(cachedSurface);
+					continue;
+				}
+				const newSurfaceToCache = await this.niivue.addMeshFromUrl({
+					url: cloudSurface.url,
+					name: cloudSurface.name,
+					opacity: cloudSurface.opacity / 100,
+				});
+				this.surfaceCache.set(newSurfaceToCache.name, newSurfaceToCache);
+			}
+		}
+	}
+
+	private async loadInitialState(files: ProjectFiles): Promise<void> {
+		try {
 			await this.niivue.loadVolumes(
 				files.cloudVolumes
 					.filter((file) => file.isChecked)
@@ -122,6 +231,78 @@ export class NiivueWrapper {
 		} catch (error) {
 			// probably we can just ignore that warning
 			console.warn(error);
+		}
+	}
+
+	/**
+	 * compare the niivue state with the ProjectFile state
+	 * if files has been added or removed (by names)
+	 * the niivue files need only to get updated, if the state has changed
+	 */
+	isRemovedOrAdded(files: ProjectFiles): boolean {
+		for (const niivueVolume of this.niivue.volumes) {
+			if (
+				files.cloudVolumes.find(
+					(cloudVolume) =>
+						cloudVolume.isChecked && cloudVolume.name === niivueVolume.name
+				) === undefined
+			)
+				return true;
+		}
+
+		for (const cloudVolume of files.volumes) {
+			if (!cloudVolume.isChecked) continue;
+			if (
+				this.niivue.volumes.find(
+					(niivueVolume) => niivueVolume.name === cloudVolume.name
+				) === undefined
+			)
+				return true;
+		}
+
+		for (const niivueSurface of this.niivue.meshes) {
+			if (
+				files.cloudSurfaces.find(
+					(cloudSurface) =>
+						cloudSurface.isChecked && cloudSurface.name === niivueSurface.name
+				) === undefined
+			)
+				return true;
+		}
+
+		for (const cloudSurface of files.cloudSurfaces) {
+			if (!cloudSurface.isChecked) continue;
+			if (
+				this.niivue.meshes.find(
+					(niivueSurface) => niivueSurface.name === cloudSurface.name
+				) === undefined
+			)
+				return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * this method is collecting the references to all added volumes and caches them, if they were loaded already and just got hidden to add them later again
+	 */
+	private fillReferences(files: ProjectFiles): void {
+		for (const volume of files.volumes) {
+			if (this.volumeCache.has(volume.name)) continue;
+			const niivueVolume = this.niivue.volumes.find(
+				(niivueVolume) => niivueVolume.name === volume.name
+			);
+			if (niivueVolume !== undefined)
+				this.volumeCache.set(volume.name, niivueVolume);
+		}
+
+		for (const surface of files.surfaces) {
+			if (this.surfaceCache.has(surface.name)) continue;
+			const niivueSurface = this.niivue.meshes.find(
+				(niivueSurface) => niivueSurface.name === surface.name
+			);
+			if (niivueSurface !== undefined)
+				this.surfaceCache.set(surface.name, niivueSurface);
 		}
 	}
 

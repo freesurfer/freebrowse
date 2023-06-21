@@ -19,7 +19,6 @@ import type {
 	SurfaceFile,
 	VolumeFile,
 } from '@/pages/project/models/ProjectFile';
-import type { NVImage, NVMesh } from '@niivue/niivue';
 
 /**
  * mutable instance keeps the state of the project files
@@ -260,7 +259,7 @@ export class ProjectFiles {
 			localSurfaces,
 			volumes,
 			surfaces,
-			all: [...volumes, ...volumes],
+			all: [...volumes, ...surfaces],
 		});
 	}
 
@@ -412,58 +411,6 @@ export class ProjectFiles {
 			volumes,
 			all: [...this.surfaces, ...volumes],
 		});
-	}
-
-	/**
-	 * compare the niivue state with the ProjectFile state
-	 * if files has been added or removed (by names)
-	 * the niivue files need only to get updated, if the state has changed
-	 */
-	isRemovedOrAdded(
-		niivueVolumes: NVImage[],
-		niivueSurfaces: NVMesh[]
-	): boolean {
-		for (const niivueVolume of niivueVolumes) {
-			if (
-				this.cloudVolumes.find(
-					(cloudVolume) =>
-						cloudVolume.isChecked && cloudVolume.name === niivueVolume.name
-				) === undefined
-			)
-				return true;
-		}
-
-		for (const cloudVolume of this.cloudVolumes) {
-			if (!cloudVolume.isChecked) continue;
-			if (
-				niivueVolumes.find(
-					(niivueVolume) => niivueVolume.name === cloudVolume.name
-				) === undefined
-			)
-				return true;
-		}
-
-		for (const niivueSurface of niivueSurfaces) {
-			if (
-				this.cloudSurfaces.find(
-					(cloudSurface) =>
-						cloudSurface.isChecked && cloudSurface.name === niivueSurface.name
-				) === undefined
-			)
-				return true;
-		}
-
-		for (const cloudSurface of this.cloudSurfaces) {
-			if (!cloudSurface.isChecked) continue;
-			if (
-				niivueSurfaces.find(
-					(niivueSurface) => niivueSurface.name === cloudSurface.name
-				) === undefined
-			)
-				return true;
-		}
-
-		return false;
 	}
 
 	public async getLocalVolumesToUpload(): Promise<CreateProjectVolumeDto[]> {
