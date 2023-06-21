@@ -9,147 +9,94 @@ const normalizeValue = (value: number): number => {
 export const Slider = ({
 	className,
 	label,
-	defaultValue,
+	value,
 	unit,
 	onChange,
 	onEnd,
 }: {
 	className?: string;
 	label: string;
-	defaultValue: number;
+	value: number;
 	unit?: string | undefined;
 	onChange?: (value: number) => void;
 	onEnd?: (value: number) => void;
 }): React.ReactElement => {
 	const state = useRef<{
 		/**
-		 * the temporary value
-		 * not each increment is getting pushed to the parent
-		 */
-		value: number;
-		/**
 		 * keeps dragging state
 		 * is undefined while no drag is in progress
 		 */
 		startState: { position: number; value: number } | undefined;
 		/**
-		 * reference to the manual input element above the slider
-		 */
-		inputRef: HTMLInputElement | null;
-		/**
 		 * reference to the whole part of the slider bar in the background
 		 */
-		rangeRef: HTMLDivElement | null;
-		/**
-		 * reference to the left part of the slider bar in the background
-		 */
-		progressRef: HTMLDivElement | null;
-		/**
-		 * knop html reference
-		 */
-		knopRef: HTMLButtonElement | null;
-		/**
-		 * to un stress value updates to the callback while dragging
-		 */
-		isLocked: boolean;
+		width: number | undefined;
 	}>({
-		value: normalizeValue(defaultValue),
 		startState: undefined,
-		inputRef: null,
-		rangeRef: null,
-		progressRef: null,
-		knopRef: null,
-		isLocked: false,
+		width: undefined,
 	});
-
-	const setValue = useCallback(
-		(value: number): void => {
-			const previousValue = state.current.value;
-			state.current.value = normalizeValue(value);
-
-			if (previousValue === state.current.value) return;
-
-			if (state.current.inputRef !== null)
-				state.current.inputRef.value = String(state.current.value);
-			if (state.current.progressRef !== null)
-				state.current.progressRef.style.width = `${state.current.value}%`;
-			if (state.current.knopRef !== null && state.current.rangeRef !== null)
-				state.current.knopRef.style.marginLeft = `${state.current.value}%`;
-
-			onChange?.(state.current.value);
-		},
-		[onChange]
-	);
-
-	const onStart = useCallback(
-		(position: number): void => {
-			state.current.startState = {
-				position,
-				value: state.current.value,
-			};
-		},
-		[state]
-	);
 
 	const onMove = useCallback(
 		(event: Event): void => {
 			if (
-				state.current.rangeRef === null ||
+				state.current.width === undefined ||
 				state.current.startState === undefined ||
 				!(event instanceof MouseEvent)
 			)
 				return;
 
-			setValue(
-				((event.pageX - state.current.startState.position) /
-					state.current.rangeRef.clientWidth) *
-					100 +
-					state.current.startState.value
+			onChange?.(
+				normalizeValue(
+					((event.pageX - state.current.startState.position) /
+						state.current.width) *
+						100 +
+						state.current.startState.value
+				)
 			);
 		},
-		[setValue]
+		[onChange]
 	);
 
 	const onDrop = useCallback((): void => {
 		state.current.startState = undefined;
-		if (onEnd !== undefined) onEnd?.(state.current.value);
-		else onChange?.(state.current.value);
-	}, [onEnd, onChange]);
+		onEnd?.(normalizeValue(value));
+	}, [onEnd, value]);
 
 	const jumpTo = useCallback(
 		(position: number, startPagePosition: number): void => {
-			if (state.current.rangeRef === null) return;
-			setValue((position / state.current.rangeRef.clientWidth) * 100);
-			onStart(startPagePosition);
+			if (state.current.width === undefined) return;
+			state.current.startState = {
+				position: startPagePosition,
+				value,
+			};
+			onChange?.(normalizeValue((position / state.current.width) * 100));
 		},
-		[setValue, onStart]
+		[onChange, value]
 	);
 
 	useEffect(() => {
-		document.addEventListener('mousemove', onMove);
 		document.addEventListener('mouseup', onDrop);
+		return () => document.removeEventListener('mouseup', onDrop);
+	}, [onDrop]);
 
-		return () => {
-			document.removeEventListener('mousemove', onMove);
-			document.removeEventListener('mouseup', onDrop);
-		};
-	}, [onDrop, onMove]);
+	useEffect(() => {
+		document.addEventListener('mousemove', onMove);
+		return () => document.removeEventListener('mousemove', onMove);
+	}, [onMove]);
 
 	return (
 		<div className={className}>
 			<div className="flex items-center">
 				<label className="grow">{label}</label>
 				<input
-					ref={(ref) => {
-						state.current.inputRef = ref;
-					}}
 					type="number"
-					onChange={(event) => setValue(Number(event.target.value))}
+					onChange={(event) =>
+						onChange?.(normalizeValue(Number(event.target.value)))
+					}
 					onBlur={() => {
-						onChange?.(state.current.value);
-						onEnd?.(state.current.value);
+						onEnd?.(normalizeValue(value));
 					}}
-					defaultValue={String(state.current.value)}
+					value={String(value)}
 					step={1}
 					min={0}
 					max={100}
@@ -167,27 +114,24 @@ export const Slider = ({
 				>
 					<div
 						ref={(ref) => {
-							state.current.rangeRef = ref;
+							state.current.width = ref?.clientWidth;
 						}}
 						className="absolute mt-1 h-2 w-full rounded bg-gray"
 					></div>
 					<div
-						style={{ width: `${state.current.value}%` }}
-						ref={(ref) => {
-							state.current.progressRef = ref;
-						}}
+						style={{ width: `${value}%` }}
 						className="absolute mt-1 h-2 rounded bg-blue-light"
 					></div>
 					<button
-						ref={(ref) => {
-							state.current.knopRef = ref;
-						}}
 						onMouseDown={(event) => {
 							event.preventDefault();
 							event.stopPropagation();
-							onStart(event.pageX);
+							state.current.startState = {
+								position: event.pageX,
+								value,
+							};
 						}}
-						style={{ marginLeft: `${state.current.value}%` }}
+						style={{ marginLeft: `${value}%` }}
 						className="absolute -left-2 h-4 w-4 cursor-pointer rounded-full border-2 border-blue-light bg-white"
 					></button>
 				</div>

@@ -28,7 +28,7 @@ export const FileSettings = ({
 			upload: boolean
 		) => {
 			setProjectState((currentProjectState) =>
-				currentProjectState?.fromFileUpdate(file, options, false)
+				currentProjectState?.fromFileUpdate(file, options, upload)
 			);
 		},
 		[setProjectState]
@@ -61,7 +61,7 @@ export const FileSettings = ({
 									<Slider
 										className="mt-1"
 										label="Opacity:"
-										defaultValue={DEFAULT_OPACITY}
+										value={volume.opacity}
 										unit="%"
 										onChange={(value) =>
 											updateFileOptions(volume, { opacity: value }, false)
@@ -80,7 +80,7 @@ export const FileSettings = ({
 												singleValue: () => 'text-xs z-1',
 												menu: () => 'text-xs',
 											}}
-											defaultValue={colorMapOptions.find(
+											value={colorMapOptions.find(
 												(colorMapOption) =>
 													colorMapOption.value === volume.colorMap
 											)}
@@ -96,7 +96,7 @@ export const FileSettings = ({
 									<Slider
 										className="mt-1"
 										label="Minimum:"
-										defaultValue={DEFAULT_MIN}
+										value={volume.contrastMin}
 										onChange={(value) =>
 											updateFileOptions(volume, { contrastMin: value }, false)
 										}
@@ -107,7 +107,7 @@ export const FileSettings = ({
 									<Slider
 										className="mt-1"
 										label="Maximum:"
-										defaultValue={DEFAULT_MAX}
+										value={volume.contrastMax}
 										onChange={(value) =>
 											updateFileOptions(volume, { contrastMax: value }, false)
 										}
@@ -135,7 +135,7 @@ export const FileSettings = ({
 									<Slider
 										className="mt-1"
 										label="Opacity:"
-										defaultValue={DEFAULT_OPACITY}
+										value={surface.opacity}
 										unit="%"
 										onChange={(value) =>
 											updateFileOptions(surface, { opacity: value }, false)
