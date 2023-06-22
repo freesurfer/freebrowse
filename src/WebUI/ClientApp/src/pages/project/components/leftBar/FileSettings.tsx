@@ -1,68 +1,46 @@
 import { Collapse } from '@/components/Collapse';
 import { Slider } from '@/components/Slider';
-import { ProjectContext } from '@/pages/project/ProjectPage';
+import type { ProjectFile } from '@/pages/project/models/ProjectFile';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
-import { useContext } from 'react';
-import Select from 'react-select';
+import { useCallback, type Dispatch } from 'react';
 
 export const FileSettings = ({
 	projectState,
+	setProjectState,
 }: {
 	projectState: ProjectState | undefined;
+	setProjectState: Dispatch<
+		(currentState: ProjectState | undefined) => ProjectState | undefined
+	>;
 }): React.ReactElement => {
-	const { niivueWrapper } = useContext(ProjectContext);
-
-	if (
-		niivueWrapper === undefined ||
-		niivueWrapper.current === undefined ||
-		niivueWrapper.current === null
-	) {
-		return (
-			<div className="w-[16rem] grow-0 border border-gray">
-				<span className="m-4 block text-center text-xs text-font">
-					Niivue is not initialized
-				</span>
-			</div>
-		);
-	}
-
 	const selectedVolumes =
-		projectState?.files.volumes
-			.map((volumeFile) => {
-				if (!volumeFile.isActive) return undefined;
-				const niivueVolume = niivueWrapper.current?.niivue.volumes.find(
-					(niivueVolume) => volumeFile.name === niivueVolume.name
-				);
-				return niivueVolume;
-			})
-			.filter((value) => value !== undefined) ?? [];
+		projectState?.files.volumes.filter((volume) => volume.isActive) ?? [];
 
 	const selectedSurfaces =
-		projectState?.files.surfaces
-			.map((surfaceFile) => {
-				if (!surfaceFile.isActive) return undefined;
-				const niivueSurface = niivueWrapper.current?.niivue.meshes.find(
-					(niivueSurface) => surfaceFile.name === niivueSurface.name
-				);
-				return niivueSurface;
-			})
-			.filter((value) => value !== undefined) ?? [];
+		projectState?.files.surfaces.filter((surface) => surface.isActive) ?? [];
 
 	const selectedFiles = [...selectedVolumes, ...selectedSurfaces];
 
-	const colorMapOptions = niivueWrapper.current.niivue
-		.colormaps()
-		.map((colormap) => {
-			return { value: colormap, label: colormap };
-		});
+	const updateFileOptions = useCallback(
+		<T_FILE_TYPE extends ProjectFile>(
+			file: T_FILE_TYPE,
+			options: Parameters<ProjectState['fromFileUpdate']>[1],
+			upload: boolean
+		) => {
+			setProjectState((currentProjectState) =>
+				currentProjectState?.fromFileUpdate(file, options, upload)
+			);
+		},
+		[setProjectState]
+	);
 
 	return (
 		<Collapse
-			className="mt-1 border-b border-gray text-xs"
+			className="border-b border-gray py-2 text-xs"
 			title={<span className="text-xs font-semibold">File Settings</span>}
 		>
 			{selectedFiles.length === 0 ? (
-				<span className="my-2 ml-1 mr-1 block text-left text-xs text-gray-500">
+				<span className="ml-1 mr-1 mt-2 block text-left text-xs text-gray-500">
 					Select a file to use this section.
 				</span>
 			) : (
@@ -72,28 +50,27 @@ export const FileSettings = ({
 						return (
 							<Collapse
 								key={volume?.name}
-								className="mb-2 mt-1 pl-4 pr-4"
+								className="mt-2 pr-4"
 								title={
 									<span className="grow border-b border-gray text-xs">
 										{volume.name ?? 'No file selected'}
 									</span>
 								}
 							>
-								<div className="mr-4">
+								<div className="mr-4 pl-1">
 									<Slider
-										className="mt-1"
+										className="mt-2"
 										label="Opacity:"
-										defaultValue={volume.opacity * 100}
+										value={volume.opacity}
 										unit="%"
-										onChange={(value) => {
-											niivueWrapper?.current?.niivue.setOpacity(
-												niivueWrapper.current.niivue.getVolumeIndexByID(
-													volume.id
-												),
-												value / 100
-											);
-										}}
+										onChange={(value) =>
+											updateFileOptions(volume, { opacity: value }, false)
+										}
+										onEnd={(value) =>
+											updateFileOptions(volume, { opacity: value }, true)
+										}
 									></Slider>
+									{/*
 									<div className="mb-4 flex items-center">
 										<span className="mr-2 grow">Color Map:</span>
 										<Select
@@ -103,7 +80,7 @@ export const FileSettings = ({
 												singleValue: () => 'text-xs z-1',
 												menu: () => 'text-xs',
 											}}
-											defaultValue={colorMapOptions.find(
+											value={colorMapOptions.find(
 												(colorMapOption) =>
 													colorMapOption.value === volume.colorMap
 											)}
@@ -114,24 +91,29 @@ export const FileSettings = ({
 											}}
 										/>
 									</div>
-									<span>Contrast & Brightness</span>
+									*/}
+									<span className="font-semibold">Contrast & Brightness</span>
 									<Slider
-										className="mt-1"
+										className="mt-2"
 										label="Minimum:"
-										defaultValue={volume.cal_min}
-										onChange={(value) => {
-											volume.cal_min = value;
-											niivueWrapper?.current?.niivue.updateGLVolume();
-										}}
+										value={volume.contrastMin}
+										onChange={(value) =>
+											updateFileOptions(volume, { contrastMin: value }, false)
+										}
+										onEnd={(value) =>
+											updateFileOptions(volume, { contrastMin: value }, true)
+										}
 									></Slider>
 									<Slider
-										className="mt-1"
+										className="mt-2"
 										label="Maximum:"
-										defaultValue={volume.cal_max}
-										onChange={(value) => {
-											volume.cal_max = value;
-											niivueWrapper?.current?.niivue.updateGLVolume();
-										}}
+										value={volume.contrastMax}
+										onChange={(value) =>
+											updateFileOptions(volume, { contrastMax: value }, false)
+										}
+										onEnd={(value) =>
+											updateFileOptions(volume, { contrastMax: value }, true)
+										}
 									></Slider>
 								</div>
 							</Collapse>
@@ -142,31 +124,27 @@ export const FileSettings = ({
 						return (
 							<Collapse
 								key={surface?.name}
-								className="pl-1 pr-4 pt-1"
+								className="mt-1 pr-4"
 								title={
 									<span className="grow border-b border-gray text-xs">
 										{surface.name ?? 'No file selected'}
 									</span>
 								}
 							>
-								<>
+								<div className="mr-4 pl-1">
 									<Slider
-										className="mt-1"
+										className="mt-2"
 										label="Opacity:"
-										defaultValue={surface.opacity * 100}
+										value={surface.opacity}
 										unit="%"
-										onChange={(value) => {
-											niivueWrapper.current?.niivue.setMeshProperty(
-												surface.id,
-												'opacity',
-												value / 100
-											);
-										}}
+										onChange={(value) =>
+											updateFileOptions(surface, { opacity: value }, false)
+										}
 										onEnd={(value) =>
-											console.log('TODO persist new opacity value', value)
+											updateFileOptions(surface, { opacity: value }, true)
 										}
 									></Slider>
-								</>
+								</div>
 							</Collapse>
 						);
 					})}

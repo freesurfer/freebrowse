@@ -1,6 +1,8 @@
+import type { VolumeFile } from '@/pages/project/models/ProjectFile';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { Niivue } from '@niivue/niivue';
-import type { LocationData } from '@niivue/niivue';
+import type { LocationData, NVImage, NVMesh } from '@niivue/niivue';
 
 /**
  * this class is a wrapper for the niivue library reference
@@ -22,10 +24,8 @@ export class NiivueWrapper {
 
 	private hooveredView = 0;
 
-	private readonly loadDataQueue: ProjectFiles[] = [];
-	private loadDataInProgress = false;
-
-	public readonly id = Math.random();
+	private nextState: ProjectState | undefined = undefined;
+	private isRunning = false;
 
 	constructor(
 		canvasRef: HTMLCanvasElement,
@@ -36,73 +36,47 @@ export class NiivueWrapper {
 		void this.niivue.attachToCanvas(canvasRef);
 	}
 
-	public loadDataAsync(files: ProjectFiles | undefined): void {
-		if (files === undefined) return;
-
-		this.loadDataQueue.push(files);
-
-		void this.executeLoadDataQueue();
+	public next(projectState: ProjectState): void {
+		this.nextState = projectState;
+		void this.propagateNextState();
 	}
 
-	private async executeLoadDataQueue(): Promise<void> {
-		if (this.loadDataInProgress) return;
-		this.loadDataInProgress = true;
+	/**
+	 * propagate only the next state to the niivue library
+	 * wait until it has been done
+	 * compute the next state if there has been a new one since then
+	 */
+	private async propagateNextState(): Promise<void> {
+		// stop if running
+		if (this.isRunning) return;
 
-		const files = this.loadDataQueue.shift();
-		if (files !== undefined) {
-			await this.executeLoadDataChunk(files);
-			this.loadDataInProgress = false;
-			await this.executeLoadDataQueue();
-			return;
-		}
+		// stop if there is no next step
+		if (this.nextState === undefined) return;
 
-		this.loadDataInProgress = false;
+		// set lock
+		this.isRunning = true;
+
+		// cache compute state
+		const currentState = this.nextState;
+		this.nextState = undefined;
+
+		await this.propagateState(currentState);
+
+		// clear lock
+		this.isRunning = false;
+
+		// retrigger method
+		await this.propagateNextState();
 	}
 
-	private async executeLoadDataChunk(files: ProjectFiles): Promise<void> {
+	/**
+	 * propagate the given project state to the niivue library
+	 */
+	private async propagateState(projectState: ProjectState): Promise<void> {
+		const files = projectState.files;
+
 		if (!files.isRemovedOrAdded(this.niivue.volumes, this.niivue.meshes)) {
-			/* we need to reverse the order here twice, to change the lowest index first */
-			const volumeFiles = files.volumes
-				.filter((volume) => volume.isChecked)
-				.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
-			// needed to compute order of visible files only
-			let tmpOrder = 0;
-			for (const volumeFile of volumeFiles) {
-				const niivueVolume = this.niivue.volumes.find(
-					(niivueVolume) => volumeFile.name === niivueVolume.name
-				);
-				if (niivueVolume === undefined) {
-					console.error('no volume in niivue - can not happen');
-					return;
-				}
-
-				if (this.niivue.getVolumeIndexByID(niivueVolume.id) === tmpOrder++)
-					continue;
-
-				this.niivue.setVolume(niivueVolume, tmpOrder);
-			}
-
-			/* we need to reverse the order here twice, to change the lowest index first */
-			const surfaceFiles = files.surfaces
-				.filter((surface) => surface.isChecked)
-				.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
-			tmpOrder = 0;
-			for (const surfaceFile of surfaceFiles) {
-				const niivueMesh = this.niivue.meshes.find(
-					(niivueMesh) => surfaceFile.name === niivueMesh.name
-				);
-				if (niivueMesh === undefined) {
-					console.error('no surface in niivue - can not happen');
-					return;
-				}
-
-				if (this.niivue.getMeshIndexByID(niivueMesh.id) === tmpOrder++) {
-					continue;
-				}
-
-				this.niivue.setMesh(niivueMesh, tmpOrder);
-			}
-
+			this.updateFileProperties(files);
 			return;
 		}
 
@@ -123,6 +97,9 @@ export class NiivueWrapper {
 						return {
 							url: file.url,
 							name: file.name,
+							opacity: file.opacity / 100,
+							cal_min: file.contrastMin,
+							cal_max: file.contrastMax,
 						};
 					})
 			);
@@ -135,6 +112,7 @@ export class NiivueWrapper {
 						return {
 							url: file.url,
 							name: file.name,
+							opacity: file.opacity / 100,
 						};
 					})
 			);
@@ -145,6 +123,84 @@ export class NiivueWrapper {
 			// probably we can just ignore that warning
 			console.warn(error);
 		}
+	}
+
+	private updateFileProperties(files: ProjectFiles): void {
+		const volumeFiles = files.volumes
+			.filter((volume) => volume.isChecked)
+			.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
+
+		/**
+		 * needed to compute order of visible files only
+		 */
+		let tmpOrder = 0;
+		for (const volumeFile of volumeFiles) {
+			const niivueVolume = this.niivue.volumes.find(
+				(niivueVolume) => volumeFile.name === niivueVolume.name
+			);
+
+			if (niivueVolume === undefined) {
+				console.warn('no niivue volume for given file', volumeFile.name);
+				continue;
+			}
+
+			this.updateVolumeOrder(niivueVolume, tmpOrder++);
+			this.updateVolumeOpacity(niivueVolume, volumeFile);
+			this.updateVolumeContrast(niivueVolume, volumeFile);
+		}
+
+		const surfaceFiles = files.surfaces
+			.filter((surface) => surface.isChecked)
+			.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
+		tmpOrder = 0;
+		for (const surfaceFile of surfaceFiles) {
+			const niivueMesh = this.niivue.meshes.find(
+				(niivueMesh) => surfaceFile.name === niivueMesh.name
+			);
+
+			if (niivueMesh === undefined) {
+				console.warn('no niivue volume for given file', surfaceFile.name);
+				continue;
+			}
+
+			this.updateSurfaceOrder(niivueMesh, tmpOrder++);
+		}
+	}
+
+	private updateVolumeOrder(niivueVolume: NVImage, order: number): void {
+		if (this.niivue.getVolumeIndexByID(niivueVolume.id) === order) return;
+		this.niivue.setVolume(niivueVolume, order);
+	}
+
+	private updateSurfaceOrder(niivueSurface: NVMesh, order: number): void {
+		if (this.niivue.getMeshIndexByID(niivueSurface.id) === order) return;
+		this.niivue.setMesh(niivueSurface, order);
+	}
+
+	private updateVolumeOpacity(
+		niivueVolume: NVImage,
+		volumeFile: VolumeFile
+	): void {
+		if (niivueVolume.opacity === volumeFile.opacity / 100) return;
+		this.niivue.setOpacity(
+			this.niivue.getVolumeIndexByID(niivueVolume.id),
+			volumeFile.opacity / 100
+		);
+	}
+
+	private updateVolumeContrast(
+		niivueVolume: NVImage,
+		volumeFile: VolumeFile
+	): void {
+		if (
+			niivueVolume.cal_min === volumeFile.contrastMin &&
+			niivueVolume.cal_max === volumeFile.contrastMax
+		)
+			return;
+
+		niivueVolume.cal_min = volumeFile.contrastMin;
+		niivueVolume.cal_max = volumeFile.contrastMax;
+		this.niivue.updateGLVolume();
 	}
 
 	public handleKeyDown = (event: KeyboardEvent): void => {
