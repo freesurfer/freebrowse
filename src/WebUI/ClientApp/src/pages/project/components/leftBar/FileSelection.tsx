@@ -1,4 +1,6 @@
+import { AddFileButton } from '@/components/AddFileButton';
 import { Button } from '@/components/Button';
+import { Select } from '@/components/Select';
 import type { ReactElement } from 'react';
 
 /**
@@ -15,15 +17,23 @@ export const FileSelection = ({
 		<div className={`flex flex-col gap-1 ${className ?? ''}`}>
 			<div className="flex items-center gap-1">
 				<span className="grow">{title}</span>
-				<select className="h-6 max-w-[8.5em] grow-[999] rounded-[0.25rem] border">
-					<option value="1">Test 1</option>
-					<option value="2">Test 2</option>
-				</select>
-				<Button icon="plus"></Button>
+				<Select></Select>
+				<AddFileButton
+					acceptedExtensions={['.thickness', '.curv']}
+					onFileSelected={(file) => alert(file.name)}
+				></AddFileButton>
 			</div>
 			<div className="flex justify-between">
-				<Button icon="settings" title="Configure"></Button>
-				<Button icon="remove" title="Remove"></Button>
+				<Button
+					icon="settings"
+					title="Configure"
+					onClick={() => console.log('open overlay settings')}
+				></Button>
+				<Button
+					icon="remove"
+					title="Remove"
+					onClick={() => alert('remove')}
+				></Button>
 			</div>
 		</div>
 	);

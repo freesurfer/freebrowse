@@ -1,8 +1,4 @@
-import {
-	Cog8ToothIcon,
-	PlusIcon,
-	XMarkIcon,
-} from '@heroicons/react/24/outline';
+import { Cog8ToothIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import type { ReactElement } from 'react';
 
 const ICON_SIZE = 1;
@@ -10,16 +6,16 @@ const ICON_SIZE = 1;
 export const Button = ({
 	icon,
 	title,
+	onClick,
 }: {
-	icon: 'plus' | 'settings' | 'remove';
+	icon: 'settings' | 'remove';
 	title?: string;
+	onClick: () => void;
 }): ReactElement => {
 	const iconStyle = { width: `${ICON_SIZE}rem`, height: `${ICON_SIZE}rem` };
 
 	const iconChooser = (): ReactElement => {
 		switch (icon) {
-			case 'plus':
-				return <PlusIcon style={iconStyle}></PlusIcon>;
 			case 'settings':
 				return <Cog8ToothIcon style={iconStyle}></Cog8ToothIcon>;
 			case 'remove':
@@ -34,7 +30,10 @@ export const Button = ({
 	};
 
 	return (
-		<button className="flex rounded-[0.25rem] border border-blue-light p-0.5 text-blue-light">
+		<button
+			onClick={onClick}
+			className="flex rounded-[0.25rem] border border-blue-light p-0.5 text-blue-light"
+		>
 			{iconChooser()}
 			{titleChooser()}
 		</button>

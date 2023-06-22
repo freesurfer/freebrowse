@@ -37,3 +37,21 @@ We decided to use tailwind (instead of bootstrap) because its:
 - more flexible and smaller
 - recommend for webapps (while bootstrap has its advantages on websites)
 - we have designers, so we need to build our own themes anyway
+
+## Select Component
+
+To find a proper select element to save some time seems not that easy.
+
+- The Material-ui from Mui Select
+  - Seem to be nearest to what we try to achieve
+  - BUT that would be the only place, we would use this huge library right now
+  - Also i have not tried to style it accordingly yet
+
+- React-Select npm package
+  - It seems to be unnecessary hard to style the height already to the needed amount
+
+- HTML5 select
+  - it seems not to be possible to style the options, since they are browser dependent and native
+
+- own implementation
+  - most maintenance effort but also most flexible
