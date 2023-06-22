@@ -1,8 +1,8 @@
 import { Collapse } from '@/components/Collapse';
 import { Slider } from '@/components/Slider';
 import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
-import type { ProjectFile } from '@/pages/project/models/ProjectFile';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
 import { useCallback, type Dispatch } from 'react';
 
 export const FileSettings = ({
@@ -148,6 +148,8 @@ export const FileSettings = ({
 									<FileSelection
 										title="Overlay:"
 										className="mt-4"
+										setProjectState={setProjectState}
+										surface={surface}
 									></FileSelection>
 								</div>
 							</Collapse>

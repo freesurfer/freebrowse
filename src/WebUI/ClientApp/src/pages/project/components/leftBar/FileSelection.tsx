@@ -1,7 +1,9 @@
 import { AddFileButton } from '@/components/AddFileButton';
 import { Button } from '@/components/Button';
 import { Select } from '@/components/Select';
-import type { ReactElement } from 'react';
+import type { ProjectState } from '@/pages/project/models/ProjectState';
+import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
+import type { Dispatch, ReactElement } from 'react';
 
 /**
  * component for choosing a file to upload and choose from the already uploaded files
@@ -9,9 +11,15 @@ import type { ReactElement } from 'react';
 export const FileSelection = ({
 	title,
 	className,
+	setProjectState,
+	surface,
 }: {
 	title: string;
 	className?: string;
+	setProjectState: Dispatch<
+		(currentState: ProjectState | undefined) => ProjectState | undefined
+	>;
+	surface: SurfaceFile;
 }): ReactElement => {
 	return (
 		<div className={`flex flex-col gap-1 ${className ?? ''}`}>
@@ -20,7 +28,13 @@ export const FileSelection = ({
 				<Select></Select>
 				<AddFileButton
 					acceptedExtensions={['.thickness', '.curv']}
-					onFileSelected={(file) => alert(file.name)}
+					onFileSelected={(file) =>
+						setProjectState((projectState) =>
+							projectState?.fromFiles(
+								projectState.files.fromAddedLocalSurfaceOverlay(surface, file)
+							)
+						)
+					}
 				></AddFileButton>
 			</div>
 			<div className="flex justify-between">

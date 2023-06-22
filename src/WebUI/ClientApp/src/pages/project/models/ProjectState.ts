@@ -1,7 +1,7 @@
 import type { GetProjectDto } from '@/generated/web-api-client';
-import { FileType } from '@/pages/project/models/ProjectFile';
-import type { ProjectFile } from '@/pages/project/models/ProjectFile';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
+import { FileType } from '@/pages/project/models/file/ProjectFile';
 
 /**
  * class to uncouple backend dto from data used from ui

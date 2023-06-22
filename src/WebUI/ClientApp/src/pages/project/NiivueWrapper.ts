@@ -1,6 +1,6 @@
-import type { VolumeFile } from '@/pages/project/models/ProjectFile';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
 import { Niivue } from '@niivue/niivue';
 import type { LocationData, NVImage, NVMesh } from '@niivue/niivue';
 
@@ -83,7 +83,13 @@ export class NiivueWrapper {
 			return;
 		}
 
-		if (this.isRemovedOrAdded(files)) {
+		if (
+			NiivueWrapper.isRemovedOrAdded(
+				files,
+				this.niivue.volumes,
+				this.niivue.meshes
+			)
+		) {
 			// if there are files added or remove
 			// we need to remove or add files
 			await this.addOrRemoveFiles(files);
@@ -240,8 +246,12 @@ export class NiivueWrapper {
 	 * if files has been added or removed (by names)
 	 * the niivue files need only to get updated, if the state has changed
 	 */
-	isRemovedOrAdded(files: ProjectFiles): boolean {
-		for (const niivueVolume of this.niivue.volumes) {
+	static isRemovedOrAdded(
+		files: ProjectFiles,
+		niivueVolumes: NVImage[],
+		niivueSurfaces: NVMesh[]
+	): boolean {
+		for (const niivueVolume of niivueVolumes) {
 			if (
 				files.cloudVolumes.find(
 					(cloudVolume) =>
@@ -254,14 +264,14 @@ export class NiivueWrapper {
 		for (const cloudVolume of files.volumes) {
 			if (!cloudVolume.isChecked) continue;
 			if (
-				this.niivue.volumes.find(
+				niivueVolumes.find(
 					(niivueVolume) => niivueVolume.name === cloudVolume.name
 				) === undefined
 			)
 				return true;
 		}
 
-		for (const niivueSurface of this.niivue.meshes) {
+		for (const niivueSurface of niivueSurfaces) {
 			if (
 				files.cloudSurfaces.find(
 					(cloudSurface) =>
@@ -274,7 +284,7 @@ export class NiivueWrapper {
 		for (const cloudSurface of files.cloudSurfaces) {
 			if (!cloudSurface.isChecked) continue;
 			if (
-				this.niivue.meshes.find(
+				niivueSurfaces.find(
 					(niivueSurface) => niivueSurface.name === cloudSurface.name
 				) === undefined
 			)

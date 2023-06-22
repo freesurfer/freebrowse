@@ -11,14 +11,12 @@ import {
 } from '@/generated/web-api-client';
 import { useProjectDialogState } from '@/pages/project/dialogs/openProject/hooks/useProjectDialogState';
 import { MyComputerDialogTab } from '@/pages/project/dialogs/openProject/tabs/my-computer/MyComputerDialogTab';
-import {
-	CloudSurfaceFile,
-	CloudVolumeFile,
-	LocalSurfaceFile,
-	LocalVolumeFile,
-} from '@/pages/project/models/ProjectFile';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
+import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
+import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
+import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
 import { getApiUrl } from '@/utils';
 import { ArrowUpTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { createContext } from 'react';

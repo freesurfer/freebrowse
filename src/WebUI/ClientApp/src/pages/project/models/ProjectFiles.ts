@@ -7,18 +7,17 @@ import type {
 	CreateProjectVolumeDto,
 	GetProjectSurfaceDto,
 } from '@/generated/web-api-client';
+import { CloudFile } from '@/pages/project/models/file/CloudFile';
+import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
+import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
+import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
+import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
 import {
-	LocalFile,
-	CloudSurfaceFile,
-	CloudVolumeFile,
-	LocalSurfaceFile,
-	LocalVolumeFile,
-} from '@/pages/project/models/ProjectFile';
-import type {
-	ProjectFile,
-	SurfaceFile,
-	VolumeFile,
-} from '@/pages/project/models/ProjectFile';
+	FileType,
+	type ProjectFile,
+} from '@/pages/project/models/file/ProjectFile';
+import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
+import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
 
 /**
  * mutable instance keeps the state of the project files
@@ -27,8 +26,6 @@ import type {
  * - the once the user opened from the drive, which need to get uploaded
  */
 export class ProjectFiles {
-	public id = Math.random();
-
 	private readonly localSurfaces: readonly LocalSurfaceFile[];
 	private readonly localVolumes: readonly LocalVolumeFile[];
 	public readonly cloudSurfaces: readonly CloudSurfaceFile[];
@@ -222,6 +219,19 @@ export class ProjectFiles {
 	}
 
 	/**
+	 * factory method to create the correct class instance according to the file extension
+	 */
+	static fromFile(file: File): LocalVolumeFile | LocalSurfaceFile | undefined {
+		switch (CloudFile.typeFromFileExtension(file.name)) {
+			case FileType.VOLUME:
+				return new LocalVolumeFile(file);
+			case FileType.SURFACE:
+				return new LocalSurfaceFile(file);
+		}
+		return undefined;
+	}
+
+	/**
 	 * for drop zone
 	 * add list of added local files to the localFile list
 	 */
@@ -231,7 +241,13 @@ export class ProjectFiles {
 				// do not add if file name exists already
 				if (this.all.find((file) => file.name === newFile.name) !== undefined)
 					return undefined;
-				return LocalFile.fromFile(newFile);
+				switch (CloudFile.typeFromFileExtension(newFile.name)) {
+					case FileType.VOLUME:
+						return new LocalVolumeFile(newFile);
+					case FileType.SURFACE:
+						return new LocalSurfaceFile(newFile);
+				}
+				return undefined;
 			})
 			.filter(
 				(file): file is LocalSurfaceFile | LocalVolumeFile => file !== undefined
@@ -410,6 +426,44 @@ export class ProjectFiles {
 			surfaces: this.surfaces,
 			volumes,
 			all: [...this.surfaces, ...volumes],
+		});
+	}
+
+	/**
+	 * method to add a new local file as overlay to the given surface
+	 */
+	public fromAddedLocalSurfaceOverlay(
+		surface: SurfaceFile,
+		file: File
+	): ProjectFiles {
+		const isLocal = surface instanceof LocalSurfaceFile;
+		const localSurfaces = isLocal
+			? this.localSurfaces.map((localSurface) =>
+					localSurface === surface
+						? localSurface.fromAddedOverlay(file)
+						: localSurface
+			  )
+			: this.localSurfaces;
+
+		const isCloud = surface instanceof CloudSurfaceFile;
+		const cloudSurfaces = isCloud
+			? this.cloudSurfaces.map((localSurface) =>
+					localSurface === surface
+						? localSurface.fromAddedOverlay(file)
+						: localSurface
+			  )
+			: this.cloudSurfaces;
+
+		const surfaces = [...localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces,
+			cloudSurfaces,
+			localVolumes: this.localVolumes,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
 		});
 	}
 

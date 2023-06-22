@@ -1,5 +1,5 @@
 import { Checkbox } from '@/components/Checkbox';
-import type { ProjectFile } from '@/pages/project/models/ProjectFile';
+import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
 import { ArrowsUpDownIcon } from '@heroicons/react/24/outline';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
