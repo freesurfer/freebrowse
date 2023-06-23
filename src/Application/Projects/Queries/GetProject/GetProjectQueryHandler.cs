@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using FreeBrowse.Application.Common.Exceptions;
 using FreeBrowse.Application.Common.Interfaces;
 using FreeBrowse.Domain.Entities;
@@ -20,17 +21,19 @@ public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, GetProjec
 
 	public async Task<GetProjectDto> Handle(GetProjectQuery request, CancellationToken cancellationToken)
 	{
-		var project = await this.context.Projects
+		var projectDto = await this.context.Projects
 			.Include(s => s.Volumes)
 			.Include(s => s.Surfaces)
+				.ThenInclude(s => s.Overlays)
+			.Include(s => s.Surfaces)
+				.ThenInclude(s => s.Annotations)
+			.ProjectTo<GetProjectDto>(this.mapper.ConfigurationProvider)
 			.FirstOrDefaultAsync(s => s.Id == request.Id);
 
-		if (project == null)
+		if (projectDto == null)
 		{
 			throw new NotFoundException(nameof(Project), request.Id);
 		}
-
-		var projectDto = this.mapper.Map<GetProjectDto>(project);
 
 		foreach (var volumeDto in projectDto.Volumes)
 		{

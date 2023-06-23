@@ -40,8 +40,10 @@ public class CreateOverlaysCommandHandler : IRequestHandler<CreateOverlaysComman
 					Path = filePath,
 					FileName = o.FileName,
 					Color = o.Color,
+					ColorMap = o.ColorMap,
 					Opacity = o.Opacity,
 					Visible = o.Visible,
+					Selected = o.Selected,
 					SurfaceId = request.SurfaceId
 				};
 

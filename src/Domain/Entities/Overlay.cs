@@ -8,9 +8,13 @@ public class Overlay : BaseAuditableEntity
 
 	public string? Color { get; set; }
 
+	public string? ColorMap { get; set; }
+
 	public int Opacity { get; set; }
 
 	public bool Visible { get; set; }
+
+	public bool Selected { get; set; }
 
 	public int SurfaceId { get; set; }
 

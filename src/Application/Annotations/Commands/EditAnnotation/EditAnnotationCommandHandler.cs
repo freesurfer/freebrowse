@@ -33,8 +33,10 @@ public class EditAnnotationCommandHandler : IRequestHandler<EditAnnotationComman
 		}
 
 		annotation.Color = request.Color ?? annotation.Color;
+		annotation.ColorMap = request.ColorMap ?? annotation.ColorMap;
 		annotation.Opacity = request.Opacity ?? annotation.Opacity;
 		annotation.Visible = request.Visible ?? annotation.Visible;
+		annotation.Selected = request.Selected ?? annotation.Selected;
 
 		try
 		{
