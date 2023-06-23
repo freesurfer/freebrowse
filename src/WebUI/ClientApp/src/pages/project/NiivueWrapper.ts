@@ -1,8 +1,15 @@
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
+import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
 import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
 import { Niivue } from '@niivue/niivue';
-import type { LocationData, NVImage, NVMesh } from '@niivue/niivue';
+import type {
+	LocationData,
+	NVImage,
+	NVMesh,
+	NVMeshFromUrlOptions,
+} from '@niivue/niivue';
 
 /**
  * this class is a wrapper for the niivue library reference
@@ -224,11 +231,19 @@ export class NiivueWrapper {
 				files.cloudSurfaces
 					.filter((file) => file.isChecked)
 					.sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
-					.map((file) => {
+					.map((file): NVMeshFromUrlOptions => {
 						return {
 							url: file.url,
 							name: file.name,
 							opacity: file.opacity / 100,
+							layers:
+								file.overlayFile instanceof CloudOverlayFile
+									? [
+											{
+												url: file.overlayFile?.url,
+											},
+									  ]
+									: [],
 						};
 					})
 			);
@@ -346,16 +361,17 @@ export class NiivueWrapper {
 			.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
 		tmpOrder = 0;
 		for (const surfaceFile of surfaceFiles) {
-			const niivueMesh = this.niivue.meshes.find(
+			const niivueSurface = this.niivue.meshes.find(
 				(niivueMesh) => surfaceFile.name === niivueMesh.name
 			);
 
-			if (niivueMesh === undefined) {
+			if (niivueSurface === undefined) {
 				console.warn('no niivue volume for given file', surfaceFile.name);
 				continue;
 			}
 
-			this.updateSurfaceOrder(niivueMesh, tmpOrder++);
+			this.updateSurfaceOrder(niivueSurface, tmpOrder++);
+			this.updateSurfaceOverlay(surfaceFile, niivueSurface);
 		}
 	}
 
@@ -367,6 +383,16 @@ export class NiivueWrapper {
 	private updateSurfaceOrder(niivueSurface: NVMesh, order: number): void {
 		if (this.niivue.getMeshIndexByID(niivueSurface.id) === order) return;
 		this.niivue.setMesh(niivueSurface, order);
+	}
+
+	// BERE todo - implement surface overlay update here
+	// eslint-disable-next-line class-methods-use-this
+	private updateSurfaceOverlay(
+		surfaceFile: SurfaceFile,
+		niivueSurface: NVMesh
+	): void {
+		// TODO bere update overlays
+		// niivueSurface.layers[0] = niivue.
 	}
 
 	private updateVolumeOpacity(

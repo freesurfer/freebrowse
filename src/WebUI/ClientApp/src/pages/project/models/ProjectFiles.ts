@@ -3,8 +3,6 @@ import type {
 	CreateSurfaceResponseDto,
 	GetProjectDto,
 	GetProjectVolumeDto,
-	CreateProjectSurfaceDto,
-	CreateProjectVolumeDto,
 	GetProjectSurfaceDto,
 } from '@/generated/web-api-client';
 import { CloudFile } from '@/pages/project/models/file/CloudFile';
@@ -26,8 +24,8 @@ import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
  * - the once the user opened from the drive, which need to get uploaded
  */
 export class ProjectFiles {
-	private readonly localSurfaces: readonly LocalSurfaceFile[];
-	private readonly localVolumes: readonly LocalVolumeFile[];
+	public readonly localSurfaces: readonly LocalSurfaceFile[];
+	public readonly localVolumes: readonly LocalVolumeFile[];
 	public readonly cloudSurfaces: readonly CloudSurfaceFile[];
 	public readonly cloudVolumes: readonly CloudVolumeFile[];
 
@@ -465,22 +463,6 @@ export class ProjectFiles {
 			volumes: this.volumes,
 			all: [...surfaces, ...this.volumes],
 		});
-	}
-
-	public async getLocalVolumesToUpload(): Promise<CreateProjectVolumeDto[]> {
-		return await Promise.all(
-			this.localVolumes.map(
-				async (file) => await file.toCreateProjectVolumeDto()
-			)
-		);
-	}
-
-	public async getLocalSurfacesToUpload(): Promise<CreateProjectSurfaceDto[]> {
-		return await Promise.all(
-			this.localSurfaces.map(
-				async (file) => await file.toCreateProjectSurfaceDto()
-			)
-		);
 	}
 
 	private static cloudFileFromVolumeDto(

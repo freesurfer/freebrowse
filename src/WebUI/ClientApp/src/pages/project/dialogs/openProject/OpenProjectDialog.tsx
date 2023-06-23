@@ -1,14 +1,7 @@
 import { Tabs } from '@/components/Tabs';
-import {
-	CreateSurfacesCommand,
-	CreateVolumesCommand,
-	DeleteSurfaceCommand,
-	DeleteVolumeCommand,
-	SurfaceClient,
-	VolumeClient,
-	CreateProjectCommand,
-	ProjectsClient,
-} from '@/generated/web-api-client';
+import { useApiProject } from '@/hooks/useApiProject';
+import { useApiSurface } from '@/hooks/useApiSurface';
+import { useApiVolume } from '@/hooks/useApiVolume';
 import { useProjectDialogState } from '@/pages/project/dialogs/openProject/hooks/useProjectDialogState';
 import { MyComputerDialogTab } from '@/pages/project/dialogs/openProject/tabs/my-computer/MyComputerDialogTab';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
@@ -17,9 +10,8 @@ import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
 import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
-import { getApiUrl } from '@/utils';
 import { ArrowUpTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { createContext } from 'react';
+import { createContext, useCallback } from 'react';
 import Modal from 'react-modal';
 
 export type ResolveCreateProjectDialogResult =
@@ -96,7 +88,11 @@ export const OpenProjectDialog = ({
 		reject,
 	} = useProjectDialogState();
 
-	const onOpenClick = async (): Promise<void> => {
+	const apiProject = useApiProject();
+	const apiVolume = useApiVolume();
+	const apiSurface = useApiSurface();
+
+	const onOpenClick = useCallback(async (): Promise<void> => {
 		if (
 			projectFiles === undefined ||
 			resolve === undefined ||
@@ -107,24 +103,8 @@ export const OpenProjectDialog = ({
 		}
 
 		const createProjectInBackend = async (): Promise<void> => {
-			const projectClient = new ProjectsClient(getApiUrl());
-
 			try {
-				const createProjectResponse = await projectClient.create(
-					new CreateProjectCommand({
-						name: projectName,
-						volumes: await projectFiles.getLocalVolumesToUpload(),
-						surfaces: await projectFiles.getLocalSurfacesToUpload(),
-					})
-				);
-
-				if (createProjectResponse.id === undefined)
-					throw new Error('no project id received from backend');
-
-				resolve({
-					projectId: createProjectResponse.id,
-					projectFiles,
-				});
+				resolve(await apiProject.create(projectName, projectFiles));
 			} catch (error) {
 				console.error('something went wrong', error);
 				reject('UNKNOWN_ERROR');
@@ -138,8 +118,6 @@ export const OpenProjectDialog = ({
 			}
 
 			let temporaryProjectFiles = projectFiles;
-			const surfaceClient = new SurfaceClient(getApiUrl());
-			const volumeClient = new VolumeClient(getApiUrl());
 
 			const deletedSurfaces =
 				projectState.files.surfaces?.filter(
@@ -148,15 +126,9 @@ export const OpenProjectDialog = ({
 							(tmpFile) => tmpFile.name === backendFile.name
 						) === undefined
 				) ?? [];
-			for (const deletedSurface of deletedSurfaces) {
-				if (deletedSurface instanceof CloudSurfaceFile) {
-					await surfaceClient.delete(
-						new DeleteSurfaceCommand({ id: deletedSurface.id })
-					);
-				} else if (deletedSurface instanceof LocalSurfaceFile) {
-					continue;
-				} else throw new Error('should not happen');
-			}
+			for (const deletedSurface of deletedSurfaces)
+				if (deletedSurface instanceof CloudSurfaceFile)
+					await apiSurface.remove(deletedSurface);
 
 			const addedSurfaces = temporaryProjectFiles.surfaces.filter(
 				(tmpFile) =>
@@ -178,19 +150,9 @@ export const OpenProjectDialog = ({
 				(file): file is LocalSurfaceFile => file instanceof LocalSurfaceFile
 			);
 			if (addedLocalSurfaceFiles.length > 0) {
-				const response = await surfaceClient.create(
-					new CreateSurfacesCommand({
-						projectId: projectState.id,
-						surfaces: await Promise.all(
-							addedLocalSurfaceFiles.map(
-								async (addedSurfaceFile) =>
-									await addedSurfaceFile.toCreateSurfaceDto()
-							)
-						),
-					})
+				temporaryProjectFiles = temporaryProjectFiles.fromUploadedSurfaces(
+					await apiSurface.create(projectState.id, addedLocalSurfaceFiles)
 				);
-				temporaryProjectFiles =
-					temporaryProjectFiles.fromUploadedSurfaces(response);
 			}
 
 			const deletedVolumes =
@@ -200,15 +162,9 @@ export const OpenProjectDialog = ({
 							(tmpFile) => tmpFile.name === backendFile.name
 						) === undefined
 				) ?? [];
-			for (const deletedVolume of deletedVolumes) {
-				if (deletedVolume instanceof CloudVolumeFile) {
-					await volumeClient.delete(
-						new DeleteVolumeCommand({ id: deletedVolume.id })
-					);
-				} else if (deletedVolume instanceof LocalVolumeFile) {
-					continue;
-				} else throw new Error('should not happen');
-			}
+			for (const deletedVolume of deletedVolumes)
+				if (deletedVolume instanceof CloudVolumeFile)
+					await apiVolume.remove(deletedVolume);
 
 			const addedVolumes = projectFiles.volumes.filter(
 				(tmpFile) =>
@@ -229,19 +185,9 @@ export const OpenProjectDialog = ({
 				(file): file is LocalVolumeFile => file instanceof LocalVolumeFile
 			);
 			if (addedLocalVolumeFiles.length > 0) {
-				const response = await volumeClient.create(
-					new CreateVolumesCommand({
-						projectId: projectState.id,
-						volumes: await Promise.all(
-							addedLocalVolumeFiles.map(
-								async (addedVolumeFile) =>
-									await addedVolumeFile.toCreateVolumeDto()
-							)
-						),
-					})
+				temporaryProjectFiles = temporaryProjectFiles.fromUploadedVolumes(
+					await apiVolume.create(projectState.id, addedLocalVolumeFiles)
 				);
-				temporaryProjectFiles =
-					temporaryProjectFiles.fromUploadedVolumes(response);
 			}
 
 			setProjectFiles?.(temporaryProjectFiles);
@@ -257,7 +203,17 @@ export const OpenProjectDialog = ({
 		}
 
 		await updateProjectInBackend();
-	};
+	}, [
+		apiVolume,
+		apiProject,
+		apiSurface,
+		projectFiles,
+		projectName,
+		projectState,
+		reject,
+		resolve,
+		setProjectFiles,
+	]);
 
 	return (
 		<>

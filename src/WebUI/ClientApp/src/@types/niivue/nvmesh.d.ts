@@ -15,12 +15,12 @@ declare module '@niivue/niivue' {
 	 */
 	export interface NVMeshLayer {
 		url: string;
-		opacity: number;
-		colorMap: string;
-		colorMapNegative: string;
-		useNegativeCmap: boolean;
-		cal_min: number;
-		cal_max: number;
+		opacity?: number;
+		colorMap?: string;
+		colorMapNegative?: string;
+		useNegativeCmap?: boolean;
+		cal_min?: number;
+		cal_max?: number;
 	}
 	/**
 	 * @typedef {Object} NVMeshFromUrlOptions
@@ -32,63 +32,15 @@ declare module '@niivue/niivue' {
 	 * @property {boolean} visible
 	 * @property {NVMeshLayer[]} layers
 	 */
-	/**
-	 *
-	 * @constructor
-	 * @param {string} url - url mesh will be loaded from
-	 * @param {WebGL2RenderingContext} gl
-	 * @param {string} name
-	 * @param {number} opacity
-	 * @param {number[]} rgba255
-	 * @param {boolean} visible
-	 * @param {NVMeshLayer[]} layers
-	 * @returns {NVMeshFromUrlOptions}
-	 *
-	 */
-	export class NVMeshFromUrlOptions {
-		/**
-		 * @typedef {Object} NVMeshLayer
-		 * @property {string} url
-		 * @property {number} opacity
-		 * @property {string} colorMap
-		 * @property {string} colorMapNegative
-		 * @property {boolean} useNegativeCmap
-		 * @property {number} cal_min
-		 * @property {number} cal_max
-		 */
-		/**
-		 * @typedef {Object} NVMeshFromUrlOptions
-		 * @property {string} url
-		 * @property {WebGL2RenderingContext} gl
-		 * @property {string} name
-		 * @property {number} opacity
-		 * @property {number[]} rgba255
-		 * @property {boolean} visible
-		 * @property {NVMeshLayer[]} layers
-		 */
-		/**
-		 *
-		 * @constructor
-		 * @param {string} url - url mesh will be loaded from
-		 * @param {WebGL2RenderingContext} gl
-		 * @param {string} name
-		 * @param {number} opacity
-		 * @param {number[]} rgba255
-		 * @param {boolean} visible
-		 * @param {NVMeshLayer[]} layers
-		 * @returns {NVMeshFromUrlOptions}
-		 *
-		 */
-		constructor(
-			url?: string,
-			gl?: WebGL2RenderingContext,
-			name?: string,
-			opacity?: number,
-			rgba255?: number[],
-			visible?: boolean,
-			layers?: NVMeshLayer[],
-			colorbarVisible?: boolean
-		);
+	export interface NVMeshFromUrlOptions {
+		url: string;
+		gl?: WebGL2RenderingContext;
+		name?: string;
+		opacity?: number;
+		rgba255?: number[];
+		visible?: boolean;
+		layers?: NVMeshLayer[];
+		colorbarVisible?: boolean;
 	}
 	/**
 	 * @class NVMesh
@@ -156,7 +108,7 @@ declare module '@niivue/niivue' {
 		offsetPt0: any;
 		hasConnectome: any;
 		pts: any;
-		layers: any;
+		layers: NVMeshLayer[];
 		fiberLength: any;
 		fiberDither: any;
 		fiberColor: any;

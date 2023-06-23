@@ -1,7 +1,3 @@
-import {
-	CreateProjectSurfaceDto,
-	CreateSurfaceDto,
-} from '@/generated/web-api-client';
 import { LocalFile } from '@/pages/project/models/file/LocalFile';
 import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
 import type { OverlayFile } from '@/pages/project/models/file/OverlayFile';
@@ -22,29 +18,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 		super(file, isActive, isChecked, order, opacity);
 	}
 
-	async toCreateProjectSurfaceDto(): Promise<CreateProjectSurfaceDto> {
-		return new CreateProjectSurfaceDto({
-			base64: await this.getBase64(),
-			fileName: this.name,
-			visible: this.isChecked,
-			order: this.order,
-			color: undefined,
-			opacity: this.opacity,
-		});
-	}
-
-	async toCreateSurfaceDto(): Promise<CreateSurfaceDto> {
-		return new CreateSurfaceDto({
-			base64: await this.getBase64(),
-			fileName: this.name,
-			visible: this.isChecked,
-			order: this.order,
-			color: undefined,
-			opacity: this.opacity,
-		});
-	}
-
-	public from(options: {
+	from(options: {
 		order?: number;
 		isActive?: boolean;
 		isChecked?: boolean;
