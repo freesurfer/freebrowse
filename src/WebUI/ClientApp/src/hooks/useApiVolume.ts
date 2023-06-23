@@ -51,25 +51,43 @@ export const useApiVolume = (): {
 	};
 
 	const edit = async (
-		nextCloudVolumes: readonly CloudVolumeFile[],
+		currentCloudVolumes: readonly CloudVolumeFile[],
 		previousCloudVolumes: readonly CloudVolumeFile[] | undefined
 	): Promise<void> => {
-		for (const cloudVolume of nextCloudVolumes) {
+		const hasChanged = (
+			current: CloudVolumeFile,
+			previous: CloudVolumeFile | undefined
+		): boolean => {
+			if (previous === undefined) return true;
+			if (previous === current) return false;
 			if (
-				previousCloudVolumes?.find(
-					(lastVolumeFile) => lastVolumeFile === cloudVolume
-				) !== undefined
+				previous.id === current.id &&
+				previous.order === current.order &&
+				previous.contrastMin === current.contrastMin &&
+				previous.contrastMax === current.contrastMax &&
+				previous.opacity === current.opacity &&
+				previous.isChecked === current.isChecked
 			)
-				continue;
+				return false;
+			return true;
+		};
+
+		for (const currentCloudVolume of currentCloudVolumes) {
+			const previousCloudVolume = previousCloudVolumes?.find(
+				(previousCloudVolume) =>
+					previousCloudVolume.id === currentCloudVolume.id
+			);
+
+			if (!hasChanged(currentCloudVolume, previousCloudVolume)) continue;
 
 			await client.current.edit(
 				new EditVolumeCommand({
-					id: cloudVolume.id,
-					order: cloudVolume.order,
-					contrastMin: cloudVolume.contrastMin,
-					contrastMax: cloudVolume.contrastMax,
-					opacity: cloudVolume.opacity,
-					visible: cloudVolume.isChecked,
+					id: currentCloudVolume.id,
+					order: currentCloudVolume.order,
+					contrastMin: currentCloudVolume.contrastMin,
+					contrastMax: currentCloudVolume.contrastMax,
+					opacity: currentCloudVolume.opacity,
+					visible: currentCloudVolume.isChecked,
 				})
 			);
 		}

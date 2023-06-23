@@ -52,23 +52,39 @@ export const useApiSurface = (): {
 	};
 
 	const edit = async (
-		nextCloudSurfaces: readonly CloudSurfaceFile[],
+		currentCloudSurfaces: readonly CloudSurfaceFile[],
 		previousCloudSurfaces: readonly CloudSurfaceFile[] | undefined
 	): Promise<void> => {
-		for (const cloudSurface of nextCloudSurfaces) {
+		const hasChanged = (
+			current: CloudSurfaceFile,
+			previous: CloudSurfaceFile | undefined
+		): boolean => {
+			if (previous === undefined) return true;
+			if (previous === current) return false;
 			if (
-				previousCloudSurfaces?.find(
-					(lastSurfaceFile) => lastSurfaceFile === cloudSurface
-				) !== undefined
+				previous.id === current.id &&
+				previous.order === current.order &&
+				previous.opacity === current.opacity &&
+				previous.isChecked === current.isChecked
 			)
-				continue;
+				return false;
+			return true;
+		};
+
+		for (const currentCloudSurface of currentCloudSurfaces) {
+			const previousCloudSurface = previousCloudSurfaces?.find(
+				(previousCloudSurface) =>
+					previousCloudSurface.id === currentCloudSurface.id
+			);
+
+			if (!hasChanged(currentCloudSurface, previousCloudSurface)) continue;
 
 			await client.current.edit(
 				new EditSurfaceCommand({
-					id: cloudSurface.id,
-					order: cloudSurface.order,
-					opacity: cloudSurface.opacity,
-					visible: cloudSurface.isChecked,
+					id: currentCloudSurface.id,
+					order: currentCloudSurface.order,
+					opacity: currentCloudSurface.opacity,
+					visible: currentCloudSurface.isChecked,
 				})
 			);
 		}
