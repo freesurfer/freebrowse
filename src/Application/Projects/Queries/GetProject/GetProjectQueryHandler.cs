@@ -11,11 +11,13 @@ namespace FreeBrowse.Application.Projects.Queries.GetProject;
 public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, GetProjectDto>
 {
 	private readonly IApplicationDbContext context;
+	private readonly IFileStorage fileStorage;
 	private readonly IMapper mapper;
 
-	public GetProjectQueryHandler(IApplicationDbContext context, IMapper mapper)
+	public GetProjectQueryHandler(IApplicationDbContext context, IFileStorage fileStorage, IMapper mapper)
 	{
 		this.context = context;
+		this.fileStorage = fileStorage;
 		this.mapper = mapper;
 	}
 
@@ -37,24 +39,24 @@ public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, GetProjec
 
 		foreach (var volumeDto in projectDto.Volumes)
 		{
-			volumeDto.FileSize = this.CalculateFileSize(volumeDto.Path);
+			volumeDto.FileSize = await this.fileStorage.GetFileSizeAsync(volumeDto.Path);
 		}
 
 		foreach (var surfaceDto in projectDto.Surfaces)
 		{
-			surfaceDto.FileSize = this.CalculateFileSize(surfaceDto.Path);
+			surfaceDto.FileSize = await this.fileStorage.GetFileSizeAsync(surfaceDto.Path);
+
+			foreach (var overlayDto in surfaceDto.Overlays)
+			{
+				overlayDto.FileSize = await this.fileStorage.GetFileSizeAsync(overlayDto.Path);
+			}
+
+			foreach (var annotationDto in surfaceDto.Annotations)
+			{
+				annotationDto.FileSize = await this.fileStorage.GetFileSizeAsync(annotationDto.Path);
+			}
 		}
 
 		return projectDto;
-	}
-
-	private long CalculateFileSize(string filePath)
-	{
-		if (!File.Exists(filePath))
-		{
-			throw new FileNotFoundException("File not found.", filePath);
-		}
-
-		return new FileInfo(filePath).Length;
 	}
 }

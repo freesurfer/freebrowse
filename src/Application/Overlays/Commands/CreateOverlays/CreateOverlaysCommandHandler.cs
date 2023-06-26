@@ -52,7 +52,7 @@ public class CreateOverlaysCommandHandler : IRequestHandler<CreateOverlaysComman
 				await this.context.SaveChangesAsync(cancellationToken);
 
 				var responseDto = this.mapper.Map<CreateOverlayResponseDto>(overlay);
-				responseDto.FileSize = new FileInfo(filePath).Length;
+				responseDto.FileSize = await this.fileStorage.GetFileSizeAsync(filePath);
 
 				result.Add(responseDto);
 			}

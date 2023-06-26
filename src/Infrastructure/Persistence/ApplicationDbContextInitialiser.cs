@@ -1,5 +1,4 @@
-﻿using FreeBrowse.Domain.Entities;
-using FreeBrowse.Infrastructure.Identity;
+﻿using FreeBrowse.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using FreeBrowse.Application.Common.Exceptions;
+﻿using FreeBrowse.Application.Common.Exceptions;
 using FreeBrowse.Application.Common.Interfaces;
 using FreeBrowse.Domain.Entities;
 using MediatR;
@@ -11,10 +10,12 @@ namespace FreeBrowse.Application.Surfaces.Queries.GetSurface;
 public class GetSurfaceQueryHandler : IRequestHandler<GetSurfaceQuery, FileContentResult>
 {
 	private readonly IApplicationDbContext context;
+	private readonly IFileStorage fileStorage;
 
-	public GetSurfaceQueryHandler(IApplicationDbContext context, IMapper mapper)
+	public GetSurfaceQueryHandler(IApplicationDbContext context, IFileStorage fileStorage)
 	{
 		this.context = context;
+		this.fileStorage = fileStorage;
 	}
 
 	public async Task<FileContentResult> Handle(GetSurfaceQuery request, CancellationToken cancellationToken)
@@ -26,20 +27,16 @@ public class GetSurfaceQueryHandler : IRequestHandler<GetSurfaceQuery, FileConte
 			throw new NotFoundException(nameof(Surface), request.Id);
 		}
 
-		if (!File.Exists(surface.Path))
-		{
-			throw new NotFoundException($"File was not found at \"{surface.Path}\".");
-		}
-
 		var contentType = ContentTypeHelper.GetContentType(surface.FileName);
 
-		var fileBytes = File.ReadAllBytes(surface.Path);
+		var fileBytes = await this.fileStorage.GetFileBytesAsync(surface.Path);
 
 		var result = new FileContentResult(fileBytes, contentType)
 		{
 			FileDownloadName = surface.FileName,
 			EnableRangeProcessing = true,
 		};
+
 		return result;
 	}
 }

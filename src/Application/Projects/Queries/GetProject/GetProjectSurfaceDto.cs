@@ -21,7 +21,7 @@ public record GetProjectSurfaceDto : IMapFrom<Surface>
 
 	public bool Visible { get; set; }
 
-	public ICollection<Annotation>? Annotations { get; set; }
+	public ICollection<GetProjectAnnotationDto> Annotations { get; set; } = null!;
 
-	public ICollection<Overlay>? Overlays { get; set; }
+	public ICollection<GetProjectOverlayDto> Overlays { get; set; } = null!;
 }

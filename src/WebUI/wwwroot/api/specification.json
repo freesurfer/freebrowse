@@ -374,6 +374,128 @@
         }
       }
     },
+    "/api/PointSet": {
+      "get": {
+        "tags": [
+          "PointSet"
+        ],
+        "operationId": "PointSet_Get",
+        "parameters": [
+          {
+            "name": "Id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PointSet"
+        ],
+        "operationId": "PointSet_Create",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePointSetCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePointSetResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PointSet"
+        ],
+        "operationId": "PointSet_Edit",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditPointSetCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditPointResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PointSet"
+        ],
+        "operationId": "PointSet_Delete",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletePointSetCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unit"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Projects": {
       "get": {
         "tags": [
@@ -1098,6 +1220,80 @@
           }
         }
       },
+      "CreatePointSetResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "path": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CreatePointSetCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "base64": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EditPointResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "projectId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EditPointSetCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "DeletePointSetCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "GetProjectDto": {
         "type": "object",
         "additionalProperties": false,
@@ -1207,295 +1403,95 @@
           },
           "annotations": {
             "type": "array",
-            "nullable": true,
             "items": {
-              "$ref": "#/components/schemas/Annotation"
+              "$ref": "#/components/schemas/GetProjectAnnotationDto"
             }
           },
           "overlays": {
             "type": "array",
-            "nullable": true,
             "items": {
-              "$ref": "#/components/schemas/Overlay"
+              "$ref": "#/components/schemas/GetProjectOverlayDto"
             }
           }
         }
       },
-      "Annotation": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/BaseAuditableEntity"
-          },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "path": {
-                "type": "string"
-              },
-              "fileName": {
-                "type": "string"
-              },
-              "color": {
-                "type": "string",
-                "nullable": true
-              },
-              "colorMap": {
-                "type": "string",
-                "nullable": true
-              },
-              "opacity": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "visible": {
-                "type": "boolean"
-              },
-              "selected": {
-                "type": "boolean"
-              },
-              "surfaceId": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "surface": {
-                "$ref": "#/components/schemas/Surface"
-              }
-            }
-          }
-        ]
-      },
-      "Surface": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/BaseAuditableEntity"
-          },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "path": {
-                "type": "string"
-              },
-              "fileName": {
-                "type": "string"
-              },
-              "order": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "color": {
-                "type": "string",
-                "nullable": true
-              },
-              "opacity": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "visible": {
-                "type": "boolean"
-              },
-              "overlays": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Overlay"
-                }
-              },
-              "annotations": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Annotation"
-                }
-              },
-              "projectId": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "project": {
-                "$ref": "#/components/schemas/Project"
-              }
-            }
-          }
-        ]
-      },
-      "Overlay": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/BaseAuditableEntity"
-          },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "path": {
-                "type": "string"
-              },
-              "fileName": {
-                "type": "string"
-              },
-              "color": {
-                "type": "string",
-                "nullable": true
-              },
-              "colorMap": {
-                "type": "string",
-                "nullable": true
-              },
-              "opacity": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "visible": {
-                "type": "boolean"
-              },
-              "selected": {
-                "type": "boolean"
-              },
-              "surfaceId": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "surface": {
-                "$ref": "#/components/schemas/Surface"
-              }
-            }
-          }
-        ]
-      },
-      "BaseAuditableEntity": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/BaseEntity"
-          },
-          {
-            "type": "object",
-            "x-abstract": true,
-            "additionalProperties": false,
-            "properties": {
-              "created": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "createdBy": {
-                "type": "string",
-                "nullable": true
-              },
-              "lastModified": {
-                "type": "string",
-                "format": "date-time",
-                "nullable": true
-              },
-              "lastModifiedBy": {
-                "type": "string",
-                "nullable": true
-              }
-            }
-          }
-        ]
-      },
-      "BaseEntity": {
+      "GetProjectAnnotationDto": {
         "type": "object",
-        "x-abstract": true,
         "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32"
           },
-          "domainEvents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BaseEvent"
-            }
+          "path": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "selected": {
+            "type": "boolean"
           }
         }
       },
-      "BaseEvent": {
+      "GetProjectOverlayDto": {
         "type": "object",
-        "x-abstract": true,
-        "additionalProperties": false
-      },
-      "Project": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/BaseAuditableEntity"
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
           },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "name": {
-                "type": "string",
-                "nullable": true
-              },
-              "meshThicknessOn2D": {
-                "type": "number",
-                "format": "double"
-              },
-              "volumes": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Volume"
-                }
-              },
-              "surfaces": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Surface"
-                }
-              }
-            }
-          }
-        ]
-      },
-      "Volume": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/BaseAuditableEntity"
+          "path": {
+            "type": "string"
           },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "path": {
-                "type": "string"
-              },
-              "fileName": {
-                "type": "string"
-              },
-              "order": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "colorMap": {
-                "type": "string",
-                "nullable": true
-              },
-              "opacity": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "visible": {
-                "type": "boolean"
-              },
-              "contrastMin": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "contrastMax": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "projectId": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "project": {
-                "$ref": "#/components/schemas/Project"
-              }
-            }
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "selected": {
+            "type": "boolean"
           }
-        ]
+        }
       },
       "CreateProjectResponseDto": {
         "type": "object",

@@ -30,6 +30,8 @@ public static class ConfigureServices
 
         services.AddRazorPages();
 
+		services.AddSignalR();
+
         services
             .AddAuthentication(options =>
             {

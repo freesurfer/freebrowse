@@ -89,7 +89,7 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 			await this.context.SaveChangesAsync(cancellationToken);
 
 			var responseDto = this.mapper.Map<VolumeResponseDto>(volume);
-			responseDto.FileSize = this.CalculateFileSize(filePath);
+			responseDto.FileSize = await this.fileStorage.GetFileSizeAsync(filePath);
 
 			result.Add(responseDto);
 		}
@@ -121,21 +121,11 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 			await this.context.SaveChangesAsync(cancellationToken);
 
 			var responseDto = this.mapper.Map<SurfaceResponseDto>(surface);
-			responseDto.FileSize = this.CalculateFileSize(filePath);
+			responseDto.FileSize = await this.fileStorage.GetFileSizeAsync(filePath);
 
 			result.Add(responseDto);
 		}
 
 		return result;
-	}
-
-	private long CalculateFileSize(string filePath)
-	{
-		if (!File.Exists(filePath))
-		{
-			throw new FileNotFoundException("File not found.", filePath);
-		}
-
-		return new FileInfo(filePath).Length;
 	}
 }

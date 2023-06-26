@@ -8,6 +8,8 @@ public interface IApplicationDbContext
 {
 	DbSet<Project> Projects { get; }
 
+	DbSet<PointSet> PointSets { get; }
+
 	DbSet<Volume> Volumes { get; }
 
 	DbSet<Surface> Surfaces { get; }

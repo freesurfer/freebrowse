@@ -1,6 +1,7 @@
 ﻿using FreeBrowse.Application.Common.Interfaces;
 
 namespace FreeBrowse.Infrastructure.Services;
+
 public class LocalFileStorage : IFileStorage
 {
 	private readonly string basePath;
@@ -47,5 +48,20 @@ public class LocalFileStorage : IFileStorage
 		File.Delete(filePath);
 
 		return Task.CompletedTask;
+	}
+
+	public Task<byte[]> GetFileBytesAsync(string filePath)
+	{
+		return Task.FromResult(File.ReadAllBytes(filePath));
+	}
+
+	public Task<long> GetFileSizeAsync(string filePath)
+	{
+		if (!File.Exists(filePath))
+		{
+			throw new FileNotFoundException("File not found.", filePath);
+		}
+
+		return Task.FromResult(new FileInfo(filePath).Length);
 	}
 }

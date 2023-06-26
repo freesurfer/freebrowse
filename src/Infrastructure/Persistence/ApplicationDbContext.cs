@@ -27,6 +27,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<Project> Projects => this.Set<Project>();
 
+	public DbSet<PointSet> PointSets => this.Set<PointSet>();
+
     public DbSet<Volume> Volumes => this.Set<Volume>();
 
     public DbSet<Surface> Surfaces => this.Set<Surface>();
