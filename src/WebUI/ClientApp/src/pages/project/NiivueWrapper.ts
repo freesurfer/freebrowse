@@ -352,8 +352,7 @@ export class NiivueWrapper {
 			}
 
 			this.updateVolumeOrder(niivueVolume, tmpOrder++);
-			this.updateVolumeOpacity(niivueVolume, volumeFile);
-			this.updateVolumeContrast(niivueVolume, volumeFile);
+			this.updateVolumeBrightness(niivueVolume, volumeFile);
 		}
 
 		const surfaceFiles = files.surfaces
@@ -395,27 +394,18 @@ export class NiivueWrapper {
 		// niivueSurface.layers[0] = niivue.
 	}
 
-	private updateVolumeOpacity(
-		niivueVolume: NVImage,
-		volumeFile: VolumeFile
-	): void {
-		if (niivueVolume.opacity === volumeFile.opacity / 100) return;
-		this.niivue.setOpacity(
-			this.niivue.getVolumeIndexByID(niivueVolume.id),
-			volumeFile.opacity / 100
-		);
-	}
-
-	private updateVolumeContrast(
+	private updateVolumeBrightness(
 		niivueVolume: NVImage,
 		volumeFile: VolumeFile
 	): void {
 		if (
+			niivueVolume.opacity === volumeFile.opacity &&
 			niivueVolume.cal_min === volumeFile.contrastMin &&
 			niivueVolume.cal_max === volumeFile.contrastMax
 		)
 			return;
 
+		niivueVolume.opacity = volumeFile.opacity / 100;
 		niivueVolume.cal_min = volumeFile.contrastMin;
 		niivueVolume.cal_max = volumeFile.contrastMax;
 		this.niivue.updateGLVolume();
