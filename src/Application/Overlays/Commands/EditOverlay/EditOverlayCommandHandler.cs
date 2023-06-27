@@ -33,8 +33,10 @@ public class EditOverlayCommandHandler : IRequestHandler<EditOverlayCommand, int
 		}
 
 		overlay.Color = request.Color ?? overlay.Color;
+		overlay.ColorMap = request.ColorMap ?? overlay.ColorMap;
 		overlay.Opacity = request.Opacity ?? overlay.Opacity;
 		overlay.Visible = request.Visible ?? overlay.Visible;
+		overlay.Selected = request.Selected ?? overlay.Selected;
 
 		try
 		{

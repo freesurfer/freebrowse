@@ -10,11 +10,12 @@
 		"test": "jest",
 		"server": "dotnet build ../../../FreeBrowse.sln && dotnet run --environment \"Development\" ../../../FreeBrowse.sln --project ..",
 		"start": "vite --mode development",
-		"build": "tsc && vite build",
+		"build": "tsc && vite build --mode production",
 		"lint-staged": "lint-staged --config lint-staged.cjs"
 	},
 	"dependencies": {
 		"@heroicons/react": "^2.0.17",
+		"@microsoft/signalr": "^7.0.7",
 		"@niivue/niivue": "^0.35.1",
 		"react": "^18.2.0",
 		"react-collapsed": "^4.0.2",

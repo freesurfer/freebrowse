@@ -11,4 +11,8 @@ public interface IFileStorage
 	Task<string> SaveFileAsync(byte[] fileData, int projectId, string fileName);
 
 	Task DeleteFileAsync(int projectId, string fileName);
+
+	Task<byte[]> GetFileBytesAsync(string filePath);
+
+	Task<long> GetFileSizeAsync(string filePath);
 }

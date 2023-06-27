@@ -8,9 +8,9 @@ public class Surface : BaseAuditableEntity
 		this.Annotations = new HashSet<Annotation>();
 	}
 
-	public string? Path { get; set; }
+	public string Path { get; set; } = null!;
 
-	public string? FileName { get; set; }
+	public string FileName { get; set; } = null!;
 
 	public int Order { get; set; }
 

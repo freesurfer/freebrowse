@@ -33,6 +33,9 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.Property<string>("Color")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ColorMap")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime2");
 
@@ -55,6 +58,9 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.Property<string>("Path")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Selected")
+                        .HasColumnType("bit");
 
                     b.Property<int>("SurfaceId")
                         .HasColumnType("int");
@@ -80,6 +86,9 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.Property<string>("Color")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ColorMap")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime2");
 
@@ -103,6 +112,9 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("Selected")
+                        .HasColumnType("bit");
+
                     b.Property<int>("SurfaceId")
                         .HasColumnType("int");
 
@@ -114,6 +126,44 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                     b.HasIndex("SurfaceId");
 
                     b.ToTable("Overlays");
+                });
+
+            modelBuilder.Entity("FreeBrowse.Domain.Entities.PointSet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("PointSets");
                 });
 
             modelBuilder.Entity("FreeBrowse.Domain.Entities.Project", b =>
@@ -165,6 +215,7 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FileName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("LastModified")
@@ -180,6 +231,7 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Path")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("ProjectId")
@@ -235,6 +287,7 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Path")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("ProjectId")
@@ -673,6 +726,17 @@ namespace FreeBrowse.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Surface");
+                });
+
+            modelBuilder.Entity("FreeBrowse.Domain.Entities.PointSet", b =>
+                {
+                    b.HasOne("FreeBrowse.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("FreeBrowse.Domain.Entities.Surface", b =>

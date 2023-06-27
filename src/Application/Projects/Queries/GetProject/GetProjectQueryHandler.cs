@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using FreeBrowse.Application.Common.Exceptions;
 using FreeBrowse.Application.Common.Interfaces;
 using FreeBrowse.Domain.Entities;
@@ -10,48 +11,52 @@ namespace FreeBrowse.Application.Projects.Queries.GetProject;
 public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, GetProjectDto>
 {
 	private readonly IApplicationDbContext context;
+	private readonly IFileStorage fileStorage;
 	private readonly IMapper mapper;
 
-	public GetProjectQueryHandler(IApplicationDbContext context, IMapper mapper)
+	public GetProjectQueryHandler(IApplicationDbContext context, IFileStorage fileStorage, IMapper mapper)
 	{
 		this.context = context;
+		this.fileStorage = fileStorage;
 		this.mapper = mapper;
 	}
 
 	public async Task<GetProjectDto> Handle(GetProjectQuery request, CancellationToken cancellationToken)
 	{
-		var project = await this.context.Projects
+		var projectDto = await this.context.Projects
 			.Include(s => s.Volumes)
 			.Include(s => s.Surfaces)
+				.ThenInclude(s => s.Overlays)
+			.Include(s => s.Surfaces)
+				.ThenInclude(s => s.Annotations)
+			.ProjectTo<GetProjectDto>(this.mapper.ConfigurationProvider)
 			.FirstOrDefaultAsync(s => s.Id == request.Id);
 
-		if (project == null)
+		if (projectDto == null)
 		{
 			throw new NotFoundException(nameof(Project), request.Id);
 		}
 
-		var projectDto = this.mapper.Map<GetProjectDto>(project);
-
 		foreach (var volumeDto in projectDto.Volumes)
 		{
-			volumeDto.FileSize = this.CalculateFileSize(volumeDto.Path);
+			volumeDto.FileSize = await this.fileStorage.GetFileSizeAsync(volumeDto.Path);
 		}
 
 		foreach (var surfaceDto in projectDto.Surfaces)
 		{
-			surfaceDto.FileSize = this.CalculateFileSize(surfaceDto.Path);
+			surfaceDto.FileSize = await this.fileStorage.GetFileSizeAsync(surfaceDto.Path);
+
+			foreach (var overlayDto in surfaceDto.Overlays)
+			{
+				overlayDto.FileSize = await this.fileStorage.GetFileSizeAsync(overlayDto.Path);
+			}
+
+			foreach (var annotationDto in surfaceDto.Annotations)
+			{
+				annotationDto.FileSize = await this.fileStorage.GetFileSizeAsync(annotationDto.Path);
+			}
 		}
 
 		return projectDto;
-	}
-
-	private long CalculateFileSize(string filePath)
-	{
-		if (!File.Exists(filePath))
-		{
-			throw new FileNotFoundException("File not found.", filePath);
-		}
-
-		return new FileInfo(filePath).Length;
 	}
 }

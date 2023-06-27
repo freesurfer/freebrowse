@@ -1,6 +1,7 @@
 import { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { ViewSettings } from '@/pages/project/models/ViewSettings';
+// import type { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import type { LocationData } from '@niivue/niivue';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useQueryParams, withDefault, NumberParam } from 'use-query-params';
@@ -54,6 +55,38 @@ export const useNiivue = (
 		renderAzimuth,
 		renderElevation,
 	} = query;
+
+	/**
+	 * TODO: Move this to a custom hook and remove hardcoded values
+	 */
+	// const [connection, setConnection] = useState<null | HubConnection>(null);
+
+	// useEffect(() => {
+	// 	const connect = new HubConnectionBuilder()
+	// 		.withUrl('https://localhost:5001/PointSetsHub', {
+	// 			skipNegotiation: true,
+	// 			transport: 1,
+	// 		})
+	// 		.withAutomaticReconnect()
+	// 		.build();
+
+	// 	setConnection(connect);
+	// }, []);
+
+	// useEffect(async () => {
+	// 	if (connection !== null) {
+	// 		connection
+	// 			.start()
+	// 			.then(() => {
+	// 				connection.on('PointSetUpdate', (message) => {
+	// 					console.log(message);
+	// 				});
+	// 			})
+	// 			.catch((error) => console.log(error))
+	// 			.then(() => connection.invoke('JoinGroup', '4'))
+	// 			.catch((error) => console.log(error));
+	// 	}
+	// }, [connection]);
 
 	useEffect(() => {
 		if (canvas === undefined || canvas === null) return;

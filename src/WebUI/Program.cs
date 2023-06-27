@@ -1,5 +1,6 @@
 using FreeBrowse.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.Certificate;
+using WebUI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,8 +55,9 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller}/{action=Index}/{id?}");
-
 app.MapRazorPages();
+
+app.MapHub<PointSetsHub>("/PointSetsHub");
 
 app.MapFallbackToFile("index.html");
 

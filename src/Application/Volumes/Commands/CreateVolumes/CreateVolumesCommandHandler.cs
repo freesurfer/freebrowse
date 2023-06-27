@@ -51,7 +51,7 @@ public class CreateVolumeCommandHandler : IRequestHandler<CreateVolumesCommand, 
 				await this.context.SaveChangesAsync(cancellationToken);
 
 				var responseDto = this.mapper.Map<CreateVolumeResponseDto>(volume);
-				responseDto.FileSize = new FileInfo(filePath).Length;
+				responseDto.FileSize = await this.fileStorage.GetFileSizeAsync(filePath);
 
 				result.Add(responseDto);
 			}

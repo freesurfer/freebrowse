@@ -374,6 +374,128 @@
         }
       }
     },
+    "/api/PointSet": {
+      "get": {
+        "tags": [
+          "PointSet"
+        ],
+        "operationId": "PointSet_Get",
+        "parameters": [
+          {
+            "name": "Id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PointSet"
+        ],
+        "operationId": "PointSet_Create",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePointSetCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePointSetResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PointSet"
+        ],
+        "operationId": "PointSet_Edit",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditPointSetCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditPointResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PointSet"
+        ],
+        "operationId": "PointSet_Delete",
+        "requestBody": {
+          "x-name": "command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletePointSetCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unit"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Projects": {
       "get": {
         "tags": [
@@ -787,11 +909,18 @@
             "type": "string",
             "nullable": true
           },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
             "format": "int32"
           },
           "visible": {
+            "type": "boolean"
+          },
+          "selected": {
             "type": "boolean"
           }
         }
@@ -826,11 +955,18 @@
             "type": "string",
             "nullable": true
           },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
             "format": "int32"
           },
           "visible": {
+            "type": "boolean"
+          },
+          "selected": {
             "type": "boolean"
           }
         }
@@ -851,12 +987,20 @@
             "type": "string",
             "nullable": true
           },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
             "format": "int32",
             "nullable": true
           },
           "visible": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "selected": {
             "type": "boolean",
             "nullable": true
           }
@@ -969,11 +1113,18 @@
             "type": "string",
             "nullable": true
           },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
             "format": "int32"
           },
           "visible": {
+            "type": "boolean"
+          },
+          "selected": {
             "type": "boolean"
           }
         }
@@ -1008,11 +1159,18 @@
             "type": "string",
             "nullable": true
           },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
             "format": "int32"
           },
           "visible": {
+            "type": "boolean"
+          },
+          "selected": {
             "type": "boolean"
           }
         }
@@ -1033,6 +1191,10 @@
             "type": "string",
             "nullable": true
           },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
           "opacity": {
             "type": "integer",
             "format": "int32",
@@ -1041,10 +1203,88 @@
           "visible": {
             "type": "boolean",
             "nullable": true
+          },
+          "selected": {
+            "type": "boolean",
+            "nullable": true
           }
         }
       },
       "DeleteOverlayCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreatePointSetResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "path": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CreatePointSetCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "base64": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EditPointResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "projectId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EditPointSetCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "base64": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "DeletePointSetCommand": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -1159,6 +1399,96 @@
             "format": "int32"
           },
           "visible": {
+            "type": "boolean"
+          },
+          "annotations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GetProjectAnnotationDto"
+            }
+          },
+          "overlays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GetProjectOverlayDto"
+            }
+          }
+        }
+      },
+      "GetProjectAnnotationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "path": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "selected": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GetProjectOverlayDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "path": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "colorMap": {
+            "type": "string",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "selected": {
             "type": "boolean"
           }
         }

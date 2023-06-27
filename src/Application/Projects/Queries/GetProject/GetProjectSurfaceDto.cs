@@ -20,4 +20,8 @@ public record GetProjectSurfaceDto : IMapFrom<Surface>
 	public int Opacity { get; set; }
 
 	public bool Visible { get; set; }
+
+	public ICollection<GetProjectAnnotationDto> Annotations { get; set; } = null!;
+
+	public ICollection<GetProjectOverlayDto> Overlays { get; set; } = null!;
 }

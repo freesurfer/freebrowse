@@ -40,8 +40,10 @@ public class CreateAnnotationsCommandHandler : IRequestHandler<CreateAnnotations
 					Path = filePath,
 					FileName = o.FileName,
 					Color = o.Color,
+					ColorMap = o.ColorMap,
 					Opacity = o.Opacity,
 					Visible = o.Visible,
+					Selected = o.Selected,
 					SurfaceId = request.SurfaceId
 				};
 
@@ -50,7 +52,7 @@ public class CreateAnnotationsCommandHandler : IRequestHandler<CreateAnnotations
 				await this.context.SaveChangesAsync(cancellationToken);
 
 				var responseDto = this.mapper.Map<CreateAnnotationResponseDto>(annotation);
-				responseDto.FileSize = new FileInfo(filePath).Length;
+				responseDto.FileSize = await this.fileStorage.GetFileSizeAsync(filePath);
 
 				result.Add(responseDto);
 			}

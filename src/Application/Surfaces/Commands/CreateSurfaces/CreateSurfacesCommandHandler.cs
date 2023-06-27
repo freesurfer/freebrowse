@@ -49,7 +49,7 @@ public class CreateSurfaceCommandHandler : IRequestHandler<CreateSurfacesCommand
 				await this.context.SaveChangesAsync(cancellationToken);
 
 				var responseDto = this.mapper.Map<CreateSurfaceResponseDto>(surface);
-				responseDto.FileSize = new FileInfo(filePath).Length;
+				responseDto.FileSize = await this.fileStorage.GetFileSizeAsync(filePath);
 
 				result.Add(responseDto);
 			}

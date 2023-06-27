@@ -624,7 +624,7 @@ declare module '@niivue/niivue' {
 		 * @param {NVImageFromUrlOptions} imageOptions
 		 * @returns {NVImage}
 		 */
-		addVolumeFromUrl(imageOptions: NVImageFromUrlOptions): NVImage;
+		addVolumeFromUrl(imageOptions: NVImageFromUrlOptions): Promise<NVImage>;
 		/**
 		 * Find media by url
 		 * @param {string} url -
@@ -1023,7 +1023,7 @@ declare module '@niivue/niivue' {
 		 * @param {NVMeshFromUrlOptions} meshOptions
 		 * @returns {NVMesh}
 		 */
-		addMeshFromUrl(meshOptions: NVMeshFromUrlOptions): NVMesh;
+		addMeshFromUrl(meshOptions: NVMeshFromUrlOptions): Promise<NVMesh>;
 		/**
 		 * load an array of meshes
 		 * @param {array} meshList the array of objects to load. each object must have a resolvable "url" property at a minimum

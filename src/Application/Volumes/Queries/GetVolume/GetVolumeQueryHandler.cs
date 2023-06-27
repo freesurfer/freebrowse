@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using FreeBrowse.Application.Common.Exceptions;
+﻿using FreeBrowse.Application.Common.Exceptions;
 using FreeBrowse.Application.Common.Interfaces;
 using FreeBrowse.Domain.Entities;
 using MediatR;
@@ -11,12 +10,12 @@ namespace FreeBrowse.Application.Volumes.Queries.GetVolume;
 public class GetVolumeQueryHandler : IRequestHandler<GetVolumeQuery, FileContentResult>
 {
 	private readonly IApplicationDbContext context;
-	private readonly IMapper mapper;
+	private readonly IFileStorage fileStorage;
 
-	public GetVolumeQueryHandler(IApplicationDbContext context, IMapper mapper)
+	public GetVolumeQueryHandler(IApplicationDbContext context, IFileStorage fileStorage)
 	{
 		this.context = context;
-		this.mapper = mapper;
+		this.fileStorage = fileStorage;
 	}
 
 	public async Task<FileContentResult> Handle(GetVolumeQuery request, CancellationToken cancellationToken)
@@ -28,20 +27,16 @@ public class GetVolumeQueryHandler : IRequestHandler<GetVolumeQuery, FileContent
 			throw new NotFoundException(nameof(Surface), request.Id);
 		}
 
-		if (!File.Exists(volume.Path))
-		{
-			throw new NotFoundException($"File was not found at \"{volume.Path}\".");
-		}
-
 		var contentType = ContentTypeHelper.GetContentType(volume.FileName);
 
-		var fileBytes = File.ReadAllBytes(volume.Path);
+		var fileBytes = await this.fileStorage.GetFileBytesAsync(volume.Path);
 
 		var result = new FileContentResult(fileBytes, contentType)
 		{
 			FileDownloadName = volume.FileName,
 			EnableRangeProcessing = true,
 		};
+
 		return result;
 	}
 }
