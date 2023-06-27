@@ -1,7 +1,5 @@
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import type { ReactElement } from 'react';
-
-const ICON_SIZE = 1;
 
 export const AddFileButton = ({
 	acceptedExtensions,
@@ -10,16 +8,14 @@ export const AddFileButton = ({
 	acceptedExtensions: string[];
 	onFileSelected: (file: File) => void;
 }): ReactElement => {
-	const iconStyle = { width: `${ICON_SIZE}rem`, height: `${ICON_SIZE}rem` };
-
 	return (
-		<label className="flex cursor-pointer rounded-[0.25rem] border border-blue-light p-0.5 text-blue-light">
-			<PlusIcon style={iconStyle}></PlusIcon>
+		<label className="flex h-6 w-6 grow-0 cursor-pointer items-center justify-center rounded-md bg-blue-light p-2 text-white">
+			<ArrowUpTrayIcon className="h-4 w-4 shrink-0"></ArrowUpTrayIcon>
 			<input
 				type="file"
 				className="hidden"
 				name="img" // to make it only choose one file
-				accept={acceptedExtensions.join(',')}
+				// accept={acceptedExtensions.join(',')} // TODO bere enable
 				onChange={(event) => {
 					if (event.target.files?.[0] === undefined) return;
 					onFileSelected(event.target.files[0]);

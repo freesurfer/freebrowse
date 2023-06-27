@@ -7,7 +7,7 @@ export type SurfaceFile = CloudSurfaceFile | LocalSurfaceFile;
 export interface ISurfaceFile {
 	type: FileType.SURFACE;
 
-	fromAddedOverlay: (file: File) => SurfaceFile;
+	fromAddOverlay: (file: File) => SurfaceFile;
 	from: (options: {
 		order?: number;
 		isActive?: boolean;

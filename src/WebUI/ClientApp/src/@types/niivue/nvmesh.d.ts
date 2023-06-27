@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable lines-between-class-members */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-extraneous-class */
 declare module '@niivue/niivue' {
 	/**
 	 * @typedef {Object} NVMeshLayer
@@ -14,6 +13,7 @@ declare module '@niivue/niivue' {
 	 * @property {number} cal_max
 	 */
 	export interface NVMeshLayer {
+		name: string;
 		url: string;
 		opacity?: number;
 		colorMap?: string;

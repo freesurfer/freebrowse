@@ -3,6 +3,7 @@ import { useApiProject } from '@/hooks/useApiProject';
 import { useApiSurface } from '@/hooks/useApiSurface';
 import { useApiVolume } from '@/hooks/useApiVolume';
 import { ProjectState } from '@/pages/project/models/ProjectState';
+import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
 import { useEffect, useState } from 'react';
 
@@ -79,15 +80,65 @@ export const useApi = (
 				);
 
 				for (const cloudSurface of projectState.files.cloudSurfaces) {
-					if (cloudSurface.overlayFile === undefined) continue;
-					if (!(cloudSurface.overlayFile instanceof LocalOverlayFile)) continue;
-					if (
-						lastUpload?.files.cloudSurfaces.find(
-							(lastSurfaceFile) => lastSurfaceFile === cloudSurface
-						) !== undefined
-					)
-						continue;
-					await apiOverlay.create(cloudSurface.id, cloudSurface.overlayFile);
+					for (const overlayFile of cloudSurface.overlayFiles) {
+						if (!(overlayFile instanceof LocalOverlayFile)) continue;
+
+						if (lastUpload === undefined) {
+							await apiOverlay.create(cloudSurface.id, overlayFile);
+							continue;
+						}
+
+						if (
+							lastUpload.files.cloudSurfaces.find(
+								(lastSurfaceFile) => lastSurfaceFile === cloudSurface
+							) !== undefined
+						)
+							continue;
+
+						const lastCloudSurface = lastUpload.files.cloudSurfaces.find(
+							(lastSurfaceFile) => lastSurfaceFile.name === cloudSurface.name
+						);
+						if (lastCloudSurface === undefined) continue;
+
+						if (
+							lastCloudSurface.overlayFiles.find(
+								(lastOverlayFile) => lastOverlayFile.name === overlayFile.name
+							) !== undefined
+						)
+							continue;
+
+						await apiOverlay.create(cloudSurface.id, overlayFile);
+					}
+				}
+
+				if (lastUpload === undefined) return;
+				for (const lastCloudSurface of lastUpload.files.cloudSurfaces) {
+					for (const lastOverlayFile of lastCloudSurface.overlayFiles) {
+						if (!(lastOverlayFile instanceof CloudOverlayFile)) continue;
+						if (
+							projectState.files.cloudSurfaces.find(
+								(surfaceFile) => surfaceFile === lastCloudSurface
+							) !== undefined
+						)
+							continue;
+
+						const cloudSurface = projectState.files.cloudSurfaces.find(
+							(surfaceFile) => surfaceFile.name === lastCloudSurface.name
+						);
+						if (cloudSurface === undefined) {
+							for (const overlayFileToDelete of lastCloudSurface.overlayFiles) {
+								if (!(overlayFileToDelete instanceof CloudOverlayFile))
+									continue;
+								await apiOverlay.remove(overlayFileToDelete.id);
+							}
+							continue;
+						}
+						const overlayFile = cloudSurface.overlayFiles.find(
+							(overlayFile) => overlayFile.name === lastOverlayFile.name
+						);
+						if (overlayFile !== undefined) continue;
+						await apiOverlay.remove(lastOverlayFile.id);
+					}
 				}
 			}
 		};

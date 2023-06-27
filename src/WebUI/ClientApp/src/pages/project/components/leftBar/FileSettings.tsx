@@ -120,15 +120,15 @@ export const FileSettings = ({
 							</Collapse>
 						);
 					})}
-					{selectedSurfaces.map((surface) => {
-						if (surface === undefined) return <></>;
+					{selectedSurfaces.map((surfaceFile) => {
+						if (surfaceFile === undefined) return <></>;
 						return (
 							<Collapse
-								key={surface?.name}
+								key={surfaceFile?.name}
 								className="mt-1 pr-4"
 								title={
 									<span className="grow border-b border-gray text-xs">
-										{surface.name ?? 'No file selected'}
+										{surfaceFile.name ?? 'No file selected'}
 									</span>
 								}
 							>
@@ -136,20 +136,20 @@ export const FileSettings = ({
 									<Slider
 										className="mt-2"
 										label="Opacity:"
-										value={surface.opacity}
+										value={surfaceFile.opacity}
 										unit="%"
 										onChange={(value) =>
-											updateFileOptions(surface, { opacity: value }, false)
+											updateFileOptions(surfaceFile, { opacity: value }, false)
 										}
 										onEnd={(value) =>
-											updateFileOptions(surface, { opacity: value }, true)
+											updateFileOptions(surfaceFile, { opacity: value }, true)
 										}
 									></Slider>
 									<FileSelection
-										title="Overlay:"
+										title="Overlays:"
 										className="mt-4"
 										setProjectState={setProjectState}
-										surface={surface}
+										surfaceFile={surfaceFile}
 									></FileSelection>
 								</div>
 							</Collapse>

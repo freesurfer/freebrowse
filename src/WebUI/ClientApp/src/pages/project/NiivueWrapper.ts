@@ -9,6 +9,7 @@ import type {
 	NVImage,
 	NVMesh,
 	NVMeshFromUrlOptions,
+	NVMeshLayer,
 } from '@niivue/niivue';
 
 /**
@@ -232,18 +233,26 @@ export class NiivueWrapper {
 					.filter((file) => file.isChecked)
 					.sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
 					.map((file): NVMeshFromUrlOptions => {
+						const layers = file.overlayFiles
+							?.filter(
+								(overlayFile): overlayFile is CloudOverlayFile =>
+									overlayFile instanceof CloudOverlayFile
+							)
+							.map(
+								(overlayFile): NVMeshLayer => ({
+									name: overlayFile.name,
+									url: overlayFile.url,
+									cal_min: 0.5,
+									cal_max: 5.5,
+									useNegativeCmap: true,
+									opacity: 0.7,
+								})
+							);
 						return {
 							url: file.url,
 							name: file.name,
 							opacity: file.opacity / 100,
-							layers:
-								file.overlayFile instanceof CloudOverlayFile
-									? [
-											{
-												url: file.overlayFile?.url,
-											},
-									  ]
-									: [],
+							layers,
 						};
 					})
 			);

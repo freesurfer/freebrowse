@@ -1,14 +1,17 @@
 import {
 	CreateOverlayDto,
 	CreateOverlaysCommand,
+	DeleteOverlayCommand,
 	OverlayClient,
 } from '@/generated/web-api-client';
+import type { Unit } from '@/generated/web-api-client';
 import type { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
 import { getApiUrl } from '@/utils';
 import { useRef } from 'react';
 
 export const useApiOverlay = (): {
 	create: (surfaceId: number, overlayFile: LocalOverlayFile) => Promise<void>;
+	remove: (id: number) => Promise<Unit>;
 } => {
 	const client = useRef(new OverlayClient(getApiUrl()));
 
@@ -32,5 +35,9 @@ export const useApiOverlay = (): {
 		);
 	};
 
-	return { create };
+	const remove = async (id: number): Promise<Unit> => {
+		return await client.current.delete(new DeleteOverlayCommand({ id }));
+	};
+
+	return { create, remove };
 };

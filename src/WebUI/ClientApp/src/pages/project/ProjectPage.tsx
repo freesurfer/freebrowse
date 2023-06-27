@@ -17,7 +17,7 @@ export const ProjectPage = (): React.ReactElement => {
 	);
 
 	return (
-		<div className="flex h-full flex-col">
+		<div className="flex h-full flex-col text-font">
 			<TopBar></TopBar>
 			<div className="border-5 flex h-full flex-row border-red">
 				<LeftBar

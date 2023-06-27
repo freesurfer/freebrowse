@@ -10,6 +10,7 @@ import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
 import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
+import type { OverlayFile } from '@/pages/project/models/file/OverlayFile';
 import {
 	FileType,
 	type ProjectFile,
@@ -438,7 +439,7 @@ export class ProjectFiles {
 		const localSurfaces = isLocal
 			? this.localSurfaces.map((localSurface) =>
 					localSurface === surface
-						? localSurface.fromAddedOverlay(file)
+						? localSurface.fromAddOverlay(file)
 						: localSurface
 			  )
 			: this.localSurfaces;
@@ -447,7 +448,7 @@ export class ProjectFiles {
 		const cloudSurfaces = isCloud
 			? this.cloudSurfaces.map((localSurface) =>
 					localSurface === surface
-						? localSurface.fromAddedOverlay(file)
+						? localSurface.fromAddOverlay(file)
 						: localSurface
 			  )
 			: this.cloudSurfaces;
@@ -465,62 +466,53 @@ export class ProjectFiles {
 		});
 	}
 
+	/**
+	 * method to delete a overlay file from a surface
+	 */
+	public fromDeletedOverlay(
+		surfaceFile: SurfaceFile,
+		overlayFile: OverlayFile
+	): ProjectFiles {
+		const localSurfaces = this.localSurfaces.map((thisSurface) =>
+			thisSurface !== surfaceFile
+				? thisSurface
+				: thisSurface.fromDeleteOverlay(overlayFile)
+		);
+		const cloudSurfaces = this.cloudSurfaces.map((thisSurface) =>
+			thisSurface !== surfaceFile
+				? thisSurface
+				: thisSurface.fromDeleteOverlay(overlayFile)
+		);
+
+		const surfaces = [...localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces,
+			localVolumes: this.localVolumes,
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...this.surfaces, ...this.volumes],
+		});
+	}
+
 	private static cloudFileFromVolumeDto(
 		fileModel: GetProjectVolumeDto[] | undefined
 	): CloudVolumeFile[] {
 		if (fileModel === undefined) return [];
 
-		return fileModel.map<CloudVolumeFile>((fileDto) => {
-			if (fileDto === undefined)
-				throw new Error('undefined array entry is not allowed');
-
-			if (fileDto?.id === undefined) throw new Error('no file without file id');
-
-			if (fileDto?.fileName === undefined)
-				throw new Error('no file without file name');
-
-			if (fileDto?.fileSize === undefined)
-				throw new Error('no file without file size');
-
-			return new CloudVolumeFile(
-				fileDto.id,
-				fileDto.fileName,
-				fileDto.fileSize,
-				false,
-				fileDto.visible,
-				fileDto.order,
-				fileDto.opacity ?? 100,
-				fileDto.contrastMin ?? 0,
-				fileDto.contrastMax ?? 100
-			);
-		});
+		return fileModel.map<CloudVolumeFile>((fileDto) =>
+			CloudVolumeFile.fromDto(fileDto)
+		);
 	}
 
 	private static cloudFileFromSurfaceDto(
 		fileModel: GetProjectSurfaceDto[] | undefined
 	): CloudSurfaceFile[] {
 		if (fileModel === undefined) return [];
-		return fileModel.map<CloudSurfaceFile>((fileDto) => {
-			if (fileDto === undefined)
-				throw new Error('undefined array entry is not allowed');
-
-			if (fileDto?.id === undefined) throw new Error('no file without file id');
-
-			if (fileDto?.fileName === undefined)
-				throw new Error('no file without file name');
-
-			if (fileDto?.fileSize === undefined)
-				throw new Error('no file without file size');
-
-			return new CloudSurfaceFile(
-				fileDto.id,
-				fileDto.fileName,
-				fileDto.fileSize,
-				false,
-				fileDto.visible,
-				fileDto.order,
-				fileDto.opacity ?? 100
-			);
-		});
+		return fileModel.map<CloudSurfaceFile>((fileDto) =>
+			CloudSurfaceFile.fromDto(fileDto)
+		);
 	}
 }
