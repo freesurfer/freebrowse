@@ -1,6 +1,10 @@
 import type { GetProjectDto } from '@/generated/web-api-client';
+import type {
+	SurfaceFile,
+	VolumeFile,
+	ProjectFile,
+} from '@/pages/project/models/ProjectFile';
 import { FileType } from '@/pages/project/models/ProjectFile';
-import type { ProjectFile } from '@/pages/project/models/ProjectFile';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 
 /**
@@ -59,6 +63,71 @@ export class ProjectState {
 
 	fromFiles(projectFiles: ProjectFiles, upload = true): ProjectState {
 		return new ProjectState({ projectState: this, projectFiles }, upload);
+	}
+
+	fromQuery(
+		volumes: string[],
+		volumeOpacity: string[],
+		volumeOrder: string[],
+		volumeSelected: string[],
+		volumeVisible: string[],
+		volumeContrastMin: string[],
+		volumeContrastMax: string[],
+		surfaces: string[],
+		surfaceOrder: string[],
+		surfaceSelected: string[],
+		surfaceVisible: string[],
+		surfaceOpacity: string[],
+		upload = true
+	): ProjectState {
+		const volumeFiles = [] as VolumeFile[];
+		volumes.forEach((volume: string, index: number) => {
+			const cloudVolume = this.files.volumes.find((v) => v.name === volume);
+			if (cloudVolume !== undefined) {
+				volumeFiles.push(
+					cloudVolume.from({
+						order: Number(volumeOrder[index]),
+						isActive: volumeSelected[index] === 'true',
+						isChecked: volumeVisible[index] === 'true',
+						opacity: Number(volumeOpacity[index]),
+						contrastMin: Number(volumeContrastMin[index]),
+						contrastMax: Number(volumeContrastMax[index]),
+					})
+				);
+			}
+		});
+
+		this.files.volumes
+			.filter((v) => !volumes.some((x: string) => x === v.name))
+			.forEach((v) => volumeFiles.push(v.from({ isChecked: false })));
+
+		const surfaceFiles = [] as SurfaceFile[];
+
+		surfaces.forEach((surface: string, index: number) => {
+			const cloudSurface = this.files.cloudSurfaces.find(
+				(v) => v.name === surface
+			);
+			if (cloudSurface !== undefined) {
+				surfaceFiles.push(
+					cloudSurface.from({
+						order: Number(surfaceOrder[index]),
+						isActive: surfaceSelected[index] === 'true',
+						isChecked: surfaceVisible[index] === 'true',
+						opacity: Number(surfaceOpacity[index]),
+					})
+				);
+			}
+		});
+
+		this.files.surfaces
+			.filter((s) => !surfaces.some((x: string) => x === s.name))
+			.forEach((s) => surfaceFiles.push(s.from({ isChecked: false })));
+
+		const files = this.files
+			.fromAdaptedVolumes(volumeFiles)
+			.fromAdaptedSurfaces(surfaceFiles);
+
+		return this.fromFiles(files, upload);
 	}
 
 	/**

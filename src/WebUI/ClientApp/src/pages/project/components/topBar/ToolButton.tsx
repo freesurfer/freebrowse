@@ -6,16 +6,19 @@ export const ToolButton = ({
 	icon,
 	isActive = false,
 	isExpandable = false,
+	onClick = undefined,
 }: {
 	title: string;
 	icon: ReactElement;
 	isExpandable?: boolean;
 	isActive?: boolean;
+	onClick?: () => void;
 }): ReactElement => {
 	return (
 		<>
 			<button
-				className={`flex h-full w-20 shrink-0 flex-col items-center rounded pb-3 pt-4 ${
+				onClick={onClick}
+				className={`flex h-full w-20 shrink-0 flex-col items-center rounded pb-3 pt-4 last-of-type:ml-auto${
 					isActive ? 'bg-blue-light' : ''
 				}`}
 			>

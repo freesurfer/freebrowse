@@ -1,6 +1,7 @@
 import type { VolumeFile } from '@/pages/project/models/ProjectFile';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import type { ViewSettings } from '@/pages/project/models/ViewSettings';
 import { Niivue } from '@niivue/niivue';
 import type { LocationData, NVImage, NVMesh } from '@niivue/niivue';
 
@@ -25,6 +26,7 @@ export class NiivueWrapper {
 	private hooveredView = 0;
 
 	private nextState: ProjectState | undefined = undefined;
+	private viewSettings: ViewSettings | undefined = undefined;
 	private isRunning = false;
 
 	constructor(
@@ -36,8 +38,12 @@ export class NiivueWrapper {
 		void this.niivue.attachToCanvas(canvasRef);
 	}
 
-	public next(projectState: ProjectState): void {
+	public next(
+		projectState: ProjectState,
+		viewSettings: ViewSettings | undefined
+	): void {
 		this.nextState = projectState;
+		this.viewSettings = viewSettings;
 		void this.propagateNextState();
 	}
 
@@ -60,7 +66,10 @@ export class NiivueWrapper {
 		const currentState = this.nextState;
 		this.nextState = undefined;
 
-		await this.propagateState(currentState);
+		const viewSettings = this.viewSettings;
+		this.viewSettings = undefined;
+
+		await this.propagateState(currentState, viewSettings);
 
 		// clear lock
 		this.isRunning = false;
@@ -72,7 +81,10 @@ export class NiivueWrapper {
 	/**
 	 * propagate the given project state to the niivue library
 	 */
-	private async propagateState(projectState: ProjectState): Promise<void> {
+	private async propagateState(
+		projectState: ProjectState,
+		viewSettings: ViewSettings | undefined
+	): Promise<void> {
 		const files = projectState.files;
 
 		if (!files.isRemovedOrAdded(this.niivue.volumes, this.niivue.meshes)) {
@@ -116,6 +128,23 @@ export class NiivueWrapper {
 						};
 					})
 			);
+
+			if (viewSettings !== undefined) {
+				this.niivue.uiData.pan2Dxyzmm = [
+					viewSettings.zoom2dX,
+					viewSettings.zoom2dY,
+					viewSettings.zoom2dZ,
+					viewSettings.zoom2d,
+				];
+				this.niivue.scene.volScaleMultiplier = viewSettings.zoom3d;
+				this.niivue.scene.renderAzimuth = viewSettings.renderAzimuth;
+				this.niivue.scene.renderElevation = viewSettings.renderElevation;
+				this.navigateToSlice(
+					viewSettings.sliceX,
+					viewSettings.sliceY,
+					viewSettings.sliceZ
+				);
+			}
 
 			this.niivue.createOnLocationChange();
 			this.niivue.updateGLVolume();
@@ -248,7 +277,7 @@ export class NiivueWrapper {
 		}
 		if (
 			this.niivue.opts.dragMode === this.niivue.dragModes.none &&
-			(this.niivue.uiData.mouseButtonCenterDown as boolean)
+			this.niivue.uiData.mouseButtonCenterDown
 		) {
 			this.moveSlices(event.movementY);
 		}
@@ -264,5 +293,32 @@ export class NiivueWrapper {
 		} else {
 			this.niivue.moveCrosshairInVox(0, 0, sliceValue);
 		}
+	}
+
+	private navigateToSlice(
+		x: number | undefined,
+		y: number | undefined,
+		z: number | undefined
+	): void {
+		if (this.niivue === undefined) return;
+
+		const calculateDistance = (
+			target: number | undefined,
+			dimensions: number
+		): number => {
+			if (target === undefined) return 0;
+
+			const startingPoint = Math.floor(dimensions / 2);
+
+			return target >= startingPoint
+				? target - startingPoint
+				: (startingPoint - target) * -1;
+		};
+
+		const distanceX = calculateDistance(x, this.niivue.vox[0]);
+		const distanceY = calculateDistance(y, this.niivue.vox[1]);
+		const distanceZ = calculateDistance(z, this.niivue.vox[2]);
+
+		this.niivue.moveCrosshairInVox(distanceX, distanceY, distanceZ);
 	}
 }
