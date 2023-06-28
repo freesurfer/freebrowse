@@ -310,7 +310,7 @@ declare module '@niivue/niivue' {
 			}[];
 			header: any;
 		}>;
-		function loadLayer(layer: any, nvmesh: any): Promise<void>;
+		function loadLayer(layer: NVMeshLayer, nvmesh: NVMesh): Promise<void>;
 		/**
 		 * factory function to load and return a new NVMesh instance from a given URL
 		 * @param {string} url the resolvable URL pointing to a nifti image to load

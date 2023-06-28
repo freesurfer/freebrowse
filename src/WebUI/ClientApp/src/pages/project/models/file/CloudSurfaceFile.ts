@@ -64,6 +64,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 		isActive?: boolean;
 		isChecked?: boolean;
 		opacity?: number;
+		overlayFiles?: OverlayFile[];
 	}): CloudSurfaceFile {
 		return new CloudSurfaceFile(
 			this.id,
@@ -73,7 +74,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order,
 			options.opacity ?? this.opacity,
-			this.overlayFiles
+			options.overlayFiles ?? this.overlayFiles
 		);
 	}
 

@@ -5,6 +5,7 @@ import { useApiVolume } from '@/hooks/useApiVolume';
 import { ProjectState } from '@/pages/project/models/ProjectState';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
+import type { Dispatch } from 'react';
 import { useEffect, useState } from 'react';
 
 /**
@@ -15,6 +16,7 @@ import { useEffect, useState } from 'react';
  */
 export const useApi = (
 	projectId: string | undefined,
+	setProjectState: Dispatch<React.SetStateAction<ProjectState | undefined>>,
 	projectState: ProjectState | undefined
 ): { initialState: ProjectState | undefined } => {
 	/**
@@ -107,7 +109,18 @@ export const useApi = (
 						)
 							continue;
 
-						await apiOverlay.create(cloudSurface.id, overlayFile);
+						const response = await apiOverlay.create(
+							cloudSurface.id,
+							overlayFile
+						);
+						setProjectState((projectState) =>
+							projectState?.fromFiles(
+								projectState.files.fromUploadedOverlays(
+									cloudSurface.id,
+									response
+								)
+							)
+						);
 					}
 				}
 
@@ -152,6 +165,7 @@ export const useApi = (
 		apiSurface,
 		apiVolume,
 		apiOverlay,
+		setProjectState,
 	]);
 
 	return { initialState };

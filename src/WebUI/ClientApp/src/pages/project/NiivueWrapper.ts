@@ -1,13 +1,13 @@
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
+import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
 import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
 import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
-import { Niivue } from '@niivue/niivue';
+import { Niivue, NVMesh } from '@niivue/niivue';
 import type {
 	LocationData,
 	NVImage,
-	NVMesh,
 	NVMeshFromUrlOptions,
 	NVMeshLayer,
 } from '@niivue/niivue';
@@ -106,7 +106,7 @@ export class NiivueWrapper {
 		}
 
 		// otherwise we only need to update the options
-		this.updateFileProperties(files);
+		await this.updateFileProperties(files);
 		this.cleanUpCache(files);
 	}
 
@@ -341,7 +341,7 @@ export class NiivueWrapper {
 		}
 	}
 
-	private updateFileProperties(files: ProjectFiles): void {
+	private async updateFileProperties(files: ProjectFiles): Promise<void> {
 		const volumeFiles = files.volumes
 			.filter((volume) => volume.isChecked)
 			.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
@@ -379,7 +379,7 @@ export class NiivueWrapper {
 			}
 
 			this.updateSurfaceOrder(niivueSurface, tmpOrder++);
-			this.updateSurfaceOverlay(surfaceFile, niivueSurface);
+			await NiivueWrapper.updateSurfaceOverlay(surfaceFile, niivueSurface);
 		}
 	}
 
@@ -393,14 +393,28 @@ export class NiivueWrapper {
 		this.niivue.setMesh(niivueSurface, order);
 	}
 
-	// BERE todo - implement surface overlay update here
-	// eslint-disable-next-line class-methods-use-this
-	private updateSurfaceOverlay(
+	private static async updateSurfaceOverlay(
 		surfaceFile: SurfaceFile,
 		niivueSurface: NVMesh
-	): void {
-		// TODO bere update overlays
-		// niivueSurface.layers[0] = niivue.
+	): Promise<void> {
+		niivueSurface.layers = [];
+
+		if (surfaceFile instanceof LocalSurfaceFile) {
+			// we do not support the visualization of local files directly right now
+			return;
+		}
+
+		await NVMesh.loadLayer(
+			{
+				name: surfaceFile.name,
+				url: surfaceFile.url,
+				cal_min: 0.5,
+				cal_max: 5.5,
+				useNegativeCmap: true,
+				opacity: 0.7,
+			},
+			niivueSurface
+		);
 	}
 
 	private updateVolumeBrightness(

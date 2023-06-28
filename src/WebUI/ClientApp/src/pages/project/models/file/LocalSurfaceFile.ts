@@ -23,6 +23,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 		isActive?: boolean;
 		isChecked?: boolean;
 		opacity?: number;
+		overlayFiles?: OverlayFile[];
 	}): LocalSurfaceFile {
 		return new LocalSurfaceFile(
 			this.file,
@@ -30,7 +31,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order,
 			options.opacity ?? this.opacity,
-			this.overlayFiles
+			options.overlayFiles ?? this.overlayFiles
 		);
 	}
 

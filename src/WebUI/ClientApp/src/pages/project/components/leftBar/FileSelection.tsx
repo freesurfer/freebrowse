@@ -35,31 +35,38 @@ export const FileSelection = ({
 					}
 				></AddFileButton>
 			</div>
-			<div className="flex flex-col gap-0.5 rounded bg-gray p-1">
-				{surface.overlayFiles?.map((overlayFile) => (
-					<div
-						key={overlayFile.name}
-						className="flex items-center gap-1 rounded bg-blue-light p-0.5"
-					>
-						<button
-							className="rounded border border-blue-light bg-white p-1 text-blue-light"
-							onClick={(event) => {
-								event.stopPropagation();
-								setProjectState((projectState) =>
-									projectState?.fromFiles(
-										projectState.files.fromDeletedOverlay(surface, overlayFile)
-									)
-								);
-							}}
+			{surface.overlayFiles?.length === 0 ? (
+				<></>
+			) : (
+				<div className="flex flex-col gap-0.5 rounded bg-gray p-1">
+					{surface.overlayFiles?.map((overlayFile) => (
+						<div
+							key={overlayFile.name}
+							className="flex items-center gap-1 rounded bg-blue-light p-0.5"
 						>
-							<TrashIcon className="h-3.5 w-3.5 shrink-0"></TrashIcon>
-						</button>
-						<span className="overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white">
-							{overlayFile.name}
-						</span>
-					</div>
-				))}
-			</div>
+							<button
+								className="rounded border border-blue-light bg-white p-1 text-blue-light"
+								onClick={(event) => {
+									event.stopPropagation();
+									setProjectState((projectState) =>
+										projectState?.fromFiles(
+											projectState.files.fromDeletedOverlay(
+												surface,
+												overlayFile
+											)
+										)
+									);
+								}}
+							>
+								<TrashIcon className="h-3.5 w-3.5 shrink-0"></TrashIcon>
+							</button>
+							<span className="overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white">
+								{overlayFile.name}
+							</span>
+						</div>
+					))}
+				</div>
+			)}
 		</div>
 	);
 };

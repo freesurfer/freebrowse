@@ -4,10 +4,13 @@ import type {
 	GetProjectDto,
 	GetProjectVolumeDto,
 	GetProjectSurfaceDto,
+	CreateOverlayResponseDto,
 } from '@/generated/web-api-client';
 import { CloudFile } from '@/pages/project/models/file/CloudFile';
+import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
+import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
 import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
 import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
 import type { OverlayFile } from '@/pages/project/models/file/OverlayFile';
@@ -425,6 +428,53 @@ export class ProjectFiles {
 			surfaces: this.surfaces,
 			volumes,
 			all: [...this.surfaces, ...volumes],
+		});
+	}
+
+	public fromUploadedOverlays(
+		surfaceId: number,
+		createOverlayResponseDto: CreateOverlayResponseDto[]
+	): ProjectFiles {
+		const cloudSurfaces = this.cloudSurfaces.map((surface) =>
+			surface.id === surfaceId
+				? surface.from({
+						overlayFiles: surface.overlayFiles.map((overlay) => {
+							if (!(overlay instanceof LocalOverlayFile)) return overlay;
+							const overlayDto = createOverlayResponseDto.find(
+								(dto) => dto.fileName === overlay.name
+							);
+							if (overlayDto === undefined) return overlay;
+
+							if (overlayDto.id === undefined)
+								throw new Error('no id for uploaded overlay');
+							if (overlayDto.fileName === undefined)
+								throw new Error('no fileName  for uploaded overlay');
+							if (overlayDto.fileSize === undefined)
+								throw new Error('no fileSize for uploaded overlay');
+
+							return new CloudOverlayFile(
+								overlayDto.id,
+								overlayDto.fileName,
+								overlayDto.fileSize,
+								overlayDto.selected ?? false,
+								overlayDto.visible ?? false,
+								undefined,
+								overlayDto.opacity ?? 100
+							);
+						}),
+				  })
+				: surface
+		);
+		const surfaces = [...cloudSurfaces, ...this.localSurfaces];
+
+		return new ProjectFiles({
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			localSurfaces: this.localSurfaces,
+			localVolumes: this.localVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
 		});
 	}
 
