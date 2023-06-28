@@ -47,4 +47,17 @@ export class CloudOverlayFile extends CloudFile implements IOverlayFile {
 			opacity
 		);
 	}
+
+	fromIsActive(selected: boolean): CloudOverlayFile {
+		if (this.isActive === selected) return this;
+		return new CloudOverlayFile(
+			this.id,
+			this.name,
+			this.size,
+			selected,
+			this.isChecked,
+			this.order,
+			this.opacity
+		);
+	}
 }

@@ -94,7 +94,10 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			this.isChecked,
 			this.order,
 			this.opacity,
-			[...this.overlayFiles, new LocalOverlayFile(file)]
+			[
+				...this.overlayFiles.map((overlay) => overlay.fromIsActive(false)),
+				new LocalOverlayFile(file, true, true),
+			]
 		);
 	}
 

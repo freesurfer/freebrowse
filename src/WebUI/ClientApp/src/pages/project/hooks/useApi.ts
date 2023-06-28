@@ -4,7 +4,6 @@ import { useApiSurface } from '@/hooks/useApiSurface';
 import { useApiVolume } from '@/hooks/useApiVolume';
 import { ProjectState } from '@/pages/project/models/ProjectState';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
-import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
 import type { Dispatch } from 'react';
 import { useEffect, useState } from 'react';
 
@@ -83,7 +82,19 @@ export const useApi = (
 
 				for (const cloudSurface of projectState.files.cloudSurfaces) {
 					for (const overlayFile of cloudSurface.overlayFiles) {
-						if (!(overlayFile instanceof LocalOverlayFile)) continue;
+						if (overlayFile instanceof CloudOverlayFile) {
+							const lastSurfaceFile = lastUpload?.files.cloudSurfaces.find(
+								(surface) => surface === cloudSurface
+							);
+							if (
+								lastSurfaceFile?.overlayFiles.find(
+									(overlay) => overlay === overlayFile
+								) !== undefined
+							)
+								continue;
+							await apiOverlay.edit(overlayFile);
+							continue;
+						}
 
 						if (lastUpload === undefined) {
 							await apiOverlay.create(cloudSurface.id, overlayFile);

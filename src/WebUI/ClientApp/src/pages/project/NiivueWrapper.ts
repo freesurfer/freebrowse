@@ -1,7 +1,7 @@
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
-import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
+import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
 import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
 import { Niivue, NVMesh } from '@niivue/niivue';
@@ -397,10 +397,7 @@ export class NiivueWrapper {
 		surfaceFile: SurfaceFile,
 		niivueSurface: NVMesh
 	): Promise<void> {
-		const activeOverlay = NiivueWrapper.getActiveOverlayFile(
-			surfaceFile,
-			niivueSurface
-		);
+		const activeOverlay = NiivueWrapper.getActiveOverlayFile(surfaceFile);
 		if (activeOverlay === undefined) {
 			niivueSurface.layers = [];
 			niivueSurface.updateMesh(this.niivue.gl);
@@ -408,6 +405,8 @@ export class NiivueWrapper {
 			return;
 		}
 
+		// necessary if something wents wrong to clean the state from before
+		niivueSurface.layers = [];
 		await NVMesh.loadLayer(
 			{
 				name: activeOverlay.name,
@@ -424,23 +423,14 @@ export class NiivueWrapper {
 	}
 
 	private static getActiveOverlayFile(
-		surfaceFile: SurfaceFile,
-		niivueSurface: NVMesh
+		surfaceFile: SurfaceFile
 	): CloudOverlayFile | undefined {
-		if (surfaceFile instanceof LocalSurfaceFile) {
-			// we do not support the visualization of local files directly right now
-			return undefined;
-		}
-
+		if (!(surfaceFile instanceof CloudSurfaceFile)) return undefined;
 		const activeOverlay = surfaceFile.overlayFiles.find(
-			(overlay) => overlay.isChecked
+			(overlay) => overlay.isActive
 		);
 		if (activeOverlay === undefined) return;
-		if (!(activeOverlay instanceof CloudOverlayFile)) {
-			console.log('we do not show local overlay files right now');
-			return undefined;
-		}
-
+		if (!(activeOverlay instanceof CloudOverlayFile)) return undefined;
 		return activeOverlay;
 	}
 

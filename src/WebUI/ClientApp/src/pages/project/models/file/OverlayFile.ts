@@ -6,4 +6,5 @@ export type OverlayFile = LocalOverlayFile | CloudOverlayFile;
 
 export interface IOverlayFile {
 	type: FileType.OVERLAY;
+	fromIsActive: (selected: boolean) => IOverlayFile;
 }

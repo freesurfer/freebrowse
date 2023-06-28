@@ -11,7 +11,7 @@ export const FileSelection = ({
 	title,
 	className,
 	setProjectState,
-	surfaceFile: surface,
+	surfaceFile,
 }: {
 	title: string;
 	className?: string;
@@ -29,29 +29,45 @@ export const FileSelection = ({
 					onFileSelected={(file) =>
 						setProjectState((projectState) =>
 							projectState?.fromFiles(
-								projectState.files.fromAddedLocalSurfaceOverlay(surface, file)
+								projectState.files.fromAddedLocalSurfaceOverlay(
+									surfaceFile,
+									file
+								)
 							)
 						)
 					}
 				></AddFileButton>
 			</div>
-			{surface.overlayFiles?.length === 0 ? (
+			{surfaceFile.overlayFiles?.length === 0 ? (
 				<></>
 			) : (
 				<div className="flex flex-col gap-0.5 rounded bg-gray p-1">
-					{surface.overlayFiles?.map((overlayFile) => (
+					{surfaceFile.overlayFiles?.map((overlayFile) => (
+						// eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
 						<div
 							key={overlayFile.name}
-							className="flex items-center gap-1 rounded bg-blue-light p-0.5"
+							className={`flex cursor-pointer items-center gap-1 rounded p-0.5 ${
+								overlayFile.isActive ? 'bg-primary' : 'bg-gray'
+							}`}
+							onClick={() =>
+								setProjectState((projectState) =>
+									projectState?.fromFiles(
+										projectState.files.fromSelectOverlay(
+											surfaceFile,
+											overlayFile
+										)
+									)
+								)
+							}
 						>
 							<button
-								className="rounded border border-blue-light bg-white p-1 text-blue-light"
+								className="rounded border border-primary bg-white p-1 text-primary"
 								onClick={(event) => {
 									event.stopPropagation();
 									setProjectState((projectState) =>
 										projectState?.fromFiles(
 											projectState.files.fromDeletedOverlay(
-												surface,
+												surfaceFile,
 												overlayFile
 											)
 										)
@@ -60,7 +76,11 @@ export const FileSelection = ({
 							>
 								<TrashIcon className="h-3.5 w-3.5 shrink-0"></TrashIcon>
 							</button>
-							<span className="overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white">
+							<span
+								className={`overflow-hidden text-ellipsis whitespace-nowrap text-xs ${
+									overlayFile.isActive ? 'text-white' : 'text-font'
+								}`}
+							>
 								{overlayFile.name}
 							</span>
 						</div>

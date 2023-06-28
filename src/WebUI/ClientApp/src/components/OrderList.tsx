@@ -298,7 +298,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 							transform: `translateY(${row.top}px)`,
 						}}
 						className={`absolute left-0 right-0 top-0 mt-0.5 rounded ${
-							row.isActive ? 'bg-blue-light' : 'bg-white'
+							row.isActive ? 'bg-primary' : 'bg-white'
 						}`}
 					>
 						<div className="flex w-full items-center">

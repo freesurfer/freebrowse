@@ -9,13 +9,13 @@ export const AddFileButton = ({
 	onFileSelected: (file: File) => void;
 }): ReactElement => {
 	return (
-		<label className="flex h-6 w-6 grow-0 cursor-pointer items-center justify-center rounded-md bg-blue-light p-2 text-white">
+		<label className="flex h-6 w-6 grow-0 cursor-pointer items-center justify-center rounded-md bg-primary p-2 text-white">
 			<ArrowUpTrayIcon className="h-4 w-4 shrink-0"></ArrowUpTrayIcon>
 			<input
 				type="file"
 				className="hidden"
 				name="img" // to make it only choose one file
-				// accept={acceptedExtensions.join(',')} // TODO bere enable
+				accept={acceptedExtensions.join(',')}
 				onChange={(event) => {
 					const selectedFile = event?.target.files?.[0];
 					if (selectedFile === undefined) return;

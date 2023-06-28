@@ -547,6 +547,34 @@ export class ProjectFiles {
 		});
 	}
 
+	public fromSelectOverlay(
+		surfaceFile: SurfaceFile,
+		overlayFile: OverlayFile
+	): ProjectFiles {
+		const cloudSurfaces = this.cloudSurfaces.map((surface) =>
+			surface === surfaceFile
+				? surface.from({
+						overlayFiles: surface.overlayFiles.map((overlay) => {
+							if (overlay !== overlayFile) return overlay.fromIsActive(false);
+							if (overlay.isActive) return overlay.fromIsActive(false);
+							return overlay.fromIsActive(true);
+						}),
+				  })
+				: surface
+		);
+		const surfaces = [...this.localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces: this.localSurfaces,
+			localVolumes: this.localVolumes,
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
+		});
+	}
+
 	private static cloudFileFromVolumeDto(
 		fileModel: GetProjectVolumeDto[] | undefined
 	): CloudVolumeFile[] {
