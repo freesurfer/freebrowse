@@ -379,7 +379,7 @@ export class NiivueWrapper {
 			}
 
 			this.updateSurfaceOrder(niivueSurface, tmpOrder++);
-			await NiivueWrapper.updateSurfaceOverlay(surfaceFile, niivueSurface);
+			await this.updateSurfaceOverlay(surfaceFile, niivueSurface);
 		}
 	}
 
@@ -393,21 +393,25 @@ export class NiivueWrapper {
 		this.niivue.setMesh(niivueSurface, order);
 	}
 
-	private static async updateSurfaceOverlay(
+	private async updateSurfaceOverlay(
 		surfaceFile: SurfaceFile,
 		niivueSurface: NVMesh
 	): Promise<void> {
-		niivueSurface.layers = [];
-
-		if (surfaceFile instanceof LocalSurfaceFile) {
-			// we do not support the visualization of local files directly right now
+		const activeOverlay = NiivueWrapper.getActiveOverlayFile(
+			surfaceFile,
+			niivueSurface
+		);
+		if (activeOverlay === undefined) {
+			niivueSurface.layers = [];
+			niivueSurface.updateMesh(this.niivue.gl);
+			this.niivue.updateGLVolume();
 			return;
 		}
 
 		await NVMesh.loadLayer(
 			{
-				name: surfaceFile.name,
-				url: surfaceFile.url,
+				name: activeOverlay.name,
+				url: activeOverlay.url,
 				cal_min: 0.5,
 				cal_max: 5.5,
 				useNegativeCmap: true,
@@ -415,6 +419,29 @@ export class NiivueWrapper {
 			},
 			niivueSurface
 		);
+		niivueSurface.updateMesh(this.niivue.gl);
+		this.niivue.updateGLVolume();
+	}
+
+	private static getActiveOverlayFile(
+		surfaceFile: SurfaceFile,
+		niivueSurface: NVMesh
+	): CloudOverlayFile | undefined {
+		if (surfaceFile instanceof LocalSurfaceFile) {
+			// we do not support the visualization of local files directly right now
+			return undefined;
+		}
+
+		const activeOverlay = surfaceFile.overlayFiles.find(
+			(overlay) => overlay.isChecked
+		);
+		if (activeOverlay === undefined) return;
+		if (!(activeOverlay instanceof CloudOverlayFile)) {
+			console.log('we do not show local overlay files right now');
+			return undefined;
+		}
+
+		return activeOverlay;
 	}
 
 	private updateVolumeBrightness(

@@ -17,8 +17,12 @@ export const AddFileButton = ({
 				name="img" // to make it only choose one file
 				// accept={acceptedExtensions.join(',')} // TODO bere enable
 				onChange={(event) => {
-					if (event.target.files?.[0] === undefined) return;
-					onFileSelected(event.target.files[0]);
+					const selectedFile = event?.target.files?.[0];
+					if (selectedFile === undefined) return;
+					onFileSelected(selectedFile);
+					// revert value state, to enable the user to select the same file again
+					// important after the user removed the overlay and wants to add it again
+					event.target.value = '';
 				}}
 			/>
 		</label>
