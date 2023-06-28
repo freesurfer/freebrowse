@@ -1,7 +1,8 @@
 import { Collapse } from '@/components/Collapse';
 import { Slider } from '@/components/Slider';
-import type { ProjectFile } from '@/pages/project/models/ProjectFile';
+import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
 import { useCallback, type Dispatch } from 'react';
 
 export const FileSettings = ({
@@ -57,7 +58,7 @@ export const FileSettings = ({
 									</span>
 								}
 							>
-								<div className="mr-4 pl-1">
+								<div className="pl-1">
 									<Slider
 										className="mt-2"
 										label="Opacity:"
@@ -119,31 +120,37 @@ export const FileSettings = ({
 							</Collapse>
 						);
 					})}
-					{selectedSurfaces.map((surface) => {
-						if (surface === undefined) return <></>;
+					{selectedSurfaces.map((surfaceFile) => {
+						if (surfaceFile === undefined) return <></>;
 						return (
 							<Collapse
-								key={surface?.name}
+								key={surfaceFile?.name}
 								className="mt-1 pr-4"
 								title={
 									<span className="grow border-b border-gray text-xs">
-										{surface.name ?? 'No file selected'}
+										{surfaceFile.name ?? 'No file selected'}
 									</span>
 								}
 							>
-								<div className="mr-4 pl-1">
+								<div className="pl-1">
 									<Slider
 										className="mt-2"
 										label="Opacity:"
-										value={surface.opacity}
+										value={surfaceFile.opacity}
 										unit="%"
 										onChange={(value) =>
-											updateFileOptions(surface, { opacity: value }, false)
+											updateFileOptions(surfaceFile, { opacity: value }, false)
 										}
 										onEnd={(value) =>
-											updateFileOptions(surface, { opacity: value }, true)
+											updateFileOptions(surfaceFile, { opacity: value }, true)
 										}
 									></Slider>
+									<FileSelection
+										title="Overlays:"
+										className="mt-4"
+										setProjectState={setProjectState}
+										surfaceFile={surfaceFile}
+									></FileSelection>
 								</div>
 							</Collapse>
 						);

@@ -42,7 +42,7 @@ export const LoadedFiles = ({
 						event.stopPropagation();
 						void loadFiles();
 					}}
-					className="mr-4 flex h-6 w-6 grow-0 items-center justify-center rounded-md bg-blue-light p-2 text-white"
+					className="mr-4 flex h-6 w-6 grow-0 items-center justify-center rounded-md bg-primary p-2 text-white"
 				>
 					<ArrowUpTrayIcon className="h-4 w-4 shrink-0"></ArrowUpTrayIcon>
 				</button>

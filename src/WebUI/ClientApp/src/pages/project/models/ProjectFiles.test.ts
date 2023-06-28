@@ -1,8 +1,7 @@
-import {
-	CloudSurfaceFile,
-	CloudVolumeFile,
-} from '@/pages/project/models/ProjectFile';
+import { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
+import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import type { NVImage, NVMesh } from '@niivue/niivue';
 
 jest.mock('@/utils');
@@ -30,28 +29,32 @@ describe('ProjectFiles', () => {
 		});
 
 		expect(
-			projectFiles.isRemovedOrAdded(
+			NiivueWrapper.isRemovedOrAdded(
+				projectFiles,
 				[{ name: FILE_NAME_VOLUME_1 } as unknown as NVImage],
 				[{ name: FILE_NAME_SURFACE_1 } as unknown as NVMesh]
 			)
 		).toBeFalsy();
 
 		expect(
-			projectFiles.isRemovedOrAdded(
+			NiivueWrapper.isRemovedOrAdded(
+				projectFiles,
 				[{ name: FILE_NAME_SURFACE_1 } as unknown as NVImage],
 				[{ name: FILE_NAME_VOLUME_1 } as unknown as NVMesh]
 			)
 		).toBeTruthy();
 
 		expect(
-			projectFiles.isRemovedOrAdded(
+			NiivueWrapper.isRemovedOrAdded(
+				projectFiles,
 				[{ name: FILE_NAME_VOLUME_1 } as unknown as NVImage],
 				[]
 			)
 		).toBeTruthy();
 
 		expect(
-			projectFiles.isRemovedOrAdded(
+			NiivueWrapper.isRemovedOrAdded(
+				projectFiles,
 				[],
 				[{ name: FILE_NAME_VOLUME_1 } as unknown as NVMesh]
 			)

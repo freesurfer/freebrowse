@@ -1,21 +1,21 @@
-import {
-	EditSurfaceCommand,
-	EditVolumeCommand,
-	ProjectsClient,
-	SurfaceClient,
-	VolumeClient,
-} from '@/generated/web-api-client';
+import { useApiOverlay } from '@/hooks/useApiOverlay';
+import { useApiProject } from '@/hooks/useApiProject';
+import { useApiSurface } from '@/hooks/useApiSurface';
+import { useApiVolume } from '@/hooks/useApiVolume';
 import { ProjectState } from '@/pages/project/models/ProjectState';
-import { getApiUrl } from '@/utils';
+import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
+import type { Dispatch } from 'react';
 import { useEffect, useState } from 'react';
 
 /**
  * custom hook to handle all the communication to the backend
+ * LISTENS the projectState changes and PUSHES all updates to the backend
  * - fetch data when site has been loaded
  * - update backend state when the project state has changed
  */
 export const useApi = (
 	projectId: string | undefined,
+	setProjectState: Dispatch<React.SetStateAction<ProjectState | undefined>>,
 	projectState: ProjectState | undefined
 ): { initialState: ProjectState | undefined } => {
 	/**
@@ -28,29 +28,29 @@ export const useApi = (
 	 */
 	const [initialState, setInitialState] = useState<ProjectState>();
 
+	const apiProject = useApiProject();
+	const apiVolume = useApiVolume();
+	const apiSurface = useApiSurface();
+	const apiOverlay = useApiOverlay();
+
 	useEffect(() => {
 		if (projectId === undefined) return;
 		if (projectState !== undefined) return;
 		if (lastUpload !== undefined && projectState === lastUpload) return;
 
-		/**
-		 * fetch project state from backend, when there is now project state defined yet
-		 */
-		const fetchData = async (): Promise<void> => {
-			const client = new ProjectsClient(getApiUrl());
-			if (projectId === undefined) {
-				console.error('no project id given');
-				return;
+		const fetchProject = async (): Promise<void> => {
+			try {
+				const backendState = await apiProject.get(projectId);
+				const initialProjectState = new ProjectState({ backendState }, false);
+				setInitialState(initialProjectState);
+				setLastUpload(initialProjectState);
+			} catch (error) {
+				console.error('failed to fetch project', error);
 			}
-
-			const backendState = await client.getProject(Number(projectId));
-			const initialProjectState = new ProjectState({ backendState }, false);
-			setInitialState(initialProjectState);
-			setLastUpload(initialProjectState);
 		};
 
-		void fetchData();
-	}, [projectId, lastUpload, setLastUpload, projectState]);
+		void fetchProject();
+	}, [projectId, lastUpload, setLastUpload, projectState, apiProject]);
 
 	useEffect(() => {
 		/**
@@ -65,56 +65,119 @@ export const useApi = (
 				lastUpload === undefined ||
 				projectState.files.cloudVolumes !== lastUpload.files.cloudVolumes
 			) {
-				const client = new VolumeClient(getApiUrl());
-				for (const cloudVolume of projectState.files.cloudVolumes) {
-					if (
-						lastUpload?.files.cloudVolumes.find(
-							(lastVolumeFile) => lastVolumeFile === cloudVolume
-						) !== undefined
-					)
-						continue;
-
-					await client.edit(
-						new EditVolumeCommand({
-							id: cloudVolume.id,
-							order: cloudVolume.order,
-							contrastMin: cloudVolume.contrastMin,
-							contrastMax: cloudVolume.contrastMax,
-							opacity: cloudVolume.opacity,
-							visible: cloudVolume.isChecked,
-						})
-					);
-				}
+				await apiVolume.edit(
+					projectState.files.cloudVolumes,
+					lastUpload?.files.cloudVolumes
+				);
 			}
 
 			if (
 				lastUpload === undefined ||
 				projectState.files.surfaces !== lastUpload.files.cloudSurfaces
 			) {
-				const client = new SurfaceClient(getApiUrl());
-				for (const cloudSurface of projectState.files.cloudSurfaces) {
-					if (
-						lastUpload?.files.cloudSurfaces.find(
-							(lastSurfaceFile) => lastSurfaceFile === cloudSurface
-						) !== undefined
-					)
-						continue;
+				await apiSurface.edit(
+					projectState.files.cloudSurfaces,
+					lastUpload?.files.cloudSurfaces
+				);
 
-					await client.edit(
-						new EditSurfaceCommand({
-							id: cloudSurface.id,
-							order: cloudSurface.order,
-							opacity: cloudSurface.opacity,
-							visible: cloudSurface.isChecked,
-						})
-					);
+				for (const cloudSurface of projectState.files.cloudSurfaces) {
+					for (const overlayFile of cloudSurface.overlayFiles) {
+						if (overlayFile instanceof CloudOverlayFile) {
+							const lastSurfaceFile = lastUpload?.files.cloudSurfaces.find(
+								(surface) => surface === cloudSurface
+							);
+							if (
+								lastSurfaceFile?.overlayFiles.find(
+									(overlay) => overlay === overlayFile
+								) !== undefined
+							)
+								continue;
+							await apiOverlay.edit(overlayFile);
+							continue;
+						}
+
+						if (lastUpload === undefined) {
+							await apiOverlay.create(cloudSurface.id, overlayFile);
+							continue;
+						}
+
+						if (
+							lastUpload.files.cloudSurfaces.find(
+								(lastSurfaceFile) => lastSurfaceFile === cloudSurface
+							) !== undefined
+						)
+							continue;
+
+						const lastCloudSurface = lastUpload.files.cloudSurfaces.find(
+							(lastSurfaceFile) => lastSurfaceFile.name === cloudSurface.name
+						);
+						if (lastCloudSurface === undefined) continue;
+
+						if (
+							lastCloudSurface.overlayFiles.find(
+								(lastOverlayFile) => lastOverlayFile.name === overlayFile.name
+							) !== undefined
+						)
+							continue;
+
+						const response = await apiOverlay.create(
+							cloudSurface.id,
+							overlayFile
+						);
+						setProjectState((projectState) =>
+							projectState?.fromFiles(
+								projectState.files.fromUploadedOverlays(
+									cloudSurface.id,
+									response
+								)
+							)
+						);
+					}
+				}
+
+				if (lastUpload === undefined) return;
+				for (const lastCloudSurface of lastUpload.files.cloudSurfaces) {
+					for (const lastOverlayFile of lastCloudSurface.overlayFiles) {
+						if (!(lastOverlayFile instanceof CloudOverlayFile)) continue;
+						if (
+							projectState.files.cloudSurfaces.find(
+								(surfaceFile) => surfaceFile === lastCloudSurface
+							) !== undefined
+						)
+							continue;
+
+						const cloudSurface = projectState.files.cloudSurfaces.find(
+							(surfaceFile) => surfaceFile.name === lastCloudSurface.name
+						);
+						if (cloudSurface === undefined) {
+							for (const overlayFileToDelete of lastCloudSurface.overlayFiles) {
+								if (!(overlayFileToDelete instanceof CloudOverlayFile))
+									continue;
+								await apiOverlay.remove(overlayFileToDelete.id);
+							}
+							continue;
+						}
+						const overlayFile = cloudSurface.overlayFiles.find(
+							(overlayFile) => overlayFile.name === lastOverlayFile.name
+						);
+						if (overlayFile !== undefined) continue;
+						await apiOverlay.remove(lastOverlayFile.id);
+					}
 				}
 			}
 		};
 
 		void uploadToBackend();
 		setLastUpload(projectState);
-	}, [projectState, lastUpload, setLastUpload]);
+	}, [
+		projectState,
+		lastUpload,
+		setLastUpload,
+		apiSurface,
+		apiVolume,
+		apiOverlay,
+		setProjectState,
+	]);
 
 	return { initialState };
 };

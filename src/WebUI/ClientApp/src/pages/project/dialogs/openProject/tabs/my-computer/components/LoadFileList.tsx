@@ -1,13 +1,13 @@
-import { Checkbox } from '@/components/Checkbox';
 import { ProgressBar } from '@/pages/project/dialogs/openProject/tabs/my-computer/components/ProgressBar';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import Select from 'react-select';
 
+/*
 const options = [
 	{ value: 'grayscale', label: 'Grayscale' },
 	{ value: 'lookupTable', label: 'Lookup Table' },
 ];
+*/
 
 export const LoadFileList = ({
 	className,
@@ -38,7 +38,8 @@ export const LoadFileList = ({
 						>
 							<XMarkIcon className="w-6 text-gray-600"></XMarkIcon>
 						</button>
-						{file.selection !== undefined ? (
+
+						{/* file.selection !== undefined ? (
 							<>
 								<Select
 									className="w-40 min-w-[10rem]"
@@ -59,7 +60,8 @@ export const LoadFileList = ({
 							</>
 						) : (
 							<></>
-						)}
+						)
+						*/}
 					</div>
 				);
 			})}

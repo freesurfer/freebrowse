@@ -184,7 +184,7 @@ export const Slider = ({
 					></div>
 					<div
 						style={{ width: `${value}%` }}
-						className="absolute mt-1 h-2 rounded bg-blue-light"
+						className="absolute mt-1 h-2 rounded bg-primary"
 					></div>
 					<button
 						onMouseDown={(event) => {
@@ -196,7 +196,7 @@ export const Slider = ({
 							});
 						}}
 						style={{ marginLeft: `${value}%` }}
-						className="absolute -left-2 h-4 w-4 cursor-pointer rounded-full border-2 border-blue-light bg-white"
+						className="absolute -left-2 h-4 w-4 cursor-pointer rounded-full border-2 border-primary bg-white"
 					></button>
 				</div>
 			}

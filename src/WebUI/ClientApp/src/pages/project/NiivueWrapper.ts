@@ -1,8 +1,16 @@
-import type { VolumeFile } from '@/pages/project/models/ProjectFile';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
-import { Niivue } from '@niivue/niivue';
-import type { LocationData, NVImage, NVMesh } from '@niivue/niivue';
+import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
+import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
+import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
+import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
+import { Niivue, NVMesh } from '@niivue/niivue';
+import type {
+	LocationData,
+	NVImage,
+	NVMeshFromUrlOptions,
+	NVMeshLayer,
+} from '@niivue/niivue';
 
 /**
  * this class is a wrapper for the niivue library reference
@@ -83,7 +91,13 @@ export class NiivueWrapper {
 			return;
 		}
 
-		if (this.isRemovedOrAdded(files)) {
+		if (
+			NiivueWrapper.isRemovedOrAdded(
+				files,
+				this.niivue.volumes,
+				this.niivue.meshes
+			)
+		) {
 			// if there are files added or remove
 			// we need to remove or add files
 			await this.addOrRemoveFiles(files);
@@ -92,7 +106,7 @@ export class NiivueWrapper {
 		}
 
 		// otherwise we only need to update the options
-		this.updateFileProperties(files);
+		await this.updateFileProperties(files);
 		this.cleanUpCache(files);
 	}
 
@@ -218,11 +232,27 @@ export class NiivueWrapper {
 				files.cloudSurfaces
 					.filter((file) => file.isChecked)
 					.sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
-					.map((file) => {
+					.map((file): NVMeshFromUrlOptions => {
+						const layers = file.overlayFiles
+							?.filter(
+								(overlayFile): overlayFile is CloudOverlayFile =>
+									overlayFile instanceof CloudOverlayFile
+							)
+							.map(
+								(overlayFile): NVMeshLayer => ({
+									name: overlayFile.name,
+									url: overlayFile.url,
+									cal_min: 0.5,
+									cal_max: 5.5,
+									useNegativeCmap: true,
+									opacity: 0.7,
+								})
+							);
 						return {
 							url: file.url,
 							name: file.name,
 							opacity: file.opacity / 100,
+							layers,
 						};
 					})
 			);
@@ -240,8 +270,12 @@ export class NiivueWrapper {
 	 * if files has been added or removed (by names)
 	 * the niivue files need only to get updated, if the state has changed
 	 */
-	isRemovedOrAdded(files: ProjectFiles): boolean {
-		for (const niivueVolume of this.niivue.volumes) {
+	static isRemovedOrAdded(
+		files: ProjectFiles,
+		niivueVolumes: NVImage[],
+		niivueSurfaces: NVMesh[]
+	): boolean {
+		for (const niivueVolume of niivueVolumes) {
 			if (
 				files.cloudVolumes.find(
 					(cloudVolume) =>
@@ -254,14 +288,14 @@ export class NiivueWrapper {
 		for (const cloudVolume of files.volumes) {
 			if (!cloudVolume.isChecked) continue;
 			if (
-				this.niivue.volumes.find(
+				niivueVolumes.find(
 					(niivueVolume) => niivueVolume.name === cloudVolume.name
 				) === undefined
 			)
 				return true;
 		}
 
-		for (const niivueSurface of this.niivue.meshes) {
+		for (const niivueSurface of niivueSurfaces) {
 			if (
 				files.cloudSurfaces.find(
 					(cloudSurface) =>
@@ -274,7 +308,7 @@ export class NiivueWrapper {
 		for (const cloudSurface of files.cloudSurfaces) {
 			if (!cloudSurface.isChecked) continue;
 			if (
-				this.niivue.meshes.find(
+				niivueSurfaces.find(
 					(niivueSurface) => niivueSurface.name === cloudSurface.name
 				) === undefined
 			)
@@ -307,7 +341,7 @@ export class NiivueWrapper {
 		}
 	}
 
-	private updateFileProperties(files: ProjectFiles): void {
+	private async updateFileProperties(files: ProjectFiles): Promise<void> {
 		const volumeFiles = files.volumes
 			.filter((volume) => volume.isChecked)
 			.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
@@ -327,8 +361,7 @@ export class NiivueWrapper {
 			}
 
 			this.updateVolumeOrder(niivueVolume, tmpOrder++);
-			this.updateVolumeOpacity(niivueVolume, volumeFile);
-			this.updateVolumeContrast(niivueVolume, volumeFile);
+			this.updateVolumeBrightness(niivueVolume, volumeFile);
 		}
 
 		const surfaceFiles = files.surfaces
@@ -336,16 +369,17 @@ export class NiivueWrapper {
 			.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
 		tmpOrder = 0;
 		for (const surfaceFile of surfaceFiles) {
-			const niivueMesh = this.niivue.meshes.find(
+			const niivueSurface = this.niivue.meshes.find(
 				(niivueMesh) => surfaceFile.name === niivueMesh.name
 			);
 
-			if (niivueMesh === undefined) {
+			if (niivueSurface === undefined) {
 				console.warn('no niivue volume for given file', surfaceFile.name);
 				continue;
 			}
 
-			this.updateSurfaceOrder(niivueMesh, tmpOrder++);
+			this.updateSurfaceOrder(niivueSurface, tmpOrder++);
+			await this.updateSurfaceOverlay(surfaceFile, niivueSurface);
 		}
 	}
 
@@ -359,27 +393,59 @@ export class NiivueWrapper {
 		this.niivue.setMesh(niivueSurface, order);
 	}
 
-	private updateVolumeOpacity(
-		niivueVolume: NVImage,
-		volumeFile: VolumeFile
-	): void {
-		if (niivueVolume.opacity === volumeFile.opacity / 100) return;
-		this.niivue.setOpacity(
-			this.niivue.getVolumeIndexByID(niivueVolume.id),
-			volumeFile.opacity / 100
+	private async updateSurfaceOverlay(
+		surfaceFile: SurfaceFile,
+		niivueSurface: NVMesh
+	): Promise<void> {
+		const activeOverlay = NiivueWrapper.getActiveOverlayFile(surfaceFile);
+		if (activeOverlay === undefined) {
+			niivueSurface.layers = [];
+			niivueSurface.updateMesh(this.niivue.gl);
+			this.niivue.updateGLVolume();
+			return;
+		}
+
+		// necessary if something wents wrong to clean the state from before
+		niivueSurface.layers = [];
+		await NVMesh.loadLayer(
+			{
+				name: activeOverlay.name,
+				url: activeOverlay.url,
+				cal_min: 0.5,
+				cal_max: 5.5,
+				useNegativeCmap: true,
+				opacity: 0.7,
+			},
+			niivueSurface
 		);
+		niivueSurface.updateMesh(this.niivue.gl);
+		this.niivue.updateGLVolume();
 	}
 
-	private updateVolumeContrast(
+	private static getActiveOverlayFile(
+		surfaceFile: SurfaceFile
+	): CloudOverlayFile | undefined {
+		if (!(surfaceFile instanceof CloudSurfaceFile)) return undefined;
+		const activeOverlay = surfaceFile.overlayFiles.find(
+			(overlay) => overlay.isActive
+		);
+		if (activeOverlay === undefined) return;
+		if (!(activeOverlay instanceof CloudOverlayFile)) return undefined;
+		return activeOverlay;
+	}
+
+	private updateVolumeBrightness(
 		niivueVolume: NVImage,
 		volumeFile: VolumeFile
 	): void {
 		if (
+			niivueVolume.opacity === volumeFile.opacity &&
 			niivueVolume.cal_min === volumeFile.contrastMin &&
 			niivueVolume.cal_max === volumeFile.contrastMax
 		)
 			return;
 
+		niivueVolume.opacity = volumeFile.opacity / 100;
 		niivueVolume.cal_min = volumeFile.contrastMin;
 		niivueVolume.cal_max = volumeFile.contrastMax;
 		this.niivue.updateGLVolume();

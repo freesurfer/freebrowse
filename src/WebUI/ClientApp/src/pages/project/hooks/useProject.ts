@@ -21,7 +21,7 @@ export const useProject = (
 } => {
 	const [projectState, setProjectState] = useState<ProjectState>();
 
-	const { initialState } = useApi(projectId, projectState);
+	const { initialState } = useApi(projectId, setProjectState, projectState);
 	useEffect(() => {
 		if (initialState === undefined) return;
 		setProjectState(initialState);
