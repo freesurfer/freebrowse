@@ -6,6 +6,7 @@ export enum FileType {
 	VOLUME,
 	SURFACE,
 	OVERLAY,
+	ANNOTATION,
 }
 
 /**

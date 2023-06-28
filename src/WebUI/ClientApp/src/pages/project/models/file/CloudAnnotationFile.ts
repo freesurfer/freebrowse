@@ -1,13 +1,13 @@
-import type { GetProjectOverlayDto } from '@/generated/web-api-client';
+import type { GetProjectAnnotationDto } from '@/generated/web-api-client';
+import type { IAnnotationFile } from '@/pages/project/models/file/AnnotationFile';
 import { CloudFile } from '@/pages/project/models/file/CloudFile';
-import type { IOverlayFile } from '@/pages/project/models/file/OverlayFile';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
 import { getApiUrl } from '@/utils';
 
-export class CloudOverlayFile extends CloudFile implements IOverlayFile {
-	public readonly type = FileType.OVERLAY;
+export class CloudAnnotationFile extends CloudFile implements IAnnotationFile {
+	public readonly type = FileType.ANNOTATION;
 
-	static fromDto(fileDto: GetProjectOverlayDto): CloudOverlayFile {
+	static fromDto(fileDto: GetProjectAnnotationDto): CloudAnnotationFile {
 		if (fileDto?.id === undefined) throw new Error('no file without file id');
 
 		if (fileDto?.fileName === undefined)
@@ -16,7 +16,7 @@ export class CloudOverlayFile extends CloudFile implements IOverlayFile {
 		if (fileDto?.fileSize === undefined)
 			throw new Error('no file without file size');
 
-		return new CloudOverlayFile(
+		return new CloudAnnotationFile(
 			fileDto.id,
 			fileDto.fileName,
 			fileDto.fileSize,
@@ -40,7 +40,7 @@ export class CloudOverlayFile extends CloudFile implements IOverlayFile {
 			id,
 			name,
 			size,
-			`${getApiUrl()}/api/Overlay?Id=${String(id)}`,
+			`${getApiUrl()}/api/Annotation?Id=${String(id)}`,
 			isActive,
 			isChecked,
 			order,
@@ -48,9 +48,9 @@ export class CloudOverlayFile extends CloudFile implements IOverlayFile {
 		);
 	}
 
-	fromIsActive(isActive: boolean): CloudOverlayFile {
+	fromIsActive(isActive: boolean): CloudAnnotationFile {
 		if (this.isActive === isActive) return this;
-		return new CloudOverlayFile(
+		return new CloudAnnotationFile(
 			this.id,
 			this.name,
 			this.size,

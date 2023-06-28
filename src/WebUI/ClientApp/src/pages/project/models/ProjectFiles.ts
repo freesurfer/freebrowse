@@ -5,11 +5,15 @@ import type {
 	GetProjectVolumeDto,
 	GetProjectSurfaceDto,
 	CreateOverlayResponseDto,
+	CreateAnnotationResponseDto,
 } from '@/generated/web-api-client';
+import type { AnnotationFile } from '@/pages/project/models/file/AnnotationFile';
+import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudFile } from '@/pages/project/models/file/CloudFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
+import { LocalAnnotationFile } from '@/pages/project/models/file/LocalAnnotationFile';
 import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
 import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
 import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
@@ -478,6 +482,54 @@ export class ProjectFiles {
 		});
 	}
 
+	public fromUploadedAnnotations(
+		surfaceId: number,
+		createAnnotationResponseDto: CreateAnnotationResponseDto[]
+	): ProjectFiles {
+		const cloudSurfaces = this.cloudSurfaces.map((surface) =>
+			surface.id === surfaceId
+				? surface.from({
+						annotationFiles: surface.annotationFiles.map((annotation) => {
+							if (!(annotation instanceof LocalAnnotationFile))
+								return annotation;
+							const annotationDto = createAnnotationResponseDto.find(
+								(dto) => dto.fileName === annotation.name
+							);
+							if (annotationDto === undefined) return annotation;
+
+							if (annotationDto.id === undefined)
+								throw new Error('no id for uploaded annotation');
+							if (annotationDto.fileName === undefined)
+								throw new Error('no fileName  for uploaded annotation');
+							if (annotationDto.fileSize === undefined)
+								throw new Error('no fileSize for uploaded annotation');
+
+							return new CloudAnnotationFile(
+								annotationDto.id,
+								annotationDto.fileName,
+								annotationDto.fileSize,
+								annotationDto.selected ?? false,
+								annotationDto.visible ?? false,
+								undefined,
+								annotationDto.opacity ?? 100
+							);
+						}),
+				  })
+				: surface
+		);
+		const surfaces = [...cloudSurfaces, ...this.localSurfaces];
+
+		return new ProjectFiles({
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			localSurfaces: this.localSurfaces,
+			localVolumes: this.localVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
+		});
+	}
+
 	/**
 	 * method to add a new local file as overlay to the given surface
 	 */
@@ -499,6 +551,44 @@ export class ProjectFiles {
 			? this.cloudSurfaces.map((localSurface) =>
 					localSurface === surface
 						? localSurface.fromAddOverlay(file)
+						: localSurface
+			  )
+			: this.cloudSurfaces;
+
+		const surfaces = [...localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces,
+			cloudSurfaces,
+			localVolumes: this.localVolumes,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
+		});
+	}
+
+	/**
+	 * method to add a new local file as annotation to the given surface
+	 */
+	public fromAddedLocalSurfaceAnnotation(
+		surface: SurfaceFile,
+		file: File
+	): ProjectFiles {
+		const isLocal = surface instanceof LocalSurfaceFile;
+		const localSurfaces = isLocal
+			? this.localSurfaces.map((localSurface) =>
+					localSurface === surface
+						? localSurface.fromAddAnnotation(file)
+						: localSurface
+			  )
+			: this.localSurfaces;
+
+		const isCloud = surface instanceof CloudSurfaceFile;
+		const cloudSurfaces = isCloud
+			? this.cloudSurfaces.map((localSurface) =>
+					localSurface === surface
+						? localSurface.fromAddAnnotation(file)
 						: localSurface
 			  )
 			: this.cloudSurfaces;
@@ -547,7 +637,38 @@ export class ProjectFiles {
 		});
 	}
 
-	public fromSelectOverlay(
+	/**
+	 * method to delete a annotation file from a surface
+	 */
+	public fromDeletedAnnotation(
+		surfaceFile: SurfaceFile,
+		annotationFile: AnnotationFile
+	): ProjectFiles {
+		const localSurfaces = this.localSurfaces.map((thisSurface) =>
+			thisSurface !== surfaceFile
+				? thisSurface
+				: thisSurface.fromDeleteAnnotation(annotationFile)
+		);
+		const cloudSurfaces = this.cloudSurfaces.map((thisSurface) =>
+			thisSurface !== surfaceFile
+				? thisSurface
+				: thisSurface.fromDeleteAnnotation(annotationFile)
+		);
+
+		const surfaces = [...localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces,
+			localVolumes: this.localVolumes,
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...this.surfaces, ...this.volumes],
+		});
+	}
+
+	public fromIsActiveOverlay(
 		surfaceFile: SurfaceFile,
 		overlayFile: OverlayFile
 	): ProjectFiles {
@@ -558,6 +679,41 @@ export class ProjectFiles {
 							if (overlay !== overlayFile) return overlay.fromIsActive(false);
 							if (overlay.isActive) return overlay.fromIsActive(false);
 							return overlay.fromIsActive(true);
+						}),
+						annotationFiles: surface.annotationFiles.map((annotation) =>
+							annotation.fromIsActive(false)
+						),
+				  })
+				: surface
+		);
+		const surfaces = [...this.localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces: this.localSurfaces,
+			localVolumes: this.localVolumes,
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
+		});
+	}
+
+	public fromIsActiveAnnotation(
+		surfaceFile: SurfaceFile,
+		annotationFile: AnnotationFile
+	): ProjectFiles {
+		const cloudSurfaces = this.cloudSurfaces.map((surface) =>
+			surface === surfaceFile
+				? surface.from({
+						overlayFiles: surface.overlayFiles.map((overlay) =>
+							overlay.fromIsActive(false)
+						),
+						annotationFiles: surface.annotationFiles.map((annotation) => {
+							if (annotation !== annotationFile)
+								return annotation.fromIsActive(false);
+							if (annotation.isActive) return annotation.fromIsActive(false);
+							return annotation.fromIsActive(true);
 						}),
 				  })
 				: surface
