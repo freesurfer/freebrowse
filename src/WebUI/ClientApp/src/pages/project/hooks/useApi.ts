@@ -1,11 +1,233 @@
+import { useApiAnnotation } from '@/hooks/useApiAnnotation';
 import { useApiOverlay } from '@/hooks/useApiOverlay';
 import { useApiProject } from '@/hooks/useApiProject';
 import { useApiSurface } from '@/hooks/useApiSurface';
 import { useApiVolume } from '@/hooks/useApiVolume';
 import { ProjectState } from '@/pages/project/models/ProjectState';
+import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
+import type { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import type { Dispatch } from 'react';
 import { useEffect, useState } from 'react';
+
+const createOverlays = async (
+	cloudSurfaces: readonly CloudSurfaceFile[],
+	lastCloudSurfaces: readonly CloudSurfaceFile[] | undefined,
+	apiOverlay: ReturnType<typeof useApiOverlay>,
+	setProjectState: Dispatch<React.SetStateAction<ProjectState | undefined>>
+): Promise<void> => {
+	for (const cloudSurface of cloudSurfaces) {
+		for (const overlayFile of cloudSurface.overlayFiles) {
+			if (overlayFile instanceof CloudOverlayFile) {
+				const lastSurfaceFile = lastCloudSurfaces?.find(
+					(surface) => surface === cloudSurface
+				);
+				if (
+					lastSurfaceFile?.overlayFiles.find(
+						(overlay) => overlay === overlayFile
+					) !== undefined
+				)
+					continue;
+				await apiOverlay.edit(overlayFile);
+				continue;
+			}
+
+			if (lastCloudSurfaces === undefined) {
+				await apiOverlay.create(cloudSurface.id, overlayFile);
+				continue;
+			}
+
+			if (
+				lastCloudSurfaces.find(
+					(lastSurfaceFile) => lastSurfaceFile === cloudSurface
+				) !== undefined
+			)
+				continue;
+
+			const lastCloudSurface = lastCloudSurfaces.find(
+				(lastSurfaceFile) => lastSurfaceFile.name === cloudSurface.name
+			);
+			if (lastCloudSurface === undefined) continue;
+
+			if (
+				lastCloudSurface.overlayFiles.find(
+					(lastOverlayFile) => lastOverlayFile.name === overlayFile.name
+				) !== undefined
+			)
+				continue;
+
+			const response = await apiOverlay.create(cloudSurface.id, overlayFile);
+			setProjectState((projectState) =>
+				projectState?.fromFiles(
+					projectState.files.fromUploadedOverlays(cloudSurface.id, response)
+				)
+			);
+		}
+	}
+};
+
+const deleteOverlays = async (
+	cloudSurfaces: readonly CloudSurfaceFile[],
+	lastCloudSurfaces: readonly CloudSurfaceFile[] | undefined,
+	apiOverlay: ReturnType<typeof useApiOverlay>
+): Promise<void> => {
+	if (lastCloudSurfaces === undefined) return;
+	for (const lastCloudSurface of lastCloudSurfaces) {
+		for (const lastOverlayFile of lastCloudSurface.overlayFiles) {
+			if (!(lastOverlayFile instanceof CloudOverlayFile)) continue;
+			if (
+				cloudSurfaces.find(
+					(surfaceFile) => surfaceFile === lastCloudSurface
+				) !== undefined
+			)
+				continue;
+
+			const cloudSurface = cloudSurfaces.find(
+				(surfaceFile) => surfaceFile.name === lastCloudSurface.name
+			);
+			if (cloudSurface === undefined) {
+				for (const overlayFileToDelete of lastCloudSurface.overlayFiles) {
+					if (!(overlayFileToDelete instanceof CloudOverlayFile)) continue;
+					await apiOverlay.remove(overlayFileToDelete.id);
+				}
+				continue;
+			}
+			const overlayFile = cloudSurface.overlayFiles.find(
+				(overlayFile) => overlayFile.name === lastOverlayFile.name
+			);
+			if (overlayFile !== undefined) continue;
+			await apiOverlay.remove(lastOverlayFile.id);
+		}
+	}
+};
+
+const createAnnotations = async (
+	cloudSurfaces: readonly CloudSurfaceFile[],
+	lastCloudSurfaces: readonly CloudSurfaceFile[] | undefined,
+	apiAnnotation: ReturnType<typeof useApiAnnotation>,
+	setProjectState: Dispatch<React.SetStateAction<ProjectState | undefined>>
+): Promise<void> => {
+	for (const cloudSurface of cloudSurfaces) {
+		for (const annotationFile of cloudSurface.annotationFiles) {
+			if (annotationFile instanceof CloudAnnotationFile) {
+				const lastSurfaceFile = lastCloudSurfaces?.find(
+					(surface) => surface === cloudSurface
+				);
+				if (
+					lastSurfaceFile?.annotationFiles.find(
+						(annotation) => annotation === annotationFile
+					) !== undefined
+				)
+					continue;
+				await apiAnnotation.edit(annotationFile);
+				continue;
+			}
+
+			if (lastCloudSurfaces === undefined) {
+				await apiAnnotation.create(cloudSurface.id, annotationFile);
+				continue;
+			}
+
+			if (
+				lastCloudSurfaces.find(
+					(lastSurfaceFile) => lastSurfaceFile === cloudSurface
+				) !== undefined
+			)
+				continue;
+
+			const lastCloudSurface = lastCloudSurfaces.find(
+				(lastSurfaceFile) => lastSurfaceFile.name === cloudSurface.name
+			);
+			if (lastCloudSurface === undefined) continue;
+
+			if (
+				lastCloudSurface.annotationFiles.find(
+					(lastAnnotationFile) =>
+						lastAnnotationFile.name === annotationFile.name
+				) !== undefined
+			)
+				continue;
+
+			const response = await apiAnnotation.create(
+				cloudSurface.id,
+				annotationFile
+			);
+			setProjectState((projectState) =>
+				projectState?.fromFiles(
+					projectState.files.fromUploadedAnnotations(cloudSurface.id, response)
+				)
+			);
+		}
+	}
+};
+
+const deleteAnnotations = async (
+	cloudSurfaces: readonly CloudSurfaceFile[],
+	lastCloudSurfaces: readonly CloudSurfaceFile[] | undefined,
+	apiAnnotation: ReturnType<typeof useApiAnnotation>
+): Promise<void> => {
+	if (lastCloudSurfaces === undefined) return;
+	for (const lastCloudSurface of lastCloudSurfaces) {
+		for (const lastAnnotationFile of lastCloudSurface.annotationFiles) {
+			if (!(lastAnnotationFile instanceof CloudAnnotationFile)) continue;
+			if (
+				cloudSurfaces.find(
+					(surfaceFile) => surfaceFile === lastCloudSurface
+				) !== undefined
+			)
+				continue;
+
+			const cloudSurface = cloudSurfaces.find(
+				(surfaceFile) => surfaceFile.name === lastCloudSurface.name
+			);
+			if (cloudSurface === undefined) {
+				for (const annotationFileToDelete of lastCloudSurface.annotationFiles) {
+					if (!(annotationFileToDelete instanceof CloudAnnotationFile))
+						continue;
+					await apiAnnotation.remove(annotationFileToDelete.id);
+				}
+				continue;
+			}
+			const annotationFile = cloudSurface.annotationFiles.find(
+				(annotationFile) => annotationFile.name === lastAnnotationFile.name
+			);
+			if (annotationFile !== undefined) continue;
+			await apiAnnotation.remove(lastAnnotationFile.id);
+		}
+	}
+};
+
+const handleCloudSurface = async (
+	cloudSurfaces: readonly CloudSurfaceFile[],
+	lastCloudSurfaces: readonly CloudSurfaceFile[] | undefined,
+	apiSurface: ReturnType<typeof useApiSurface>,
+	apiOverlay: ReturnType<typeof useApiOverlay>,
+	apiAnnotation: ReturnType<typeof useApiAnnotation>,
+	setProjectState: Dispatch<React.SetStateAction<ProjectState | undefined>>
+): Promise<void> => {
+	if (lastCloudSurfaces !== undefined && cloudSurfaces === lastCloudSurfaces)
+		return;
+
+	await apiSurface.edit(cloudSurfaces, lastCloudSurfaces);
+
+	await createOverlays(
+		cloudSurfaces,
+		lastCloudSurfaces,
+		apiOverlay,
+		setProjectState
+	);
+
+	await createAnnotations(
+		cloudSurfaces,
+		lastCloudSurfaces,
+		apiAnnotation,
+		setProjectState
+	);
+
+	await deleteOverlays(cloudSurfaces, lastCloudSurfaces, apiOverlay);
+
+	await deleteAnnotations(cloudSurfaces, lastCloudSurfaces, apiAnnotation);
+};
 
 /**
  * custom hook to handle all the communication to the backend
@@ -32,6 +254,7 @@ export const useApi = (
 	const apiVolume = useApiVolume();
 	const apiSurface = useApiSurface();
 	const apiOverlay = useApiOverlay();
+	const apiAnnotation = useApiAnnotation();
 
 	useEffect(() => {
 		if (projectId === undefined) return;
@@ -71,100 +294,14 @@ export const useApi = (
 				);
 			}
 
-			if (
-				lastUpload === undefined ||
-				projectState.files.surfaces !== lastUpload.files.cloudSurfaces
-			) {
-				await apiSurface.edit(
-					projectState.files.cloudSurfaces,
-					lastUpload?.files.cloudSurfaces
-				);
-
-				for (const cloudSurface of projectState.files.cloudSurfaces) {
-					for (const overlayFile of cloudSurface.overlayFiles) {
-						if (overlayFile instanceof CloudOverlayFile) {
-							const lastSurfaceFile = lastUpload?.files.cloudSurfaces.find(
-								(surface) => surface === cloudSurface
-							);
-							if (
-								lastSurfaceFile?.overlayFiles.find(
-									(overlay) => overlay === overlayFile
-								) !== undefined
-							)
-								continue;
-							await apiOverlay.edit(overlayFile);
-							continue;
-						}
-
-						if (lastUpload === undefined) {
-							await apiOverlay.create(cloudSurface.id, overlayFile);
-							continue;
-						}
-
-						if (
-							lastUpload.files.cloudSurfaces.find(
-								(lastSurfaceFile) => lastSurfaceFile === cloudSurface
-							) !== undefined
-						)
-							continue;
-
-						const lastCloudSurface = lastUpload.files.cloudSurfaces.find(
-							(lastSurfaceFile) => lastSurfaceFile.name === cloudSurface.name
-						);
-						if (lastCloudSurface === undefined) continue;
-
-						if (
-							lastCloudSurface.overlayFiles.find(
-								(lastOverlayFile) => lastOverlayFile.name === overlayFile.name
-							) !== undefined
-						)
-							continue;
-
-						const response = await apiOverlay.create(
-							cloudSurface.id,
-							overlayFile
-						);
-						setProjectState((projectState) =>
-							projectState?.fromFiles(
-								projectState.files.fromUploadedOverlays(
-									cloudSurface.id,
-									response
-								)
-							)
-						);
-					}
-				}
-
-				if (lastUpload === undefined) return;
-				for (const lastCloudSurface of lastUpload.files.cloudSurfaces) {
-					for (const lastOverlayFile of lastCloudSurface.overlayFiles) {
-						if (!(lastOverlayFile instanceof CloudOverlayFile)) continue;
-						if (
-							projectState.files.cloudSurfaces.find(
-								(surfaceFile) => surfaceFile === lastCloudSurface
-							) !== undefined
-						)
-							continue;
-
-						const cloudSurface = projectState.files.cloudSurfaces.find(
-							(surfaceFile) => surfaceFile.name === lastCloudSurface.name
-						);
-						if (cloudSurface === undefined) {
-							for (const overlayFileToDelete of lastCloudSurface.overlayFiles) {
-								if (!(overlayFileToDelete instanceof CloudOverlayFile))
-									continue;
-								await apiOverlay.remove(overlayFileToDelete.id);
-							}
-							continue;
-						}
-						const overlayFile = cloudSurface.overlayFiles.find(
-							(overlayFile) => overlayFile.name === lastOverlayFile.name
-						);
-						if (overlayFile !== undefined) continue;
-						await apiOverlay.remove(lastOverlayFile.id);
-					}
-				}
-			}
+			await handleCloudSurface(
+				projectState.files.cloudSurfaces,
+				lastUpload?.files.cloudSurfaces,
+				apiSurface,
+				apiOverlay,
+				apiAnnotation,
+				setProjectState
+			);
 		};
 
 		void uploadToBackend();
@@ -176,6 +313,7 @@ export const useApi = (
 		apiSurface,
 		apiVolume,
 		apiOverlay,
+		apiAnnotation,
 		setProjectState,
 	]);
 

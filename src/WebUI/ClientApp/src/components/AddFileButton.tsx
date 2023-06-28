@@ -21,7 +21,7 @@ export const AddFileButton = ({
 					if (selectedFile === undefined) return;
 					onFileSelected(selectedFile);
 					// revert value state, to enable the user to select the same file again
-					// important after the user removed the overlay and wants to add it again
+					// important after the user removed the overlay/annotation and wants to add it again
 					event.target.value = '';
 				}}
 			/>

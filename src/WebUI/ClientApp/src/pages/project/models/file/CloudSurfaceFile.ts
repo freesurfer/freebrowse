@@ -1,6 +1,9 @@
 import type { GetProjectSurfaceDto } from '@/generated/web-api-client';
+import type { AnnotationFile } from '@/pages/project/models/file/AnnotationFile';
+import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudFile } from '@/pages/project/models/file/CloudFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
+import { LocalAnnotationFile } from '@/pages/project/models/file/LocalAnnotationFile';
 import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
 import type { OverlayFile } from '@/pages/project/models/file/OverlayFile';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
@@ -32,6 +35,9 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			fileDto.opacity ?? 100,
 			fileDto.overlays?.map((overlayDto) =>
 				CloudOverlayFile.fromDto(overlayDto)
+			),
+			fileDto.annotations?.map((annotationDto) =>
+				CloudAnnotationFile.fromDto(annotationDto)
 			)
 		);
 	}
@@ -44,7 +50,8 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 		isChecked = true,
 		order: number | undefined,
 		opacity: number,
-		public readonly overlayFiles: readonly OverlayFile[] = []
+		public readonly overlayFiles: readonly OverlayFile[] = [],
+		public readonly annotationFiles: readonly AnnotationFile[] = []
 	) {
 		if (id === undefined) throw new Error('no id for cloud surface file');
 		super(
@@ -65,6 +72,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 		isChecked?: boolean;
 		opacity?: number;
 		overlayFiles?: OverlayFile[];
+		annotationFiles?: AnnotationFile[];
 	}): CloudSurfaceFile {
 		return new CloudSurfaceFile(
 			this.id,
@@ -74,7 +82,8 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order,
 			options.opacity ?? this.opacity,
-			options.overlayFiles ?? this.overlayFiles
+			options.overlayFiles ?? this.overlayFiles,
+			options.annotationFiles ?? this.annotationFiles
 		);
 	}
 
@@ -97,6 +106,33 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			[
 				...this.overlayFiles.map((overlay) => overlay.fromIsActive(false)),
 				new LocalOverlayFile(file, true, true),
+			],
+			this.annotationFiles
+		);
+	}
+
+	fromAddAnnotation(file: File): CloudSurfaceFile {
+		if (
+			this.annotationFiles.find(
+				(annotationFile) => annotationFile.name === file.name
+			) !== undefined
+		)
+			return this;
+
+		return new CloudSurfaceFile(
+			this.id,
+			this.name,
+			this.size,
+			this.isActive,
+			this.isChecked,
+			this.order,
+			this.opacity,
+			this.overlayFiles,
+			[
+				...this.annotationFiles.map((annotation) =>
+					annotation.fromIsActive(false)
+				),
+				new LocalAnnotationFile(file, true, true),
 			]
 		);
 	}
@@ -112,6 +148,23 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			this.opacity,
 			this.overlayFiles.filter(
 				(thisOverlayFile) => thisOverlayFile.name !== overlayFile.name
+			),
+			this.annotationFiles
+		);
+	}
+
+	fromDeleteAnnotation(annotationFile: AnnotationFile): CloudSurfaceFile {
+		return new CloudSurfaceFile(
+			this.id,
+			this.name,
+			this.size,
+			this.isActive,
+			this.isChecked,
+			this.order,
+			this.opacity,
+			this.overlayFiles,
+			this.annotationFiles.filter(
+				(thisAnnotationFile) => thisAnnotationFile.name !== annotationFile.name
 			)
 		);
 	}

@@ -1,3 +1,5 @@
+import type { AnnotationFile } from '@/pages/project/models/file/AnnotationFile';
+import { LocalAnnotationFile } from '@/pages/project/models/file/LocalAnnotationFile';
 import { LocalFile } from '@/pages/project/models/file/LocalFile';
 import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
 import type { OverlayFile } from '@/pages/project/models/file/OverlayFile';
@@ -13,7 +15,8 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 		isChecked = true,
 		order: number | undefined = undefined,
 		opacity = 100,
-		public readonly overlayFiles: OverlayFile[] | undefined = undefined
+		public readonly overlayFiles: OverlayFile[] = [],
+		public readonly annotationFiles: AnnotationFile[] = []
 	) {
 		super(file, isActive, isChecked, order, opacity);
 	}
@@ -24,6 +27,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 		isChecked?: boolean;
 		opacity?: number;
 		overlayFiles?: OverlayFile[];
+		annotationFiles?: AnnotationFile[];
 	}): LocalSurfaceFile {
 		return new LocalSurfaceFile(
 			this.file,
@@ -31,7 +35,8 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order,
 			options.opacity ?? this.opacity,
-			options.overlayFiles ?? this.overlayFiles
+			options.overlayFiles ?? this.overlayFiles,
+			options.annotationFiles ?? this.annotationFiles
 		);
 	}
 
@@ -52,6 +57,31 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 			[
 				...this.overlayFiles.map((overlay) => overlay.fromIsActive(false)),
 				new LocalOverlayFile(file, true, true),
+			],
+			this.annotationFiles
+		);
+	}
+
+	fromAddAnnotation(file: File): LocalSurfaceFile {
+		if (
+			this.annotationFiles?.find(
+				(annotationFile) => annotationFile.name === file.name
+			) === undefined
+		)
+			return this;
+
+		return new LocalSurfaceFile(
+			this.file,
+			this.isActive,
+			this.isChecked,
+			this.order,
+			this.opacity,
+			this.overlayFiles,
+			[
+				...this.annotationFiles.map((annotation) =>
+					annotation.fromIsActive(false)
+				),
+				new LocalAnnotationFile(file, true, true),
 			]
 		);
 	}
@@ -65,6 +95,21 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 			this.opacity,
 			this.overlayFiles?.filter(
 				(thisOverlayFile) => thisOverlayFile.name !== overlayFile.name
+			),
+			this.annotationFiles
+		);
+	}
+
+	fromDeleteAnnotation(annotationFile: AnnotationFile): LocalSurfaceFile {
+		return new LocalSurfaceFile(
+			this.file,
+			this.isActive,
+			this.isChecked,
+			this.order,
+			this.opacity,
+			this.overlayFiles,
+			this.annotationFiles?.filter(
+				(thisAnnotationFile) => thisAnnotationFile.name !== annotationFile.name
 			)
 		);
 	}

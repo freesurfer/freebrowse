@@ -1,5 +1,6 @@
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
@@ -233,15 +234,17 @@ export class NiivueWrapper {
 					.filter((file) => file.isChecked)
 					.sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
 					.map((file): NVMeshFromUrlOptions => {
-						const layers = file.overlayFiles
+						const layers = [...file.overlayFiles, ...file.annotationFiles]
 							?.filter(
-								(overlayFile): overlayFile is CloudOverlayFile =>
-									overlayFile instanceof CloudOverlayFile
+								(file): file is CloudOverlayFile | CloudAnnotationFile =>
+									file instanceof CloudOverlayFile ||
+									file instanceof CloudAnnotationFile
 							)
+							.filter((file) => file.isActive)
 							.map(
-								(overlayFile): NVMeshLayer => ({
-									name: overlayFile.name,
-									url: overlayFile.url,
+								(file): NVMeshLayer => ({
+									name: file.name,
+									url: file.url,
 									cal_min: 0.5,
 									cal_max: 5.5,
 									useNegativeCmap: true,
@@ -379,7 +382,7 @@ export class NiivueWrapper {
 			}
 
 			this.updateSurfaceOrder(niivueSurface, tmpOrder++);
-			await this.updateSurfaceOverlay(surfaceFile, niivueSurface);
+			await this.updateSurfaceOverlayAndAnnotation(surfaceFile, niivueSurface);
 		}
 	}
 
@@ -393,12 +396,12 @@ export class NiivueWrapper {
 		this.niivue.setMesh(niivueSurface, order);
 	}
 
-	private async updateSurfaceOverlay(
+	private async updateSurfaceOverlayAndAnnotation(
 		surfaceFile: SurfaceFile,
 		niivueSurface: NVMesh
 	): Promise<void> {
-		const activeOverlay = NiivueWrapper.getActiveOverlayFile(surfaceFile);
-		if (activeOverlay === undefined) {
+		const activeFile = NiivueWrapper.getActiveCascadingFile(surfaceFile);
+		if (activeFile === undefined) {
 			niivueSurface.layers = [];
 			niivueSurface.updateMesh(this.niivue.gl);
 			this.niivue.updateGLVolume();
@@ -409,8 +412,8 @@ export class NiivueWrapper {
 		niivueSurface.layers = [];
 		await NVMesh.loadLayer(
 			{
-				name: activeOverlay.name,
-				url: activeOverlay.url,
+				name: activeFile.name,
+				url: activeFile.url,
 				cal_min: 0.5,
 				cal_max: 5.5,
 				useNegativeCmap: true,
@@ -422,16 +425,17 @@ export class NiivueWrapper {
 		this.niivue.updateGLVolume();
 	}
 
-	private static getActiveOverlayFile(
+	private static getActiveCascadingFile(
 		surfaceFile: SurfaceFile
-	): CloudOverlayFile | undefined {
+	): CloudOverlayFile | CloudAnnotationFile | undefined {
 		if (!(surfaceFile instanceof CloudSurfaceFile)) return undefined;
-		const activeOverlay = surfaceFile.overlayFiles.find(
-			(overlay) => overlay.isActive
-		);
-		if (activeOverlay === undefined) return;
-		if (!(activeOverlay instanceof CloudOverlayFile)) return undefined;
-		return activeOverlay;
+		const activeFile = [
+			...surfaceFile.overlayFiles,
+			...surfaceFile.annotationFiles,
+		].find((file) => file.isActive);
+		if (activeFile === undefined) return;
+		if (!(activeFile instanceof CloudOverlayFile)) return undefined;
+		return activeFile;
 	}
 
 	private updateVolumeBrightness(
