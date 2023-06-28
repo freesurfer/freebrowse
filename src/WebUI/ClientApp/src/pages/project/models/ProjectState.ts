@@ -80,48 +80,35 @@ export class ProjectState {
 		surfaceSelected: string[],
 		upload = true
 	): ProjectState {
-		const volumeFiles = [] as VolumeFile[];
-		volumes.forEach((volume: string, index: number) => {
-			const cloudVolume = this.files.volumes.find((v) => v.name === volume);
-			if (cloudVolume !== undefined) {
-				volumeFiles.push(
-					cloudVolume.from({
-						order: Number(volumeOrder[index]),
-						isActive: volumeSelected[index] === 'true',
-						isChecked: volumeVisible[index] === 'true',
-						opacity: Number(volumeOpacity[index]),
-						contrastMin: Number(volumeContrastMin[index]),
-						contrastMax: Number(volumeContrastMax[index]),
-					})
-				);
+		const volumeFiles: VolumeFile[] = this.files.volumes.map((volume) => {
+			const index = volumes.indexOf(volume.name);
+			if (index !== -1) {
+				return volume.from({
+					order: Number(volumeOrder[index]),
+					isActive: volumeSelected[index] === 'true',
+					isChecked: volumeVisible[index] === 'true',
+					opacity: Number(volumeOpacity[index]),
+					contrastMin: Number(volumeContrastMin[index]),
+					contrastMax: Number(volumeContrastMax[index]),
+				});
 			}
+
+			return volume.from({ isChecked: false });
 		});
 
-		this.files.volumes
-			.filter((v) => !volumes.some((x: string) => x === v.name))
-			.forEach((v) => volumeFiles.push(v.from({ isChecked: false })));
-
-		const surfaceFiles = [] as SurfaceFile[];
-
-		surfaces.forEach((surface: string, index: number) => {
-			const cloudSurface = this.files.cloudSurfaces.find(
-				(v) => v.name === surface
-			);
-			if (cloudSurface !== undefined) {
-				surfaceFiles.push(
-					cloudSurface.from({
-						order: Number(surfaceOrder[index]),
-						isActive: surfaceSelected[index] === 'true',
-						isChecked: surfaceVisible[index] === 'true',
-						opacity: Number(surfaceOpacity[index]),
-					})
-				);
+		const surfaceFiles: SurfaceFile[] = this.files.surfaces.map((surface) => {
+			const index = surfaces.indexOf(surface.name);
+			if (index !== -1) {
+				return surface.from({
+					order: Number(surfaceOrder[index]),
+					isActive: surfaceSelected[index] === 'true',
+					isChecked: surfaceVisible[index] === 'true',
+					opacity: Number(surfaceOpacity[index]),
+				});
 			}
-		});
 
-		this.files.surfaces
-			.filter((s) => !surfaces.some((x: string) => x === s.name))
-			.forEach((s) => surfaceFiles.push(s.from({ isChecked: false })));
+			return surface.from({ isChecked: false });
+		});
 
 		const files = this.files
 			.fromAdaptedVolumes(volumeFiles)
