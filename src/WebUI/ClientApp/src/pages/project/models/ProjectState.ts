@@ -74,10 +74,10 @@ export class ProjectState {
 		volumeContrastMin: string[],
 		volumeContrastMax: string[],
 		surfaces: string[],
-		surfaceOrder: string[],
-		surfaceSelected: string[],
-		surfaceVisible: string[],
 		surfaceOpacity: string[],
+		surfaceOrder: string[],
+		surfaceVisible: string[],
+		surfaceSelected: string[],
 		upload = true
 	): ProjectState {
 		const volumeFiles = [] as VolumeFile[];

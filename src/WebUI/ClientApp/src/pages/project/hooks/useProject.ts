@@ -33,10 +33,10 @@ export const useProject = (
 		volumeContrastMin: withDefault<number[]>(ArrayParam, []),
 		volumeContrastMax: withDefault<number[]>(ArrayParam, []),
 		surfaces: withDefault(ArrayParam, []),
-		surfacesOpacity: withDefault<number[]>(ArrayParam, []),
-		surfacesOrder: withDefault<number[]>(ArrayParam, []),
-		surfacesVisible: withDefault<boolean[]>(ArrayParam, [] as boolean[]),
-		surfacesSelected: withDefault<boolean[]>(ArrayParam, [] as boolean[]),
+		surfaceOpacity: withDefault<number[]>(ArrayParam, []),
+		surfaceOrder: withDefault<number[]>(ArrayParam, []),
+		surfaceVisible: withDefault<boolean[]>(ArrayParam, [] as boolean[]),
+		surfaceSelected: withDefault<boolean[]>(ArrayParam, [] as boolean[]),
 	});
 
 	const {
@@ -48,10 +48,10 @@ export const useProject = (
 		volumeContrastMin,
 		volumeContrastMax,
 		surfaces,
-		surfacesOpacity,
-		surfacesOrder,
-		surfacesVisible,
-		surfacesSelected,
+		surfaceOpacity,
+		surfaceOrder,
+		surfaceVisible,
+		surfaceSelected,
 	} = query;
 
 	const { initialState } = useApi(projectId, projectState);
@@ -70,10 +70,10 @@ export const useProject = (
 					volumeContrastMin,
 					volumeContrastMax,
 					surfaces,
-					surfacesOpacity,
-					surfacesOrder,
-					surfacesVisible,
-					surfacesSelected
+					surfaceOpacity,
+					surfaceOrder,
+					surfaceVisible,
+					surfaceSelected
 				)
 			);
 		} else {
