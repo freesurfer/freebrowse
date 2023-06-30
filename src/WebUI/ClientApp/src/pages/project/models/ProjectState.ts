@@ -18,6 +18,10 @@ export class ProjectState {
 	 */
 	public readonly name: string | undefined;
 	/**
+	 * thickness of the mesh on the 2d plane
+	 */
+	public readonly meshThicknessOn2D: number | undefined;
+	/**
 	 * state of data received on the last fetch
 	 */
 	public readonly backendState: GetProjectDto;
@@ -31,7 +35,14 @@ export class ProjectState {
 			| {
 					backendState: GetProjectDto;
 			  }
-			| { projectState: ProjectState; projectFiles: ProjectFiles },
+			| { projectState: ProjectState; projectFiles: ProjectFiles }
+			| {
+					id: number;
+					name: string | undefined;
+					meshThicknessOn2D?: number;
+					backendStateDto: GetProjectDto;
+					files: ProjectFiles;
+			  },
 		public readonly upload: boolean
 	) {
 		if ('backendState' in initialState) {
@@ -39,6 +50,7 @@ export class ProjectState {
 				throw new Error('no id given for project');
 			this.id = initialState.backendState.id;
 			this.name = initialState.backendState.name;
+			this.meshThicknessOn2D = initialState.backendState.meshThicknessOn2D ?? 0;
 			this.backendState = initialState.backendState;
 			this.files = new ProjectFiles({
 				backendState: initialState.backendState,
@@ -49,8 +61,18 @@ export class ProjectState {
 		if ('projectState' in initialState) {
 			this.id = initialState.projectState.id;
 			this.name = initialState.projectState.name;
+			this.meshThicknessOn2D = initialState.projectState.meshThicknessOn2D ?? 0;
 			this.backendState = initialState.projectState.backendState;
 			this.files = initialState.projectFiles;
+			return;
+		}
+
+		if ('id' in initialState) {
+			this.id = initialState.id;
+			this.name = initialState.name;
+			this.meshThicknessOn2D = initialState.meshThicknessOn2D ?? 0;
+			this.backendState = initialState.backendStateDto;
+			this.files = initialState.files;
 			return;
 		}
 
@@ -100,5 +122,27 @@ export class ProjectState {
 			);
 
 		throw new Error('file type unknown');
+	}
+
+	/**
+	 * to update a property of a project
+	 * @param options property value to update
+	 * @param upload flag, if the change should get pushed to the backend
+	 * @returns new instance of the project state
+	 */
+	fromProjectUpdate(
+		options: Partial<ProjectState>,
+		upload: boolean
+	): ProjectState {
+		return new ProjectState(
+			{
+				id: options.id ?? this.id,
+				name: options.name ?? this.name,
+				meshThicknessOn2D: options.meshThicknessOn2D ?? this.meshThicknessOn2D,
+				backendStateDto: options.backendState ?? this.backendState,
+				files: options.files ?? this.files,
+			},
+			upload
+		);
 	}
 }

@@ -286,6 +286,18 @@ export const useApi = (
 
 			if (
 				lastUpload === undefined ||
+				projectState.name !== lastUpload.name ||
+				projectState.meshThicknessOn2D !== lastUpload.meshThicknessOn2D
+			) {
+				await apiProject.edit(
+					projectState.id.toString(),
+					projectState.name,
+					projectState.meshThicknessOn2D
+				);
+			}
+
+			if (
+				lastUpload === undefined ||
 				projectState.files.cloudVolumes !== lastUpload.files.cloudVolumes
 			) {
 				await apiVolume.edit(
@@ -302,10 +314,19 @@ export const useApi = (
 				apiAnnotation,
 				setProjectState
 			);
+
+			if (
+				lastUpload === undefined ||
+				projectState.name !== lastUpload.name ||
+				projectState.meshThicknessOn2D !== lastUpload.meshThicknessOn2D ||
+				projectState.files.cloudVolumes !== lastUpload.files.cloudVolumes ||
+				projectState.files.cloudSurfaces !== lastUpload.files.cloudSurfaces
+			) {
+				setLastUpload(projectState);
+			}
 		};
 
 		void uploadToBackend();
-		setLastUpload(projectState);
 	}, [
 		projectState,
 		lastUpload,
@@ -315,6 +336,7 @@ export const useApi = (
 		apiOverlay,
 		apiAnnotation,
 		setProjectState,
+		apiProject,
 	]);
 
 	return { initialState };

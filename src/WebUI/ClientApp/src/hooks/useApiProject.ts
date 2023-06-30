@@ -3,6 +3,7 @@ import {
 	CreateProjectCommand,
 	CreateProjectSurfaceDto,
 	CreateProjectVolumeDto,
+	EditProjectCommand,
 	ProjectsClient,
 } from '@/generated/web-api-client';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
@@ -13,10 +14,18 @@ export const useApiProject = (): {
 	get: (projectId: string) => Promise<GetProjectDto>;
 	create: (
 		projectName: string | undefined,
+		projectMeshThicknessOn2D: number | undefined,
 		projectFiles: ProjectFiles
 	) => Promise<{
 		projectId: number;
 		projectFiles: ProjectFiles;
+	}>;
+	edit: (
+		projectId: string,
+		projectName: string | undefined,
+		projectMeshThicknessOn2D: number | undefined
+	) => Promise<{
+		projectId: number;
 	}>;
 } => {
 	const client = useRef(new ProjectsClient(getApiUrl()));
@@ -31,6 +40,7 @@ export const useApiProject = (): {
 
 	const create = async (
 		projectName: string | undefined,
+		projectMeshThicknessOn2D: number | undefined,
 		projectFiles: ProjectFiles
 	): Promise<{
 		projectId: number;
@@ -39,6 +49,7 @@ export const useApiProject = (): {
 		const createProjectResponse = await client.current.create(
 			new CreateProjectCommand({
 				name: projectName,
+				meshThicknessOn2D: projectMeshThicknessOn2D,
 				volumes: await Promise.all(
 					projectFiles.localVolumes.map(
 						async (file) =>
@@ -62,7 +73,7 @@ export const useApiProject = (): {
 								fileName: file.name,
 								visible: file.isChecked,
 								order: file.order,
-								color: undefined,
+								color: file.color,
 								opacity: file.opacity,
 							})
 					)
@@ -78,5 +89,29 @@ export const useApiProject = (): {
 		};
 	};
 
-	return { get, create };
+	const edit = async (
+		projectId: string,
+		projectName: string | undefined,
+		projectMeshThicknessOn2D: number | undefined
+	): Promise<{
+		projectId: number;
+	}> => {
+		if (projectId === undefined) {
+			throw new Error('no project id given');
+		}
+
+		const editProjectResponse = await client.current.edit(
+			new EditProjectCommand({
+				id: Number(projectId),
+				name: projectName,
+				meshThicknessOn2D: projectMeshThicknessOn2D,
+			})
+		);
+
+		if (editProjectResponse.id === undefined)
+			throw new Error('no project id received from backend');
+		return { projectId: editProjectResponse.id };
+	};
+
+	return { get, create, edit };
 };

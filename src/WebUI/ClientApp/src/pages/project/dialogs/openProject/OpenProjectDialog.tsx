@@ -104,7 +104,7 @@ export const OpenProjectDialog = ({
 
 		const createProjectInBackend = async (): Promise<void> => {
 			try {
-				resolve(await apiProject.create(projectName, projectFiles));
+				resolve(await apiProject.create(projectName, 0.5, projectFiles));
 			} catch (error) {
 				console.error('something went wrong', error);
 				reject('UNKNOWN_ERROR');

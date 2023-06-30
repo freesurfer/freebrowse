@@ -33,6 +33,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			fileDto.visible,
 			fileDto.order,
 			fileDto.opacity ?? 100,
+			fileDto.color ?? '#ffffff',
 			fileDto.overlays?.map((overlayDto) =>
 				CloudOverlayFile.fromDto(overlayDto)
 			),
@@ -50,6 +51,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 		isChecked = true,
 		order: number | undefined,
 		opacity: number,
+		public readonly color = '#ffffff',
 		public readonly overlayFiles: readonly OverlayFile[] = [],
 		public readonly annotationFiles: readonly AnnotationFile[] = []
 	) {
@@ -71,6 +73,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 		isActive?: boolean;
 		isChecked?: boolean;
 		opacity?: number;
+		color?: string;
 		overlayFiles?: OverlayFile[];
 		annotationFiles?: AnnotationFile[];
 	}): CloudSurfaceFile {
@@ -82,6 +85,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order,
 			options.opacity ?? this.opacity,
+			options.color ?? this.color,
 			options.overlayFiles ?? this.overlayFiles,
 			options.annotationFiles ?? this.annotationFiles
 		);
@@ -103,6 +107,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			this.isChecked,
 			this.order,
 			this.opacity,
+			this.color,
 			[
 				...this.overlayFiles.map((overlay) => overlay.fromIsActive(false)),
 				new LocalOverlayFile(file, true, true),
@@ -127,6 +132,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			this.isChecked,
 			this.order,
 			this.opacity,
+			this.color,
 			this.overlayFiles,
 			[
 				...this.annotationFiles.map((annotation) =>
@@ -146,6 +152,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			this.isChecked,
 			this.order,
 			this.opacity,
+			this.color,
 			this.overlayFiles.filter(
 				(thisOverlayFile) => thisOverlayFile.name !== overlayFile.name
 			),
@@ -162,6 +169,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			this.isChecked,
 			this.order,
 			this.opacity,
+			this.color,
 			this.overlayFiles,
 			this.annotationFiles.filter(
 				(thisAnnotationFile) => thisAnnotationFile.name !== annotationFile.name

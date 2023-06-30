@@ -15,6 +15,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 		isChecked = true,
 		order: number | undefined = undefined,
 		opacity = 100,
+		public readonly color = '#ffffff',
 		public readonly overlayFiles: OverlayFile[] = [],
 		public readonly annotationFiles: AnnotationFile[] = []
 	) {
@@ -26,6 +27,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 		isActive?: boolean;
 		isChecked?: boolean;
 		opacity?: number;
+		color?: string;
 		overlayFiles?: OverlayFile[];
 		annotationFiles?: AnnotationFile[];
 	}): LocalSurfaceFile {
@@ -35,6 +37,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order,
 			options.opacity ?? this.opacity,
+			options.color ?? this.color,
 			options.overlayFiles ?? this.overlayFiles,
 			options.annotationFiles ?? this.annotationFiles
 		);
@@ -54,6 +57,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 			this.isChecked,
 			this.order,
 			this.opacity,
+			this.color,
 			[
 				...this.overlayFiles.map((overlay) => overlay.fromIsActive(false)),
 				new LocalOverlayFile(file, true, true),
@@ -76,6 +80,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 			this.isChecked,
 			this.order,
 			this.opacity,
+			this.color,
 			this.overlayFiles,
 			[
 				...this.annotationFiles.map((annotation) =>
@@ -93,6 +98,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 			this.isChecked,
 			this.order,
 			this.opacity,
+			this.color,
 			this.overlayFiles?.filter(
 				(thisOverlayFile) => thisOverlayFile.name !== overlayFile.name
 			),
@@ -107,6 +113,7 @@ export class LocalSurfaceFile extends LocalFile implements ISurfaceFile {
 			this.isChecked,
 			this.order,
 			this.opacity,
+			this.color,
 			this.overlayFiles,
 			this.annotationFiles?.filter(
 				(thisAnnotationFile) => thisAnnotationFile.name !== annotationFile.name

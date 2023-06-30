@@ -42,7 +42,7 @@ export const useApiSurface = (): {
 								fileName: addedSurfaceFile.name,
 								visible: addedSurfaceFile.isChecked,
 								order: addedSurfaceFile.order,
-								color: undefined,
+								color: addedSurfaceFile.color,
 								opacity: addedSurfaceFile.opacity,
 							})
 					)
@@ -65,6 +65,7 @@ export const useApiSurface = (): {
 				previous.id === current.id &&
 				previous.order === current.order &&
 				previous.opacity === current.opacity &&
+				previous.color === current.color &&
 				previous.isChecked === current.isChecked
 			)
 				return false;
@@ -84,6 +85,7 @@ export const useApiSurface = (): {
 					id: currentCloudSurface.id,
 					order: currentCloudSurface.order,
 					opacity: currentCloudSurface.opacity,
+					color: currentCloudSurface.color,
 					visible: currentCloudSurface.isChecked,
 				})
 			);

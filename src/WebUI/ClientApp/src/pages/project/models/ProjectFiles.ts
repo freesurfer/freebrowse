@@ -342,7 +342,8 @@ export class ProjectFiles {
 					localFile.isActive,
 					localFile.isChecked,
 					localFile.order,
-					localFile.opacity
+					localFile.opacity,
+					localFile.color
 				);
 			}),
 		];

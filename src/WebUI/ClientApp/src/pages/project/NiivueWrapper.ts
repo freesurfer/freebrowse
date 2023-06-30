@@ -107,6 +107,7 @@ export class NiivueWrapper {
 		}
 
 		// otherwise we only need to update the options
+		this.niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);
 		await this.updateFileProperties(files);
 		this.cleanUpCache(files);
 	}
@@ -206,6 +207,7 @@ export class NiivueWrapper {
 					url: cloudSurface.url,
 					name: cloudSurface.name,
 					opacity: cloudSurface.opacity / 100,
+					rgba255: NiivueWrapper.hexToRGBA(cloudSurface.color),
 				});
 				this.surfaceCache.set(newSurfaceToCache.name, newSurfaceToCache);
 			}
@@ -255,6 +257,7 @@ export class NiivueWrapper {
 							url: file.url,
 							name: file.name,
 							opacity: file.opacity / 100,
+							rgba255: NiivueWrapper.hexToRGBA(file.color),
 							layers,
 						};
 					})
@@ -381,6 +384,7 @@ export class NiivueWrapper {
 				continue;
 			}
 
+			this.updateSurfaceColor(niivueSurface, surfaceFile);
 			this.updateSurfaceOrder(niivueSurface, tmpOrder++);
 			await this.updateSurfaceOverlayAndAnnotation(surfaceFile, niivueSurface);
 		}
@@ -453,6 +457,39 @@ export class NiivueWrapper {
 		niivueVolume.cal_min = volumeFile.contrastMin;
 		niivueVolume.cal_max = volumeFile.contrastMax;
 		this.niivue.updateGLVolume();
+	}
+
+	private updateSurfaceColor(
+		niivueSurface: NVMesh,
+		surfaceFile: SurfaceFile
+	): void {
+		const newRgba = NiivueWrapper.hexToRGBA(surfaceFile.color);
+		if (NiivueWrapper.compareRgba(niivueSurface.rgba255, newRgba)) return;
+		this.niivue.setMeshProperty(
+			this.niivue.getMeshIndexByID(niivueSurface.id),
+			'rgba255',
+			newRgba
+		);
+	}
+
+	static hexToRGBA(hex: string): [number, number, number, number] {
+		const r = parseInt(hex.slice(1, 3), 16);
+		const g = parseInt(hex.slice(3, 5), 16);
+		const b = parseInt(hex.slice(5, 7), 16);
+
+		return [r, g, b, 255];
+	}
+
+	static compareRgba(
+		rgba255: [number, number, number, number],
+		rgba: [number, number, number, number]
+	): boolean {
+		return (
+			rgba255[0] === rgba[0] &&
+			rgba255[1] === rgba[1] &&
+			rgba255[2] === rgba[2] &&
+			rgba255[3] === rgba[3]
+		);
 	}
 
 	public handleKeyDown = (event: KeyboardEvent): void => {

@@ -1,4 +1,5 @@
 import { Collapse } from '@/components/Collapse';
+import { ColorPicker } from '@/components/ColorPicker';
 import { Slider } from '@/components/Slider';
 import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
@@ -30,6 +31,18 @@ export const FileSettings = ({
 		) => {
 			setProjectState((currentProjectState) =>
 				currentProjectState?.fromFileUpdate(file, options, upload)
+			);
+		},
+		[setProjectState]
+	);
+
+	const updateProjectOptions = useCallback(
+		(
+			options: Parameters<ProjectState['fromProjectUpdate']>[0],
+			upload: boolean
+		) => {
+			setProjectState((currentProjectState) =>
+				currentProjectState?.fromProjectUpdate(options, upload)
 			);
 		},
 		[setProjectState]
@@ -143,6 +156,37 @@ export const FileSettings = ({
 										}
 										onEnd={(value) =>
 											updateFileOptions(surfaceFile, { opacity: value }, true)
+										}
+									></Slider>
+									<ColorPicker
+										className="mt-2"
+										label="Edge-Color:"
+										value={surfaceFile.color}
+										onChange={(value) =>
+											updateFileOptions(surfaceFile, { color: value }, false)
+										}
+										onEnd={(value) =>
+											updateFileOptions(surfaceFile, { color: value }, true)
+										}
+									></ColorPicker>
+									<Slider
+										className="mt-2"
+										label="Edge-Thickness:"
+										value={(projectState?.meshThicknessOn2D ?? 0) * 10}
+										unit=""
+										min={1}
+										max={10}
+										onChange={(value) =>
+											updateProjectOptions(
+												{ meshThicknessOn2D: value * 0.1 },
+												false
+											)
+										}
+										onEnd={(value) =>
+											updateProjectOptions(
+												{ meshThicknessOn2D: value * 0.1 },
+												true
+											)
 										}
 									></Slider>
 									<FileSelection
