@@ -65,6 +65,7 @@ export const useApiVolume = (): {
 				previous.order === current.order &&
 				previous.contrastMin === current.contrastMin &&
 				previous.contrastMax === current.contrastMax &&
+				previous.colorMap === current.colorMap &&
 				previous.opacity === current.opacity &&
 				previous.isChecked === current.isChecked
 			)
@@ -86,6 +87,7 @@ export const useApiVolume = (): {
 					order: currentCloudVolume.order,
 					contrastMin: currentCloudVolume.contrastMin,
 					contrastMax: currentCloudVolume.contrastMax,
+					colorMap: currentCloudVolume.colorMap,
 					opacity: currentCloudVolume.opacity,
 					visible: currentCloudVolume.isChecked,
 				})

@@ -11,6 +11,7 @@ export class LocalVolumeFile extends LocalFile implements IVolumeFile {
 		isChecked?: boolean,
 		order?: number | undefined,
 		opacity?: number,
+		public readonly colorMap?: string | undefined,
 		public readonly contrastMin = 0,
 		public readonly contrastMax = 100
 	) {
@@ -22,6 +23,7 @@ export class LocalVolumeFile extends LocalFile implements IVolumeFile {
 		isActive?: boolean;
 		isChecked?: boolean;
 		opacity?: number;
+		colorMap?: string;
 		contrastMin?: number;
 		contrastMax?: number;
 	}): LocalVolumeFile {
@@ -31,6 +33,7 @@ export class LocalVolumeFile extends LocalFile implements IVolumeFile {
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order,
 			options.opacity ?? this.opacity,
+			options.colorMap ?? this.colorMap,
 			options.contrastMin ?? this.contrastMin,
 			options.contrastMax ?? this.contrastMax
 		);

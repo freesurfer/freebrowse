@@ -27,6 +27,7 @@ export class CloudVolumeFile extends CloudFile implements IVolumeFile {
 			fileDto.visible,
 			fileDto.order,
 			fileDto.opacity ?? 100,
+			fileDto.colorMap,
 			fileDto.contrastMin ?? 0,
 			fileDto.contrastMax ?? 100
 		);
@@ -40,6 +41,7 @@ export class CloudVolumeFile extends CloudFile implements IVolumeFile {
 		isChecked = true,
 		order: number | undefined,
 		opacity: number,
+		public readonly colorMap: string | undefined,
 		public readonly contrastMin = 0,
 		public readonly contrastMax = 100
 	) {
@@ -61,6 +63,7 @@ export class CloudVolumeFile extends CloudFile implements IVolumeFile {
 		isActive?: boolean;
 		isChecked?: boolean;
 		opacity?: number;
+		colorMap?: string;
 		contrastMin?: number;
 		contrastMax?: number;
 	}): CloudVolumeFile {
@@ -72,6 +75,7 @@ export class CloudVolumeFile extends CloudFile implements IVolumeFile {
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order,
 			options.opacity ?? this.opacity,
+			options.colorMap ?? this.colorMap,
 			options.contrastMin ?? this.contrastMin,
 			options.contrastMax ?? this.contrastMax
 		);

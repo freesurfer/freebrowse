@@ -11,6 +11,7 @@ export interface IVolumeFile {
 		order?: number;
 		isActive?: boolean;
 		isChecked?: boolean;
+		colorMap?: string;
 		opacity?: number;
 		contrastMin?: number;
 		contrastMax?: number;

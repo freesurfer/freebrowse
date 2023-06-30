@@ -1,5 +1,6 @@
 import { Collapse } from '@/components/Collapse';
 import { ColorPicker } from '@/components/ColorPicker';
+import { DropDown } from '@/components/DropDown';
 import { Slider } from '@/components/Slider';
 import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
@@ -72,6 +73,15 @@ export const FileSettings = ({
 								}
 							>
 								<div className="pl-1">
+									<DropDown
+										className="mt-2"
+										label="Color Map:"
+										value={volume.colorMap ?? 'Gray'}
+										onChange={(value) =>
+											updateFileOptions(volume, { colorMap: value }, true)
+										}
+										options={['Gray', 'Hot', 'LookupTable']}
+									/>
 									<Slider
 										className="mt-2"
 										label="Opacity:"

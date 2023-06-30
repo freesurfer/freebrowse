@@ -1,3 +1,4 @@
+import lookUpTable from './ColorMaps/LookUpTable.json';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
@@ -43,6 +44,7 @@ export class NiivueWrapper {
 			value: React.SetStateAction<LocationData | undefined>
 		) => void
 	) {
+		this.niivue.addColormap('LookupTable', lookUpTable);
 		void this.niivue.attachToCanvas(canvasRef);
 	}
 
@@ -225,6 +227,7 @@ export class NiivueWrapper {
 							url: file.url,
 							name: file.name,
 							opacity: file.opacity / 100,
+							colorMap: file.colorMap ?? 'gray',
 							cal_min: file.contrastMin,
 							cal_max: file.contrastMax,
 						};
@@ -368,6 +371,7 @@ export class NiivueWrapper {
 
 			this.updateVolumeOrder(niivueVolume, tmpOrder++);
 			this.updateVolumeBrightness(niivueVolume, volumeFile);
+			this.updateVolumeColorMap(niivueVolume, volumeFile);
 		}
 
 		const surfaceFiles = files.surfaces
@@ -447,7 +451,7 @@ export class NiivueWrapper {
 		volumeFile: VolumeFile
 	): void {
 		if (
-			niivueVolume.opacity === volumeFile.opacity &&
+			niivueVolume.opacity === volumeFile.opacity / 100 &&
 			niivueVolume.cal_min === volumeFile.contrastMin &&
 			niivueVolume.cal_max === volumeFile.contrastMax
 		)
@@ -490,6 +494,16 @@ export class NiivueWrapper {
 			rgba255[2] === rgba[2] &&
 			rgba255[3] === rgba[3]
 		);
+	}
+
+	private updateVolumeColorMap(
+		niivueVolume: NVImage,
+		volumeFile: VolumeFile
+	): void {
+		if (niivueVolume.colorMap === volumeFile.colorMap) return;
+
+		this.niivue.setColorMap(niivueVolume.id, volumeFile.colorMap ?? 'gray');
+		this.niivue.updateGLVolume();
 	}
 
 	public handleKeyDown = (event: KeyboardEvent): void => {
