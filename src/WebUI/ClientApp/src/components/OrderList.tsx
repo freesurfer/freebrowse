@@ -239,10 +239,12 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 	files,
 	setFiles,
 	setFileActive,
+	hideFileExtension = false,
 }: {
 	files: readonly T_FILE_TYPE[];
 	setFiles: (files: T_FILE_TYPE[]) => void;
 	setFileActive: (file: T_FILE_TYPE) => void;
+	hideFileExtension?: boolean;
 }): React.ReactElement => {
 	const [rows, setRows] = useState<IRow<T_FILE_TYPE>[]>();
 	const state = useRef<OrderState<T_FILE_TYPE>>(
@@ -324,7 +326,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 										row.isActive ? 'font-bold text-white' : ''
 									}`}
 								>
-									{row.label.split('.')[0]}
+									{hideFileExtension ? row.label.split('.')[0] : row.label}
 								</span>
 								<ArrowsUpDownIcon
 									className={`m-1 w-4 shrink-0 ${

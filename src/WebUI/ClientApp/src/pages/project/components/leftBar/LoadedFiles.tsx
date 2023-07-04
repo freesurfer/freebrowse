@@ -75,6 +75,7 @@ export const LoadedFiles = ({
 								)
 							);
 						}}
+						hideFileExtension={true}
 					></OrderList>
 				</Collapse>
 				<Collapse
@@ -103,6 +104,7 @@ export const LoadedFiles = ({
 								)
 							);
 						}}
+						hideFileExtension={false}
 					></OrderList>
 				</Collapse>
 			</div>
