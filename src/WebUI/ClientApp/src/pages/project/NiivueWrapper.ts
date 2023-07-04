@@ -404,8 +404,9 @@ export class NiivueWrapper {
 			}
 
 			this.updateVolumeOrder(niivueVolume, tmpOrder++);
-			NiivueWrapper.updateVolumeBrightness(niivueVolume, volumeFile);
+			// the color map seems to need to get set before we adapt the contrast
 			this.updateVolumeColorMap(niivueVolume, volumeFile);
+			NiivueWrapper.updateVolumeBrightness(niivueVolume, volumeFile);
 		}
 
 		const surfaceFiles = files.surfaces
