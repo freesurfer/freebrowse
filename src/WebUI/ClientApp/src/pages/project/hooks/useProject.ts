@@ -32,6 +32,7 @@ export const useProject = (
 		volumeSelected: withDefault<boolean[]>(ArrayParam, [] as boolean[]),
 		volumeContrastMin: withDefault<number[]>(ArrayParam, []),
 		volumeContrastMax: withDefault<number[]>(ArrayParam, []),
+		volumeColormap: withDefault<string[]>(ArrayParam, []),
 		surfaces: withDefault(ArrayParam, []),
 		surfaceOpacity: withDefault<number[]>(ArrayParam, []),
 		surfaceOrder: withDefault<number[]>(ArrayParam, []),
@@ -47,6 +48,7 @@ export const useProject = (
 		volumeSelected,
 		volumeContrastMin,
 		volumeContrastMax,
+		volumeColormap,
 		surfaces,
 		surfaceOpacity,
 		surfaceOrder,
@@ -54,8 +56,7 @@ export const useProject = (
 		surfaceSelected,
 	} = query;
 
-	const { initialState } = useApi(projectId, projectState);
-
+	const { initialState } = useApi(projectId, setProjectState, projectState);
 	useEffect(() => {
 		if (initialState === undefined) return;
 
@@ -69,6 +70,7 @@ export const useProject = (
 					volumeVisible,
 					volumeContrastMin,
 					volumeContrastMax,
+					volumeColormap,
 					surfaces,
 					surfaceOpacity,
 					surfaceOrder,

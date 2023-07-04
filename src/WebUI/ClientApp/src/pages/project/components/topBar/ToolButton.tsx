@@ -19,7 +19,7 @@ export const ToolButton = ({
 			<button
 				onClick={onClick}
 				className={`flex h-full w-20 shrink-0 flex-col items-center rounded pb-3 pt-4 last-of-type:ml-auto${
-					isActive ? 'bg-blue-light' : ''
+					isActive ? 'bg-primary' : ''
 				}`}
 			>
 				<div className="flex items-center">

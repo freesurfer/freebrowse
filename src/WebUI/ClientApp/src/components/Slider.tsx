@@ -6,9 +6,9 @@ import { useCallback, useEffect, useState, createRef, useRef } from 'react';
  */
 const UNBOUNCE_DELAY = 10;
 
-const normalizeValue = (value: number): number => {
-	if (value > 100) return 100;
-	if (value < 0) return 0;
+const normalizeValue = (value: number, min: number, max: number): number => {
+	if (value > max) return max;
+	if (value < min) return min;
 	return Math.round(value);
 };
 
@@ -22,6 +22,8 @@ export const Slider = ({
 	className,
 	label,
 	value,
+	min = 0,
+	max = 100,
 	unit,
 	onChange,
 	onEnd,
@@ -29,6 +31,8 @@ export const Slider = ({
 	className?: string;
 	label: string;
 	value: number;
+	min?: number;
+	max?: number;
 	unit?: string | undefined;
 	onChange?: (value: number) => void;
 	onEnd?: (value: number) => void;
@@ -55,10 +59,10 @@ export const Slider = ({
 		(newValue: number, upload: boolean) => {
 			const doIt = (): void => {
 				if (!upload) {
-					onChange?.(normalizeValue(newValue));
+					onChange?.(normalizeValue(newValue, min, max));
 					return;
 				}
-				onEnd?.(normalizeValue(newValue));
+				onEnd?.(normalizeValue(newValue, min, max));
 			};
 
 			if (unStressState.current.isLocked) {
@@ -77,7 +81,7 @@ export const Slider = ({
 				unStressState.current.action = undefined;
 			}, UNBOUNCE_DELAY);
 		},
-		[onEnd, onChange]
+		[onEnd, onChange, min, max]
 	);
 
 	/**
@@ -92,13 +96,16 @@ export const Slider = ({
 			)
 				return;
 
-			const relativePosition =
-				((event.pageX - startState.position) / widthRef.current?.clientWidth) *
-				100;
+			const range = max - min;
+			const width = widthRef.current.clientWidth;
+			const positionDiff = event.pageX - startState.position;
+			const valueDiff = Math.round((positionDiff / width) * range);
 
-			updateValue(relativePosition + startState.value, false);
+			const relativePosition = startState.value + valueDiff;
+
+			updateValue(relativePosition, false);
 		},
-		[startState, widthRef, updateValue]
+		[startState, widthRef, updateValue, min, max]
 	);
 
 	/**
@@ -115,13 +122,16 @@ export const Slider = ({
 
 			setStartState(undefined);
 
-			const relativePosition =
-				((event.pageX - startState.position) / widthRef.current?.clientWidth) *
-				100;
+			const range = max - min;
+			const width = widthRef.current.clientWidth;
+			const positionDiff = event.pageX - startState.position;
+			const valueDiff = Math.round((positionDiff / width) * range);
 
-			updateValue(relativePosition + startState.value, true);
+			const relativePosition = startState.value + valueDiff;
+
+			updateValue(relativePosition, true);
 		},
-		[updateValue, setStartState, startState, widthRef]
+		[updateValue, setStartState, startState, widthRef, min, max]
 	);
 
 	/**
@@ -136,8 +146,11 @@ export const Slider = ({
 
 			if (widthRef.current === null || event.currentTarget === null) return;
 
+			const range = max - min;
 			const position = event.clientX - event.currentTarget.offsetLeft;
-			const newValue = (position / widthRef.current.clientWidth) * 100;
+			const newValue = Math.round(
+				(position / widthRef.current.clientWidth) * range + min
+			);
 
 			updateValue(newValue, true);
 
@@ -146,7 +159,7 @@ export const Slider = ({
 				value: newValue,
 			});
 		},
-		[widthRef, setStartState, updateValue]
+		[widthRef, setStartState, updateValue, min, max]
 	);
 
 	useEffect(() => {
@@ -167,10 +180,10 @@ export const Slider = ({
 					type="number"
 					onChange={(event) => updateValue(Number(event.target.value), false)}
 					onBlur={() => updateValue(value, true)}
-					value={String(value)}
+					value={String(Math.round(value))}
 					step={1}
-					min={0}
-					max={100}
+					min={min}
+					max={max}
 					className="flex h-5 w-10 items-center justify-center rounded border border-gray px-1 py-3 text-center text-sm"
 				></input>
 				{unit !== undefined ? <span className="ml-1">{unit}</span> : <></>}
@@ -183,8 +196,10 @@ export const Slider = ({
 						className="absolute mt-1 h-2 w-full rounded bg-gray"
 					></div>
 					<div
-						style={{ width: `${value}%` }}
-						className="absolute mt-1 h-2 rounded bg-blue-light"
+						style={{
+							width: `${((value - min) / (max - min)) * 100}%`,
+						}}
+						className="absolute mt-1 h-2 rounded bg-primary"
 					></div>
 					<button
 						onMouseDown={(event) => {
@@ -195,8 +210,10 @@ export const Slider = ({
 								value,
 							});
 						}}
-						style={{ marginLeft: `${value}%` }}
-						className="absolute -left-2 h-4 w-4 cursor-pointer rounded-full border-2 border-blue-light bg-white"
+						style={{
+							left: `${((value - min) / (max - min)) * 100}%`,
+						}}
+						className="absolute -left-2 h-4 w-4 cursor-pointer rounded-full border-2 border-primary bg-white"
 					></button>
 				</div>
 			}

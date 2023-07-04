@@ -1,4 +1,7 @@
-import { FileType, ProjectFileBase } from '@/pages/project/models/ProjectFile';
+import {
+	ProjectFileBase,
+	FileType,
+} from '@/pages/project/models/file/ProjectFile';
 import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';

@@ -322,6 +322,8 @@ declare module '@niivue/niivue' {
 		setColorMap(cm: any): void;
 		set colorMap(arg: any);
 		get colorMap(): any;
+		set colormap(arg: any);
+		get colormap(): any;
 		set opacity(arg: any);
 		get opacity(): any;
 		calMinMax(): any[];

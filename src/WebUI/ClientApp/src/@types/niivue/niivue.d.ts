@@ -291,6 +291,7 @@ declare module '@niivue/niivue' {
 		 * the name of the color map to use
 		 */
 		colorMap?: string;
+		colormap?: string;
 		/**
 		 * the name of the color map to use for negative values
 		 */
@@ -403,6 +404,7 @@ declare module '@niivue/niivue' {
 		gl: any;
 		isBusy: any;
 		needsRefresh: any;
+		colormap: string;
 		colormapTexture: any;
 		colormapLists: any;
 		volumeTexture: any;
@@ -1032,7 +1034,7 @@ declare module '@niivue/niivue' {
 		 * niivue = new Niivue()
 		 * niivue.loadMeshes([{url: 'someMesh.gii}])
 		 */
-		async loadMeshes(meshList: any[]): Promise<Niivue>;
+		async loadMeshes(meshList: NVMeshFromUrlOptions[]): Promise<Niivue>;
 		/**
 		 * load a connectome specified by json
 		 * @param {object} connectome model
@@ -1415,10 +1417,4 @@ declare module '@niivue/niivue' {
 		drawSceneCore(): string | void;
 		drawScene(): any;
 	}
-	export { NVController } from './nvcontroller';
-
-	export { NVMesh, NVMeshFromUrlOptions } from './nvmesh.js';
-	export { NVImage, NVImageFromUrlOptions } from './nvimage';
-	export { colortables, cmapper } from './colortables';
-	export { NVDocument, SLICE_TYPE } from './nvdocument.js';
 }

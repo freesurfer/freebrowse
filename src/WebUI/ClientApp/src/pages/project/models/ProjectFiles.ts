@@ -3,22 +3,27 @@ import type {
 	CreateSurfaceResponseDto,
 	GetProjectDto,
 	GetProjectVolumeDto,
-	CreateProjectSurfaceDto,
-	CreateProjectVolumeDto,
 	GetProjectSurfaceDto,
+	CreateOverlayResponseDto,
+	CreateAnnotationResponseDto,
 } from '@/generated/web-api-client';
+import type { AnnotationFile } from '@/pages/project/models/file/AnnotationFile';
+import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
+import { CloudFile } from '@/pages/project/models/file/CloudFile';
+import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
+import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
+import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
+import { LocalAnnotationFile } from '@/pages/project/models/file/LocalAnnotationFile';
+import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
+import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
+import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
+import type { OverlayFile } from '@/pages/project/models/file/OverlayFile';
 import {
-	LocalFile,
-	CloudSurfaceFile,
-	CloudVolumeFile,
-	LocalSurfaceFile,
-	LocalVolumeFile,
-} from '@/pages/project/models/ProjectFile';
-import type {
-	ProjectFile,
-	SurfaceFile,
-	VolumeFile,
-} from '@/pages/project/models/ProjectFile';
+	FileType,
+	type ProjectFile,
+} from '@/pages/project/models/file/ProjectFile';
+import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
+import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
 
 /**
  * mutable instance keeps the state of the project files
@@ -27,10 +32,8 @@ import type {
  * - the once the user opened from the drive, which need to get uploaded
  */
 export class ProjectFiles {
-	public id = Math.random();
-
-	private readonly localSurfaces: readonly LocalSurfaceFile[];
-	private readonly localVolumes: readonly LocalVolumeFile[];
+	public readonly localSurfaces: readonly LocalSurfaceFile[];
+	public readonly localVolumes: readonly LocalVolumeFile[];
 	public readonly cloudSurfaces: readonly CloudSurfaceFile[];
 	public readonly cloudVolumes: readonly CloudVolumeFile[];
 
@@ -222,6 +225,19 @@ export class ProjectFiles {
 	}
 
 	/**
+	 * factory method to create the correct class instance according to the file extension
+	 */
+	static fromFile(file: File): LocalVolumeFile | LocalSurfaceFile | undefined {
+		switch (CloudFile.typeFromFileExtension(file.name)) {
+			case FileType.VOLUME:
+				return new LocalVolumeFile(file);
+			case FileType.SURFACE:
+				return new LocalSurfaceFile(file);
+		}
+		return undefined;
+	}
+
+	/**
 	 * for drop zone
 	 * add list of added local files to the localFile list
 	 */
@@ -231,7 +247,13 @@ export class ProjectFiles {
 				// do not add if file name exists already
 				if (this.all.find((file) => file.name === newFile.name) !== undefined)
 					return undefined;
-				return LocalFile.fromFile(newFile);
+				switch (CloudFile.typeFromFileExtension(newFile.name)) {
+					case FileType.VOLUME:
+						return new LocalVolumeFile(newFile);
+					case FileType.SURFACE:
+						return new LocalSurfaceFile(newFile);
+				}
+				return undefined;
 			})
 			.filter(
 				(file): file is LocalSurfaceFile | LocalVolumeFile => file !== undefined
@@ -320,7 +342,8 @@ export class ProjectFiles {
 					localFile.isActive,
 					localFile.isChecked,
 					localFile.order,
-					localFile.opacity
+					localFile.opacity,
+					localFile.color
 				);
 			}),
 		];
@@ -385,6 +408,7 @@ export class ProjectFiles {
 					localFile.isChecked,
 					uploadResponse.order,
 					uploadResponse.opacity,
+					uploadResponse.colorMap,
 					uploadResponse.contrastMin,
 					uploadResponse.contrastMax
 				);
@@ -413,20 +437,300 @@ export class ProjectFiles {
 		});
 	}
 
-	public async getLocalVolumesToUpload(): Promise<CreateProjectVolumeDto[]> {
-		return await Promise.all(
-			this.localVolumes.map(
-				async (file) => await file.toCreateProjectVolumeDto()
-			)
+	public fromUploadedOverlays(
+		surfaceId: number,
+		createOverlayResponseDto: CreateOverlayResponseDto[]
+	): ProjectFiles {
+		const cloudSurfaces = this.cloudSurfaces.map((surface) =>
+			surface.id === surfaceId
+				? surface.from({
+						overlayFiles: surface.overlayFiles.map((overlay) => {
+							if (!(overlay instanceof LocalOverlayFile)) return overlay;
+							const overlayDto = createOverlayResponseDto.find(
+								(dto) => dto.fileName === overlay.name
+							);
+							if (overlayDto === undefined) return overlay;
+
+							if (overlayDto.id === undefined)
+								throw new Error('no id for uploaded overlay');
+							if (overlayDto.fileName === undefined)
+								throw new Error('no fileName  for uploaded overlay');
+							if (overlayDto.fileSize === undefined)
+								throw new Error('no fileSize for uploaded overlay');
+
+							return new CloudOverlayFile(
+								overlayDto.id,
+								overlayDto.fileName,
+								overlayDto.fileSize,
+								overlayDto.selected ?? false,
+								overlayDto.visible ?? false,
+								undefined,
+								overlayDto.opacity ?? 100
+							);
+						}),
+				  })
+				: surface
 		);
+		const surfaces = [...cloudSurfaces, ...this.localSurfaces];
+
+		return new ProjectFiles({
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			localSurfaces: this.localSurfaces,
+			localVolumes: this.localVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
+		});
 	}
 
-	public async getLocalSurfacesToUpload(): Promise<CreateProjectSurfaceDto[]> {
-		return await Promise.all(
-			this.localSurfaces.map(
-				async (file) => await file.toCreateProjectSurfaceDto()
-			)
+	public fromUploadedAnnotations(
+		surfaceId: number,
+		createAnnotationResponseDto: CreateAnnotationResponseDto[]
+	): ProjectFiles {
+		const cloudSurfaces = this.cloudSurfaces.map((surface) =>
+			surface.id === surfaceId
+				? surface.from({
+						annotationFiles: surface.annotationFiles.map((annotation) => {
+							if (!(annotation instanceof LocalAnnotationFile))
+								return annotation;
+							const annotationDto = createAnnotationResponseDto.find(
+								(dto) => dto.fileName === annotation.name
+							);
+							if (annotationDto === undefined) return annotation;
+
+							if (annotationDto.id === undefined)
+								throw new Error('no id for uploaded annotation');
+							if (annotationDto.fileName === undefined)
+								throw new Error('no fileName  for uploaded annotation');
+							if (annotationDto.fileSize === undefined)
+								throw new Error('no fileSize for uploaded annotation');
+
+							return new CloudAnnotationFile(
+								annotationDto.id,
+								annotationDto.fileName,
+								annotationDto.fileSize,
+								annotationDto.selected ?? false,
+								annotationDto.visible ?? false,
+								undefined,
+								annotationDto.opacity ?? 100
+							);
+						}),
+				  })
+				: surface
 		);
+		const surfaces = [...cloudSurfaces, ...this.localSurfaces];
+
+		return new ProjectFiles({
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			localSurfaces: this.localSurfaces,
+			localVolumes: this.localVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
+		});
+	}
+
+	/**
+	 * method to add a new local file as overlay to the given surface
+	 */
+	public fromAddedLocalSurfaceOverlay(
+		surface: SurfaceFile,
+		file: File
+	): ProjectFiles {
+		const isLocal = surface instanceof LocalSurfaceFile;
+		const localSurfaces = isLocal
+			? this.localSurfaces.map((localSurface) =>
+					localSurface === surface
+						? localSurface.fromAddOverlay(file)
+						: localSurface
+			  )
+			: this.localSurfaces;
+
+		const isCloud = surface instanceof CloudSurfaceFile;
+		const cloudSurfaces = isCloud
+			? this.cloudSurfaces.map((localSurface) =>
+					localSurface === surface
+						? localSurface.fromAddOverlay(file)
+						: localSurface
+			  )
+			: this.cloudSurfaces;
+
+		const surfaces = [...localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces,
+			cloudSurfaces,
+			localVolumes: this.localVolumes,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
+		});
+	}
+
+	/**
+	 * method to add a new local file as annotation to the given surface
+	 */
+	public fromAddedLocalSurfaceAnnotation(
+		surface: SurfaceFile,
+		file: File
+	): ProjectFiles {
+		const isLocal = surface instanceof LocalSurfaceFile;
+		const localSurfaces = isLocal
+			? this.localSurfaces.map((localSurface) =>
+					localSurface === surface
+						? localSurface.fromAddAnnotation(file)
+						: localSurface
+			  )
+			: this.localSurfaces;
+
+		const isCloud = surface instanceof CloudSurfaceFile;
+		const cloudSurfaces = isCloud
+			? this.cloudSurfaces.map((localSurface) =>
+					localSurface === surface
+						? localSurface.fromAddAnnotation(file)
+						: localSurface
+			  )
+			: this.cloudSurfaces;
+
+		const surfaces = [...localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces,
+			cloudSurfaces,
+			localVolumes: this.localVolumes,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
+		});
+	}
+
+	/**
+	 * method to delete a overlay file from a surface
+	 */
+	public fromDeletedOverlay(
+		surfaceFile: SurfaceFile,
+		overlayFile: OverlayFile
+	): ProjectFiles {
+		const localSurfaces = this.localSurfaces.map((thisSurface) =>
+			thisSurface !== surfaceFile
+				? thisSurface
+				: thisSurface.fromDeleteOverlay(overlayFile)
+		);
+		const cloudSurfaces = this.cloudSurfaces.map((thisSurface) =>
+			thisSurface !== surfaceFile
+				? thisSurface
+				: thisSurface.fromDeleteOverlay(overlayFile)
+		);
+
+		const surfaces = [...localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces,
+			localVolumes: this.localVolumes,
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...this.surfaces, ...this.volumes],
+		});
+	}
+
+	/**
+	 * method to delete a annotation file from a surface
+	 */
+	public fromDeletedAnnotation(
+		surfaceFile: SurfaceFile,
+		annotationFile: AnnotationFile
+	): ProjectFiles {
+		const localSurfaces = this.localSurfaces.map((thisSurface) =>
+			thisSurface !== surfaceFile
+				? thisSurface
+				: thisSurface.fromDeleteAnnotation(annotationFile)
+		);
+		const cloudSurfaces = this.cloudSurfaces.map((thisSurface) =>
+			thisSurface !== surfaceFile
+				? thisSurface
+				: thisSurface.fromDeleteAnnotation(annotationFile)
+		);
+
+		const surfaces = [...localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces,
+			localVolumes: this.localVolumes,
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...this.surfaces, ...this.volumes],
+		});
+	}
+
+	public fromIsActiveOverlay(
+		surfaceFile: SurfaceFile,
+		overlayFile: OverlayFile
+	): ProjectFiles {
+		const cloudSurfaces = this.cloudSurfaces.map((surface) =>
+			surface === surfaceFile
+				? surface.from({
+						overlayFiles: surface.overlayFiles.map((overlay) => {
+							if (overlay !== overlayFile) return overlay.fromIsActive(false);
+							if (overlay.isActive) return overlay.fromIsActive(false);
+							return overlay.fromIsActive(true);
+						}),
+						annotationFiles: surface.annotationFiles.map((annotation) =>
+							annotation.fromIsActive(false)
+						),
+				  })
+				: surface
+		);
+		const surfaces = [...this.localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces: this.localSurfaces,
+			localVolumes: this.localVolumes,
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
+		});
+	}
+
+	public fromIsActiveAnnotation(
+		surfaceFile: SurfaceFile,
+		annotationFile: AnnotationFile
+	): ProjectFiles {
+		const cloudSurfaces = this.cloudSurfaces.map((surface) =>
+			surface === surfaceFile
+				? surface.from({
+						overlayFiles: surface.overlayFiles.map((overlay) =>
+							overlay.fromIsActive(false)
+						),
+						annotationFiles: surface.annotationFiles.map((annotation) => {
+							if (annotation !== annotationFile)
+								return annotation.fromIsActive(false);
+							if (annotation.isActive) return annotation.fromIsActive(false);
+							return annotation.fromIsActive(true);
+						}),
+				  })
+				: surface
+		);
+		const surfaces = [...this.localSurfaces, ...cloudSurfaces];
+
+		return new ProjectFiles({
+			localSurfaces: this.localSurfaces,
+			localVolumes: this.localVolumes,
+			cloudSurfaces,
+			cloudVolumes: this.cloudVolumes,
+			surfaces,
+			volumes: this.volumes,
+			all: [...surfaces, ...this.volumes],
+		});
 	}
 
 	private static cloudFileFromVolumeDto(
@@ -434,57 +738,17 @@ export class ProjectFiles {
 	): CloudVolumeFile[] {
 		if (fileModel === undefined) return [];
 
-		return fileModel.map<CloudVolumeFile>((fileDto) => {
-			if (fileDto === undefined)
-				throw new Error('undefined array entry is not allowed');
-
-			if (fileDto?.id === undefined) throw new Error('no file without file id');
-
-			if (fileDto?.fileName === undefined)
-				throw new Error('no file without file name');
-
-			if (fileDto?.fileSize === undefined)
-				throw new Error('no file without file size');
-
-			return new CloudVolumeFile(
-				fileDto.id,
-				fileDto.fileName,
-				fileDto.fileSize,
-				false,
-				fileDto.visible,
-				fileDto.order,
-				fileDto.opacity ?? 100,
-				fileDto.contrastMin ?? 0,
-				fileDto.contrastMax ?? 100
-			);
-		});
+		return fileModel.map<CloudVolumeFile>((fileDto) =>
+			CloudVolumeFile.fromDto(fileDto)
+		);
 	}
 
 	private static cloudFileFromSurfaceDto(
 		fileModel: GetProjectSurfaceDto[] | undefined
 	): CloudSurfaceFile[] {
 		if (fileModel === undefined) return [];
-		return fileModel.map<CloudSurfaceFile>((fileDto) => {
-			if (fileDto === undefined)
-				throw new Error('undefined array entry is not allowed');
-
-			if (fileDto?.id === undefined) throw new Error('no file without file id');
-
-			if (fileDto?.fileName === undefined)
-				throw new Error('no file without file name');
-
-			if (fileDto?.fileSize === undefined)
-				throw new Error('no file without file size');
-
-			return new CloudSurfaceFile(
-				fileDto.id,
-				fileDto.fileName,
-				fileDto.fileSize,
-				false,
-				fileDto.visible,
-				fileDto.order,
-				fileDto.opacity ?? 100
-			);
-		});
+		return fileModel.map<CloudSurfaceFile>((fileDto) =>
+			CloudSurfaceFile.fromDto(fileDto)
+		);
 	}
 }

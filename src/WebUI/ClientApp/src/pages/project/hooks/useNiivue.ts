@@ -8,6 +8,7 @@ import { useQueryParams, withDefault, NumberParam } from 'use-query-params';
 
 /**
  * this hook is the react wrapper to maintain the state of the niivue library and provide all the handles needed to interact with that library
+ * LISTENS the projectState changes and PUSHES all updates to the niivue library
  */
 export const useNiivue = (
 	canvas: HTMLCanvasElement | null | undefined,

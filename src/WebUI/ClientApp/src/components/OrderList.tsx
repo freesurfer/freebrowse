@@ -1,5 +1,5 @@
 import { Checkbox } from '@/components/Checkbox';
-import type { ProjectFile } from '@/pages/project/models/ProjectFile';
+import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
 import { ArrowsUpDownIcon } from '@heroicons/react/24/outline';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -298,7 +298,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 							transform: `translateY(${row.top}px)`,
 						}}
 						className={`absolute left-0 right-0 top-0 mt-0.5 rounded ${
-							row.isActive ? 'bg-blue-light' : 'bg-white'
+							row.isActive ? 'bg-primary' : 'bg-white'
 						}`}
 					>
 						<div className="flex w-full items-center">

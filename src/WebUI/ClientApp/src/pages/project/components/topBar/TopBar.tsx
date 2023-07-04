@@ -43,7 +43,9 @@ export const TopBar = ({
 				volume.order ?? 0
 			}&volumeVisible=${volume.isChecked.toString()}&volumeSelected=${volume.isActive.toString()}&volumeContrastMin=${
 				volume.contrastMin
-			}&volumeContrastMax=${volume.contrastMax.toString()}`;
+			}&volumeContrastMax=${volume.contrastMax.toString()}&volumeColormap=${
+				volume.colorMap ?? 'Gray'
+			}`;
 		});
 
 		projectState?.files.surfaces.forEach((surface) => {
@@ -66,7 +68,7 @@ export const TopBar = ({
 			animationIn: ['animate__animated', 'animate__fadeIn'],
 			animationOut: ['animate__animated', 'animate__fadeOut'],
 			dismiss: {
-				duration: 1000,
+				duration: 1500,
 				onScreen: true,
 			},
 		});
@@ -121,7 +123,7 @@ export const TopBar = ({
 				icon={<ArrowUturnRightIcon className={ICON_STYLE} />}
 			/>
 			<ToolButton
-				title="Deep Link"
+				title="Share"
 				onClick={() => {
 					void navigator.clipboard.writeText(
 						createDeepLink(projectState, location, niivueWrapper)

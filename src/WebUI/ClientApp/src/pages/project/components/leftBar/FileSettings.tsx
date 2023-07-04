@@ -1,7 +1,10 @@
 import { Collapse } from '@/components/Collapse';
+import { ColorPicker } from '@/components/ColorPicker';
+import { DropDown } from '@/components/DropDown';
 import { Slider } from '@/components/Slider';
-import type { ProjectFile } from '@/pages/project/models/ProjectFile';
+import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
 import { useCallback, type Dispatch } from 'react';
 
 export const FileSettings = ({
@@ -34,6 +37,18 @@ export const FileSettings = ({
 		[setProjectState]
 	);
 
+	const updateProjectOptions = useCallback(
+		(
+			options: Parameters<ProjectState['fromProjectUpdate']>[0],
+			upload: boolean
+		) => {
+			setProjectState((currentProjectState) =>
+				currentProjectState?.fromProjectUpdate(options, upload)
+			);
+		},
+		[setProjectState]
+	);
+
 	return (
 		<Collapse
 			className="border-b border-gray py-2 text-xs"
@@ -57,7 +72,20 @@ export const FileSettings = ({
 									</span>
 								}
 							>
-								<div className="mr-4 pl-1">
+								<div className="pl-1">
+									<DropDown
+										className="mt-2"
+										label="Color Map:"
+										value={volume.colorMap ?? 'Gray'}
+										onChange={(value) =>
+											updateFileOptions(
+												volume,
+												{ colorMap: value === 'Heat' ? 'Hot' : value },
+												true
+											)
+										}
+										options={['Gray', 'Heat', 'LookupTable']}
+									/>
 									<Slider
 										className="mt-2"
 										label="Opacity:"
@@ -119,31 +147,68 @@ export const FileSettings = ({
 							</Collapse>
 						);
 					})}
-					{selectedSurfaces.map((surface) => {
-						if (surface === undefined) return <></>;
+					{selectedSurfaces.map((surfaceFile) => {
+						if (surfaceFile === undefined) return <></>;
 						return (
 							<Collapse
-								key={surface?.name}
+								key={surfaceFile?.name}
 								className="mt-1 pr-4"
 								title={
 									<span className="grow border-b border-gray text-xs">
-										{surface.name ?? 'No file selected'}
+										{surfaceFile.name ?? 'No file selected'}
 									</span>
 								}
 							>
-								<div className="mr-4 pl-1">
+								<div className="pl-1">
 									<Slider
 										className="mt-2"
 										label="Opacity:"
-										value={surface.opacity}
+										value={surfaceFile.opacity}
 										unit="%"
 										onChange={(value) =>
-											updateFileOptions(surface, { opacity: value }, false)
+											updateFileOptions(surfaceFile, { opacity: value }, false)
 										}
 										onEnd={(value) =>
-											updateFileOptions(surface, { opacity: value }, true)
+											updateFileOptions(surfaceFile, { opacity: value }, true)
 										}
 									></Slider>
+									<ColorPicker
+										className="mt-2"
+										label="Edge-Color:"
+										value={surfaceFile.color}
+										onChange={(value) =>
+											updateFileOptions(surfaceFile, { color: value }, false)
+										}
+										onEnd={(value) =>
+											updateFileOptions(surfaceFile, { color: value }, true)
+										}
+									></ColorPicker>
+									<Slider
+										className="mt-2"
+										label="Edge-Thickness:"
+										value={(projectState?.meshThicknessOn2D ?? 0) * 10}
+										unit=""
+										min={0}
+										max={10}
+										onChange={(value) =>
+											updateProjectOptions(
+												{ meshThicknessOn2D: value * 0.1 },
+												false
+											)
+										}
+										onEnd={(value) =>
+											updateProjectOptions(
+												{ meshThicknessOn2D: value * 0.1 },
+												true
+											)
+										}
+									></Slider>
+									<FileSelection
+										title="Overlays:"
+										className="mt-4"
+										setProjectState={setProjectState}
+										surfaceFile={surfaceFile}
+									></FileSelection>
 								</div>
 							</Collapse>
 						);
