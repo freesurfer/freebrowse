@@ -78,9 +78,13 @@ export const FileSettings = ({
 										label="Color Map:"
 										value={volume.colorMap ?? 'Gray'}
 										onChange={(value) =>
-											updateFileOptions(volume, { colorMap: value }, true)
+											updateFileOptions(
+												volume,
+												{ colorMap: value === 'Heat' ? 'Hot' : value },
+												true
+											)
 										}
-										options={['Gray', 'Hot', 'LookupTable']}
+										options={['Gray', 'Heat', 'LookupTable']}
 									/>
 									<Slider
 										className="mt-2"
@@ -184,7 +188,7 @@ export const FileSettings = ({
 										label="Edge-Thickness:"
 										value={(projectState?.meshThicknessOn2D ?? 0) * 10}
 										unit=""
-										min={1}
+										min={0}
 										max={10}
 										onChange={(value) =>
 											updateProjectOptions(

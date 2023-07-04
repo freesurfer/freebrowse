@@ -408,6 +408,7 @@ export class ProjectFiles {
 					localFile.isChecked,
 					uploadResponse.order,
 					uploadResponse.opacity,
+					uploadResponse.colorMap,
 					uploadResponse.contrastMin,
 					uploadResponse.contrastMax
 				);

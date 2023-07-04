@@ -11,14 +11,18 @@ export const ProjectPage = (): React.ReactElement => {
 
 	const [canvas, setCanvas] = useState<HTMLCanvasElement | null>();
 
-	const { projectState, setProjectState, location } = useProject(
+	const { projectState, setProjectState, location, niivueWrapper } = useProject(
 		projectId,
 		canvas
 	);
 
 	return (
 		<div className="flex h-full flex-col text-font">
-			<TopBar></TopBar>
+			<TopBar
+				projectState={projectState}
+				location={location}
+				niivueWrapper={niivueWrapper}
+			></TopBar>
 			<div className="border-5 flex h-full flex-row border-red">
 				<LeftBar
 					projectState={projectState}

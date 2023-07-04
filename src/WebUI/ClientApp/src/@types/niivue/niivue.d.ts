@@ -5,9 +5,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 declare module '@niivue/niivue' {
+	export class Scene {
+		renderAzimuth: number;
+		renderElevation: number;
+		volScaleMultiplier: number;
+	}
+
+	export class UIData {
+		pan2Dxyzmm: [number, number, number, number];
+		dpr: number;
+		mouseButtonCenterDown: boolean;
+	}
+
 	export class LocationData {
 		frac: [number, number, number];
-		mm: Float32Array;
+		mm: [number, number, number];
 		values: {
 			id: string;
 			mm: [number, number, number, number];
@@ -279,6 +291,7 @@ declare module '@niivue/niivue' {
 		 * the name of the color map to use
 		 */
 		colorMap?: string;
+		colormap?: string;
 		/**
 		 * the name of the color map to use for negative values
 		 */
@@ -391,6 +404,7 @@ declare module '@niivue/niivue' {
 		gl: any;
 		isBusy: any;
 		needsRefresh: any;
+		colormap: string;
 		colormapTexture: any;
 		colormapLists: any;
 		volumeTexture: any;
@@ -438,7 +452,7 @@ declare module '@niivue/niivue' {
 		isAlphaClipDark: any;
 		syncOpts: any;
 		readyForSync: any;
-		uiData: any;
+		uiData: UIData;
 		eventsToSubjects: any;
 		back: any;
 		overlays: any;
@@ -485,7 +499,7 @@ declare module '@niivue/niivue' {
 		onDocumentLoaded: any;
 		document: any;
 		opts: NiivueOptions;
-		scene: any;
+		scene: Scene;
 		dragModes: DragModes;
 		sliceTypeAxial: any;
 		sliceTypeCoronal: any;

@@ -1,6 +1,7 @@
 import lookUpTable from './ColorMaps/LookUpTable.json';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import type { ViewSettings } from '@/pages/project/models/ViewSettings';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
@@ -34,6 +35,7 @@ export class NiivueWrapper {
 
 	private hooveredView = 0;
 	private nextState: ProjectState | undefined = undefined;
+	private viewSettings: ViewSettings | undefined = undefined;
 	private isRunning = false;
 	private readonly volumeCache = new Map<string, NVImage>();
 	private readonly surfaceCache = new Map<string, NVMesh>();
@@ -48,8 +50,12 @@ export class NiivueWrapper {
 		void this.niivue.attachToCanvas(canvasRef);
 	}
 
-	public next(projectState: ProjectState): void {
+	public next(
+		projectState: ProjectState,
+		viewSettings: ViewSettings | undefined
+	): void {
 		this.nextState = projectState;
+		this.viewSettings = viewSettings;
 		void this.propagateNextState();
 	}
 
@@ -72,7 +78,10 @@ export class NiivueWrapper {
 		const currentState = this.nextState;
 		this.nextState = undefined;
 
-		await this.propagateState(currentState);
+		const viewSettings = this.viewSettings;
+		this.viewSettings = undefined;
+
+		await this.propagateState(currentState, viewSettings);
 
 		// clear lock
 		this.isRunning = false;
@@ -84,12 +93,14 @@ export class NiivueWrapper {
 	/**
 	 * propagate the given project state to the niivue library
 	 */
-	private async propagateState(projectState: ProjectState): Promise<void> {
+	private async propagateState(
+		projectState: ProjectState,
+		viewSettings: ViewSettings | undefined
+	): Promise<void> {
 		const files = projectState.files;
-
 		if (this.volumeCache.size === 0 && this.surfaceCache.size === 0) {
 			// if there are no files cached yet, start from scratch
-			await this.loadInitialState(files);
+			await this.loadInitialState(files, viewSettings);
 			this.fillReferences(files);
 			return;
 		}
@@ -105,13 +116,16 @@ export class NiivueWrapper {
 			// we need to remove or add files
 			await this.addOrRemoveFiles(files);
 			this.niivue.setSliceType(3);
+			this.niivue.updateGLVolume();
 			return;
 		}
 
 		// otherwise we only need to update the options
-		this.niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);
+		// this.niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);
+		this.niivue.opts.meshThicknessOn2D = projectState.meshThicknessOn2D ?? 0.5;
 		await this.updateFileProperties(files);
 		this.cleanUpCache(files);
+		this.niivue.updateGLVolume();
 	}
 
 	/**
@@ -216,7 +230,10 @@ export class NiivueWrapper {
 		}
 	}
 
-	private async loadInitialState(files: ProjectFiles): Promise<void> {
+	private async loadInitialState(
+		files: ProjectFiles,
+		viewSettings: ViewSettings | undefined
+	): Promise<void> {
 		try {
 			await this.niivue.loadVolumes(
 				files.cloudVolumes
@@ -265,6 +282,23 @@ export class NiivueWrapper {
 						};
 					})
 			);
+
+			if (viewSettings !== undefined) {
+				this.niivue.uiData.pan2Dxyzmm = [
+					viewSettings.zoom2dX,
+					viewSettings.zoom2dY,
+					viewSettings.zoom2dZ,
+					viewSettings.zoom2d,
+				];
+				this.niivue.scene.volScaleMultiplier = viewSettings.zoom3d;
+				this.niivue.scene.renderAzimuth = viewSettings.renderAzimuth;
+				this.niivue.scene.renderElevation = viewSettings.renderElevation;
+				this.navigateToSlice(
+					viewSettings.sliceX,
+					viewSettings.sliceY,
+					viewSettings.sliceZ
+				);
+			}
 
 			this.niivue.createOnLocationChange();
 			this.niivue.updateGLVolume();
@@ -370,7 +404,7 @@ export class NiivueWrapper {
 			}
 
 			this.updateVolumeOrder(niivueVolume, tmpOrder++);
-			this.updateVolumeBrightness(niivueVolume, volumeFile);
+			NiivueWrapper.updateVolumeBrightness(niivueVolume, volumeFile);
 			this.updateVolumeColorMap(niivueVolume, volumeFile);
 		}
 
@@ -390,13 +424,45 @@ export class NiivueWrapper {
 
 			this.updateSurfaceColor(niivueSurface, surfaceFile);
 			this.updateSurfaceOrder(niivueSurface, tmpOrder++);
+			niivueSurface.opacity = surfaceFile.opacity;
 			await this.updateSurfaceOverlayAndAnnotation(surfaceFile, niivueSurface);
 		}
 	}
 
 	private updateVolumeOrder(niivueVolume: NVImage, order: number): void {
 		if (this.niivue.getVolumeIndexByID(niivueVolume.id) === order) return;
-		this.niivue.setVolume(niivueVolume, order);
+
+		const numberOfLoadedImages = this.niivue.volumes.length;
+		if (order > numberOfLoadedImages) {
+			return;
+		}
+
+		const volIndex = this.niivue.getVolumeIndexByID(niivueVolume.id);
+		if (order === 0) {
+			this.niivue.volumes.splice(volIndex, 1);
+			this.niivue.volumes.unshift(niivueVolume);
+			this.niivue.back = this.niivue.volumes[0];
+			this.niivue.overlays = this.niivue.volumes.slice(1);
+		} else if (order < 0) {
+			// -1 to remove a volume
+			this.niivue.volumes.splice(
+				this.niivue.getVolumeIndexByID(niivueVolume.id),
+				1
+			);
+			// this.volumes = this.overlays
+			this.niivue.back = this.niivue.volumes[0];
+			if (this.niivue.volumes.length > 1) {
+				this.niivue.overlays = this.niivue.volumes.slice(1);
+			} else {
+				this.niivue.overlays = [];
+			}
+		} else {
+			this.niivue.volumes.splice(volIndex, 1);
+			this.niivue.volumes.splice(order, 0, niivueVolume);
+			this.niivue.overlays = this.niivue.volumes.slice(1);
+			this.niivue.back = this.niivue.volumes[0];
+		}
+		// this.niivue.setVolume(niivueVolume, order);
 	}
 
 	private updateSurfaceOrder(niivueSurface: NVMesh, order: number): void {
@@ -412,7 +478,6 @@ export class NiivueWrapper {
 		if (activeFile === undefined) {
 			niivueSurface.layers = [];
 			niivueSurface.updateMesh(this.niivue.gl);
-			this.niivue.updateGLVolume();
 			return;
 		}
 
@@ -430,7 +495,6 @@ export class NiivueWrapper {
 			niivueSurface
 		);
 		niivueSurface.updateMesh(this.niivue.gl);
-		this.niivue.updateGLVolume();
 	}
 
 	private static getActiveCascadingFile(
@@ -446,7 +510,7 @@ export class NiivueWrapper {
 		return activeFile;
 	}
 
-	private updateVolumeBrightness(
+	private static updateVolumeBrightness(
 		niivueVolume: NVImage,
 		volumeFile: VolumeFile
 	): void {
@@ -460,7 +524,6 @@ export class NiivueWrapper {
 		niivueVolume.opacity = volumeFile.opacity / 100;
 		niivueVolume.cal_min = volumeFile.contrastMin;
 		niivueVolume.cal_max = volumeFile.contrastMax;
-		this.niivue.updateGLVolume();
 	}
 
 	private updateSurfaceColor(
@@ -469,11 +532,18 @@ export class NiivueWrapper {
 	): void {
 		const newRgba = NiivueWrapper.hexToRGBA(surfaceFile.color);
 		if (NiivueWrapper.compareRgba(niivueSurface.rgba255, newRgba)) return;
-		this.niivue.setMeshProperty(
-			this.niivue.getMeshIndexByID(niivueSurface.id),
-			'rgba255',
-			newRgba
-		);
+
+		const index = this.niivue.getMeshIndexByID(niivueSurface.id);
+		if (index < 0) {
+			return;
+		}
+
+		this.niivue.meshes[index]?.setProperty('rgba255', newRgba, this.niivue.gl);
+		// this.niivue.setMeshProperty(
+		// 	this.niivue.getMeshIndexByID(niivueSurface.id),
+		// 	'rgba255',
+		// 	newRgba
+		// );
 	}
 
 	static hexToRGBA(hex: string): [number, number, number, number] {
@@ -502,8 +572,12 @@ export class NiivueWrapper {
 	): void {
 		if (niivueVolume.colorMap === volumeFile.colorMap) return;
 
-		this.niivue.setColorMap(niivueVolume.id, volumeFile.colorMap ?? 'gray');
-		this.niivue.updateGLVolume();
+		const index = this.niivue.getVolumeIndexByID(niivueVolume.id);
+		const volume = this.niivue.volumes[index];
+		if (volume !== undefined) {
+			volume.colormap = volumeFile.colorMap ?? 'gray';
+		}
+		// this.niivue.setColorMap(niivueVolume.id, volumeFile.colorMap ?? 'gray');
 	}
 
 	public handleKeyDown = (event: KeyboardEvent): void => {
@@ -551,7 +625,7 @@ export class NiivueWrapper {
 		}
 		if (
 			this.niivue.opts.dragMode === this.niivue.dragModes.none &&
-			(this.niivue.uiData.mouseButtonCenterDown as boolean)
+			this.niivue.uiData.mouseButtonCenterDown
 		) {
 			this.moveSlices(event.movementY);
 		}
@@ -567,5 +641,32 @@ export class NiivueWrapper {
 		} else {
 			this.niivue.moveCrosshairInVox(0, 0, sliceValue);
 		}
+	}
+
+	private navigateToSlice(
+		x: number | undefined,
+		y: number | undefined,
+		z: number | undefined
+	): void {
+		if (this.niivue === undefined) return;
+
+		const calculateDistance = (
+			target: number | undefined,
+			dimensions: number
+		): number => {
+			if (target === undefined) return 0;
+
+			const startingPoint = Math.floor(dimensions / 2);
+
+			return target >= startingPoint
+				? target - startingPoint
+				: (startingPoint - target) * -1;
+		};
+
+		const distanceX = calculateDistance(x, this.niivue.vox[0]);
+		const distanceY = calculateDistance(y, this.niivue.vox[1]);
+		const distanceZ = calculateDistance(z, this.niivue.vox[2]);
+
+		this.niivue.moveCrosshairInVox(distanceX, distanceY, distanceZ);
 	}
 }

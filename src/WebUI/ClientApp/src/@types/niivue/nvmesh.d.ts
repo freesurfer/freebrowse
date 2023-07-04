@@ -16,7 +16,7 @@ declare module '@niivue/niivue' {
 		name: string;
 		url: string;
 		opacity?: number;
-		colorMap?: string;
+		colormap?: string;
 		colorMapNegative?: string;
 		useNegativeCmap?: boolean;
 		cal_min?: number;

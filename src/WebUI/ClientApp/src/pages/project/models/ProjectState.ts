@@ -2,6 +2,8 @@ import type { GetProjectDto } from '@/generated/web-api-client';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
+import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
+import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
 
 /**
  * class to uncouple backend dto from data used from ui
@@ -81,6 +83,60 @@ export class ProjectState {
 
 	fromFiles(projectFiles: ProjectFiles, upload = true): ProjectState {
 		return new ProjectState({ projectState: this, projectFiles }, upload);
+	}
+
+	fromQuery(
+		volumes: string[],
+		volumeOpacity: string[],
+		volumeOrder: string[],
+		volumeSelected: string[],
+		volumeVisible: string[],
+		volumeContrastMin: string[],
+		volumeContrastMax: string[],
+		volumeColormap: string[],
+		surfaces: string[],
+		surfaceOpacity: string[],
+		surfaceOrder: string[],
+		surfaceVisible: string[],
+		surfaceSelected: string[],
+		upload = true
+	): ProjectState {
+		const volumeFiles: VolumeFile[] = this.files.volumes.map((volume) => {
+			const index = volumes.indexOf(volume.name);
+			if (index !== -1) {
+				return volume.from({
+					order: Number(volumeOrder[index]),
+					isActive: volumeSelected[index] === 'true',
+					isChecked: volumeVisible[index] === 'true',
+					opacity: Number(volumeOpacity[index]),
+					contrastMin: Number(volumeContrastMin[index]),
+					contrastMax: Number(volumeContrastMax[index]),
+					colorMap: volumeColormap[index],
+				});
+			}
+
+			return volume.from({ isChecked: false });
+		});
+
+		const surfaceFiles: SurfaceFile[] = this.files.surfaces.map((surface) => {
+			const index = surfaces.indexOf(surface.name);
+			if (index !== -1) {
+				return surface.from({
+					order: Number(surfaceOrder[index]),
+					isActive: surfaceSelected[index] === 'true',
+					isChecked: surfaceVisible[index] === 'true',
+					opacity: Number(surfaceOpacity[index]),
+				});
+			}
+
+			return surface.from({ isChecked: false });
+		});
+
+		const files = this.files
+			.fromAdaptedVolumes(volumeFiles)
+			.fromAdaptedSurfaces(surfaceFiles);
+
+		return this.fromFiles(files, upload);
 	}
 
 	/**

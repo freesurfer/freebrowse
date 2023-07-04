@@ -1,8 +1,10 @@
 import { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { ViewSettings } from '@/pages/project/models/ViewSettings';
 // import type { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import type { LocationData } from '@niivue/niivue';
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { useQueryParams, withDefault, NumberParam } from 'use-query-params';
 
 /**
  * this hook is the react wrapper to maintain the state of the niivue library and provide all the handles needed to interact with that library
@@ -11,13 +13,49 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 export const useNiivue = (
 	canvas: HTMLCanvasElement | null | undefined,
 	projectState: ProjectState | undefined
-): { location: LocationData | undefined } => {
+): {
+	location: LocationData | undefined;
+	niivueWrapper: NiivueWrapper | undefined;
+} => {
 	/**
 	 * the niivueWrapper instance is keeping the reference and the state of the niivue library
 	 * it will only get initialized once per project
 	 */
 	const niivueWrapper = useRef<NiivueWrapper | undefined>();
 	const [location, setLocation] = useState<LocationData | undefined>();
+	const [deeplinkInitialized, setDeeplinkInitialized] =
+		useState<boolean>(false);
+	const [query] = useQueryParams({
+		sliceX: withDefault(NumberParam, undefined),
+		sliceY: withDefault(NumberParam, undefined),
+		sliceZ: withDefault(NumberParam, undefined),
+		zoom3d: withDefault(NumberParam, undefined),
+		zoom2d: withDefault(NumberParam, undefined),
+		zoom2dX: withDefault(NumberParam, undefined),
+		zoom2dY: withDefault(NumberParam, undefined),
+		zoom2dZ: withDefault(NumberParam, undefined),
+		rasX: withDefault(NumberParam, undefined),
+		rasY: withDefault(NumberParam, undefined),
+		rasZ: withDefault(NumberParam, undefined),
+		renderAzimuth: withDefault(NumberParam, undefined),
+		renderElevation: withDefault(NumberParam, undefined),
+	});
+
+	const {
+		sliceX,
+		sliceY,
+		sliceZ,
+		zoom3d,
+		zoom2d,
+		zoom2dX,
+		zoom2dY,
+		zoom2dZ,
+		rasX,
+		rasY,
+		rasZ,
+		renderAzimuth,
+		renderElevation,
+	} = query;
 
 	/**
 	 * TODO: Move this to a custom hook and remove hardcoded values
@@ -67,8 +105,49 @@ export const useNiivue = (
 			niivueWrapper.current === null
 		)
 			return;
-		niivueWrapper.current.next(projectState);
-	}, [projectState, niivueWrapper]);
+
+		if (deeplinkInitialized || rasX === undefined) {
+			niivueWrapper.current.next(projectState, undefined);
+		} else {
+			niivueWrapper.current.next(
+				projectState,
+				new ViewSettings(
+					zoom2d,
+					zoom2dX,
+					zoom2dY,
+					zoom2dZ,
+					zoom3d,
+					sliceX,
+					sliceY,
+					sliceZ,
+					rasX,
+					rasY,
+					rasZ,
+					renderAzimuth,
+					renderElevation
+				)
+			);
+
+			setDeeplinkInitialized(true);
+		}
+	}, [
+		projectState,
+		niivueWrapper,
+		deeplinkInitialized,
+		sliceX,
+		sliceY,
+		sliceZ,
+		zoom3d,
+		zoom2d,
+		zoom2dX,
+		zoom2dY,
+		zoom2dZ,
+		rasX,
+		rasY,
+		rasZ,
+		renderAzimuth,
+		renderElevation,
+	]);
 
 	const handleKeyDown = useCallback((event: KeyboardEvent) => {
 		if (niivueWrapper.current === undefined) return;
@@ -99,5 +178,6 @@ export const useNiivue = (
 
 	return {
 		location,
+		niivueWrapper: niivueWrapper.current,
 	};
 };
