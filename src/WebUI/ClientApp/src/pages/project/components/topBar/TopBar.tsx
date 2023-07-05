@@ -1,17 +1,19 @@
+import Brain from '@/assets/Brain.svg';
 import EqualSplitView from '@/assets/EqualSplitView.svg';
 import Navigate from '@/assets/Navigate.svg';
 import SaveAll from '@/assets/SaveAll.svg';
 import type { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { ToolButton } from '@/pages/project/components/topBar/ToolButton';
+import { NewPointSetDialogContext } from '@/pages/project/dialogs/newPointSet/NewPointSetDialog';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import {
 	ArrowUturnLeftIcon,
 	ArrowUturnRightIcon,
 	CircleStackIcon,
-	DocumentIcon,
 	ShareIcon,
 } from '@heroicons/react/24/outline';
 import type { LocationData } from '@niivue/niivue';
+import { useContext } from 'react';
 import { Store } from 'react-notifications-component';
 
 const ICON_STYLE = 'h-7 w-7 shrink-0 text-white';
@@ -25,6 +27,8 @@ export const TopBar = ({
 	location: LocationData | undefined;
 	niivueWrapper: NiivueWrapper | undefined;
 }): React.ReactElement => {
+	const { open } = useContext(NewPointSetDialogContext);
+
 	const createDeepLink = (
 		projectState: ProjectState | undefined,
 		location: LocationData | undefined,
@@ -77,9 +81,9 @@ export const TopBar = ({
 	return (
 		<div className="flex items-baseline bg-font px-4">
 			<ToolButton
-				title="Load Project"
+				title="FreeBrowse"
 				isExpandable={true}
-				icon={<DocumentIcon className={ICON_STYLE} />}
+				icon={<img src={Brain} className={ICON_STYLE} alt="Brain" />}
 			></ToolButton>
 			<ToolButton
 				title="Navigate"
@@ -108,6 +112,9 @@ export const TopBar = ({
 				title="PointSet"
 				isExpandable={true}
 				icon={<CircleStackIcon className={ICON_STYLE} />}
+				onClick={() => {
+					void open();
+				}}
 			></ToolButton>
 			<ToolButton
 				title="Save All"
