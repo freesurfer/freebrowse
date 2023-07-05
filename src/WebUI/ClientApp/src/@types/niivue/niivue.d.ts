@@ -26,6 +26,7 @@ declare module '@niivue/niivue' {
 			name: string;
 			value: number;
 			vox: [number, number, number];
+			label: string;
 		}[];
 		vox: [number, number, number];
 		xy: [number, number];

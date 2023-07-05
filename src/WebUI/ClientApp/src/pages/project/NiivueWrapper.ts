@@ -23,7 +23,16 @@ import type {
 export class NiivueWrapper {
 	public readonly niivue = new Niivue({
 		show3Dcrosshair: false,
-		onLocationChange: (location) => this.setLocation(location),
+		onLocationChange: (location) =>
+			this.setLocation({
+				...location,
+				values: location.values.map((v) => {
+					return {
+						...v,
+						label: this.getVoxelLabel(v),
+					};
+				}),
+			}),
 		dragAndDropEnabled: false,
 		dragMode: 3,
 		meshThicknessOn2D: 0.5,
@@ -577,7 +586,10 @@ export class NiivueWrapper {
 		const volume = this.niivue.volumes[index];
 		if (volume !== undefined) {
 			volume.colormap = volumeFile.colorMap ?? 'gray';
+			const cmap = this.niivue.colormapFromKey(volume.colormap);
+			volume.setColormapLabel(cmap);
 		}
+
 		// this.niivue.setColorMap(niivueVolume.id, volumeFile.colorMap ?? 'gray');
 	}
 
@@ -669,5 +681,28 @@ export class NiivueWrapper {
 		const distanceZ = calculateDistance(z, this.niivue.vox[2]);
 
 		this.niivue.moveCrosshairInVox(distanceX, distanceY, distanceZ);
+	}
+
+	private getVoxelLabel(volumeLocationData: {
+		id: string;
+		mm: [number, number, number, number];
+		name: string;
+		value: number;
+		vox: [number, number, number];
+	}): string {
+		const volume = this.niivue.volumes.find(
+			(v) => v.name === volumeLocationData.name
+		);
+
+		if (volume?.colormapLabel?.labels === undefined) return '';
+
+		const value = Math.round(
+			volume.getValue(...volumeLocationData.vox, volume.frame4D)
+		);
+
+		if (value < 0 || value >= volume.colormapLabel.labels.length) return '';
+
+		const label = volume.colormapLabel.labels[value];
+		return label;
 	}
 }

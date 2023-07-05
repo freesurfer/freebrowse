@@ -256,6 +256,7 @@ declare module '@niivue/niivue' {
 		DT_COMPLEX256: any;
 		DT_RGBA32: any;
 		name: string;
+		colormapLabel: { labels: string[] } | any;
 		id: any;
 		_colorMap: any;
 		_opacity: any;
@@ -320,6 +321,7 @@ declare module '@niivue/niivue' {
 		mm2vox(mm: any, frac?: boolean): number[] | Float32Array;
 		arrayEquals(a: any, b: any): boolean;
 		setColorMap(cm: any): void;
+		setColormapLabel(cm: any): void;
 		set colorMap(arg: any);
 		get colorMap(): any;
 		set colormap(arg: any);

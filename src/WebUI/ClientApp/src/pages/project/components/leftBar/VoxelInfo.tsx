@@ -46,6 +46,16 @@ export const VoxelInfo = ({
 					))}
 				</div>
 			</div>
+			<div className="my-2 mr-4 pl-1">
+				{location?.values.map((value, index) => (
+					<div key={index} className="mt-2">
+						<div>{value?.name}:</div>
+						<div className="mt-1 rounded bg-gray-200 p-0.5 text-center">
+							{value?.label}
+						</div>
+					</div>
+				))}
+			</div>
 		</Collapse>
 	);
 };
