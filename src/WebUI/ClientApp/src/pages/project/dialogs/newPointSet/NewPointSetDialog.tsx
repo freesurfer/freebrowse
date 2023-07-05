@@ -1,6 +1,7 @@
 import { DialogFrame } from '@/pages/project/dialogs/DialogFrame';
 import { ColorPickerRow } from '@/pages/project/dialogs/components/ColorPickerRow';
 import { TextInputRow } from '@/pages/project/dialogs/components/TextInputRow';
+import { CircleStackIcon } from '@heroicons/react/24/outline';
 import { createContext, useCallback, useState } from 'react';
 
 const DEFAULT_COLOR = '#ffffff';
@@ -73,8 +74,11 @@ export const NewPointSetDialog = ({
 				isOpen={handle.isOpen}
 				onDone={() => handle.done?.(handle.color, handle.name)}
 				onCancel={() => handle.canceled?.()}
-				title="Load volumes & surfaces"
+				title="New Point Set"
 				doneButtonLabel="Create"
+				icon={
+					<CircleStackIcon className="h-8 w-8 shrink-0 text-gray-500"></CircleStackIcon>
+				}
 			>
 				<div className="px-5">
 					<TextInputRow

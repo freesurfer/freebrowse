@@ -11,6 +11,7 @@ import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
 import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
+import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { createContext, useCallback } from 'react';
 
 export type ResolveCreateProjectDialogResult =
@@ -200,6 +201,9 @@ export const OpenProjectDialog = ({
 				onCancel={() => resolve?.('canceled')}
 				title="Load volumes & surfaces"
 				doneButtonLabel={projectState === undefined ? 'Open' : 'Update'}
+				icon={
+					<ArrowUpTrayIcon className="h-8 w-8 shrink-0 text-gray-500"></ArrowUpTrayIcon>
+				}
 			>
 				{projectFiles !== undefined &&
 				setProjectFiles !== undefined &&

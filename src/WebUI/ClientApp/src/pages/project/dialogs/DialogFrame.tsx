@@ -1,4 +1,4 @@
-import { ArrowUpTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import type { ReactElement } from 'react';
 import Modal from 'react-modal';
 
@@ -39,6 +39,7 @@ export const DialogFrame = ({
 	onCancel,
 	title,
 	doneButtonLabel,
+	icon,
 }: {
 	children: ReactElement;
 	isOpen: boolean;
@@ -46,11 +47,12 @@ export const DialogFrame = ({
 	onCancel: () => void;
 	title: string;
 	doneButtonLabel: string;
+	icon: ReactElement;
 }): ReactElement => {
 	return (
 		<Modal isOpen={isOpen} style={dialogStyle} contentLabel={title}>
 			<div className="m-4 flex items-center gap-4">
-				<ArrowUpTrayIcon className="h-8 w-8 shrink-0 text-gray-500"></ArrowUpTrayIcon>
+				{icon}
 				<h1 className="mr-12 text-xl font-bold text-gray-500">{title}</h1>
 			</div>
 			<button
