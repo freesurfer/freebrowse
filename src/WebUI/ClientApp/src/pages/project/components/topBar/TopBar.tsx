@@ -113,7 +113,11 @@ export const TopBar = ({
 				isExpandable={true}
 				icon={<CircleStackIcon className={ICON_STYLE} />}
 				onClick={() => {
-					void open();
+					open()
+						.then((result) => console.log('bere', result))
+						.catch((error) => {
+							console.log('can not happen', error);
+						});
 				}}
 			></ToolButton>
 			<ToolButton
