@@ -211,7 +211,7 @@ export const Slider = ({
 							});
 						}}
 						style={{
-							left: `${((value - min) / (max - min)) * 100}%`,
+							marginLeft: `${((value - min) / (max - min)) * 100}%`,
 						}}
 						className="absolute -left-2 h-4 w-4 cursor-pointer rounded-full border-2 border-primary bg-white"
 					></button>
