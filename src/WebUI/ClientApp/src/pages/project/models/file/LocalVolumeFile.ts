@@ -1,21 +1,29 @@
-import { LocalFile } from '@/pages/project/models/file/LocalFile';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
-import type { IVolumeFile } from '@/pages/project/models/file/VolumeFile';
+import type { IManageableFile } from '@/pages/project/models/file/extension/ManageableFile';
+import type { IOrderableFile } from '@/pages/project/models/file/extension/OrderableFile';
+import { LocalFile } from '@/pages/project/models/file/location/LocalFile';
+import type { IVolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 
-export class LocalVolumeFile extends LocalFile implements IVolumeFile {
+export class LocalVolumeFile
+	extends LocalFile
+	implements IVolumeFile, IOrderableFile, IManageableFile
+{
 	public readonly type = FileType.VOLUME;
+	public readonly progress = 100;
+	public readonly size: number;
 
 	constructor(
 		file: File,
-		isActive = false,
-		isChecked?: boolean,
-		order?: number | undefined,
-		opacity?: number,
-		public readonly colorMap?: string | undefined,
+		public readonly isActive = false,
+		public readonly isChecked = true,
+		public readonly order: number | undefined = undefined,
+		public readonly opacity = 100,
+		public readonly colorMap = 'gray',
 		public readonly contrastMin = 0,
 		public readonly contrastMax = 100
 	) {
-		super(file, isActive, isChecked, order, opacity);
+		super(file);
+		this.size = file.size;
 	}
 
 	public from(options: {

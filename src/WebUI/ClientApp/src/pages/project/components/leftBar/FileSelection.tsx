@@ -1,7 +1,7 @@
 import { AddFileButton } from '@/components/AddFileButton';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
-import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
+import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import type { Dispatch, ReactElement } from 'react';
 

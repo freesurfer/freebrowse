@@ -5,8 +5,8 @@ import type { ViewSettings } from '@/pages/project/models/ViewSettings';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
-import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
-import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
+import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
+import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 import { Niivue, NVMesh } from '@niivue/niivue';
 import type {
 	LocationData,
@@ -60,6 +60,9 @@ export class NiivueWrapper {
 		void this.niivue.attachToCanvas(canvasRef);
 	}
 
+	/**
+	 * notify on project state update
+	 */
 	public next(
 		projectState: ProjectState,
 		viewSettings: ViewSettings | undefined
@@ -232,7 +235,6 @@ export class NiivueWrapper {
 				const newSurfaceToCache = await this.niivue.addMeshFromUrl({
 					url: cloudSurface.url,
 					name: cloudSurface.name,
-					opacity: cloudSurface.opacity / 100,
 					rgba255: NiivueWrapper.hexToRGBA(cloudSurface.color),
 				});
 				this.surfaceCache.set(newSurfaceToCache.name, newSurfaceToCache);
@@ -286,14 +288,21 @@ export class NiivueWrapper {
 						return {
 							url: file.url,
 							name: file.name,
-							opacity: file.opacity / 100,
 							rgba255: NiivueWrapper.hexToRGBA(file.color),
 							layers,
 						};
 					})
 			);
 
-			if (viewSettings !== undefined) {
+			if (
+				viewSettings?.zoom2dX !== undefined &&
+				viewSettings?.zoom2dY !== undefined &&
+				viewSettings?.zoom2dZ !== undefined &&
+				viewSettings?.zoom2d !== undefined &&
+				viewSettings?.zoom3d !== undefined &&
+				viewSettings?.renderAzimuth !== undefined &&
+				viewSettings?.renderElevation !== undefined
+			) {
 				this.niivue.uiData.pan2Dxyzmm = [
 					viewSettings.zoom2dX,
 					viewSettings.zoom2dY,
@@ -435,7 +444,6 @@ export class NiivueWrapper {
 
 			this.updateSurfaceColor(niivueSurface, surfaceFile);
 			this.updateSurfaceOrder(niivueSurface, tmpOrder++);
-			niivueSurface.opacity = surfaceFile.opacity;
 			await this.updateSurfaceOverlayAndAnnotation(surfaceFile, niivueSurface);
 		}
 	}

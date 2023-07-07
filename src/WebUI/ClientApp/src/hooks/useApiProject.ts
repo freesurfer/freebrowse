@@ -74,7 +74,6 @@ export const useApiProject = (): {
 								visible: file.isChecked,
 								order: file.order,
 								color: file.color,
-								opacity: file.opacity,
 							})
 					)
 				),

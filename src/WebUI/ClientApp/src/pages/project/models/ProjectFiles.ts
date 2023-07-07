@@ -7,9 +7,7 @@ import type {
 	CreateOverlayResponseDto,
 	CreateAnnotationResponseDto,
 } from '@/generated/web-api-client';
-import type { AnnotationFile } from '@/pages/project/models/file/AnnotationFile';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
-import { CloudFile } from '@/pages/project/models/file/CloudFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
@@ -17,13 +15,15 @@ import { LocalAnnotationFile } from '@/pages/project/models/file/LocalAnnotation
 import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
 import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
 import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
-import type { OverlayFile } from '@/pages/project/models/file/OverlayFile';
 import {
 	FileType,
+	ProjectFileBase,
 	type ProjectFile,
 } from '@/pages/project/models/file/ProjectFile';
-import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
-import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
+import type { AnnotationFile } from '@/pages/project/models/file/type/AnnotationFile';
+import type { OverlayFile } from '@/pages/project/models/file/type/OverlayFile';
+import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
+import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 
 /**
  * mutable instance keeps the state of the project files
@@ -225,19 +225,6 @@ export class ProjectFiles {
 	}
 
 	/**
-	 * factory method to create the correct class instance according to the file extension
-	 */
-	static fromFile(file: File): LocalVolumeFile | LocalSurfaceFile | undefined {
-		switch (CloudFile.typeFromFileExtension(file.name)) {
-			case FileType.VOLUME:
-				return new LocalVolumeFile(file);
-			case FileType.SURFACE:
-				return new LocalSurfaceFile(file);
-		}
-		return undefined;
-	}
-
-	/**
 	 * for drop zone
 	 * add list of added local files to the localFile list
 	 */
@@ -247,7 +234,7 @@ export class ProjectFiles {
 				// do not add if file name exists already
 				if (this.all.find((file) => file.name === newFile.name) !== undefined)
 					return undefined;
-				switch (CloudFile.typeFromFileExtension(newFile.name)) {
+				switch (ProjectFileBase.typeFromFileExtension(newFile.name)) {
 					case FileType.VOLUME:
 						return new LocalVolumeFile(newFile);
 					case FileType.SURFACE:
@@ -342,7 +329,6 @@ export class ProjectFiles {
 					localFile.isActive,
 					localFile.isChecked,
 					localFile.order,
-					localFile.opacity,
 					localFile.color
 				);
 			}),
@@ -408,7 +394,7 @@ export class ProjectFiles {
 					localFile.isChecked,
 					uploadResponse.order,
 					uploadResponse.opacity,
-					uploadResponse.colorMap,
+					uploadResponse.colorMap ?? CloudVolumeFile.DEFAULT_COLOR_MAP,
 					uploadResponse.contrastMin,
 					uploadResponse.contrastMax
 				);
@@ -461,11 +447,7 @@ export class ProjectFiles {
 							return new CloudOverlayFile(
 								overlayDto.id,
 								overlayDto.fileName,
-								overlayDto.fileSize,
-								overlayDto.selected ?? false,
-								overlayDto.visible ?? false,
-								undefined,
-								overlayDto.opacity ?? 100
+								overlayDto.selected ?? false
 							);
 						}),
 				  })
@@ -509,11 +491,7 @@ export class ProjectFiles {
 							return new CloudAnnotationFile(
 								annotationDto.id,
 								annotationDto.fileName,
-								annotationDto.fileSize,
-								annotationDto.selected ?? false,
-								annotationDto.visible ?? false,
-								undefined,
-								annotationDto.opacity ?? 100
+								annotationDto.selected ?? false
 							);
 						}),
 				  })

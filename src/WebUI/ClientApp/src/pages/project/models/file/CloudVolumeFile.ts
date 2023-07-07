@@ -1,11 +1,19 @@
 import type { GetProjectVolumeDto } from '@/generated/web-api-client';
-import { CloudFile } from '@/pages/project/models/file/CloudFile';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
-import type { IVolumeFile } from '@/pages/project/models/file/VolumeFile';
+import type { IManageableFile } from '@/pages/project/models/file/extension/ManageableFile';
+import type { IOrderableFile } from '@/pages/project/models/file/extension/OrderableFile';
+import { CloudFile } from '@/pages/project/models/file/location/CloudFile';
+import type { IVolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 import { getApiUrl } from '@/utils';
 
-export class CloudVolumeFile extends CloudFile implements IVolumeFile {
+export class CloudVolumeFile
+	extends CloudFile
+	implements IVolumeFile, IOrderableFile, IManageableFile
+{
+	static DEFAULT_COLOR_MAP = 'gray';
+
 	public readonly type = FileType.VOLUME;
+	public readonly progress = 100;
 
 	public static fromDto(fileDto: GetProjectVolumeDto): CloudVolumeFile {
 		if (fileDto === undefined)
@@ -19,6 +27,11 @@ export class CloudVolumeFile extends CloudFile implements IVolumeFile {
 		if (fileDto?.fileSize === undefined)
 			throw new Error('no file without file size');
 
+		if (fileDto?.order === undefined) throw new Error('no file without order');
+
+		if (fileDto?.colorMap === undefined)
+			throw new Error('no file without colorMap');
+
 		return new CloudVolumeFile(
 			fileDto.id,
 			fileDto.fileName,
@@ -27,7 +40,7 @@ export class CloudVolumeFile extends CloudFile implements IVolumeFile {
 			fileDto.visible,
 			fileDto.order,
 			fileDto.opacity ?? 100,
-			fileDto.colorMap,
+			fileDto.colorMap ?? CloudVolumeFile.DEFAULT_COLOR_MAP,
 			fileDto.contrastMin ?? 0,
 			fileDto.contrastMax ?? 100
 		);
@@ -36,26 +49,17 @@ export class CloudVolumeFile extends CloudFile implements IVolumeFile {
 	constructor(
 		id: number,
 		name: string,
-		size: number,
-		isActive = false,
-		isChecked = true,
-		order: number | undefined,
-		opacity: number,
-		public readonly colorMap: string | undefined,
+		public readonly size: number,
+		public readonly isActive = false,
+		public readonly isChecked = true,
+		public readonly order: number,
+		public readonly opacity: number,
+		public readonly colorMap: string,
 		public readonly contrastMin = 0,
 		public readonly contrastMax = 100
 	) {
 		if (id === undefined) throw new Error('no id for cloud volume file');
-		super(
-			id,
-			name,
-			size,
-			`${getApiUrl()}/api/Volume?Id=${String(id)}`,
-			isActive,
-			isChecked,
-			order,
-			opacity
-		);
+		super(id, name, `${getApiUrl()}/api/Volume?Id=${String(id)}`);
 	}
 
 	public from(options: {

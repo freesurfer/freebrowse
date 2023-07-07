@@ -5,7 +5,7 @@ import type { FileType } from '@/pages/project/models/file/ProjectFile';
 export type SurfaceFile = CloudSurfaceFile | LocalSurfaceFile;
 
 export interface ISurfaceFile {
-	type: FileType.SURFACE;
+	readonly type: FileType.SURFACE;
 
 	fromAddOverlay: (file: File) => SurfaceFile;
 	from: (options: {

@@ -43,7 +43,6 @@ export const useApiSurface = (): {
 								visible: addedSurfaceFile.isChecked,
 								order: addedSurfaceFile.order,
 								color: addedSurfaceFile.color,
-								opacity: addedSurfaceFile.opacity,
 							})
 					)
 				),
@@ -64,7 +63,6 @@ export const useApiSurface = (): {
 			if (
 				previous.id === current.id &&
 				previous.order === current.order &&
-				previous.opacity === current.opacity &&
 				previous.color === current.color &&
 				previous.isChecked === current.isChecked
 			)
@@ -84,7 +82,6 @@ export const useApiSurface = (): {
 				new EditSurfaceCommand({
 					id: currentCloudSurface.id,
 					order: currentCloudSurface.order,
-					opacity: currentCloudSurface.opacity,
 					color: currentCloudSurface.color,
 					visible: currentCloudSurface.isChecked,
 				})

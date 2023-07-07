@@ -36,8 +36,6 @@ export const useApiAnnotation = (): {
 						fileName: annotationFile.name,
 						base64: await annotationFile.getBase64(),
 						color: undefined,
-						opacity: 100,
-						visible: annotationFile.isChecked,
 						selected: annotationFile.isActive,
 					}),
 				],
@@ -50,8 +48,6 @@ export const useApiAnnotation = (): {
 			new EditAnnotationCommand({
 				id: annotationFile.id,
 				selected: annotationFile.isActive,
-				visible: annotationFile.isChecked,
-				opacity: annotationFile.opacity,
 			})
 		);
 	};

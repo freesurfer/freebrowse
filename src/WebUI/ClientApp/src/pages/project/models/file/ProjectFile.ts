@@ -1,12 +1,30 @@
-import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
-import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
+import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
+import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
+
+export type ProjectFile = SurfaceFile | VolumeFile;
 
 export enum FileType {
 	UNKNOWN,
 	VOLUME,
 	SURFACE,
+	POINT_SET,
 	OVERLAY,
 	ANNOTATION,
+}
+
+export enum FileLocation {
+	/**
+	 * binary data is contained in a file on the local hard drive
+	 */
+	LOCAL,
+	/**
+	 * binary data is contained in a file on the Backend
+	 */
+	CLOUD,
+	/**
+	 * binary data is saved in the memory
+	 */
+	CACHED,
 }
 
 /**
@@ -14,31 +32,10 @@ export enum FileType {
  * probably mostly about the configuration
  */
 export abstract class ProjectFileBase {
-	readonly selection?: 'grayscale' | 'lookupTable';
-	readonly resampleRAS?: boolean;
 	abstract readonly type: FileType;
+	abstract readonly location: FileLocation;
 
-	constructor(
-		public readonly name: string,
-		public readonly size: number,
-		/**
-		 * the meta data and tools for the file are accessible
-		 */
-		public readonly isActive: boolean,
-		/**
-		 * the file is shown in the diagram
-		 */
-		public readonly isChecked: boolean,
-		public readonly order: number | undefined,
-		public readonly opacity: number
-	) {}
-
-	/**
-	 * method to compute a readable representation of the file size
-	 */
-	public sizeReadable(): string {
-		return `${Math.floor(this.size / 10000) / 100} MB`;
-	}
+	constructor(public readonly name: string) {}
 
 	public static typeFromFileExtension(fileName: string): FileType {
 		if (fileName.endsWith('.mgz')) return FileType.VOLUME;
@@ -49,8 +46,8 @@ export abstract class ProjectFileBase {
 		if (fileName.endsWith('.white')) return FileType.SURFACE;
 		if (fileName.endsWith('.sphere')) return FileType.SURFACE;
 
+		if (fileName.endsWith('.json')) return FileType.POINT_SET;
+
 		return FileType.UNKNOWN;
 	}
 }
-
-export type ProjectFile = SurfaceFile | VolumeFile;

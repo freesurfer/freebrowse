@@ -26,7 +26,7 @@ describe('ProjectFiles', () => {
 			),
 		];
 		const cloudSurfaces = [
-			new CloudSurfaceFile(2, FILE_NAME_SURFACE_1, 20, true, true, 0, 1),
+			new CloudSurfaceFile(2, FILE_NAME_SURFACE_1, 20, true, true, 0),
 		];
 
 		const projectFiles = new ProjectFiles({

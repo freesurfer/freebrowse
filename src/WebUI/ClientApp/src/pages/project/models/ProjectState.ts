@@ -2,8 +2,8 @@ import type { GetProjectDto } from '@/generated/web-api-client';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
-import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
-import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
+import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
+import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 
 /**
  * class to uncouple backend dto from data used from ui
@@ -86,19 +86,19 @@ export class ProjectState {
 	}
 
 	fromQuery(
-		volumes: string[],
-		volumeOpacity: string[],
-		volumeOrder: string[],
-		volumeSelected: string[],
-		volumeVisible: string[],
-		volumeContrastMin: string[],
-		volumeContrastMax: string[],
-		volumeColormap: string[],
-		surfaces: string[],
-		surfaceOpacity: string[],
-		surfaceOrder: string[],
-		surfaceVisible: string[],
-		surfaceSelected: string[],
+		volumes: (string | null)[],
+		volumeOpacity: (string | null)[],
+		volumeOrder: (string | null)[],
+		volumeSelected: (string | null)[],
+		volumeVisible: (string | null)[],
+		volumeContrastMin: (string | null)[],
+		volumeContrastMax: (string | null)[],
+		volumeColormap: (string | null)[],
+		surfaces: (string | null)[],
+		surfaceOpacity: (string | null)[],
+		surfaceOrder: (string | null)[],
+		surfaceVisible: (string | null)[],
+		surfaceSelected: (string | null)[],
 		upload = true
 	): ProjectState {
 		const volumeFiles: VolumeFile[] = this.files.volumes.map((volume) => {
@@ -109,9 +109,9 @@ export class ProjectState {
 					isActive: volumeSelected[index] === 'true',
 					isChecked: volumeVisible[index] === 'true',
 					opacity: Number(volumeOpacity[index]),
+					colorMap: volumeColormap[index] ?? undefined,
 					contrastMin: Number(volumeContrastMin[index]),
 					contrastMax: Number(volumeContrastMax[index]),
-					colorMap: volumeColormap[index],
 				});
 			}
 

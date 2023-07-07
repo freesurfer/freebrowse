@@ -27,7 +27,7 @@ export const LoadFileList = ({
 						<div>
 							<div className="flex justify-between text-xs text-gray-500">
 								<span>{file.name}</span>
-								<span>{file.sizeReadable()}</span>
+								<span>{`${Math.floor(file.size / 10000) / 100} MB`}</span>
 							</div>
 							<ProgressBar className="mt-1 w-60" progress={100}></ProgressBar>
 						</div>

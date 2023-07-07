@@ -53,9 +53,7 @@ export const TopBar = ({
 		});
 
 		projectState?.files.surfaces.forEach((surface) => {
-			deepLink += `&surfaces=${encodeURIComponent(
-				surface.name
-			)}&surfaceOpacity=${surface.opacity}&surfaceOrder=${
+			deepLink += `&surfaces=${encodeURIComponent(surface.name)}&surfaceOrder=${
 				surface.order ?? 0
 			}&surfaceVisible=${surface.isChecked.toString()}&surfaceSelected=${surface.isActive.toString()}`;
 		});

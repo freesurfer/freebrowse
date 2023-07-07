@@ -160,18 +160,6 @@ export const FileSettings = ({
 								}
 							>
 								<div className="pl-1">
-									<Slider
-										className="mt-2"
-										label="Opacity:"
-										value={surfaceFile.opacity}
-										unit="%"
-										onChange={(value) =>
-											updateFileOptions(surfaceFile, { opacity: value }, false)
-										}
-										onEnd={(value) =>
-											updateFileOptions(surfaceFile, { opacity: value }, true)
-										}
-									></Slider>
 									<ColorPicker
 										className="mt-2"
 										label="Edge-Color:"
