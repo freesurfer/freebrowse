@@ -177,6 +177,19 @@ export class ProjectState {
 				upload
 			);
 
+		if (file.type === FileType.POINT_SET)
+			return new ProjectState(
+				{
+					projectState: this,
+					projectFiles: this.files.fromAdaptedPointSets(
+						this.files.pointSets.map((tmpPointSet) =>
+							tmpPointSet === file ? tmpPointSet.from(options) : tmpPointSet
+						)
+					),
+				},
+				upload
+			);
+
 		throw new Error('file type unknown');
 	}
 

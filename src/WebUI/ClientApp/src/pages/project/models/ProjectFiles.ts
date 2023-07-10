@@ -7,6 +7,7 @@ import type {
 	CreateOverlayResponseDto,
 	CreateAnnotationResponseDto,
 } from '@/generated/web-api-client';
+import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
@@ -37,10 +38,11 @@ export class ProjectFiles {
 	public readonly localVolumes: readonly LocalVolumeFile[];
 	public readonly cloudSurfaces: readonly CloudSurfaceFile[];
 	public readonly cloudVolumes: readonly CloudVolumeFile[];
-	public readonly cachePointSets: readonly PointSetFile[];
+	public readonly cachePointSets: readonly CachePointSetFile[];
 
 	public readonly surfaces: readonly SurfaceFile[];
 	public readonly volumes: readonly VolumeFile[];
+	public readonly pointSets: readonly PointSetFile[];
 	public readonly all: readonly ProjectFile[];
 
 	/**
@@ -53,7 +55,7 @@ export class ProjectFiles {
 		initState?:
 			| { backendState: GetProjectDto }
 			| {
-					projectFilesInstance: ProjectFiles;
+					projectFiles: ProjectFiles;
 					localSurfaces?: readonly LocalSurfaceFile[];
 					localVolumes?: readonly LocalVolumeFile[];
 					cloudSurfaces?: readonly CloudSurfaceFile[];
@@ -71,6 +73,7 @@ export class ProjectFiles {
 			this.cachePointSets = [];
 			this.surfaces = [];
 			this.volumes = [];
+			this.pointSets = [];
 			this.all = [];
 			return;
 		}
@@ -88,21 +91,22 @@ export class ProjectFiles {
 			this.cachePointSets = [];
 			this.surfaces = [...this.cloudSurfaces, ...this.localSurfaces];
 			this.volumes = [...this.cloudVolumes, ...this.localVolumes];
+			this.pointSets = [];
 			this.all = [...this.surfaces, ...this.volumes];
 			return;
 		}
 
 		// new class from given file set
 		this.localSurfaces =
-			initState.localSurfaces ?? initState.projectFilesInstance.localSurfaces;
+			initState.localSurfaces ?? initState.projectFiles.localSurfaces;
 		this.localVolumes =
-			initState.localVolumes ?? initState.projectFilesInstance.localVolumes;
+			initState.localVolumes ?? initState.projectFiles.localVolumes;
 		this.cloudSurfaces =
-			initState.cloudSurfaces ?? initState.projectFilesInstance.cloudSurfaces;
+			initState.cloudSurfaces ?? initState.projectFiles.cloudSurfaces;
 		this.cloudVolumes =
-			initState.cloudVolumes ?? initState.projectFilesInstance.cloudVolumes;
+			initState.cloudVolumes ?? initState.projectFiles.cloudVolumes;
 		this.cachePointSets =
-			initState.cachePointSets ?? initState.projectFilesInstance.cachePointSets;
+			initState.cachePointSets ?? initState.projectFiles.cachePointSets;
 
 		if (
 			initState.localSurfaces !== undefined ||
@@ -110,7 +114,7 @@ export class ProjectFiles {
 		) {
 			this.surfaces = [...this.localSurfaces, ...this.cloudSurfaces];
 		} else {
-			this.surfaces = initState.projectFilesInstance.surfaces;
+			this.surfaces = initState.projectFiles.surfaces;
 		}
 
 		if (
@@ -119,18 +123,25 @@ export class ProjectFiles {
 		) {
 			this.volumes = [...this.localVolumes, ...this.cloudVolumes];
 		} else {
-			this.volumes = initState.projectFilesInstance.volumes;
+			this.volumes = initState.projectFiles.volumes;
+		}
+
+		if (initState.cachePointSets !== undefined) {
+			this.pointSets = [...this.cachePointSets];
+		} else {
+			this.pointSets = initState.projectFiles.pointSets;
 		}
 
 		if (
 			initState.localSurfaces !== undefined ||
 			initState.cloudSurfaces !== undefined ||
 			initState.localVolumes !== undefined ||
-			initState.cloudVolumes !== undefined
+			initState.cloudVolumes !== undefined ||
+			initState.cachePointSets !== undefined
 		) {
-			this.all = [...this.surfaces, ...this.volumes];
+			this.all = [...this.surfaces, ...this.volumes, ...this.pointSets];
 		} else {
-			this.all = initState.projectFilesInstance.all;
+			this.all = initState.projectFiles.all;
 		}
 	}
 
@@ -154,7 +165,7 @@ export class ProjectFiles {
 		return new ProjectFiles({
 			localVolumes,
 			cloudVolumes,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -165,22 +176,33 @@ export class ProjectFiles {
 		const localVolumes = this.localVolumes.map((file) =>
 			file.from({ isActive: file === volume })
 		);
-		const localSurfaces = this.localSurfaces.map((file) =>
-			file.from({ isActive: false })
-		);
+
+		const localSurfaces =
+			this.localSurfaces.find((file) => file.isActive) !== undefined
+				? this.localSurfaces.map((file) => file.from({ isActive: false }))
+				: undefined;
+
 		const cloudVolumes = this.cloudVolumes.map((file) =>
 			file.from({ isActive: file === volume })
 		);
-		const cloudSurfaces = this.cloudSurfaces.map((file) =>
-			file.from({ isActive: false })
-		);
+
+		const cloudSurfaces =
+			this.cloudSurfaces.find((file) => file.isActive) !== undefined
+				? this.cloudSurfaces.map((file) => file.from({ isActive: false }))
+				: undefined;
+
+		const cachePointSets =
+			this.cachePointSets.find((file) => file.isActive) !== undefined
+				? this.cachePointSets.map((file) => file.from({ isActive: false }))
+				: undefined;
 
 		return new ProjectFiles({
 			localVolumes,
 			localSurfaces,
 			cloudVolumes,
 			cloudSurfaces,
-			projectFilesInstance: this,
+			cachePointSets,
+			projectFiles: this,
 		});
 	}
 
@@ -206,7 +228,23 @@ export class ProjectFiles {
 		return new ProjectFiles({
 			localSurfaces,
 			cloudSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
+		});
+	}
+
+	/**
+	 * immutable instance recreation for point sets
+	 * for adapted file metadata like
+	 * - order
+	 * - isActive
+	 * - isChecked
+	 * - opacity
+	 * - ...
+	 */
+	public fromAdaptedPointSets(newPointSet: PointSetFile[]): ProjectFiles {
+		return new ProjectFiles({
+			cachePointSets: newPointSet,
+			projectFiles: this,
 		});
 	}
 
@@ -232,12 +270,56 @@ export class ProjectFiles {
 			file.from({ isActive: file === surface })
 		);
 
+		const cachePointSets =
+			this.cachePointSets.find((file) => file.isActive) !== undefined
+				? this.cachePointSets.map((file) => file.from({ isActive: false }))
+				: undefined;
+
 		return new ProjectFiles({
 			localVolumes,
 			localSurfaces,
 			cloudVolumes,
 			cloudSurfaces,
-			projectFilesInstance: this,
+			cachePointSets,
+			projectFiles: this,
+		});
+	}
+
+	/**
+	 * when the user clicks on a surface, we want to highlight only that one surface as active and deactivate all the others
+	 */
+	public fromOnePointSetActivated(pointSet: PointSetFile): ProjectFiles {
+		const localVolumes =
+			this.localVolumes.find((file) => file.isActive) !== undefined
+				? this.localVolumes.map((file) => file.from({ isActive: false }))
+				: undefined;
+
+		const localSurfaces =
+			this.localSurfaces.find((file) => file.isActive) !== undefined
+				? this.localSurfaces.map((file) => file.from({ isActive: false }))
+				: undefined;
+
+		const cloudVolumes =
+			this.cloudVolumes.find((file) => file.isActive) !== undefined
+				? this.cloudVolumes.map((file) => file.from({ isActive: false }))
+				: undefined;
+
+		const cloudSurfaces =
+			this.cloudSurfaces.find((file) => file.isActive) !== undefined
+				? this.cloudSurfaces.map((file) => file.from({ isActive: false }))
+				: undefined;
+
+		const cachePointSets = this.cachePointSets.map((file) =>
+			file.from({ isActive: file === pointSet })
+		);
+
+		return new ProjectFiles({
+			localVolumes,
+			localSurfaces,
+			cloudVolumes,
+			cloudSurfaces,
+			cachePointSets,
+			projectFiles: this,
 		});
 	}
 
@@ -278,7 +360,7 @@ export class ProjectFiles {
 		return new ProjectFiles({
 			localVolumes,
 			localSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -301,7 +383,7 @@ export class ProjectFiles {
 			cloudVolumes,
 			localSurfaces,
 			localVolumes,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -350,7 +432,7 @@ export class ProjectFiles {
 		return new ProjectFiles({
 			cloudSurfaces,
 			localSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -411,7 +493,7 @@ export class ProjectFiles {
 		return new ProjectFiles({
 			cloudVolumes,
 			localVolumes,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -448,7 +530,7 @@ export class ProjectFiles {
 
 		return new ProjectFiles({
 			cloudSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -486,7 +568,7 @@ export class ProjectFiles {
 
 		return new ProjectFiles({
 			cloudSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -518,7 +600,7 @@ export class ProjectFiles {
 		return new ProjectFiles({
 			localSurfaces,
 			cloudSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -550,7 +632,7 @@ export class ProjectFiles {
 		return new ProjectFiles({
 			localSurfaces,
 			cloudSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -575,7 +657,7 @@ export class ProjectFiles {
 		return new ProjectFiles({
 			localSurfaces,
 			cloudSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -600,7 +682,7 @@ export class ProjectFiles {
 		return new ProjectFiles({
 			localSurfaces,
 			cloudSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -625,7 +707,7 @@ export class ProjectFiles {
 
 		return new ProjectFiles({
 			cloudSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
 		});
 	}
 
@@ -651,7 +733,17 @@ export class ProjectFiles {
 
 		return new ProjectFiles({
 			cloudSurfaces,
-			projectFilesInstance: this,
+			projectFiles: this,
+		});
+	}
+
+	public fromNewPointSetFile(name: string, color: string): ProjectFiles {
+		return new ProjectFiles({
+			cachePointSets: [
+				...this.cachePointSets,
+				new CachePointSetFile(name, color, true, true, undefined),
+			],
+			projectFiles: this,
 		});
 	}
 

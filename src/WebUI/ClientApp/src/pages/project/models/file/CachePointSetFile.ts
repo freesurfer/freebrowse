@@ -8,13 +8,30 @@ export class CachePointSetFile
 	implements IPointSetFile, IOrderableFile
 {
 	public readonly type = FileType.POINT_SET;
+	static DEFAULT_NAME = 'New Point Set';
 
 	constructor(
 		name: string,
+		public readonly color: string,
 		public readonly isActive: boolean,
 		public readonly isChecked: boolean,
-		public readonly order: number
+		public readonly order: number | undefined
 	) {
 		super(name);
+	}
+
+	from(options: {
+		color?: string;
+		isActive?: boolean;
+		isChecked?: boolean;
+		order?: number | undefined;
+	}): CachePointSetFile {
+		return new CachePointSetFile(
+			this.name,
+			options.color ?? this.color,
+			options.isActive ?? this.isActive,
+			options.isChecked ?? this.isChecked,
+			options.order ?? this.order
+		);
 	}
 }

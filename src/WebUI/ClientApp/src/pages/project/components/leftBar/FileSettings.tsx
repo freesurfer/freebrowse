@@ -16,13 +16,16 @@ export const FileSettings = ({
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
 }): React.ReactElement => {
-	const selectedVolumes =
-		projectState?.files.volumes.filter((volume) => volume.isActive) ?? [];
+	const activeVolumes =
+		projectState?.files.volumes.filter((file) => file.isActive) ?? [];
 
-	const selectedSurfaces =
-		projectState?.files.surfaces.filter((surface) => surface.isActive) ?? [];
+	const activeSurfaces =
+		projectState?.files.surfaces.filter((file) => file.isActive) ?? [];
 
-	const selectedFiles = [...selectedVolumes, ...selectedSurfaces];
+	const activePointSets =
+		projectState?.files.pointSets.filter((file) => file.isActive) ?? [];
+
+	const activeFiles = [...activeVolumes, ...activeSurfaces, ...activePointSets];
 
 	const updateFileOptions = useCallback(
 		<T_FILE_TYPE extends ProjectFile>(
@@ -54,13 +57,13 @@ export const FileSettings = ({
 			className="border-b border-gray py-2 text-xs"
 			title={<span className="text-xs font-semibold">File Settings</span>}
 		>
-			{selectedFiles.length === 0 ? (
+			{activeFiles.length === 0 ? (
 				<span className="ml-1 mr-1 mt-2 block text-left text-xs text-gray-500">
 					Select a file to use this section.
 				</span>
 			) : (
 				<>
-					{selectedVolumes.map((volume) => {
+					{activeVolumes.map((volume) => {
 						if (volume === undefined) return <></>;
 						return (
 							<Collapse
@@ -147,7 +150,7 @@ export const FileSettings = ({
 							</Collapse>
 						);
 					})}
-					{selectedSurfaces.map((surfaceFile) => {
+					{activeSurfaces.map((surfaceFile) => {
 						if (surfaceFile === undefined) return <></>;
 						return (
 							<Collapse
@@ -197,6 +200,34 @@ export const FileSettings = ({
 										setProjectState={setProjectState}
 										surfaceFile={surfaceFile}
 									></FileSelection>
+								</div>
+							</Collapse>
+						);
+					})}
+					{activePointSets.map((pointSetFile) => {
+						if (pointSetFile === undefined) return <></>;
+						return (
+							<Collapse
+								key={pointSetFile?.name}
+								className="mt-1 pr-4"
+								title={
+									<span className="grow border-b border-gray text-xs">
+										{pointSetFile.name ?? 'No file selected'}
+									</span>
+								}
+							>
+								<div className="pl-1">
+									<ColorPicker
+										className="mt-2"
+										label="Color:"
+										value={pointSetFile.color}
+										onChange={(value) =>
+											updateFileOptions(pointSetFile, { color: value }, false)
+										}
+										onEnd={(value) =>
+											updateFileOptions(pointSetFile, { color: value }, true)
+										}
+									></ColorPicker>
 								</div>
 							</Collapse>
 						);

@@ -5,4 +5,5 @@ export type PointSetFile = CachePointSetFile;
 
 export interface IPointSetFile {
 	readonly type: FileType.POINT_SET;
+	readonly color: string;
 }

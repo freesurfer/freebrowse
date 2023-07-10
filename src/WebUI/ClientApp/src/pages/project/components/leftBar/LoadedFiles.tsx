@@ -58,10 +58,6 @@ export const LoadedFiles = ({
 					<OrderList
 						files={projectState.files.volumes}
 						setFiles={(files) => {
-							/*
-							 * it is very important here to use the update representation of the setter
-							 * https://stackoverflow.com/questions/56782079/react-hooks-stale-state
-							 */
 							setProjectState((projectState) =>
 								projectState?.fromFiles(
 									projectState.files.fromAdaptedVolumes(files)
@@ -87,10 +83,6 @@ export const LoadedFiles = ({
 					<OrderList
 						files={projectState.files.surfaces}
 						setFiles={(files) => {
-							/*
-							 * it is very important here to use the update representation of the setter
-							 * https://stackoverflow.com/questions/56782079/react-hooks-stale-state
-							 */
 							setProjectState((projectState) =>
 								projectState?.fromFiles(
 									projectState.files.fromAdaptedSurfaces(files)
@@ -101,6 +93,33 @@ export const LoadedFiles = ({
 							setProjectState((projectState) =>
 								projectState?.fromFiles(
 									projectState.files.fromOneSurfaceActivated(file)
+								)
+							);
+						}}
+						hideFileExtension={false}
+					></OrderList>
+				</Collapse>
+				<Collapse
+					className="mt-2"
+					title={
+						<span className="grow border-b border-gray text-xs">
+							Point Sets
+						</span>
+					}
+				>
+					<OrderList
+						files={projectState.files.pointSets}
+						setFiles={(files) => {
+							setProjectState((projectState) =>
+								projectState?.fromFiles(
+									projectState.files.fromAdaptedPointSets(files)
+								)
+							);
+						}}
+						setFileActive={(file) => {
+							setProjectState((projectState) =>
+								projectState?.fromFiles(
+									projectState.files.fromOnePointSetActivated(file)
 								)
 							);
 						}}

@@ -1,11 +1,11 @@
 import { DialogFrame } from '@/pages/project/dialogs/DialogFrame';
 import { ColorPickerRow } from '@/pages/project/dialogs/components/ColorPickerRow';
 import { TextInputRow } from '@/pages/project/dialogs/components/TextInputRow';
+import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { CircleStackIcon } from '@heroicons/react/24/outline';
 import { createContext, useCallback, useState } from 'react';
 
 const DEFAULT_COLOR = '#ffffff';
-const DEFAULT_NAME = 'New Point Set';
 
 interface INewPointSetDialogOpenResult {
 	color: string;
@@ -15,12 +15,15 @@ interface INewPointSetDialogOpenResult {
 export interface INewPointSetDialog {
 	/**
 	 * open the modal dialog
+	 * @param nextCount the number the new file name should get, if the user is not adapting the file name
 	 */
-	readonly open: () => Promise<INewPointSetDialogOpenResult | 'canceled'>;
+	readonly open: (
+		nextCount: number
+	) => Promise<INewPointSetDialogOpenResult | 'canceled'>;
 }
 
 export const NewPointSetDialogContext = createContext<INewPointSetDialog>({
-	open: async () => {
+	open: async (nextCount: number) => {
 		throw new Error('not initialized yet');
 	},
 });
@@ -38,28 +41,31 @@ export const NewPointSetDialog = ({
 		name?: string;
 	}>({ isOpen: false });
 
-	const openDialog = useCallback(async (): Promise<
-		INewPointSetDialogOpenResult | 'canceled'
-	> => {
-		return await new Promise<INewPointSetDialogOpenResult | 'canceled'>(
-			(resolve) => {
-				setHandle({
-					isOpen: true,
-					done: (color: string | undefined, name: string | undefined) => {
-						setHandle({ isOpen: false });
-						resolve({
-							color: color ?? DEFAULT_COLOR,
-							name: name ?? DEFAULT_NAME,
-						});
-					},
-					canceled: () => {
-						setHandle({ isOpen: false });
-						resolve('canceled');
-					},
-				});
-			}
-		);
-	}, []);
+	const openDialog = useCallback(
+		async (
+			nextCount: number
+		): Promise<INewPointSetDialogOpenResult | 'canceled'> => {
+			return await new Promise<INewPointSetDialogOpenResult | 'canceled'>(
+				(resolve) => {
+					setHandle({
+						isOpen: true,
+						done: (color: string | undefined, name: string | undefined) => {
+							setHandle({ isOpen: false });
+							resolve({
+								color: color ?? DEFAULT_COLOR,
+								name: name ?? `${CachePointSetFile.DEFAULT_NAME} ${nextCount}`,
+							});
+						},
+						canceled: () => {
+							setHandle({ isOpen: false });
+							resolve('canceled');
+						},
+					});
+				}
+			);
+		},
+		[]
+	);
 
 	return (
 		<>
@@ -84,7 +90,7 @@ export const NewPointSetDialog = ({
 					<TextInputRow
 						label="Enter the name of the new point set:"
 						onChange={(name) => setHandle((handle) => ({ ...handle, name }))}
-						defaultValue={DEFAULT_NAME}
+						defaultValue={CachePointSetFile.DEFAULT_NAME}
 					/>
 					<ColorPickerRow
 						className="mt-4"

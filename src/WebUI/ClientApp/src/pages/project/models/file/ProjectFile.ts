@@ -1,7 +1,8 @@
+import type { PointSetFile } from '@/pages/project/models/file/type/PointSetFile';
 import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
 import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 
-export type ProjectFile = SurfaceFile | VolumeFile;
+export type ProjectFile = SurfaceFile | VolumeFile | PointSetFile;
 
 export enum FileType {
 	UNKNOWN,
