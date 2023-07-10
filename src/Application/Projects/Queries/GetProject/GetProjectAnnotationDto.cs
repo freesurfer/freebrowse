@@ -9,7 +9,7 @@ public record GetProjectAnnotationDto : IMapFrom<Annotation>
 
 	public string Path { get; set; } = null!;
 
-	public string? FileName { get; set; }
+	public string FileName { get; set; } = null!;
 
 	public long FileSize { get; set; }
 

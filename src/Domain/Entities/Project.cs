@@ -6,6 +6,7 @@ public class Project : BaseAuditableEntity
 	{
 		this.Volumes = new HashSet<Volume>();
 		this.Surfaces = new HashSet<Surface>();
+		this.PointSets = new HashSet<PointSet>();
 	}
 
 	public string? Name { get; set; }
@@ -15,4 +16,6 @@ public class Project : BaseAuditableEntity
 	public ICollection<Volume> Volumes { get; set; }
 
 	public ICollection<Surface> Surfaces { get; set; }
+
+	public ICollection<PointSet> PointSets { get; set; }
 }

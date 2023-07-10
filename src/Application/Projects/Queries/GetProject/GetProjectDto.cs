@@ -14,4 +14,6 @@ public record GetProjectDto : IMapFrom<Project>
 	public ICollection<GetProjectVolumeDto> Volumes { get; set; } = new List<GetProjectVolumeDto>();
 
 	public ICollection<GetProjectSurfaceDto> Surfaces { get; set; } = new List<GetProjectSurfaceDto>();
+
+	public ICollection<GetProjectPointSetDto> PointSets { get; set; } = new List<GetProjectPointSetDto>();
 }

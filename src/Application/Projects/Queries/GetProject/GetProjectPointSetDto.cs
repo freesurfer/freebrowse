@@ -3,7 +3,7 @@ using FreeBrowse.Domain.Entities;
 
 namespace FreeBrowse.Application.Projects.Queries.GetProject;
 
-public record GetProjectOverlayDto : IMapFrom<Overlay>
+public record GetProjectPointSetDto : IMapFrom<PointSet>
 {
 	public int Id { get; set; }
 
@@ -12,14 +12,4 @@ public record GetProjectOverlayDto : IMapFrom<Overlay>
 	public string FileName { get; set; } = null!;
 
 	public long FileSize { get; set; }
-
-	public string? Color { get; set; }
-
-	public string? ColorMap { get; set; }
-
-	public int Opacity { get; set; }
-
-	public bool Visible { get; set; }
-
-	public bool Selected { get; set; }
 }

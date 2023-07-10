@@ -1321,6 +1321,12 @@
             "items": {
               "$ref": "#/components/schemas/GetProjectSurfaceDto"
             }
+          },
+          "pointSets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GetProjectPointSetDto"
+            }
           }
         }
       },
@@ -1379,8 +1385,7 @@
             "type": "string"
           },
           "fileName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "fileSize": {
             "type": "integer",
@@ -1427,8 +1432,7 @@
             "type": "string"
           },
           "fileName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "fileSize": {
             "type": "integer",
@@ -1466,8 +1470,7 @@
             "type": "string"
           },
           "fileName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "fileSize": {
             "type": "integer",
@@ -1490,6 +1493,26 @@
           },
           "selected": {
             "type": "boolean"
+          }
+        }
+      },
+      "GetProjectPointSetDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "path": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },

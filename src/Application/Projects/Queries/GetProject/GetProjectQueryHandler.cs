@@ -29,6 +29,7 @@ public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, GetProjec
 				.ThenInclude(s => s.Overlays)
 			.Include(s => s.Surfaces)
 				.ThenInclude(s => s.Annotations)
+			.Include(s => s.PointSets)
 			.ProjectTo<GetProjectDto>(this.mapper.ConfigurationProvider)
 			.FirstOrDefaultAsync(s => s.Id == request.Id);
 
@@ -55,6 +56,11 @@ public class GetProjectQueryHandler : IRequestHandler<GetProjectQuery, GetProjec
 			{
 				annotationDto.FileSize = await this.fileStorage.GetFileSizeAsync(annotationDto.Path);
 			}
+		}
+
+		foreach (var pointSetDto in projectDto.PointSets)
+		{
+			pointSetDto.FileSize = await this.fileStorage.GetFileSizeAsync(pointSetDto.Path);
 		}
 
 		return projectDto;
