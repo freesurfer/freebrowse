@@ -2,14 +2,13 @@ import type {
 	CreateVolumeResponseDto,
 	CreateSurfaceResponseDto,
 	GetProjectDto,
-	GetProjectVolumeDto,
-	GetProjectSurfaceDto,
 	CreateOverlayResponseDto,
 	CreateAnnotationResponseDto,
 } from '@/generated/web-api-client';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
+import { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import { LocalAnnotationFile } from '@/pages/project/models/file/LocalAnnotationFile';
@@ -23,7 +22,10 @@ import {
 } from '@/pages/project/models/file/ProjectFile';
 import type { AnnotationFile } from '@/pages/project/models/file/type/AnnotationFile';
 import type { OverlayFile } from '@/pages/project/models/file/type/OverlayFile';
-import type { PointSetFile } from '@/pages/project/models/file/type/PointSetFile';
+import {
+	PointSetData,
+	type PointSetFile,
+} from '@/pages/project/models/file/type/PointSetFile';
 import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
 import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 
@@ -39,10 +41,12 @@ export class ProjectFiles {
 	public readonly cloudSurfaces: readonly CloudSurfaceFile[];
 	public readonly cloudVolumes: readonly CloudVolumeFile[];
 	public readonly cachePointSets: readonly CachePointSetFile[];
+	public readonly cloudPointSets: readonly CloudPointSetFile[];
 
 	public readonly surfaces: readonly SurfaceFile[];
 	public readonly volumes: readonly VolumeFile[];
 	public readonly pointSets: readonly PointSetFile[];
+
 	public readonly all: readonly ProjectFile[];
 
 	/**
@@ -60,7 +64,8 @@ export class ProjectFiles {
 					localVolumes?: readonly LocalVolumeFile[];
 					cloudSurfaces?: readonly CloudSurfaceFile[];
 					cloudVolumes?: readonly CloudVolumeFile[];
-					cachePointSets?: readonly PointSetFile[];
+					cachePointSets?: readonly CachePointSetFile[];
+					cloudPointSets?: readonly CloudPointSetFile[];
 			  }
 			| undefined
 	) {
@@ -71,6 +76,7 @@ export class ProjectFiles {
 			this.cloudSurfaces = [];
 			this.cloudVolumes = [];
 			this.cachePointSets = [];
+			this.cloudPointSets = [];
 			this.surfaces = [];
 			this.volumes = [];
 			this.pointSets = [];
@@ -82,16 +88,25 @@ export class ProjectFiles {
 			// new class from given backend state
 			this.localSurfaces = [];
 			this.localVolumes = [];
-			this.cloudVolumes = ProjectFiles.cloudFileFromVolumeDto(
-				initState.backendState.volumes
-			);
-			this.cloudSurfaces = ProjectFiles.cloudFileFromSurfaceDto(
-				initState.backendState.surfaces
-			);
+			this.cloudVolumes =
+				initState.backendState.volumes?.map<CloudVolumeFile>((fileDto) =>
+					CloudVolumeFile.fromDto(fileDto)
+				) ?? [];
+
+			this.cloudSurfaces =
+				initState.backendState.surfaces?.map<CloudSurfaceFile>((fileDto) =>
+					CloudSurfaceFile.fromDto(fileDto)
+				) ?? [];
+
 			this.cachePointSets = [];
+			this.cloudPointSets =
+				initState.backendState.pointSets?.map<CloudPointSetFile>((fileDto) =>
+					CloudPointSetFile.fromDto(fileDto)
+				) ?? [];
+
 			this.surfaces = [...this.cloudSurfaces, ...this.localSurfaces];
 			this.volumes = [...this.cloudVolumes, ...this.localVolumes];
-			this.pointSets = [];
+			this.pointSets = this.cloudPointSets;
 			this.all = [...this.surfaces, ...this.volumes];
 			return;
 		}
@@ -107,6 +122,8 @@ export class ProjectFiles {
 			initState.cloudVolumes ?? initState.projectFiles.cloudVolumes;
 		this.cachePointSets =
 			initState.cachePointSets ?? initState.projectFiles.cachePointSets;
+		this.cloudPointSets =
+			initState.cloudPointSets ?? initState.projectFiles.cloudPointSets;
 
 		if (
 			initState.localSurfaces !== undefined ||
@@ -242,8 +259,16 @@ export class ProjectFiles {
 	 * - ...
 	 */
 	public fromAdaptedPointSets(newPointSet: PointSetFile[]): ProjectFiles {
+		const cachePointSets = newPointSet.filter(
+			(file): file is CachePointSetFile => file instanceof CachePointSetFile
+		);
+		const cloudPointSets = newPointSet.filter(
+			(file): file is CloudPointSetFile => file instanceof CloudPointSetFile
+		);
+
 		return new ProjectFiles({
-			cachePointSets: newPointSet,
+			cachePointSets,
+			cloudPointSets,
 			projectFiles: this,
 		});
 	}
@@ -741,28 +766,15 @@ export class ProjectFiles {
 		return new ProjectFiles({
 			cachePointSets: [
 				...this.cachePointSets,
-				new CachePointSetFile(name, color, true, true, undefined),
+				new CachePointSetFile(
+					name,
+					new PointSetData({ color }),
+					true,
+					true,
+					undefined
+				),
 			],
 			projectFiles: this,
 		});
-	}
-
-	private static cloudFileFromVolumeDto(
-		fileModel: GetProjectVolumeDto[] | undefined
-	): CloudVolumeFile[] {
-		if (fileModel === undefined) return [];
-
-		return fileModel.map<CloudVolumeFile>((fileDto) =>
-			CloudVolumeFile.fromDto(fileDto)
-		);
-	}
-
-	private static cloudFileFromSurfaceDto(
-		fileModel: GetProjectSurfaceDto[] | undefined
-	): CloudSurfaceFile[] {
-		if (fileModel === undefined) return [];
-		return fileModel.map<CloudSurfaceFile>((fileDto) =>
-			CloudSurfaceFile.fromDto(fileDto)
-		);
 	}
 }

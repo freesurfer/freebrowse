@@ -1,10 +1,13 @@
 import { FileType } from '@/pages/project/models/file/ProjectFile';
 import type { IOrderableFile } from '@/pages/project/models/file/extension/OrderableFile';
 import { CachedFile } from '@/pages/project/models/file/location/CachedFile';
-import type { IPointSetFile } from '@/pages/project/models/file/type/PointSetFile';
+import type {
+	IPointSetFile,
+	PointSetData,
+} from '@/pages/project/models/file/type/PointSetFile';
 
 export class CachePointSetFile
-	extends CachedFile
+	extends CachedFile<PointSetData>
 	implements IPointSetFile, IOrderableFile
 {
 	public readonly type = FileType.POINT_SET;
@@ -12,23 +15,27 @@ export class CachePointSetFile
 
 	constructor(
 		name: string,
-		public readonly color: string,
+		/**
+		 * the data wrapper is used to manage the temporary and usable data in the memory
+		 * and to guide the developer to only use the defined ways to construct it and use it immutable
+		 */
+		dataWrapper: PointSetData,
 		public readonly isActive: boolean,
 		public readonly isChecked: boolean,
 		public readonly order: number | undefined
 	) {
-		super(name);
+		super(name, dataWrapper);
 	}
 
 	from(options: {
-		color?: string;
 		isActive?: boolean;
 		isChecked?: boolean;
 		order?: number | undefined;
+		dataWrapper?: PointSetData;
 	}): CachePointSetFile {
 		return new CachePointSetFile(
 			this.name,
-			options.color ?? this.color,
+			options.dataWrapper ?? this.dataWrapper,
 			options.isActive ?? this.isActive,
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order

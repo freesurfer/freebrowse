@@ -88,7 +88,8 @@ export const TopBar = ({
 				.map((file) =>
 					Number(file.name.slice(CachePointSetFile.DEFAULT_NAME.length))
 				)
-				.sort()[0];
+				.sort()
+				.reverse()[0];
 
 			const result = await open(nextCount === undefined ? 1 : nextCount + 1);
 			if (result === 'canceled') return;

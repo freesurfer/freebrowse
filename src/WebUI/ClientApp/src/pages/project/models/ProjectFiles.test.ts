@@ -34,9 +34,9 @@ describe('ProjectFiles', () => {
 			cloudSurfaces,
 			localVolumes: [],
 			localSurfaces: [],
-			volumes: [...cloudVolumes],
-			surfaces: [...cloudSurfaces],
-			all: [...cloudVolumes, ...cloudSurfaces],
+			cachePointSets: [],
+			cloudPointSets: [],
+			projectFiles: {} as unknown as ProjectFiles,
 		});
 
 		expect(

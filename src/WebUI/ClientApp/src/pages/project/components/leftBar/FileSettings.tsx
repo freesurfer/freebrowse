@@ -5,6 +5,7 @@ import { Slider } from '@/components/Slider';
 import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
+import { rgbToHex } from '@/pages/project/models/file/type/PointSetFile';
 import { useCallback, type Dispatch } from 'react';
 
 export const FileSettings = ({
@@ -216,19 +217,23 @@ export const FileSettings = ({
 									</span>
 								}
 							>
-								<div className="pl-1">
-									<ColorPicker
-										className="mt-2"
-										label="Color:"
-										value={pointSetFile.color}
-										onChange={(value) =>
-											updateFileOptions(pointSetFile, { color: value }, false)
-										}
-										onEnd={(value) =>
-											updateFileOptions(pointSetFile, { color: value }, true)
-										}
-									></ColorPicker>
-								</div>
+								{'dataWrapper' in pointSetFile ? (
+									<div className="pl-1">
+										<ColorPicker
+											className="mt-2"
+											label="Color:"
+											value={rgbToHex(pointSetFile.dataWrapper.data.color)}
+											onChange={(value) =>
+												updateFileOptions(pointSetFile, { color: value }, false)
+											}
+											onEnd={(value) =>
+												updateFileOptions(pointSetFile, { color: value }, true)
+											}
+										></ColorPicker>
+									</div>
+								) : (
+									<></>
+								)}
 							</Collapse>
 						);
 					})}

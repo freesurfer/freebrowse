@@ -1,5 +1,6 @@
 import { useApiAnnotation } from '@/hooks/useApiAnnotation';
 import { useApiOverlay } from '@/hooks/useApiOverlay';
+import { useApiPointSet } from '@/hooks/useApiPointSet';
 import { useApiProject } from '@/hooks/useApiProject';
 import { useApiSurface } from '@/hooks/useApiSurface';
 import { useApiVolume } from '@/hooks/useApiVolume';
@@ -253,6 +254,9 @@ export const useApi = (
 	const apiProject = useApiProject();
 	const apiVolume = useApiVolume();
 	const apiSurface = useApiSurface();
+	// TODO bere update backend
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const apiPointSet = useApiPointSet();
 	const apiOverlay = useApiOverlay();
 	const apiAnnotation = useApiAnnotation();
 
@@ -279,7 +283,7 @@ export const useApi = (
 		/**
 		 * detect updates in the project state and upload increments to the backend
 		 */
-		const uploadToBackend = async (): Promise<void> => {
+		const updateBackend = async (): Promise<void> => {
 			if (projectState === undefined) return;
 			if (!projectState.upload) return;
 			if (projectState === lastUpload) return;
@@ -315,6 +319,9 @@ export const useApi = (
 				setProjectState
 			);
 
+			// TODO upload cached pointSet files
+			// TODO update cloudPointSet files if updated
+
 			if (
 				lastUpload === undefined ||
 				projectState.name !== lastUpload.name ||
@@ -326,7 +333,7 @@ export const useApi = (
 			}
 		};
 
-		void uploadToBackend();
+		void updateBackend();
 	}, [
 		projectState,
 		lastUpload,

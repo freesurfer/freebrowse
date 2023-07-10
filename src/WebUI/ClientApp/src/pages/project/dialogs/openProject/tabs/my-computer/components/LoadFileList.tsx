@@ -20,7 +20,13 @@ export const LoadFileList = ({
 }): React.ReactElement => {
 	return (
 		<div className={className}>
-			{projectFiles.all.map((file) => {
+			{[
+				...projectFiles.localVolumes,
+				...projectFiles.cloudVolumes,
+				...projectFiles.localSurfaces,
+				...projectFiles.cloudSurfaces,
+				...projectFiles.cloudPointSets,
+			].map((file) => {
 				if (file === undefined) return <></>;
 				return (
 					<div key={file.name} className="flex gap-3 border-b pb-3 pt-3">
