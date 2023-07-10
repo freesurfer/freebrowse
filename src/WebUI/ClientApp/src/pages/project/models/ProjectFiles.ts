@@ -22,6 +22,7 @@ import {
 } from '@/pages/project/models/file/ProjectFile';
 import type { AnnotationFile } from '@/pages/project/models/file/type/AnnotationFile';
 import type { OverlayFile } from '@/pages/project/models/file/type/OverlayFile';
+import type { PointSetFile } from '@/pages/project/models/file/type/PointSetFile';
 import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
 import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 
@@ -36,6 +37,7 @@ export class ProjectFiles {
 	public readonly localVolumes: readonly LocalVolumeFile[];
 	public readonly cloudSurfaces: readonly CloudSurfaceFile[];
 	public readonly cloudVolumes: readonly CloudVolumeFile[];
+	public readonly cachePointSets: readonly PointSetFile[];
 
 	public readonly surfaces: readonly SurfaceFile[];
 	public readonly volumes: readonly VolumeFile[];
@@ -51,13 +53,12 @@ export class ProjectFiles {
 		initState?:
 			| { backendState: GetProjectDto }
 			| {
-					localSurfaces: readonly LocalSurfaceFile[];
-					localVolumes: readonly LocalVolumeFile[];
-					cloudSurfaces: readonly CloudSurfaceFile[];
-					cloudVolumes: readonly CloudVolumeFile[];
-					surfaces: readonly SurfaceFile[];
-					volumes: readonly VolumeFile[];
-					all: readonly ProjectFile[];
+					projectFilesInstance: ProjectFiles;
+					localSurfaces?: readonly LocalSurfaceFile[];
+					localVolumes?: readonly LocalVolumeFile[];
+					cloudSurfaces?: readonly CloudSurfaceFile[];
+					cloudVolumes?: readonly CloudVolumeFile[];
+					cachePointSets?: readonly PointSetFile[];
 			  }
 			| undefined
 	) {
@@ -67,6 +68,7 @@ export class ProjectFiles {
 			this.localVolumes = [];
 			this.cloudSurfaces = [];
 			this.cloudVolumes = [];
+			this.cachePointSets = [];
 			this.surfaces = [];
 			this.volumes = [];
 			this.all = [];
@@ -83,6 +85,7 @@ export class ProjectFiles {
 			this.cloudSurfaces = ProjectFiles.cloudFileFromSurfaceDto(
 				initState.backendState.surfaces
 			);
+			this.cachePointSets = [];
 			this.surfaces = [...this.cloudSurfaces, ...this.localSurfaces];
 			this.volumes = [...this.cloudVolumes, ...this.localVolumes];
 			this.all = [...this.surfaces, ...this.volumes];
@@ -90,13 +93,45 @@ export class ProjectFiles {
 		}
 
 		// new class from given file set
-		this.localSurfaces = initState.localSurfaces;
-		this.localVolumes = initState.localVolumes;
-		this.cloudSurfaces = initState.cloudSurfaces;
-		this.cloudVolumes = initState.cloudVolumes;
-		this.surfaces = initState.surfaces;
-		this.volumes = initState.volumes;
-		this.all = initState.all;
+		this.localSurfaces =
+			initState.localSurfaces ?? initState.projectFilesInstance.localSurfaces;
+		this.localVolumes =
+			initState.localVolumes ?? initState.projectFilesInstance.localVolumes;
+		this.cloudSurfaces =
+			initState.cloudSurfaces ?? initState.projectFilesInstance.cloudSurfaces;
+		this.cloudVolumes =
+			initState.cloudVolumes ?? initState.projectFilesInstance.cloudVolumes;
+		this.cachePointSets =
+			initState.cachePointSets ?? initState.projectFilesInstance.cachePointSets;
+
+		if (
+			initState.localSurfaces !== undefined ||
+			initState.cloudSurfaces !== undefined
+		) {
+			this.surfaces = [...this.localSurfaces, ...this.cloudSurfaces];
+		} else {
+			this.surfaces = initState.projectFilesInstance.surfaces;
+		}
+
+		if (
+			initState.localVolumes !== undefined ||
+			initState.cloudVolumes !== undefined
+		) {
+			this.volumes = [...this.localVolumes, ...this.cloudVolumes];
+		} else {
+			this.volumes = initState.projectFilesInstance.volumes;
+		}
+
+		if (
+			initState.localSurfaces !== undefined ||
+			initState.cloudSurfaces !== undefined ||
+			initState.localVolumes !== undefined ||
+			initState.cloudVolumes !== undefined
+		) {
+			this.all = [...this.surfaces, ...this.volumes];
+		} else {
+			this.all = initState.projectFilesInstance.all;
+		}
 	}
 
 	/**
@@ -115,16 +150,11 @@ export class ProjectFiles {
 		const cloudVolumes = newVolumes.filter(
 			(volume): volume is CloudVolumeFile => volume instanceof CloudVolumeFile
 		);
-		const volumes = [...localVolumes, ...cloudVolumes];
 
 		return new ProjectFiles({
 			localVolumes,
-			localSurfaces: this.localSurfaces,
 			cloudVolumes,
-			cloudSurfaces: this.cloudSurfaces,
-			surfaces: this.surfaces,
-			volumes,
-			all: [...this.surfaces, ...volumes],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -144,18 +174,13 @@ export class ProjectFiles {
 		const cloudSurfaces = this.cloudSurfaces.map((file) =>
 			file.from({ isActive: false })
 		);
-		const surfaces = [...cloudSurfaces, ...localSurfaces];
-		const volumes = [...cloudVolumes, ...localVolumes];
-		const all = [...surfaces, ...volumes];
 
 		return new ProjectFiles({
 			localVolumes,
 			localSurfaces,
 			cloudVolumes,
 			cloudSurfaces,
-			surfaces,
-			volumes,
-			all,
+			projectFilesInstance: this,
 		});
 	}
 
@@ -178,17 +203,10 @@ export class ProjectFiles {
 				surface instanceof CloudSurfaceFile
 		);
 
-		const surfaces = [...cloudSurfaces, ...localSurfaces];
-		const all = [...surfaces, ...this.volumes];
-
 		return new ProjectFiles({
-			localVolumes: this.localVolumes,
 			localSurfaces,
-			cloudVolumes: this.cloudVolumes,
 			cloudSurfaces,
-			surfaces,
-			volumes: this.volumes,
-			all,
+			projectFilesInstance: this,
 		});
 	}
 
@@ -196,31 +214,30 @@ export class ProjectFiles {
 	 * when the user clicks on a surface, we want to highlight only that one surface as active and deactivate all the others
 	 */
 	public fromOneSurfaceActivated(surface: SurfaceFile): ProjectFiles {
-		const localVolumes = this.localVolumes.map((file) =>
-			file.from({ isActive: false })
-		);
+		const localVolumes =
+			this.localVolumes.find((file) => file.isActive) !== undefined
+				? this.localVolumes.map((file) => file.from({ isActive: false }))
+				: undefined;
+
 		const localSurfaces = this.localSurfaces.map((file) =>
 			file.from({ isActive: file === surface })
 		);
-		const cloudVolumes = this.cloudVolumes.map((file) =>
-			file.from({ isActive: false })
-		);
+
+		const cloudVolumes =
+			this.cloudVolumes.find((file) => file.isActive) !== undefined
+				? this.cloudVolumes.map((file) => file.from({ isActive: false }))
+				: undefined;
+
 		const cloudSurfaces = this.cloudSurfaces.map((file) =>
 			file.from({ isActive: file === surface })
 		);
-
-		const surfaces = [...cloudSurfaces, ...localSurfaces];
-		const volumes = [...cloudVolumes, ...localVolumes];
-		const all = [...surfaces, ...volumes];
 
 		return new ProjectFiles({
 			localVolumes,
 			localSurfaces,
 			cloudVolumes,
 			cloudSurfaces,
-			volumes,
-			surfaces,
-			all,
+			projectFilesInstance: this,
 		});
 	}
 
@@ -258,17 +275,10 @@ export class ProjectFiles {
 		);
 		const localSurfaces = [...this.localSurfaces, ...newSurfaces];
 
-		const volumes = [...localVolumes, ...this.cloudVolumes];
-		const surfaces = [...localSurfaces, ...this.cloudSurfaces];
-
 		return new ProjectFiles({
-			cloudVolumes: this.cloudVolumes,
-			cloudSurfaces: this.cloudSurfaces,
 			localVolumes,
 			localSurfaces,
-			volumes,
-			surfaces,
-			all: [...volumes, ...surfaces],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -286,18 +296,12 @@ export class ProjectFiles {
 			...this.localVolumes.filter((file) => file.name !== fileNameToDelete),
 		];
 
-		const surfaces = [...cloudSurfaces, ...localSurfaces];
-		const volumes = [...cloudVolumes, ...localVolumes];
-		const all = [...surfaces, ...volumes];
-
 		return new ProjectFiles({
 			cloudSurfaces,
 			cloudVolumes,
 			localSurfaces,
 			localVolumes,
-			surfaces,
-			volumes,
-			all,
+			projectFilesInstance: this,
 		});
 	}
 
@@ -343,16 +347,10 @@ export class ProjectFiles {
 			),
 		];
 
-		const surfaces = [...cloudSurfaces, ...localSurfaces];
-
 		return new ProjectFiles({
 			cloudSurfaces,
-			cloudVolumes: this.cloudVolumes,
 			localSurfaces,
-			localVolumes: this.localVolumes,
-			surfaces,
-			volumes: this.volumes,
-			all: [...surfaces, ...this.volumes],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -410,16 +408,10 @@ export class ProjectFiles {
 			),
 		];
 
-		const volumes = [...cloudVolumes, ...localVolumes];
-
 		return new ProjectFiles({
-			cloudSurfaces: this.cloudSurfaces,
 			cloudVolumes,
-			localSurfaces: this.localSurfaces,
 			localVolumes,
-			surfaces: this.surfaces,
-			volumes,
-			all: [...this.surfaces, ...volumes],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -453,16 +445,10 @@ export class ProjectFiles {
 				  })
 				: surface
 		);
-		const surfaces = [...cloudSurfaces, ...this.localSurfaces];
 
 		return new ProjectFiles({
 			cloudSurfaces,
-			cloudVolumes: this.cloudVolumes,
-			localSurfaces: this.localSurfaces,
-			localVolumes: this.localVolumes,
-			surfaces,
-			volumes: this.volumes,
-			all: [...surfaces, ...this.volumes],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -497,16 +483,10 @@ export class ProjectFiles {
 				  })
 				: surface
 		);
-		const surfaces = [...cloudSurfaces, ...this.localSurfaces];
 
 		return new ProjectFiles({
 			cloudSurfaces,
-			cloudVolumes: this.cloudVolumes,
-			localSurfaces: this.localSurfaces,
-			localVolumes: this.localVolumes,
-			surfaces,
-			volumes: this.volumes,
-			all: [...surfaces, ...this.volumes],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -535,16 +515,10 @@ export class ProjectFiles {
 			  )
 			: this.cloudSurfaces;
 
-		const surfaces = [...localSurfaces, ...cloudSurfaces];
-
 		return new ProjectFiles({
 			localSurfaces,
 			cloudSurfaces,
-			localVolumes: this.localVolumes,
-			cloudVolumes: this.cloudVolumes,
-			surfaces,
-			volumes: this.volumes,
-			all: [...surfaces, ...this.volumes],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -573,16 +547,10 @@ export class ProjectFiles {
 			  )
 			: this.cloudSurfaces;
 
-		const surfaces = [...localSurfaces, ...cloudSurfaces];
-
 		return new ProjectFiles({
 			localSurfaces,
 			cloudSurfaces,
-			localVolumes: this.localVolumes,
-			cloudVolumes: this.cloudVolumes,
-			surfaces,
-			volumes: this.volumes,
-			all: [...surfaces, ...this.volumes],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -604,16 +572,10 @@ export class ProjectFiles {
 				: thisSurface.fromDeleteOverlay(overlayFile)
 		);
 
-		const surfaces = [...localSurfaces, ...cloudSurfaces];
-
 		return new ProjectFiles({
 			localSurfaces,
-			localVolumes: this.localVolumes,
 			cloudSurfaces,
-			cloudVolumes: this.cloudVolumes,
-			surfaces,
-			volumes: this.volumes,
-			all: [...this.surfaces, ...this.volumes],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -635,16 +597,10 @@ export class ProjectFiles {
 				: thisSurface.fromDeleteAnnotation(annotationFile)
 		);
 
-		const surfaces = [...localSurfaces, ...cloudSurfaces];
-
 		return new ProjectFiles({
 			localSurfaces,
-			localVolumes: this.localVolumes,
 			cloudSurfaces,
-			cloudVolumes: this.cloudVolumes,
-			surfaces,
-			volumes: this.volumes,
-			all: [...this.surfaces, ...this.volumes],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -666,16 +622,10 @@ export class ProjectFiles {
 				  })
 				: surface
 		);
-		const surfaces = [...this.localSurfaces, ...cloudSurfaces];
 
 		return new ProjectFiles({
-			localSurfaces: this.localSurfaces,
-			localVolumes: this.localVolumes,
 			cloudSurfaces,
-			cloudVolumes: this.cloudVolumes,
-			surfaces,
-			volumes: this.volumes,
-			all: [...surfaces, ...this.volumes],
+			projectFilesInstance: this,
 		});
 	}
 
@@ -698,16 +648,10 @@ export class ProjectFiles {
 				  })
 				: surface
 		);
-		const surfaces = [...this.localSurfaces, ...cloudSurfaces];
 
 		return new ProjectFiles({
-			localSurfaces: this.localSurfaces,
-			localVolumes: this.localVolumes,
 			cloudSurfaces,
-			cloudVolumes: this.cloudVolumes,
-			surfaces,
-			volumes: this.volumes,
-			all: [...surfaces, ...this.volumes],
+			projectFilesInstance: this,
 		});
 	}
 
