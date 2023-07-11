@@ -1,7 +1,7 @@
-import Brain from '@/assets/Brain.svg';
-import EqualSplitView from '@/assets/EqualSplitView.svg';
-import { NavigateIcon } from '@/assets/Navigate';
-import SaveAll from '@/assets/SaveAll.svg';
+import { BrainIcon } from '@/assets/BrainIcon';
+import { EqualSplitViewIcon } from '@/assets/EqualSplitViewIcon';
+import { NavigateIcon } from '@/assets/NavigateIcon';
+import { SaveAllIcon } from '@/assets/SaveAllIcon';
 import type { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { ToolButton } from '@/pages/project/components/topBar/ToolButton';
 import { ToolButtonRadio } from '@/pages/project/components/topBar/ToolButtonRadio';
@@ -124,9 +124,7 @@ export const TopBar = ({
 		<div className="flex items-baseline bg-font px-4">
 			<ToolButtonSelect
 				label="FreeBrowse"
-				icon={(className) => (
-					<img src={Brain} className={className} alt="Brain" />
-				)}
+				icon={(className) => <BrainIcon className={className} />}
 				entries={[
 					{
 						label: 'Back to project space',
@@ -170,45 +168,44 @@ export const TopBar = ({
 					)
 				}
 			></ToolButtonRadio>
-			{/*
 			<ToolButton
 				label="Equal Split"
-				icon={
-					<img
-						src={EqualSplitView}
-						className={ICON_STYLE}
-						alt="EqualSplitView"
-					/>
-				}
+				icon={(className) => <EqualSplitViewIcon className={className} />}
+				buttonProps={{ onClick: () => alert('Clicked Equal Split') }}
 			></ToolButton>
 			<ToolButton
 				label="PointSet"
-				icon={<CircleStackIcon className={ICON_STYLE} />}
-				onClick={openNewPointSetDialog}
+				icon={(className) => <CircleStackIcon className={className} />}
+				buttonProps={{ onClick: openNewPointSetDialog }}
 			></ToolButton>
 			<ToolButton
 				label="Save All"
-				icon={<img src={SaveAll} className={ICON_STYLE} alt="EqualSplitView" />}
+				icon={(className) => <SaveAllIcon className={className} />}
+				buttonProps={{ onClick: () => alert('Clicked Save All') }}
 			></ToolButton>
 			<ToolButton
 				label="Undo"
-				icon={<ArrowUturnLeftIcon className={ICON_STYLE} />}
+				icon={(className) => <ArrowUturnLeftIcon className={className} />}
+				buttonProps={{ onClick: () => alert('Clicked Undo') }}
 			/>
 			<ToolButton
 				label="Redo"
-				icon={<ArrowUturnRightIcon className={ICON_STYLE} />}
+				icon={(className) => <ArrowUturnRightIcon className={className} />}
+				buttonProps={{ onClick: () => alert('Clicked Redo') }}
 			/>
 			<ToolButton
 				label="Share"
-				icon={<ShareIcon className={ICON_STYLE} />}
-				onClick={() => {
-					void navigator.clipboard.writeText(
-						createDeepLink(projectState, location, niivueWrapper)
-					);
-					displayDeeplinkCopiedNotification();
+				icon={(className) => <ShareIcon className={className} />}
+				buttonProps={{
+					onClick: () => {
+						void navigator.clipboard
+							.writeText(createDeepLink(projectState, location, niivueWrapper))
+							.then(() => {
+								displayDeeplinkCopiedNotification();
+							});
+					},
 				}}
 			/>
-			*/}
 		</div>
 	);
 };
