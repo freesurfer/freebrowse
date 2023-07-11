@@ -11,27 +11,23 @@ export const ToolButtonSelect = ({
 	entries,
 }: {
 	label: string;
-	icon: ReactElement;
+	icon: (className: string) => ReactElement;
 	entries: [IToolButtonSelectEntry, ...IToolButtonSelectEntry[]];
 }): ReactElement => {
 	return (
 		<ToolButtonExpandable
 			label={label}
 			icon={icon}
-			entries={
-				<>
-					{entries.map(
-						(entry): ReactElement => (
-							<ToolButtonSelectEntry
-								key={entry.label}
-								label={entry.label}
-								icon={entry.icon}
-								onClick={entry.onClick}
-							></ToolButtonSelectEntry>
-						)
-					)}
-				</>
-			}
+			entries={entries.map(
+				(entry): ReactElement => (
+					<ToolButtonSelectEntry
+						key={entry.label}
+						label={entry.label}
+						icon={entry.icon}
+						onClick={entry.onClick}
+					></ToolButtonSelectEntry>
+				)
+			)}
 		/>
 	);
 };

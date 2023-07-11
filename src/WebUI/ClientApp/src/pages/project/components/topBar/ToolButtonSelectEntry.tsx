@@ -14,11 +14,11 @@ export const ToolButtonSelectEntry = ({
 }: IToolButtonSelectEntry): ReactElement => {
 	return (
 		<ToolButtonEntry
-			className="flex items-center gap-2 border-b last:border-b-0"
+			className="flex items-center gap-3 border-b bg-white text-font last:border-b-0"
 			onClick={onClick}
 		>
-			{icon('w-5 h-5')}
-			<span>{label}</span>
+			{icon('w-4 h-4')}
+			<span className="pr-12">{label}</span>
 		</ToolButtonEntry>
 	);
 };

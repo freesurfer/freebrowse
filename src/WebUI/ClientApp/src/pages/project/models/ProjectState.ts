@@ -6,6 +6,15 @@ import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
 import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 
 /**
+ * The mode the user is interacting with the UI right now
+ */
+export enum USER_MODE {
+	NAVIGATE,
+	EDIT_VOXEL,
+	EDIT_POINTS,
+}
+
+/**
  * class to uncouple backend dto from data used from ui
  * - keep the expected backend data state without fetching it again
  * - keep the ui state of the project in one place
@@ -19,6 +28,10 @@ export class ProjectState {
 	 * given name of the project
 	 */
 	public readonly name: string | undefined;
+	/**
+	 * the mode the user is interacting with the UI right now
+	 */
+	public readonly userMode: USER_MODE;
 	/**
 	 * thickness of the mesh on the 2d plane
 	 */
@@ -41,6 +54,7 @@ export class ProjectState {
 			| {
 					id: number;
 					name: string | undefined;
+					userMode?: USER_MODE;
 					meshThicknessOn2D?: number;
 					backendStateDto: GetProjectDto;
 					files: ProjectFiles;
@@ -52,6 +66,7 @@ export class ProjectState {
 				throw new Error('no id given for project');
 			this.id = initialState.backendState.id;
 			this.name = initialState.backendState.name;
+			this.userMode = USER_MODE.NAVIGATE;
 			this.meshThicknessOn2D = initialState.backendState.meshThicknessOn2D ?? 0;
 			this.backendState = initialState.backendState;
 			this.files = new ProjectFiles({
@@ -63,6 +78,7 @@ export class ProjectState {
 		if ('projectState' in initialState) {
 			this.id = initialState.projectState.id;
 			this.name = initialState.projectState.name;
+			this.userMode = initialState.projectState.userMode;
 			this.meshThicknessOn2D = initialState.projectState.meshThicknessOn2D ?? 0;
 			this.backendState = initialState.projectState.backendState;
 			this.files = initialState.projectFiles;
@@ -72,6 +88,7 @@ export class ProjectState {
 		if ('id' in initialState) {
 			this.id = initialState.id;
 			this.name = initialState.name;
+			this.userMode = initialState.userMode ?? USER_MODE.NAVIGATE;
 			this.meshThicknessOn2D = initialState.meshThicknessOn2D ?? 0;
 			this.backendState = initialState.backendStateDto;
 			this.files = initialState.files;
@@ -200,15 +217,16 @@ export class ProjectState {
 	 * @returns new instance of the project state
 	 */
 	fromProjectUpdate(
-		options: Partial<ProjectState>,
+		options: Partial<Omit<ProjectState, 'id' | 'name' | 'backendStateDto'>>,
 		upload: boolean
 	): ProjectState {
 		return new ProjectState(
 			{
-				id: options.id ?? this.id,
-				name: options.name ?? this.name,
+				id: this.id,
+				name: this.name,
+				userMode: options.userMode ?? this.userMode,
 				meshThicknessOn2D: options.meshThicknessOn2D ?? this.meshThicknessOn2D,
-				backendStateDto: options.backendState ?? this.backendState,
+				backendStateDto: this.backendState,
 				files: options.files ?? this.files,
 			},
 			upload

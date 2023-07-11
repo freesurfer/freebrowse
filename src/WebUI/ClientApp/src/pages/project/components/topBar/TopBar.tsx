@@ -1,6 +1,6 @@
 import Brain from '@/assets/Brain.svg';
 import EqualSplitView from '@/assets/EqualSplitView.svg';
-import Navigate from '@/assets/Navigate.svg';
+import { NavigateIcon } from '@/assets/Navigate';
 import SaveAll from '@/assets/SaveAll.svg';
 import type { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { ToolButton } from '@/pages/project/components/topBar/ToolButton';
@@ -18,14 +18,14 @@ import {
 	ArrowUturnRightIcon,
 	CircleStackIcon,
 	DocumentPlusIcon,
+	PencilIcon,
+	PencilSquareIcon,
 	ShareIcon,
 } from '@heroicons/react/24/outline';
 import type { LocationData } from '@niivue/niivue';
 import { type Dispatch, useCallback, useContext } from 'react';
 import { Store } from 'react-notifications-component';
 import { useNavigate } from 'react-router';
-
-const ICON_STYLE = 'h-7 w-7 shrink-0';
 
 export const TopBar = ({
 	projectState,
@@ -124,7 +124,9 @@ export const TopBar = ({
 		<div className="flex items-baseline bg-font px-4">
 			<ToolButtonSelect
 				label="FreeBrowse"
-				icon={<img src={Brain} className={ICON_STYLE} alt="Brain" />}
+				icon={(className) => (
+					<img src={Brain} className={className} alt="Brain" />
+				)}
 				entries={[
 					{
 						label: 'Back to project space',
@@ -140,22 +142,35 @@ export const TopBar = ({
 					},
 				]}
 			></ToolButtonSelect>
-			{/*
 			<ToolButtonRadio
-				activeState={{ userMode: USER_MODE.NAVIGATE, setProjectState }}
 				entries={[
 					{
 						label: 'Navigate',
-						icon: <img src={Navigate} className={ICON_STYLE} alt="Navigate" />,
-						onSelect: () => console.log('BERE navigate selected'),
+						icon: (className) => <NavigateIcon className={className} />,
+						value: USER_MODE.NAVIGATE,
+						shortcut: 'M',
 					},
 					{
 						label: 'Edit Voxel',
-						icon: <img src={Navigate} className={ICON_STYLE} alt="Navigate" />,
-						onSelect: () => console.log('BERE navigate selected'),
+						icon: (className) => <PencilIcon className={className} />,
+						value: USER_MODE.EDIT_VOXEL,
+						shortcut: 'V',
+					},
+					{
+						label: 'Edit Points',
+						icon: (className) => <PencilSquareIcon className={className} />,
+						value: USER_MODE.EDIT_POINTS,
+						shortcut: 'P',
 					},
 				]}
+				value={projectState?.userMode ?? USER_MODE.NAVIGATE}
+				onChange={(value) =>
+					setProjectState((projectState) =>
+						projectState?.fromProjectUpdate({ userMode: value }, false)
+					)
+				}
 			></ToolButtonRadio>
+			{/*
 			<ToolButton
 				label="Equal Split"
 				icon={

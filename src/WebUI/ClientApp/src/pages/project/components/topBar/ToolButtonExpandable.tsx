@@ -8,8 +8,8 @@ export const ToolButtonExpandable = ({
 	entries,
 }: {
 	label: string;
-	icon: ReactElement;
-	entries: ReactElement;
+	icon: (className: string) => ReactElement;
+	entries: ReactElement[];
 }): ReactElement => {
 	const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +49,7 @@ export const ToolButtonExpandable = ({
 
 			<section
 				{...getCollapseProps()}
-				className="absolute left-0 z-10 w-auto overflow-hidden rounded-md border bg-white shadow-[0_4px_4px_1px_rgba(0,0,0,0.2)]"
+				className="absolute left-0 z-10 w-auto overflow-hidden rounded border bg-white shadow-[0_4px_4px_1px_rgba(0,0,0,0.2)]"
 			>
 				{entries}
 			</section>

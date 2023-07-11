@@ -17,7 +17,7 @@ export const ToolButton = ({
 	buttonProps,
 }: {
 	label: string;
-	icon: ReactElement;
+	icon: (className: string) => ReactElement;
 	buttonProps: IButtonProps;
 }): ReactElement => {
 	const getProps = useCallback((): Partial<
@@ -33,7 +33,7 @@ export const ToolButton = ({
 			className="flex h-full w-20 shrink-0 flex-col items-center rounded pb-3 pt-4 last-of-type:ml-auto active:bg-primary"
 		>
 			<div className="flex items-center">
-				{icon}
+				{icon('w-7 h-7 shrink-0 text-white')}
 				{'getToggleProps' in buttonProps ? (
 					<ChevronDownIcon
 						className={`h-4 w-4 shrink-0 text-white transition-transform ${

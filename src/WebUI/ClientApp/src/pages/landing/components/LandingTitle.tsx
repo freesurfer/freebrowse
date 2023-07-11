@@ -29,7 +29,7 @@ export const LandingTitle = ({
 						onClick={() => {
 							void onGetStartedClick();
 						}}
-						className="mt-4 rounded-md bg-gray-500 px-6 py-4 font-bold text-white hover:bg-gray-600 focus:outline-none focus:ring focus:ring-gray-300 active:bg-gray-700"
+						className="mt-4 rounded bg-gray-500 px-6 py-4 font-bold text-white hover:bg-gray-600 focus:outline-none focus:ring focus:ring-gray-300 active:bg-gray-700"
 					>
 						Get started
 					</button>

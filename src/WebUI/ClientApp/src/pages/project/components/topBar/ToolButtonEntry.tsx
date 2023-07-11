@@ -11,7 +11,7 @@ export const ToolButtonEntry = ({
 }): ReactElement => {
 	return (
 		<button
-			className={`whitespace-nowrap bg-white p-2 text-xs text-font ${className}`}
+			className={`whitespace-nowrap p-2 text-xs ${className}`}
 			onClick={onClick}
 		>
 			{children}
