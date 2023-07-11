@@ -1,40 +1,53 @@
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
-import type { ReactElement } from 'react';
+import { useCallback, type ReactElement } from 'react';
+import type { useCollapse } from 'react-collapsed';
+
+type IButtonProps =
+	| {
+			getToggleProps: ReturnType<typeof useCollapse>['getToggleProps'];
+			isExpanded: boolean;
+	  }
+	| {
+			onClick: () => void;
+	  };
 
 export const ToolButton = ({
-	title,
+	label,
 	icon,
-	isActive = false,
-	isExpandable = false,
-	onClick = undefined,
+	buttonProps,
 }: {
-	title: string;
+	label: string;
 	icon: ReactElement;
-	isExpandable?: boolean;
-	isActive?: boolean;
-	onClick?: () => void;
+	buttonProps: IButtonProps;
 }): ReactElement => {
-	return (
-		<>
-			<button
-				onClick={onClick}
-				className={`flex h-full w-20 shrink-0 flex-col items-center rounded pb-3 pt-4 last-of-type:ml-auto${
-					isActive ? 'bg-primary' : ''
-				}`}
-			>
-				<div className="flex items-center">
-					{icon}
-					{isExpandable ? (
-						<ChevronDownIcon className="h-4 w-4 shrink-0 text-white" />
-					) : (
-						<></>
-					)}
-				</div>
+	const getProps = useCallback((): Partial<
+		ReturnType<typeof useCollapse>['getToggleProps']
+	> => {
+		if ('getToggleProps' in buttonProps) return buttonProps.getToggleProps();
+		return buttonProps;
+	}, [buttonProps]);
 
-				<span className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white">
-					{title}
-				</span>
-			</button>
-		</>
+	return (
+		<button
+			{...getProps()}
+			className="flex h-full w-20 shrink-0 flex-col items-center rounded pb-3 pt-4 last-of-type:ml-auto active:bg-primary"
+		>
+			<div className="flex items-center">
+				{icon}
+				{'getToggleProps' in buttonProps ? (
+					<ChevronDownIcon
+						className={`h-4 w-4 shrink-0 text-white transition-transform ${
+							buttonProps.isExpanded ? 'rotate-180' : ''
+						}`}
+					/>
+				) : (
+					<></>
+				)}
+			</div>
+
+			<span className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white">
+				{label}
+			</span>
+		</button>
 	);
 };

@@ -14,7 +14,7 @@ bindModalToRoot();
 
 const dialogStyle = {
 	overlay: {
-		zIndex: 1,
+		zIndex: 50,
 	},
 	content: {
 		top: '50%',

@@ -4,20 +4,28 @@ import Navigate from '@/assets/Navigate.svg';
 import SaveAll from '@/assets/SaveAll.svg';
 import type { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { ToolButton } from '@/pages/project/components/topBar/ToolButton';
+import { ToolButtonRadio } from '@/pages/project/components/topBar/ToolButtonRadio';
+import { ToolButtonSelect } from '@/pages/project/components/topBar/ToolButtonSelect';
 import { NewPointSetDialogContext } from '@/pages/project/dialogs/newPointSet/NewPointSetDialog';
-import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
+import {
+	USER_MODE,
+	type ProjectState,
+} from '@/pages/project/models/ProjectState';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import {
 	ArrowUturnLeftIcon,
 	ArrowUturnRightIcon,
 	CircleStackIcon,
+	DocumentPlusIcon,
 	ShareIcon,
 } from '@heroicons/react/24/outline';
 import type { LocationData } from '@niivue/niivue';
 import { type Dispatch, useCallback, useContext } from 'react';
 import { Store } from 'react-notifications-component';
+import { useNavigate } from 'react-router';
 
-const ICON_STYLE = 'h-7 w-7 shrink-0 text-white';
+const ICON_STYLE = 'h-7 w-7 shrink-0';
 
 export const TopBar = ({
 	projectState,
@@ -33,6 +41,14 @@ export const TopBar = ({
 	>;
 }): React.ReactElement => {
 	const { open } = useContext(NewPointSetDialogContext);
+	const navigate = useNavigate();
+	const { createProject } = useContext(OpenProjectDialogContext);
+
+	const onGetStartedClick = useCallback(async (): Promise<void> => {
+		const result = await createProject();
+		if (result === 'canceled') return;
+		navigate(`/project/${result.projectId}`);
+	}, [createProject, navigate]);
 
 	const createDeepLink = (
 		projectState: ProjectState | undefined,
@@ -106,26 +122,42 @@ export const TopBar = ({
 
 	return (
 		<div className="flex items-baseline bg-font px-4">
-			<ToolButton
-				title="FreeBrowse"
-				isExpandable={true}
+			<ToolButtonSelect
+				label="FreeBrowse"
 				icon={<img src={Brain} className={ICON_STYLE} alt="Brain" />}
-			></ToolButton>
+				entries={[
+					{
+						label: 'Back to project space',
+						icon: (className) => <ArrowUturnLeftIcon className={className} />,
+						onClick: () => navigate('/'),
+					},
+					{
+						label: 'Create new project',
+						icon: (className) => <DocumentPlusIcon className={className} />,
+						onClick: () => {
+							void onGetStartedClick();
+						},
+					},
+				]}
+			></ToolButtonSelect>
+			{/*
+			<ToolButtonRadio
+				activeState={{ userMode: USER_MODE.NAVIGATE, setProjectState }}
+				entries={[
+					{
+						label: 'Navigate',
+						icon: <img src={Navigate} className={ICON_STYLE} alt="Navigate" />,
+						onSelect: () => console.log('BERE navigate selected'),
+					},
+					{
+						label: 'Edit Voxel',
+						icon: <img src={Navigate} className={ICON_STYLE} alt="Navigate" />,
+						onSelect: () => console.log('BERE navigate selected'),
+					},
+				]}
+			></ToolButtonRadio>
 			<ToolButton
-				title="Navigate"
-				isExpandable={true}
-				isActive={true}
-				icon={<img src={Navigate} className={ICON_STYLE} alt="Navigate" />}
-			></ToolButton>
-			{/* <ToolButton
-				title="Edit Voxel"
-				isExpandable={true}
-				isActive={true}
-				icon={<PencilIcon className={ICON_STYLE} />}
-			></ToolButton> */}
-			<ToolButton
-				title="Equal Split"
-				isExpandable={true}
+				label="Equal Split"
 				icon={
 					<img
 						src={EqualSplitView}
@@ -135,34 +167,33 @@ export const TopBar = ({
 				}
 			></ToolButton>
 			<ToolButton
-				title="PointSet"
-				isExpandable={true}
+				label="PointSet"
 				icon={<CircleStackIcon className={ICON_STYLE} />}
 				onClick={openNewPointSetDialog}
 			></ToolButton>
 			<ToolButton
-				title="Save All"
-				isExpandable={true}
+				label="Save All"
 				icon={<img src={SaveAll} className={ICON_STYLE} alt="EqualSplitView" />}
 			></ToolButton>
 			<ToolButton
-				title="Undo"
+				label="Undo"
 				icon={<ArrowUturnLeftIcon className={ICON_STYLE} />}
 			/>
 			<ToolButton
-				title="Redo"
+				label="Redo"
 				icon={<ArrowUturnRightIcon className={ICON_STYLE} />}
 			/>
 			<ToolButton
-				title="Share"
+				label="Share"
+				icon={<ShareIcon className={ICON_STYLE} />}
 				onClick={() => {
 					void navigator.clipboard.writeText(
 						createDeepLink(projectState, location, niivueWrapper)
 					);
 					displayDeeplinkCopiedNotification();
 				}}
-				icon={<ShareIcon className={ICON_STYLE} />}
 			/>
+			*/}
 		</div>
 	);
 };

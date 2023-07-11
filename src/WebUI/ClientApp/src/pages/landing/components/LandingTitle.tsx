@@ -1,6 +1,6 @@
 import brain from '@/pages/landing/assets/brain_fancy.jpg';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const LandingTitle = ({
@@ -11,11 +11,11 @@ export const LandingTitle = ({
 	const navigate = useNavigate();
 	const { createProject } = useContext(OpenProjectDialogContext);
 
-	const onGetStartedClick = async (): Promise<void> => {
+	const onGetStartedClick = useCallback(async (): Promise<void> => {
 		const result = await createProject();
 		if (result === 'canceled') return;
 		navigate(`/project/${result.projectId}`);
-	};
+	}, [createProject, navigate]);
 
 	return (
 		<div className={`${className ?? ''} flex flex-row`}>
