@@ -1,31 +1,44 @@
 import { ToolButton } from '@/pages/project/components/topBar/ToolButton';
 import { useEffect, type ReactElement, useCallback, useRef } from 'react';
-import { useCollapse } from 'react-collapsed';
+import type { useCollapse } from 'react-collapsed';
 
 export const ToolButtonExpandable = ({
 	label,
 	icon,
 	entries,
+	useCollapseHook,
 }: {
 	label: string;
 	icon: (className: string) => ReactElement;
 	entries: ReactElement[];
+	/**
+	 * create the hook outside of the element to maintain the state there
+	 * this is necessary to set the expanded state from there as well
+	 */
+	useCollapseHook: ReturnType<typeof useCollapse>;
 }): ReactElement => {
 	const wrapperRef = useRef<HTMLDivElement>(null);
 
 	const { getCollapseProps, getToggleProps, isExpanded, setExpanded } =
-		useCollapse({ defaultExpanded: true });
+		useCollapseHook;
 
 	const handleMouseDown = useCallback(
 		({ target }: MouseEvent) => {
-			if (wrapperRef.current === undefined) return;
-			if (
-				wrapperRef.current === null ||
-				(target instanceof HTMLElement && wrapperRef.current.contains(target))
-			)
-				return;
-			setExpanded(false);
-			document.removeEventListener('mousedown', handleMouseDown);
+			/*
+			 * delay the detection a bit
+			 * sometimes it seems, that if the collapse animation has not finished
+			 * it detects a click on the button as an outside click and will not react on the click
+			 */
+			window.setTimeout(() => {
+				if (wrapperRef.current === undefined) return;
+				if (
+					wrapperRef.current === null ||
+					(target instanceof HTMLElement && wrapperRef.current.contains(target))
+				)
+					return;
+				setExpanded(false);
+				document.removeEventListener('mousedown', handleMouseDown);
+			}, 150);
 		},
 		[setExpanded]
 	);
