@@ -9,6 +9,8 @@ using NSwag.Generation.Processors.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 namespace Microsoft.Extensions.DependencyInjection;
 public static class ConfigureServices
@@ -25,6 +27,18 @@ public static class ConfigureServices
             .AddDbContextCheck<ApplicationDbContext>();
 
         services.AddControllersWithViews(options => options.Filters.Add<ApiExceptionFilterAttribute>());
+
+		const int maxRequestLimit = 209715200;
+		services.Configure<KestrelServerOptions>(options =>
+		{
+			options.Limits.MaxRequestBodySize = maxRequestLimit;
+		});
+		services.Configure<FormOptions>(x =>
+		{
+			x.ValueLengthLimit = maxRequestLimit;
+			x.MultipartBodyLengthLimit = maxRequestLimit;
+			x.MultipartHeadersLengthLimit = maxRequestLimit;
+		});
 
 		services.AddFluentValidation();
 

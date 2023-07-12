@@ -40,6 +40,7 @@ export class NiivueWrapper {
 		isOrientCube: false,
 		enableBorderHighlight: true,
 		displaySliceInfo: true,
+		multiplanarForceRender: true,
 	});
 
 	private hooveredView = 0;
@@ -491,6 +492,7 @@ export class NiivueWrapper {
 			return;
 		}
 
+		// Annotation files should always use FreeSurfer lookup table
 		// necessary if something wents wrong to clean the state from before
 		niivueSurface.layers = [];
 		await NVMesh.loadLayer(
@@ -587,9 +589,17 @@ export class NiivueWrapper {
 		if (volume !== undefined) {
 			volume.colormap = volumeFile.colorMap ?? 'gray';
 			const cmap = this.niivue.colormapFromKey(volume.colormap);
-			volume.setColormapLabel(cmap);
-		}
 
+			if (
+				cmap.R !== undefined &&
+				cmap.labels !== undefined &&
+				cmap.labels.length !== 0
+			) {
+				volume.setColormapLabel(cmap);
+			} else {
+				volume.colormapLabel = [];
+			}
+		}
 		// this.niivue.setColorMap(niivueVolume.id, volumeFile.colorMap ?? 'gray');
 	}
 

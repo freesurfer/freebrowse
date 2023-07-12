@@ -5,6 +5,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 declare module '@niivue/niivue' {
+	export class ColormapLut {
+		R: number[];
+		G: number[];
+		B: number[];
+		A: number[];
+		I: number[];
+		labels: string[];
+	}
+
 	export class Scene {
 		renderAzimuth: number;
 		renderElevation: number;
@@ -1214,7 +1223,7 @@ declare module '@niivue/niivue' {
 		 * @see {@link https://niivue.github.io/niivue/features/timeseries.html|live demo usage}
 		 */
 		getFrame4D(id: string): number;
-		colormapFromKey(name: any): any;
+		colormapFromKey(name: any): ColormapLut;
 		/**
 		 * determine active 3D volume from 4D time series
 		 * @param {string} id the ID of the 4D NVImage
