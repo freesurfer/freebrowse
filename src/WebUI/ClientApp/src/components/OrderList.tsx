@@ -1,9 +1,19 @@
 import { Checkbox } from '@/components/Checkbox';
-import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
+import {
+	FileLocation,
+	type ProjectFile,
+} from '@/pages/project/models/file/ProjectFile';
 import { ArrowsUpDownIcon } from '@heroicons/react/24/outline';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const CLICK_THRESHOLD = 3;
+
+const makeUniqueLabel = (projectFile: ProjectFile): string =>
+	`${projectFile.type}${
+		projectFile.location === FileLocation.CLOUD
+			? projectFile.id
+			: projectFile.name
+	}`;
 
 interface IRow<T_FILE_TYPE extends ProjectFile> {
 	projectFile: T_FILE_TYPE;
@@ -68,7 +78,7 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 			order = order + 1;
 
 			const existsAlready = this.rows.find(
-				(row) => row.projectFile.name === file?.name
+				(row) => makeUniqueLabel(row.projectFile) === makeUniqueLabel(file)
 			);
 
 			if (existsAlready === undefined) {
@@ -292,7 +302,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 				if (row.label === undefined) return <></>;
 				return (
 					<div
-						key={row.label}
+						key={makeUniqueLabel(row.projectFile)}
 						ref={(ref) => {
 							row.ref = ref;
 						}}
