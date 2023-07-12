@@ -3,7 +3,7 @@ import { ColorPicker } from '@/components/ColorPicker';
 import { DropDown } from '@/components/DropDown';
 import { Slider } from '@/components/Slider';
 import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
-import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { ProjectState } from '@/pages/project/models/ProjectState';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
 import { rgbToHex } from '@/pages/project/models/file/type/PointSetFile';
 import { useCallback, type Dispatch } from 'react';
@@ -36,18 +36,6 @@ export const FileSettings = ({
 		) => {
 			setProjectState((currentProjectState) =>
 				currentProjectState?.fromFileUpdate(file, options, upload)
-			);
-		},
-		[setProjectState]
-	);
-
-	const updateProjectOptions = useCallback(
-		(
-			options: Parameters<ProjectState['fromProjectUpdate']>[0],
-			upload: boolean
-		) => {
-			setProjectState((currentProjectState) =>
-				currentProjectState?.fromProjectUpdate(options, upload)
 			);
 		},
 		[setProjectState]
@@ -183,16 +171,22 @@ export const FileSettings = ({
 										min={0}
 										max={10}
 										onChange={(value) =>
-											updateProjectOptions(
-												{ meshThicknessOn2D: value * 0.1 },
-												false
-											)
+											setProjectState((projectState) => {
+												if (projectState === undefined) return undefined;
+												return new ProjectState(
+													{ projectState, meshThicknessOn2D: value * 0.1 },
+													false
+												);
+											})
 										}
 										onEnd={(value) =>
-											updateProjectOptions(
-												{ meshThicknessOn2D: value * 0.1 },
-												true
-											)
+											setProjectState((projectState) => {
+												if (projectState === undefined) return undefined;
+												return new ProjectState(
+													{ projectState, meshThicknessOn2D: value * 0.1 },
+													true
+												);
+											})
 										}
 									></Slider>
 									<FileSelection

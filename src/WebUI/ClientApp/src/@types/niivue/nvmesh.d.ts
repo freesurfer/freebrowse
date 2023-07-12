@@ -106,7 +106,7 @@ declare module '@niivue/niivue' {
 		vertexBuffer: any;
 		vao: any;
 		offsetPt0: any;
-		hasConnectome: any;
+		hasConnectome: boolean;
 		pts: any;
 		layers: NVMeshLayer[];
 		fiberLength: any;

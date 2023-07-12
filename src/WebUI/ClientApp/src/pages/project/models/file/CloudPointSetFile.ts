@@ -54,7 +54,8 @@ export class CloudPointSetFile
 			this.name,
 			this.size,
 			options.isActive ?? this.isActive,
-			options.isChecked ?? this.isChecked
+			options.isChecked ?? this.isChecked,
+			options.order ?? this.order
 		);
 	}
 }

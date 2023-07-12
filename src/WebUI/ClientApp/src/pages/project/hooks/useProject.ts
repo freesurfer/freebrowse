@@ -83,7 +83,11 @@ export const useProject = (
 		}
 	}, [initialState]); // eslint-disable-line react-hooks/exhaustive-deps
 
-	const { location, niivueWrapper } = useNiivue(canvas, projectState);
+	const { location, niivueWrapper } = useNiivue(
+		canvas,
+		projectState,
+		setProjectState
+	);
 
 	return { projectState, setProjectState, location, niivueWrapper };
 };

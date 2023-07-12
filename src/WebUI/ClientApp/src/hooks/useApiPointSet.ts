@@ -15,7 +15,7 @@ import { useRef } from 'react';
 export const useApiPointSet = (): {
 	create: (
 		projectId: number,
-		pointSets: CachePointSetFile[]
+		pointSets: readonly CachePointSetFile[]
 	) => Promise<CreatePointSetResponseDto[]>;
 	remove: (pointSet: CloudPointSetFile) => Promise<Unit>;
 } => {
@@ -23,7 +23,7 @@ export const useApiPointSet = (): {
 
 	const create = async (
 		projectId: number,
-		pointSets: CachePointSetFile[]
+		pointSets: readonly CachePointSetFile[]
 	): Promise<CreatePointSetResponseDto[]> => {
 		return await Promise.all(
 			pointSets.map(

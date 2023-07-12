@@ -37,69 +37,47 @@ export class ProjectState {
 	 */
 	public readonly meshThicknessOn2D: number | undefined;
 	/**
-	 * state of data received on the last fetch
-	 */
-	public readonly backendState: GetProjectDto;
-	/**
 	 * all files related to the project
 	 */
 	public readonly files: ProjectFiles;
 
 	constructor(
-		initialState:
+		args:
 			| {
 					backendState: GetProjectDto;
 			  }
-			| { projectState: ProjectState; projectFiles: ProjectFiles }
 			| {
-					id: number;
-					name: string | undefined;
+					projectState: ProjectState;
 					userMode?: USER_MODE;
 					meshThicknessOn2D?: number;
-					backendStateDto: GetProjectDto;
-					files: ProjectFiles;
+					files?: ProjectFiles;
 			  },
 		public readonly upload: boolean
 	) {
-		if ('backendState' in initialState) {
-			if (initialState.backendState.id === undefined)
+		if ('backendState' in args) {
+			if (args.backendState.id === undefined)
 				throw new Error('no id given for project');
-			this.id = initialState.backendState.id;
-			this.name = initialState.backendState.name;
+			this.id = args.backendState.id;
+			this.name = args.backendState.name;
 			this.userMode = USER_MODE.NAVIGATE;
-			this.meshThicknessOn2D = initialState.backendState.meshThicknessOn2D ?? 0;
-			this.backendState = initialState.backendState;
+			this.meshThicknessOn2D = args.backendState.meshThicknessOn2D ?? 0;
 			this.files = new ProjectFiles({
-				backendState: initialState.backendState,
+				backendState: args.backendState,
 			});
 			return;
 		}
 
-		if ('projectState' in initialState) {
-			this.id = initialState.projectState.id;
-			this.name = initialState.projectState.name;
-			this.userMode = initialState.projectState.userMode;
-			this.meshThicknessOn2D = initialState.projectState.meshThicknessOn2D ?? 0;
-			this.backendState = initialState.projectState.backendState;
-			this.files = initialState.projectFiles;
-			return;
-		}
+		this.id = args.projectState.id;
+		this.name = args.projectState.name;
 
-		if ('id' in initialState) {
-			this.id = initialState.id;
-			this.name = initialState.name;
-			this.userMode = initialState.userMode ?? USER_MODE.NAVIGATE;
-			this.meshThicknessOn2D = initialState.meshThicknessOn2D ?? 0;
-			this.backendState = initialState.backendStateDto;
-			this.files = initialState.files;
-			return;
-		}
-
-		throw new Error('initial state is not as expected');
+		this.userMode = args.userMode ?? args.projectState.userMode;
+		this.meshThicknessOn2D =
+			args.meshThicknessOn2D ?? args.projectState.meshThicknessOn2D;
+		this.files = args.files ?? args.projectState.files;
 	}
 
-	fromFiles(projectFiles: ProjectFiles, upload = true): ProjectState {
-		return new ProjectState({ projectState: this, projectFiles }, upload);
+	fromFiles(files: ProjectFiles, upload = true): ProjectState {
+		return new ProjectState({ projectState: this, files }, upload);
 	}
 
 	fromQuery(
@@ -172,7 +150,7 @@ export class ProjectState {
 			return new ProjectState(
 				{
 					projectState: this,
-					projectFiles: this.files.fromAdaptedVolumes(
+					files: this.files.fromAdaptedVolumes(
 						this.files.volumes.map((tmpVolume) =>
 							tmpVolume === file ? tmpVolume.from(options) : tmpVolume
 						)
@@ -185,7 +163,7 @@ export class ProjectState {
 			return new ProjectState(
 				{
 					projectState: this,
-					projectFiles: this.files.fromAdaptedSurfaces(
+					files: this.files.fromAdaptedSurfaces(
 						this.files.surfaces.map((tmpSurface) =>
 							tmpSurface === file ? tmpSurface.from(options) : tmpSurface
 						)
@@ -198,7 +176,7 @@ export class ProjectState {
 			return new ProjectState(
 				{
 					projectState: this,
-					projectFiles: this.files.fromAdaptedPointSets(
+					files: this.files.fromAdaptedPointSets(
 						this.files.pointSets.map((tmpPointSet) =>
 							tmpPointSet === file ? tmpPointSet.from(options) : tmpPointSet
 						)
@@ -208,28 +186,5 @@ export class ProjectState {
 			);
 
 		throw new Error('file type unknown');
-	}
-
-	/**
-	 * to update a property of a project
-	 * @param options property value to update
-	 * @param upload flag, if the change should get pushed to the backend
-	 * @returns new instance of the project state
-	 */
-	fromProjectUpdate(
-		options: Partial<Omit<ProjectState, 'id' | 'name' | 'backendStateDto'>>,
-		upload: boolean
-	): ProjectState {
-		return new ProjectState(
-			{
-				id: this.id,
-				name: this.name,
-				userMode: options.userMode ?? this.userMode,
-				meshThicknessOn2D: options.meshThicknessOn2D ?? this.meshThicknessOn2D,
-				backendStateDto: this.backendState,
-				files: options.files ?? this.files,
-			},
-			upload
-		);
 	}
 }

@@ -8,10 +8,7 @@ import { ToolButtonRadio } from '@/pages/project/components/topBar/ToolButtonRad
 import { ToolButtonSelect } from '@/pages/project/components/topBar/ToolButtonSelect';
 import { NewPointSetDialogContext } from '@/pages/project/dialogs/newPointSet/NewPointSetDialog';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
-import {
-	USER_MODE,
-	type ProjectState,
-} from '@/pages/project/models/ProjectState';
+import { USER_MODE, ProjectState } from '@/pages/project/models/ProjectState';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import {
 	ArrowUturnLeftIcon,
@@ -163,15 +160,18 @@ export const TopBar = ({
 				]}
 				value={projectState?.userMode ?? USER_MODE.NAVIGATE}
 				onChange={(value) =>
-					setProjectState((projectState) =>
-						projectState?.fromProjectUpdate({ userMode: value }, false)
-					)
+					setProjectState((projectState) => {
+						if (projectState === undefined) return undefined;
+						return new ProjectState({ projectState, userMode: value }, false);
+					})
 				}
 			></ToolButtonRadio>
 			<ToolButton
 				label="Equal Split"
 				icon={(className) => <EqualSplitViewIcon className={className} />}
-				buttonProps={{ onClick: () => alert('Clicked Equal Split') }}
+				buttonProps={{
+					onClick: () => alert('Not implemented yet - Equal Split'),
+				}}
 			></ToolButton>
 			<ToolButton
 				label="PointSet"
@@ -181,17 +181,17 @@ export const TopBar = ({
 			<ToolButton
 				label="Save All"
 				icon={(className) => <SaveAllIcon className={className} />}
-				buttonProps={{ onClick: () => alert('Clicked Save All') }}
+				buttonProps={{ onClick: () => alert('Not implemented yet - Save All') }}
 			></ToolButton>
 			<ToolButton
 				label="Undo"
 				icon={(className) => <ArrowUturnLeftIcon className={className} />}
-				buttonProps={{ onClick: () => alert('Clicked Undo') }}
+				buttonProps={{ onClick: () => alert('Not implemented yet - Undo') }}
 			/>
 			<ToolButton
 				label="Redo"
 				icon={(className) => <ArrowUturnRightIcon className={className} />}
-				buttonProps={{ onClick: () => alert('Clicked Redo') }}
+				buttonProps={{ onClick: () => alert('Not implemented yet - Redo') }}
 			/>
 			<ToolButton
 				label="Share"

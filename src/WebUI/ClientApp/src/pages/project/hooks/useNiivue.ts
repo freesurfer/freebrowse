@@ -3,7 +3,7 @@ import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { ViewSettings } from '@/pages/project/models/ViewSettings';
 // import type { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import type { LocationData } from '@niivue/niivue';
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, type Dispatch } from 'react';
 import { useQueryParams, withDefault, NumberParam } from 'use-query-params';
 
 /**
@@ -12,7 +12,10 @@ import { useQueryParams, withDefault, NumberParam } from 'use-query-params';
  */
 export const useNiivue = (
 	canvas: HTMLCanvasElement | null | undefined,
-	projectState: ProjectState | undefined
+	projectState: ProjectState | undefined,
+	setProjectState: Dispatch<
+		(currentState: ProjectState | undefined) => ProjectState | undefined
+	>
 ): {
 	location: LocationData | undefined;
 	niivueWrapper: NiivueWrapper | undefined;
@@ -96,6 +99,10 @@ export const useNiivue = (
 			niivueWrapper.current = undefined;
 		};
 	}, [canvas]);
+
+	useEffect(() => {
+		niivueWrapper.current?.updateCallback(setProjectState);
+	}, [setProjectState]);
 
 	useEffect(() => {
 		if (

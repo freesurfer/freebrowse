@@ -102,7 +102,7 @@ export const FileSelection = ({
 								onClick={(event) => {
 									event.stopPropagation();
 									if (cascadingFile.type === FileType.OVERLAY) {
-										return setProjectState((projectState) =>
+										setProjectState((projectState) =>
 											projectState?.fromFiles(
 												projectState.files.fromDeletedOverlay(
 													surfaceFile,
@@ -110,8 +110,9 @@ export const FileSelection = ({
 												)
 											)
 										);
+										return;
 									}
-									return setProjectState((projectState) =>
+									setProjectState((projectState) =>
 										projectState?.fromFiles(
 											projectState.files.fromDeletedAnnotation(
 												surfaceFile,

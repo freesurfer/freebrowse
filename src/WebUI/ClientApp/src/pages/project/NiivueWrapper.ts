@@ -13,7 +13,9 @@ import type {
 	NVImage,
 	NVMeshFromUrlOptions,
 	NVMeshLayer,
+	UIData,
 } from '@niivue/niivue';
+import type { Dispatch } from 'react';
 
 /**
  * this class is a wrapper for the niivue library reference
@@ -35,7 +37,7 @@ export class NiivueWrapper {
 			}),
 		dragAndDropEnabled: false,
 		dragMode: 3,
-		meshThicknessOn2D: 0.5,
+		// meshThicknessOn2D: 0.5,
 		isHighResolutionCapable: false,
 		isOrientCube: false,
 		enableBorderHighlight: true,
@@ -49,6 +51,12 @@ export class NiivueWrapper {
 	private isRunning = false;
 	private readonly volumeCache = new Map<string, NVImage>();
 	private readonly surfaceCache = new Map<string, NVMesh>();
+	private readonly lastState: ProjectState | undefined;
+	private setProjectState:
+		| Dispatch<
+				(currentState: ProjectState | undefined) => ProjectState | undefined
+		  >
+		| undefined;
 
 	constructor(
 		canvasRef: HTMLCanvasElement,
@@ -58,6 +66,19 @@ export class NiivueWrapper {
 	) {
 		this.niivue.addColormap('LookupTable', lookUpTable);
 		void this.niivue.attachToCanvas(canvasRef);
+		this.niivue.onMouseUp = (uiData) => this.onMouseUp(uiData);
+	}
+
+	/**
+	 * we need to pass the setter callback every time the state has changed, since it will get recreated,
+	 * while the niivue wrapper will be always the same reference instance
+	 */
+	public updateCallback(
+		setProjectState: Dispatch<
+			(currentState: ProjectState | undefined) => ProjectState | undefined
+		>
+	): void {
+		this.setProjectState = setProjectState;
 	}
 
 	/**
@@ -389,8 +410,9 @@ export class NiivueWrapper {
 			const niivueVolume = this.niivue.volumes.find(
 				(niivueVolume) => niivueVolume.name === volume.name
 			);
-			if (niivueVolume !== undefined)
+			if (niivueVolume !== undefined) {
 				this.volumeCache.set(volume.name, niivueVolume);
+			}
 		}
 
 		for (const surface of files.surfaces) {
@@ -722,5 +744,63 @@ export class NiivueWrapper {
 
 		const label = volume.colormapLabel.labels[value];
 		return label;
+	}
+
+	private deleteNode(XYZmm: [number, number, number]): void {
+		const nodes = this.niivue.meshes[0].nodes;
+		if (nodes.X.length < 1) return;
+
+		let minDx = Number.POSITIVE_INFINITY;
+		let minIdx = 0;
+		// check distance of each node from clicked location
+		for (let i = 0; i < nodes.X.length; i++) {
+			const dx = Math.sqrt(
+				Math.pow(XYZmm[0] - nodes.X[i], 2) +
+					Math.pow(XYZmm[1] - nodes.Y[i], 2) +
+					Math.pow(XYZmm[2] - nodes.Z[i], 2)
+			);
+			if (dx < minDx) {
+				minDx = dx;
+				minIdx = i;
+			}
+		}
+		const tolerance = 15.0; // e.g. only 15mm from clicked location
+		if (minDx > tolerance) return;
+		nodes.names.splice(minIdx, 1);
+		nodes.prefilled.splice(minIdx, 1);
+		nodes.X.splice(minIdx, 1);
+		nodes.Y.splice(minIdx, 1);
+		nodes.Z.splice(minIdx, 1);
+		nodes.Color.splice(minIdx, 1);
+		nodes.Size.splice(minIdx, 1);
+		this.niivue.meshes[0].updateMesh(this.niivue.gl);
+		this.niivue.updateGLVolume();
+	}
+
+	private addNode(XYZmm: [number, number, number]): void {
+		const nodes = this.niivue.meshes[0].nodes;
+		console.log('Adding ', XYZmm);
+		nodes.names.push('');
+		nodes.prefilled.push('');
+		nodes.X.push(XYZmm[0]);
+		nodes.Y.push(XYZmm[1]);
+		nodes.Z.push(XYZmm[2]);
+		nodes.Color.push(1);
+		nodes.Size.push(1);
+		this.niivue.meshes[0].updateMesh(this.niivue.gl);
+		this.niivue.updateGLVolume();
+	}
+
+	private onMouseUp(uiData: UIData): void {
+		if (uiData.fracPos[0] < 0) return; // not on volume
+		if (uiData.mouseButtonCenterDown) return;
+		const XYZmmVec = this.niivue.frac2mm(uiData.fracPos);
+		const XYZmm: [number, number, number] = [
+			XYZmmVec[0],
+			XYZmmVec[1],
+			XYZmmVec[2],
+		];
+		if (uiData.mouseButtonRightDown) this.deleteNode(XYZmm);
+		else this.addNode(XYZmm);
 	}
 }

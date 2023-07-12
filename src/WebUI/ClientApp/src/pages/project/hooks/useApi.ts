@@ -4,12 +4,15 @@ import { useApiPointSet } from '@/hooks/useApiPointSet';
 import { useApiProject } from '@/hooks/useApiProject';
 import { useApiSurface } from '@/hooks/useApiSurface';
 import { useApiVolume } from '@/hooks/useApiVolume';
+import { useQueue } from '@/pages/project/hooks/api/useQueue';
+import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import { ProjectState } from '@/pages/project/models/ProjectState';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
+import { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
 import type { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import type { Dispatch } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const createOverlays = async (
 	cloudSurfaces: readonly CloudSurfaceFile[],
@@ -242,109 +245,134 @@ export const useApi = (
 	projectState: ProjectState | undefined
 ): { initialState: ProjectState | undefined } => {
 	/**
-	 * keeps the last updated state to have something to compare to
-	 */
-	const [lastUpload, setLastUpload] = useState<ProjectState>();
-
-	/**
 	 * provides the initial project state according to the project fetch request
 	 */
 	const [initialState, setInitialState] = useState<ProjectState>();
 
+	/**
+	 * reload project on changed projectId
+	 */
+	const [currentProjectId, setCurrentProjectId] = useState<
+		string | undefined
+	>();
+
 	const apiProject = useApiProject();
 	const apiVolume = useApiVolume();
 	const apiSurface = useApiSurface();
-	// TODO bere update backend
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const apiPointSet = useApiPointSet();
 	const apiOverlay = useApiOverlay();
 	const apiAnnotation = useApiAnnotation();
 
 	useEffect(() => {
 		if (projectId === undefined) return;
-		if (projectState !== undefined) return;
-		if (lastUpload !== undefined && projectState === lastUpload) return;
+		if (projectState !== undefined && projectId === currentProjectId) return;
 
 		const fetchProject = async (): Promise<void> => {
 			try {
 				const backendState = await apiProject.get(projectId);
+				setCurrentProjectId(projectId);
 				const initialProjectState = new ProjectState({ backendState }, false);
 				setInitialState(initialProjectState);
-				setLastUpload(initialProjectState);
 			} catch (error) {
 				console.error('failed to fetch project', error);
 			}
 		};
 
 		void fetchProject();
-	}, [projectId, lastUpload, setLastUpload, projectState, apiProject]);
+	}, [
+		projectId,
+		projectState,
+		apiProject,
+		setCurrentProjectId,
+		currentProjectId,
+	]);
 
-	useEffect(() => {
-		/**
-		 * detect updates in the project state and upload increments to the backend
-		 */
-		const updateBackend = async (): Promise<void> => {
-			if (projectState === undefined) return;
-			if (!projectState.upload) return;
-			if (projectState === lastUpload) return;
+	useQueue(
+		projectState,
+		true,
+		useCallback(
+			async (changeDetection) => {
+				if (changeDetection === undefined) return;
 
-			if (
-				lastUpload === undefined ||
-				projectState.name !== lastUpload.name ||
-				projectState.meshThicknessOn2D !== lastUpload.meshThicknessOn2D
-			) {
-				await apiProject.edit(
-					projectState.id.toString(),
-					projectState.name,
-					projectState.meshThicknessOn2D
+				if (changeDetection.editProject) {
+					await apiProject.edit(
+						changeDetection.nextState.id.toString(),
+						changeDetection.nextState.name,
+						changeDetection.nextState.meshThicknessOn2D
+					);
+				}
+
+				if (changeDetection.editVolume) {
+					await apiVolume.edit(
+						changeDetection.nextState.files.cloudVolumes,
+						changeDetection.previousState?.files.cloudVolumes
+					);
+				}
+
+				await handleCloudSurface(
+					changeDetection.nextState.files.cloudSurfaces,
+					changeDetection.previousState?.files.cloudSurfaces,
+					apiSurface,
+					apiOverlay,
+					apiAnnotation,
+					setProjectState
 				);
-			}
 
-			if (
-				lastUpload === undefined ||
-				projectState.files.cloudVolumes !== lastUpload.files.cloudVolumes
-			) {
-				await apiVolume.edit(
-					projectState.files.cloudVolumes,
-					lastUpload?.files.cloudVolumes
-				);
-			}
+				if (changeDetection.hasCachePointSetFiles) {
+					const response = await apiPointSet.create(
+						changeDetection.nextState.id,
+						changeDetection.nextState.files.cachePointSets
+					);
+					setProjectState((projectState) => {
+						if (projectState === undefined) return undefined;
+						return new ProjectState(
+							{
+								projectState,
+								files: new ProjectFiles({
+									projectFiles: projectState.files,
+									cachePointSets: [],
+									cloudPointSets: [
+										...projectState.files.cloudPointSets,
+										...response.map((dto) => {
+											if (dto.id === undefined)
+												throw new Error(
+													'each point set file needs to have an id'
+												);
+											if (dto.fileName === undefined)
+												throw new Error(
+													'each point set file needs to have a name'
+												);
+											if (dto.fileSize === undefined)
+												throw new Error(
+													'each point set file needs to have a size'
+												);
+											return new CloudPointSetFile(
+												dto.id,
+												dto.fileName,
+												dto.fileSize
+											);
+										}),
+									],
+								}),
+							},
+							false
+						);
+					});
+				}
 
-			await handleCloudSurface(
-				projectState.files.cloudSurfaces,
-				lastUpload?.files.cloudSurfaces,
+				// TODO BERE 2 update cloudPointSet files if updated
+			},
+			[
+				apiProject,
 				apiSurface,
+				apiVolume,
+				apiPointSet,
 				apiOverlay,
 				apiAnnotation,
-				setProjectState
-			);
-
-			// TODO upload cached pointSet files
-			// TODO update cloudPointSet files if updated
-
-			if (
-				lastUpload === undefined ||
-				projectState.name !== lastUpload.name ||
-				projectState.meshThicknessOn2D !== lastUpload.meshThicknessOn2D ||
-				projectState.files.cloudVolumes !== lastUpload.files.cloudVolumes ||
-				projectState.files.cloudSurfaces !== lastUpload.files.cloudSurfaces
-			) {
-				setLastUpload(projectState);
-			}
-		};
-
-		void updateBackend();
-	}, [
-		projectState,
-		lastUpload,
-		setLastUpload,
-		apiSurface,
-		apiVolume,
-		apiOverlay,
-		apiAnnotation,
-		setProjectState,
-		apiProject,
-	]);
+				setProjectState,
+			]
+		)
+	);
 
 	return { initialState };
 };
