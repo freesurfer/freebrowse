@@ -16,7 +16,7 @@
 	"dependencies": {
 		"@heroicons/react": "^2.0.18",
 		"@microsoft/signalr": "^7.0.7",
-		"@niivue/niivue": "^0.35.1",
+		"@niivue/niivue": "file:./niivue-fork.tgz",
 		"react": "^18.2.0",
 		"react-collapsed": "^4.0.2",
 		"react-dom": "^18.2.0",
