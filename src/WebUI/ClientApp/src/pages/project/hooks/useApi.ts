@@ -291,37 +291,42 @@ export const useApi = (
 		projectState,
 		true,
 		useCallback(
-			async (changeDetection) => {
-				if (changeDetection === undefined) return;
-
-				if (changeDetection.editProject) {
+			async (previousState, nextState) => {
+				if (
+					previousState === undefined ||
+					nextState.name !== previousState.name ||
+					nextState.meshThicknessOn2D !== previousState.meshThicknessOn2D
+				) {
 					await apiProject.edit(
-						changeDetection.nextState.id.toString(),
-						changeDetection.nextState.name,
-						changeDetection.nextState.meshThicknessOn2D
+						nextState.id.toString(),
+						nextState.name,
+						nextState.meshThicknessOn2D
 					);
 				}
 
-				if (changeDetection.editVolume) {
+				if (
+					previousState === undefined ||
+					nextState.files.cloudVolumes !== previousState.files.cloudVolumes
+				) {
 					await apiVolume.edit(
-						changeDetection.nextState.files.cloudVolumes,
-						changeDetection.previousState?.files.cloudVolumes
+						nextState.files.cloudVolumes,
+						previousState?.files.cloudVolumes
 					);
 				}
 
 				await handleCloudSurface(
-					changeDetection.nextState.files.cloudSurfaces,
-					changeDetection.previousState?.files.cloudSurfaces,
+					nextState.files.cloudSurfaces,
+					previousState?.files.cloudSurfaces,
 					apiSurface,
 					apiOverlay,
 					apiAnnotation,
 					setProjectState
 				);
 
-				if (changeDetection.hasCachePointSetFiles) {
+				if (nextState.files.cachePointSets.length > 0) {
 					const response = await apiPointSet.create(
-						changeDetection.nextState.id,
-						changeDetection.nextState.files.cachePointSets
+						nextState.id,
+						nextState.files.cachePointSets
 					);
 					setProjectState((projectState) => {
 						if (projectState === undefined) return undefined;

@@ -1,4 +1,3 @@
-import { ProjectChangeDetection } from '@/pages/project/models/ProjectChangeDetection';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { useEffect, useState } from 'react';
 
@@ -8,7 +7,10 @@ import { useEffect, useState } from 'react';
 export const useQueue = (
 	projectState: ProjectState | undefined,
 	onlyUploaded: boolean,
-	next: (projectChangeDetection: ProjectChangeDetection) => Promise<void>
+	next: (
+		previousState: ProjectState | undefined,
+		nextState: ProjectState
+	) => Promise<void>
 ): void => {
 	const [previousState, setPreviousState] = useState<
 		ProjectState | undefined
@@ -31,14 +33,10 @@ export const useQueue = (
 			if (isRunning) return;
 			setIsRunning(true);
 
-			const changeDetection = new ProjectChangeDetection(
-				previousState,
-				nextState
-			);
 			setPreviousState(nextState);
 			setNextState(undefined);
 
-			await next(changeDetection);
+			await next(previousState, nextState);
 			setIsRunning(false);
 		};
 

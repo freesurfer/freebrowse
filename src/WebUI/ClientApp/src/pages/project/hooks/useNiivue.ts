@@ -1,4 +1,5 @@
 import { NiivueWrapper } from '@/pages/project/NiivueWrapper';
+import { useQueue } from '@/pages/project/hooks/api/useQueue';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { ViewSettings } from '@/pages/project/models/ViewSettings';
 // import type { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
@@ -100,61 +101,71 @@ export const useNiivue = (
 		};
 	}, [canvas]);
 
-	useEffect(() => {
-		niivueWrapper.current?.updateCallback(setProjectState);
-	}, [setProjectState]);
-
-	useEffect(() => {
-		if (
-			projectState === undefined ||
-			niivueWrapper === undefined ||
-			niivueWrapper.current === undefined ||
-			niivueWrapper.current === null
-		)
-			return;
-
-		if (deeplinkInitialized || rasX === undefined) {
-			niivueWrapper.current.next(projectState, undefined);
-		} else {
-			niivueWrapper.current.next(
-				projectState,
-				new ViewSettings(
-					zoom2d,
-					zoom2dX,
-					zoom2dY,
-					zoom2dZ,
-					zoom3d,
-					sliceX,
-					sliceY,
-					sliceZ,
-					rasX,
-					rasY,
-					rasZ,
-					renderAzimuth,
-					renderElevation
-				)
-			);
-
-			setDeeplinkInitialized(true);
-		}
-	}, [
+	useQueue(
 		projectState,
-		niivueWrapper,
-		deeplinkInitialized,
-		sliceX,
-		sliceY,
-		sliceZ,
-		zoom3d,
-		zoom2d,
-		zoom2dX,
-		zoom2dY,
-		zoom2dZ,
-		rasX,
-		rasY,
-		rasZ,
-		renderAzimuth,
-		renderElevation,
-	]);
+		false,
+		useCallback(
+			async (previousState, nextState) => {
+				if (
+					niivueWrapper === undefined ||
+					niivueWrapper.current === undefined ||
+					niivueWrapper.current === null
+				)
+					return;
+
+				if (deeplinkInitialized || rasX === undefined) {
+					// TODO Bere do not use projectChangeDetection class, pass two states and create a helper function for each iteration
+					await niivueWrapper.current.next(
+						previousState,
+						nextState,
+						undefined,
+						setProjectState
+					);
+				} else {
+					await niivueWrapper.current.next(
+						previousState,
+						nextState,
+						new ViewSettings(
+							zoom2d,
+							zoom2dX,
+							zoom2dY,
+							zoom2dZ,
+							zoom3d,
+							sliceX,
+							sliceY,
+							sliceZ,
+							rasX,
+							rasY,
+							rasZ,
+							renderAzimuth,
+							renderElevation
+						),
+						setProjectState
+					);
+
+					setDeeplinkInitialized(true);
+				}
+			},
+			[
+				niivueWrapper,
+				deeplinkInitialized,
+				sliceX,
+				sliceY,
+				sliceZ,
+				zoom3d,
+				zoom2d,
+				zoom2dX,
+				zoom2dY,
+				zoom2dZ,
+				rasX,
+				rasY,
+				rasZ,
+				renderAzimuth,
+				renderElevation,
+				setProjectState,
+			]
+		)
+	);
 
 	const handleKeyDown = useCallback((event: KeyboardEvent) => {
 		if (niivueWrapper.current === undefined) return;

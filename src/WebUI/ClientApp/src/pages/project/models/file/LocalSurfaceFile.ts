@@ -7,6 +7,7 @@ import { LocalFile } from '@/pages/project/models/file/location/LocalFile';
 import type { AnnotationFile } from '@/pages/project/models/file/type/AnnotationFile';
 import type { OverlayFile } from '@/pages/project/models/file/type/OverlayFile';
 import type { ISurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
+import type { NVMesh } from '@niivue/niivue';
 
 export class LocalSurfaceFile
 	extends LocalFile
@@ -23,7 +24,8 @@ export class LocalSurfaceFile
 		public readonly order: number | undefined = undefined,
 		public readonly color = '#ffffff',
 		public readonly overlayFiles: OverlayFile[] = [],
-		public readonly annotationFiles: AnnotationFile[] = []
+		public readonly annotationFiles: AnnotationFile[] = [],
+		public readonly niivueRef: NVMesh | undefined = undefined
 	) {
 		super(file);
 		this.size = file.size;
@@ -37,6 +39,7 @@ export class LocalSurfaceFile
 		color?: string;
 		overlayFiles?: OverlayFile[];
 		annotationFiles?: AnnotationFile[];
+		niivueRef?: NVMesh;
 	}): LocalSurfaceFile {
 		return new LocalSurfaceFile(
 			this.file,
@@ -45,7 +48,8 @@ export class LocalSurfaceFile
 			options.order ?? this.order,
 			options.color ?? this.color,
 			options.overlayFiles ?? this.overlayFiles,
-			options.annotationFiles ?? this.annotationFiles
+			options.annotationFiles ?? this.annotationFiles,
+			options.niivueRef ?? this.niivueRef
 		);
 	}
 

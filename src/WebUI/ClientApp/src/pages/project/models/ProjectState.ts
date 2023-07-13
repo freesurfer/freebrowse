@@ -1,7 +1,13 @@
 import type { GetProjectDto } from '@/generated/web-api-client';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
+import { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
+import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
+import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
+import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
+import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
-import { FileType } from '@/pages/project/models/file/ProjectFile';
+import type { PointSetFile } from '@/pages/project/models/file/type/PointSetFile';
 import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
 import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 
@@ -146,39 +152,47 @@ export class ProjectState {
 		options: Parameters<T_FILE_TYPE['from']>[0],
 		upload: boolean
 	): ProjectState {
-		if (file.type === FileType.VOLUME)
+		if (file instanceof CloudVolumeFile || file instanceof LocalVolumeFile)
 			return new ProjectState(
 				{
 					projectState: this,
 					files: this.files.fromAdaptedVolumes(
 						this.files.volumes.map((tmpVolume) =>
-							tmpVolume === file ? tmpVolume.from(options) : tmpVolume
+							tmpVolume === file
+								? tmpVolume.from(options as Parameters<VolumeFile['from']>[0])
+								: tmpVolume
 						)
 					),
 				},
 				upload
 			);
 
-		if (file.type === FileType.SURFACE)
+		if (file instanceof CloudSurfaceFile || file instanceof LocalSurfaceFile)
 			return new ProjectState(
 				{
 					projectState: this,
 					files: this.files.fromAdaptedSurfaces(
 						this.files.surfaces.map((tmpSurface) =>
-							tmpSurface === file ? tmpSurface.from(options) : tmpSurface
+							tmpSurface === file
+								? tmpSurface.from(options as Parameters<SurfaceFile['from']>[0])
+								: tmpSurface
 						)
 					),
 				},
 				upload
 			);
 
-		if (file.type === FileType.POINT_SET)
+		if (file instanceof CloudPointSetFile || file instanceof CachePointSetFile)
 			return new ProjectState(
 				{
 					projectState: this,
 					files: this.files.fromAdaptedPointSets(
 						this.files.pointSets.map((tmpPointSet) =>
-							tmpPointSet === file ? tmpPointSet.from(options) : tmpPointSet
+							tmpPointSet === file
+								? tmpPointSet.from(
+										options as Parameters<PointSetFile['from']>[0]
+								  )
+								: tmpPointSet
 						)
 					),
 				},

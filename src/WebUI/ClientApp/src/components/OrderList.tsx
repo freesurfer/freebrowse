@@ -105,15 +105,16 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 	}
 
 	private pushNewOrder(): void {
-		const newFiles: T_FILE_TYPE[] = [];
-		let orderHasChanged = false;
-		for (const row of this.rows) {
-			if (row.projectFile.order !== row.order) orderHasChanged = true;
-			newFiles.push(row.projectFile.from({ order: row.order }) as T_FILE_TYPE);
-		}
-		if (orderHasChanged) {
-			this.setFiles(newFiles);
-		}
+		const orderHasChanged = this.rows.some(
+			(row) => row.order !== row.projectFile.order
+		);
+		if (!orderHasChanged) return;
+
+		this.setFiles(
+			this.rows.map(
+				(row) => row.projectFile.from({ order: row.order }) as T_FILE_TYPE
+			)
+		);
 	}
 
 	startDrag(mouseStart: number, entry: IRow<T_FILE_TYPE>): void {

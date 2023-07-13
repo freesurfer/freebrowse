@@ -5,6 +5,7 @@ import type { IOrderableFile } from '@/pages/project/models/file/extension/Order
 import { CloudFile } from '@/pages/project/models/file/location/CloudFile';
 import type { IPointSetFile } from '@/pages/project/models/file/type/PointSetFile';
 import { getApiUrl } from '@/utils';
+import type { NVMesh } from '@niivue/niivue';
 
 export class CloudPointSetFile
 	extends CloudFile
@@ -38,7 +39,8 @@ export class CloudPointSetFile
 		public readonly size: number,
 		public readonly isActive = false,
 		public readonly isChecked = true,
-		public readonly order: number | undefined = undefined
+		public readonly order: number | undefined = undefined,
+		public readonly niivueRef: NVMesh | undefined = undefined
 	) {
 		if (id === undefined) throw new Error('no id for cloud volume file');
 		super(id, name, `${getApiUrl()}/api/PointSet?Id=${String(id)}`);
@@ -48,6 +50,7 @@ export class CloudPointSetFile
 		order?: number;
 		isActive?: boolean;
 		isChecked?: boolean;
+		niivueRef?: NVMesh;
 	}): CloudPointSetFile {
 		return new CloudPointSetFile(
 			this.id,
@@ -55,7 +58,8 @@ export class CloudPointSetFile
 			this.size,
 			options.isActive ?? this.isActive,
 			options.isChecked ?? this.isChecked,
-			options.order ?? this.order
+			options.order ?? this.order,
+			options.niivueRef ?? this.niivueRef
 		);
 	}
 }
