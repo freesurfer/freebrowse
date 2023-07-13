@@ -35,6 +35,10 @@ public class EditPointSetCommandHandler : IRequestHandler<EditPointSetCommand, E
 			File.WriteAllBytes(pointSet.Path, Convert.FromBase64String(request.Base64));
 		}
 
+		pointSet.Order = request.Order ?? pointSet.Order;
+		pointSet.Opacity = request.Opacity ?? pointSet.Opacity;
+		pointSet.Visible = request.Visible ?? pointSet.Visible;
+
 		try
 		{
 			await this.context.SaveChangesAsync(cancellationToken);

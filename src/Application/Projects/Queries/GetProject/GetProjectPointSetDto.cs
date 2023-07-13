@@ -12,4 +12,10 @@ public record GetProjectPointSetDto : IMapFrom<PointSet>
 	public string FileName { get; set; } = null!;
 
 	public long FileSize { get; set; }
+
+	public int Order { get; set; }
+
+	public int Opacity { get; set; }
+
+	public bool Visible { get; set; }
 }

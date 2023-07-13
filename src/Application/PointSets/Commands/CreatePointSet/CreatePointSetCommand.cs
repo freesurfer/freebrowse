@@ -8,5 +8,11 @@ public record CreatePointSetCommand : IRequest<CreatePointSetResponseDto>
 
 	public string FileName { get; init; } = null!;
 
+	public int Order { get; init; }
+
+	public int Opacity { get; set; }
+
+	public bool Visible { get; set; }
+
 	public int ProjectId { get; init; }
 }

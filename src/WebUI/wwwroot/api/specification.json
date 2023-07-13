@@ -1237,6 +1237,17 @@
           "fileSize": {
             "type": "integer",
             "format": "int64"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
           }
         }
       },
@@ -1249,6 +1260,17 @@
           },
           "fileName": {
             "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
           },
           "projectId": {
             "type": "integer",
@@ -1280,6 +1302,20 @@
           },
           "base64": {
             "type": "string",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "visible": {
+            "type": "boolean",
             "nullable": true
           }
         }
@@ -1513,6 +1549,17 @@
           "fileSize": {
             "type": "integer",
             "format": "int64"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visible": {
+            "type": "boolean"
           }
         }
       },

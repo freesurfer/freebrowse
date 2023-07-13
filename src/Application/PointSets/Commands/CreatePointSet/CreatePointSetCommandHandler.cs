@@ -33,6 +33,9 @@ public class CreatePointSetCommandHandler : IRequestHandler<CreatePointSetComman
 			{
 				Path = filePath,
 				FileName = request.FileName,
+				Order = request.Order,
+				Opacity = request.Opacity,
+				Visible = request.Visible,
 				ProjectId = request.ProjectId
 			};
 
