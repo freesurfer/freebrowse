@@ -1,6 +1,7 @@
 import type {
 	CreatePointSetResponseDto,
 	EditPointResponseDto,
+	GetProjectPointSetDto,
 	Unit,
 } from '@/generated/web-api-client';
 import {
@@ -16,7 +17,9 @@ import { getApiUrl } from '@/utils';
 import { useRef } from 'react';
 
 export const useApiPointSet = (): {
-	get: (dto: CreatePointSetResponseDto) => Promise<CloudPointSetFile>;
+	get: (
+		dto: CreatePointSetResponseDto | GetProjectPointSetDto
+	) => Promise<CloudPointSetFile>;
 	create: (
 		projectId: number,
 		pointSets: readonly CachePointSetFile[]
@@ -27,7 +30,7 @@ export const useApiPointSet = (): {
 	const client = useRef(new PointSetClient(getApiUrl()));
 
 	const get = async (
-		dto: CreatePointSetResponseDto
+		dto: CreatePointSetResponseDto | GetProjectPointSetDto
 	): Promise<CloudPointSetFile> => {
 		if (dto.id === undefined)
 			throw new Error('each point set file needs to have an id');
@@ -41,13 +44,21 @@ export const useApiPointSet = (): {
 			const data: IPointSetData = JSON.parse(
 				await pointSetResponse.data.text()
 			);
-			return new CloudPointSetFile(dto.id, dto.fileName, dto.fileSize, data);
+			return new CloudPointSetFile(
+				dto.id,
+				dto.fileName,
+				dto.fileSize,
+				data,
+				false,
+				dto.visible ?? true,
+				dto.order
+			);
 		} catch (error) {
-			console.warn(
+			console.error(
 				'something went wrong parsing the point set data json',
 				error
 			);
-			return new CloudPointSetFile(dto.id, dto.fileName, dto.fileSize);
+			throw error;
 		}
 	};
 
@@ -73,6 +84,9 @@ export const useApiPointSet = (): {
 			new EditPointSetCommand({
 				id: file.id,
 				base64: file.getBase64(),
+				order: file.order,
+				opacity: file.progress,
+				visible: file.isChecked,
 			})
 		);
 

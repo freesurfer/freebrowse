@@ -1,7 +1,6 @@
 import type {
 	CreateVolumeResponseDto,
 	CreateSurfaceResponseDto,
-	GetProjectDto,
 	CreateOverlayResponseDto,
 	CreateAnnotationResponseDto,
 } from '@/generated/web-api-client';
@@ -57,7 +56,6 @@ export class ProjectFiles {
 	 */
 	constructor(
 		initState?:
-			| { backendState: GetProjectDto }
 			| {
 					projectFiles: ProjectFiles;
 					localSurfaces?: readonly LocalSurfaceFile[];
@@ -81,33 +79,6 @@ export class ProjectFiles {
 			this.volumes = [];
 			this.pointSets = [];
 			this.all = [];
-			return;
-		}
-
-		if ('backendState' in initState) {
-			// new class from given backend state
-			this.localSurfaces = [];
-			this.localVolumes = [];
-			this.cloudVolumes =
-				initState.backendState.volumes?.map<CloudVolumeFile>((fileDto) =>
-					CloudVolumeFile.fromDto(fileDto)
-				) ?? [];
-
-			this.cloudSurfaces =
-				initState.backendState.surfaces?.map<CloudSurfaceFile>((fileDto) =>
-					CloudSurfaceFile.fromDto(fileDto)
-				) ?? [];
-
-			this.cachePointSets = [];
-			this.cloudPointSets =
-				initState.backendState.pointSets?.map<CloudPointSetFile>((fileDto) =>
-					CloudPointSetFile.fromDto(fileDto)
-				) ?? [];
-
-			this.surfaces = [...this.cloudSurfaces, ...this.localSurfaces];
-			this.volumes = [...this.cloudVolumes, ...this.localVolumes];
-			this.pointSets = this.cloudPointSets;
-			this.all = [...this.surfaces, ...this.volumes];
 			return;
 		}
 

@@ -1,4 +1,3 @@
-import type { GetProjectDto } from '@/generated/web-api-client';
 import {
 	CreateProjectCommand,
 	CreateProjectSurfaceDto,
@@ -6,12 +5,19 @@ import {
 	EditProjectCommand,
 	ProjectsClient,
 } from '@/generated/web-api-client';
-import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import type { useApiPointSet } from '@/hooks/useApiPointSet';
+import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import { ProjectState } from '@/pages/project/models/ProjectState';
+import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
+import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import { getApiUrl } from '@/utils';
 import { useRef } from 'react';
 
 export const useApiProject = (): {
-	get: (projectId: string) => Promise<GetProjectDto>;
+	get: (
+		projectId: string,
+		apiPointSet: ReturnType<typeof useApiPointSet>
+	) => Promise<ProjectState>;
 	create: (
 		projectName: string | undefined,
 		projectMeshThicknessOn2D: number | undefined,
@@ -28,14 +34,57 @@ export const useApiProject = (): {
 		projectId: number;
 	}>;
 } => {
-	const client = useRef(new ProjectsClient(getApiUrl()));
+	const projectClient = useRef(new ProjectsClient(getApiUrl()));
 
-	const get = async (projectId: string): Promise<GetProjectDto> => {
+	const get = async (
+		projectId: string,
+		apiPointSet: ReturnType<typeof useApiPointSet>
+	): Promise<ProjectState> => {
 		if (projectId === undefined) {
 			throw new Error('no project id given');
 		}
 
-		return await client.current.getProject(Number(projectId));
+		const backendState = await projectClient.current.getProject(
+			Number(projectId)
+		);
+
+		if (backendState.id === undefined)
+			throw new Error('no id given for project');
+		if (backendState.name === undefined)
+			throw new Error('no name given for project');
+
+		const cloudVolumes =
+			backendState.volumes?.map<CloudVolumeFile>((fileDto) =>
+				CloudVolumeFile.fromDto(fileDto)
+			) ?? [];
+
+		const cloudSurfaces =
+			backendState.surfaces?.map<CloudSurfaceFile>((fileDto) =>
+				CloudSurfaceFile.fromDto(fileDto)
+			) ?? [];
+
+		const cloudPointSets = await Promise.all(
+			backendState.pointSets?.map(
+				async (fileDto) => await apiPointSet.get(fileDto)
+			) ?? []
+		);
+
+		const files = new ProjectFiles({
+			projectFiles: new ProjectFiles(),
+			cloudVolumes,
+			cloudSurfaces,
+			cloudPointSets,
+		});
+
+		return new ProjectState(
+			{
+				id: backendState.id,
+				name: backendState.name,
+				meshThicknessOn2D: backendState.meshThicknessOn2D,
+				files,
+			},
+			false
+		);
 	};
 
 	const create = async (
@@ -46,7 +95,7 @@ export const useApiProject = (): {
 		projectId: number;
 		projectFiles: ProjectFiles;
 	}> => {
-		const createProjectResponse = await client.current.create(
+		const createProjectResponse = await projectClient.current.create(
 			new CreateProjectCommand({
 				name: projectName,
 				meshThicknessOn2D: projectMeshThicknessOn2D,
@@ -99,7 +148,7 @@ export const useApiProject = (): {
 			throw new Error('no project id given');
 		}
 
-		const editProjectResponse = await client.current.edit(
+		const editProjectResponse = await projectClient.current.edit(
 			new EditProjectCommand({
 				id: Number(projectId),
 				name: projectName,

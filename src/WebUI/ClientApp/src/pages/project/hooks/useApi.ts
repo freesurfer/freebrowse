@@ -268,9 +268,11 @@ export const useApi = (
 
 		const fetchProject = async (): Promise<void> => {
 			try {
-				const backendState = await apiProject.get(projectId);
+				const initialProjectState = await apiProject.get(
+					projectId,
+					apiPointSet
+				);
 				setCurrentProjectId(projectId);
-				const initialProjectState = new ProjectState({ backendState }, false);
 				setInitialState(initialProjectState);
 			} catch (error) {
 				console.error('failed to fetch project', error);
@@ -282,6 +284,7 @@ export const useApi = (
 		projectId,
 		projectState,
 		apiProject,
+		apiPointSet,
 		setCurrentProjectId,
 		currentProjectId,
 	]);
@@ -369,7 +372,9 @@ export const useApi = (
 							previousState.files.cloudPointSets.some(
 								(file) =>
 									file.id === cloudPointSetFile.id &&
-									file.data === cloudPointSetFile.data
+									file.data === cloudPointSetFile.data &&
+									file.isChecked === cloudPointSetFile.isChecked &&
+									file.order === cloudPointSetFile.order
 							)
 						)
 							continue;

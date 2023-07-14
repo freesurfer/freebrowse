@@ -1,4 +1,3 @@
-import type { GetProjectPointSetDto } from '@/generated/web-api-client';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
 import type { IManageableFile } from '@/pages/project/models/file/extension/ManageableFile';
 import type { IOrderableFile } from '@/pages/project/models/file/extension/OrderableFile';
@@ -17,33 +16,14 @@ export class CloudPointSetFile
 	public readonly type = FileType.POINT_SET;
 	public readonly progress = 100;
 
-	public static fromDto(fileDto: GetProjectPointSetDto): CloudPointSetFile {
-		if (fileDto === undefined)
-			throw new Error('undefined array entry is not allowed');
-
-		if (fileDto?.id === undefined) throw new Error('no file without file id');
-
-		if (fileDto?.fileName === undefined)
-			throw new Error('no file without file name');
-
-		if (fileDto?.fileSize === undefined)
-			throw new Error('no file without file size');
-
-		return new CloudPointSetFile(
-			fileDto.id,
-			fileDto.fileName,
-			fileDto.fileSize
-		);
-	}
-
 	constructor(
 		id: number,
 		name: string,
 		public readonly size: number,
-		public readonly data: IPointSetData | undefined = undefined,
-		public readonly isActive = false,
-		public readonly isChecked = true,
-		public readonly order: number | undefined = undefined,
+		public readonly data: IPointSetData,
+		public readonly isActive: boolean,
+		public readonly isChecked: boolean,
+		public readonly order: number | undefined,
 		public readonly niivueRef: NVMesh | undefined = undefined
 	) {
 		if (id === undefined) throw new Error('no id for cloud volume file');

@@ -8,6 +8,7 @@ import { ViewSettings } from '@/pages/project/models/ViewSettings';
 // import type { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import type { LocationData, UIData } from '@niivue/niivue';
 import { useRef, useState, useEffect, useCallback, type Dispatch } from 'react';
+import { Store } from 'react-notifications-component';
 import { useQueryParams, withDefault, NumberParam } from 'use-query-params';
 
 /**
@@ -111,7 +112,22 @@ export const useNiivue = (
 				if (niivueWrapper.current === undefined) return projectState;
 
 				const file = projectState.files.pointSets.find((file) => file.isActive);
-				if (file?.data === undefined) return projectState;
+				if (file === undefined) {
+					Store.addNotification({
+						message: 'you need to select a point set to add points',
+						type: 'warning',
+						insert: 'top',
+						container: 'top-right',
+						animationIn: ['animate__animated', 'animate__fadeIn'],
+						animationOut: ['animate__animated', 'animate__fadeOut'],
+						dismiss: {
+							duration: 1500,
+							onScreen: true,
+						},
+					});
+					return projectState;
+				}
+				if (file.data === undefined) return projectState;
 
 				if (uiData.fracPos[0] < 0) return projectState; // not on volume
 				if (uiData.mouseButtonCenterDown) return projectState;
@@ -126,12 +142,22 @@ export const useNiivue = (
 						data: {
 							...file.data,
 							points: [
+								...file.data.points,
 								{
 									coordinates: {
 										x: position[0],
 										y: position[1],
 										z: position[2],
 									},
+									comments: [
+										{
+											text: 'name',
+											prefilled: ['true'],
+											timestamp: '1234',
+											user: 'me',
+										},
+									],
+									legacy_stat: 1,
 								},
 							],
 						},
@@ -148,7 +174,10 @@ export const useNiivue = (
 
 		niivueWrapper.current?.setOnMouseUp(onMouseUp);
 
-		return () => niivueWrapper.current?.setOnMouseUp(undefined);
+		return () =>
+			niivueWrapper.current?.setOnMouseUp(() => {
+				/* do nothing */
+			});
 	}, [projectState, onMouseUp]);
 
 	useQueueDebounced(

@@ -25,7 +25,6 @@ export class NiivueWrapper {
 			}),
 		dragAndDropEnabled: false,
 		dragMode: 3,
-		// meshThicknessOn2D: 0.5,
 		isHighResolutionCapable: false,
 		isOrientCube: false,
 		enableBorderHighlight: true,
@@ -45,13 +44,7 @@ export class NiivueWrapper {
 		void this.niivue.attachToCanvas(canvasRef);
 	}
 
-	public setOnMouseUp(callback: ((uiData: UIData) => void) | undefined): void {
-		if (callback === undefined) {
-			this.niivue.onMouseUp = () => {
-				// should be empty
-			};
-			return;
-		}
+	public setOnMouseUp(callback: (uiData: UIData) => void): void {
 		this.niivue.onMouseUp = (uiData) => callback(uiData);
 	}
 
@@ -112,7 +105,11 @@ export class NiivueWrapper {
 			);
 		}
 
-		this.niivue.createOnLocationChange();
+		try {
+			this.niivue.createOnLocationChange();
+		} catch (error) {
+			console.warn('ignore?!');
+		}
 		this.niivue.updateGLVolume();
 	}
 

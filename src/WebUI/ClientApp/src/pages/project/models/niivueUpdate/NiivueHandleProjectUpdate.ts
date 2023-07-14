@@ -28,8 +28,8 @@ export const niivueHandleProjectUpdate = async (
 			return false;
 
 		// otherwise we only need to update the options
-		// this.niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);
-		niivue.opts.meshThicknessOn2D = next.meshThicknessOn2D ?? 0.5;
+		// niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);
+		// niivue.opts.meshThicknessOn2D = next.meshThicknessOn2D ?? 0.5;
 		return true;
 	};
 
@@ -50,7 +50,7 @@ export const niivueHandleProjectUpdate = async (
 	hasChanged ||= propagateProjectProperties();
 
 	if (hasChanged) {
-		niivue.setSliceType(3);
+		niivue.setSliceType(niivue.sliceTypeMultiplanar);
 		niivue.updateGLVolume();
 	}
 };

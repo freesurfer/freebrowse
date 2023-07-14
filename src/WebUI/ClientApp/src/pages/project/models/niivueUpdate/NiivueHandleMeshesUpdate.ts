@@ -33,19 +33,6 @@ export const niivueHandleMeshesUpdate = async (
 
 	let hasChanged = false;
 
-	const putNiivueRefToFile = (): void => {
-		for (const surface of next.surfaces) {
-			if (surface.niivueRef !== undefined) continue;
-			const niivueMesh = niivue.meshes.find(
-				(niivueSurface) => niivueSurface.name === surface.uniqueName
-			);
-			if (niivueMesh === undefined) continue;
-			setProjectState((projectState) =>
-				projectState?.fromFileUpdate(surface, { niivueRef: niivueMesh }, true)
-			);
-		}
-	};
-
 	const initMeshes = async (): Promise<boolean> => {
 		if (prev !== undefined) return false;
 
@@ -82,6 +69,19 @@ export const niivueHandleMeshesUpdate = async (
 			);
 		};
 
+		const putNiivueRefToFile = (): void => {
+			for (const surface of next.surfaces) {
+				if (surface.niivueRef !== undefined) continue;
+				const niivueMesh = niivue.meshes.find(
+					(niivueSurface) => niivueSurface.name === surface.uniqueName
+				);
+				if (niivueMesh === undefined) continue;
+				setProjectState((projectState) =>
+					projectState?.fromFileUpdate(surface, { niivueRef: niivueMesh }, true)
+				);
+			}
+		};
+
 		try {
 			await passMeshesToNiivue();
 			putNiivueRefToFile();
@@ -103,7 +103,7 @@ export const niivueHandleMeshesUpdate = async (
 						cloudSurface.isChecked &&
 						cloudSurface.uniqueName === niivueSurface.name
 				) &&
-				next.pointSets.some(
+				!next.pointSets.some(
 					(file) => file.isChecked && file.niivueRef === niivueSurface
 				)
 			) {
@@ -149,6 +149,7 @@ export const niivueHandleMeshesUpdate = async (
 			);
 		}
 
+		/*
 		for (const pointSets of next.cloudPointSets) {
 			if (!pointSets.isChecked) continue;
 			if (
@@ -179,24 +180,50 @@ export const niivueHandleMeshesUpdate = async (
 				)
 			);
 		}
+		*/
 
 		return hasChanged;
 	};
 
 	const updatePointSetData = async (): Promise<boolean> => {
-		const hasChanged = false;
+		let hasChanged = false;
 		for (const pointSet of next.cloudPointSets) {
 			if (prev === undefined) continue;
-			if (prev.pointSets.some((file) => pointSet === file)) continue;
+			if (
+				prev.cloudPointSets.some(
+					(file) =>
+						pointSet.id === file.id &&
+						pointSet.data === file.data &&
+						pointSet.isChecked === file.isChecked
+				)
+			)
+				continue;
 
-			niivue.setMesh(pointSet, -1);
+			if (
+				pointSet.niivueRef !== undefined &&
+				niivue.meshes.some((niivueMesh) => niivueMesh === pointSet.niivueRef)
+			) {
+				niivue.setMesh(pointSet.niivueRef, -1);
+			}
+
+			if (
+				!pointSet.isChecked ||
+				pointSet.data?.points === undefined ||
+				pointSet.data.points.length === 0
+			)
+				continue;
 
 			const niivueSurface = await NVMesh.loadConnectomeFromFreeSurfer(
 				pointSet.data,
-				niivue.gl
+				niivue.gl,
+				pointSet.name,
+				'',
+				1.0,
+				true
 			);
 			niivue.addMesh(niivueSurface);
 			niivueSurface.updateMesh(niivue.gl);
+			hasChanged = true;
 
 			setProjectState((projectState) =>
 				projectState?.fromFileUpdate(

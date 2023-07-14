@@ -1,5 +1,4 @@
-import type { GetProjectDto } from '@/generated/web-api-client';
-import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
@@ -50,7 +49,10 @@ export class ProjectState {
 	constructor(
 		args:
 			| {
-					backendState: GetProjectDto;
+					id: number;
+					name: string;
+					meshThicknessOn2D?: number;
+					files: ProjectFiles;
 			  }
 			| {
 					projectState: ProjectState;
@@ -60,16 +62,12 @@ export class ProjectState {
 			  },
 		public readonly upload: boolean
 	) {
-		if ('backendState' in args) {
-			if (args.backendState.id === undefined)
-				throw new Error('no id given for project');
-			this.id = args.backendState.id;
-			this.name = args.backendState.name;
+		if ('id' in args) {
+			this.id = args.id;
+			this.name = args.name;
 			this.userMode = USER_MODE.NAVIGATE;
-			this.meshThicknessOn2D = args.backendState.meshThicknessOn2D ?? 0;
-			this.files = new ProjectFiles({
-				backendState: args.backendState,
-			});
+			this.meshThicknessOn2D = args.meshThicknessOn2D ?? 0;
+			this.files = args.files;
 			return;
 		}
 
