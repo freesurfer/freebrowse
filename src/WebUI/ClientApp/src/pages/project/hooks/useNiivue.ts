@@ -1,9 +1,12 @@
 import { NiivueWrapper } from '@/pages/project/NiivueWrapper';
-import { useQueue } from '@/pages/project/hooks/api/useQueue';
-import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { useQueueDebounced } from '@/pages/project/hooks/api/useQueueDebounced';
+import {
+	USER_MODE,
+	type ProjectState,
+} from '@/pages/project/models/ProjectState';
 import { ViewSettings } from '@/pages/project/models/ViewSettings';
 // import type { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
-import type { LocationData } from '@niivue/niivue';
+import type { LocationData, UIData } from '@niivue/niivue';
 import { useRef, useState, useEffect, useCallback, type Dispatch } from 'react';
 import { useQueryParams, withDefault, NumberParam } from 'use-query-params';
 
@@ -101,7 +104,54 @@ export const useNiivue = (
 		};
 	}, [canvas]);
 
-	useQueue(
+	const onMouseUp = useCallback(
+		(uiData: UIData): void => {
+			setProjectState((projectState) => {
+				if (projectState === undefined) return projectState;
+				if (niivueWrapper.current === undefined) return projectState;
+
+				const file = projectState.files.pointSets.find((file) => file.isActive);
+				if (file?.data === undefined) return projectState;
+
+				if (uiData.fracPos[0] < 0) return projectState; // not on volume
+				if (uiData.mouseButtonCenterDown) return projectState;
+
+				const position = niivueWrapper.current.coordinatesFromMouse(
+					uiData.fracPos
+				);
+
+				return projectState.fromFileUpdate(
+					file,
+					{
+						data: {
+							...file.data,
+							points: [
+								{
+									coordinates: {
+										x: position[0],
+										y: position[1],
+										z: position[2],
+									},
+								},
+							],
+						},
+					},
+					true
+				);
+			});
+		},
+		[setProjectState, niivueWrapper]
+	);
+
+	useEffect(() => {
+		if (projectState?.userMode !== USER_MODE.EDIT_POINTS) return;
+
+		niivueWrapper.current?.setOnMouseUp(onMouseUp);
+
+		return () => niivueWrapper.current?.setOnMouseUp(undefined);
+	}, [projectState, onMouseUp]);
+
+	useQueueDebounced(
 		projectState,
 		false,
 		useCallback(

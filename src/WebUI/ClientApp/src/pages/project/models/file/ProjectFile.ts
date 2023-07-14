@@ -35,6 +35,12 @@ export enum FileLocation {
 export abstract class ProjectFileBase {
 	abstract readonly type: FileType;
 	abstract readonly location: FileLocation;
+	/**
+	 * property to share with niivue
+	 * or as key for lists
+	 * to not only rely on the file name, but also type or backend id, if provided
+	 */
+	abstract readonly uniqueName: string;
 
 	constructor(public readonly name: string) {}
 

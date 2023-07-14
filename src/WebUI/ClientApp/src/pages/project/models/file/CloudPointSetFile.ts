@@ -3,7 +3,10 @@ import { FileType } from '@/pages/project/models/file/ProjectFile';
 import type { IManageableFile } from '@/pages/project/models/file/extension/ManageableFile';
 import type { IOrderableFile } from '@/pages/project/models/file/extension/OrderableFile';
 import { CloudFile } from '@/pages/project/models/file/location/CloudFile';
-import type { IPointSetFile } from '@/pages/project/models/file/type/PointSetFile';
+import type {
+	IPointSetData,
+	IPointSetFile,
+} from '@/pages/project/models/file/type/PointSetFile';
 import { getApiUrl } from '@/utils';
 import type { NVMesh } from '@niivue/niivue';
 
@@ -37,6 +40,7 @@ export class CloudPointSetFile
 		id: number,
 		name: string,
 		public readonly size: number,
+		public readonly data: IPointSetData | undefined = undefined,
 		public readonly isActive = false,
 		public readonly isChecked = true,
 		public readonly order: number | undefined = undefined,
@@ -50,16 +54,22 @@ export class CloudPointSetFile
 		order?: number;
 		isActive?: boolean;
 		isChecked?: boolean;
+		data?: IPointSetData;
 		niivueRef?: NVMesh;
 	}): CloudPointSetFile {
 		return new CloudPointSetFile(
 			this.id,
 			this.name,
 			this.size,
+			options.data ?? this.data,
 			options.isActive ?? this.isActive,
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order,
 			options.niivueRef ?? this.niivueRef
 		);
+	}
+
+	getBase64(): string {
+		return btoa(JSON.stringify(this.data));
 	}
 }

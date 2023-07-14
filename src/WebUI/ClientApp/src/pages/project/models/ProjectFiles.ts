@@ -23,7 +23,7 @@ import {
 import type { AnnotationFile } from '@/pages/project/models/file/type/AnnotationFile';
 import type { OverlayFile } from '@/pages/project/models/file/type/OverlayFile';
 import {
-	PointSetData,
+	hexToRgb,
 	type PointSetFile,
 } from '@/pages/project/models/file/type/PointSetFile';
 import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
@@ -405,18 +405,21 @@ export class ProjectFiles {
 		});
 	}
 
-	public fromDeletedFile(fileNameToDelete: string): ProjectFiles {
+	public fromDeletedFile(uniqueName: string): ProjectFiles {
 		const cloudSurfaces = [
-			...this.cloudSurfaces.filter((file) => file.name !== fileNameToDelete),
+			...this.cloudSurfaces.filter((file) => file.uniqueName !== uniqueName),
 		];
 		const cloudVolumes = [
-			...this.cloudVolumes.filter((file) => file.name !== fileNameToDelete),
+			...this.cloudVolumes.filter((file) => file.uniqueName !== uniqueName),
 		];
 		const localSurfaces = [
-			...this.localSurfaces.filter((file) => file.name !== fileNameToDelete),
+			...this.localSurfaces.filter((file) => file.uniqueName !== uniqueName),
 		];
 		const localVolumes = [
-			...this.localVolumes.filter((file) => file.name !== fileNameToDelete),
+			...this.localVolumes.filter((file) => file.uniqueName !== uniqueName),
+		];
+		const cloudPointSets = [
+			...this.cloudPointSets.filter((file) => file.uniqueName !== uniqueName),
 		];
 
 		return new ProjectFiles({
@@ -424,6 +427,7 @@ export class ProjectFiles {
 			cloudVolumes,
 			localSurfaces,
 			localVolumes,
+			cloudPointSets,
 			projectFiles: this,
 		});
 	}
@@ -784,7 +788,13 @@ export class ProjectFiles {
 				...this.cachePointSets,
 				new CachePointSetFile(
 					name,
-					new PointSetData({ color }),
+					{
+						color: hexToRgb(color),
+						data_type: 'fs_pointset',
+						points: [],
+						version: 1,
+						vox2ras: 'scanner_ras',
+					},
 					true,
 					true,
 					undefined

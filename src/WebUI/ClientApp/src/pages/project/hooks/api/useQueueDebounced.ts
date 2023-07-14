@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 /**
  * hook to queue all the state changes to have not post the same request twice because of race conditions
  */
-export const useQueue = (
+export const useQueueDebounced = (
 	projectState: ProjectState | undefined,
 	onlyUploaded: boolean,
 	next: (
@@ -36,8 +36,11 @@ export const useQueue = (
 			setPreviousState(nextState);
 			setNextState(undefined);
 
-			await next(previousState, nextState);
-			setIsRunning(false);
+			try {
+				await next(previousState, nextState);
+			} finally {
+				setIsRunning(false);
+			}
 		};
 
 		void executeQueue();

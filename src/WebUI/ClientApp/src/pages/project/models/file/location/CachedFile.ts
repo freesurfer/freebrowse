@@ -8,6 +8,7 @@ import {
  */
 export abstract class CachedFile<T_DATA> extends ProjectFileBase {
 	public readonly location = FileLocation.CACHED;
+	public readonly uniqueName: string;
 
 	constructor(
 		name: string,
@@ -15,12 +16,13 @@ export abstract class CachedFile<T_DATA> extends ProjectFileBase {
 		 * the data wrapper is used to manage the temporary and usable data in the memory
 		 * and to guide the developer to only use the defined ways to construct it and use it immutable
 		 */
-		public readonly dataWrapper: T_DATA
+		public readonly data: T_DATA
 	) {
 		super(name);
+		this.uniqueName = `cached${this.name}`;
 	}
 
 	getBase64(): string {
-		return btoa(JSON.stringify(this.dataWrapper));
+		return btoa(JSON.stringify(this.data));
 	}
 }

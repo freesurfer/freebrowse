@@ -285,6 +285,14 @@ declare module '@niivue/niivue' {
 			opacity?: number,
 			visible?: boolean
 		): Promise<NVMesh>;
+		function loadConnectomeFromFreeSurfer(
+			json: any,
+			gl: any,
+			name?: string,
+			colorMap?: string,
+			opacity?: number,
+			visible?: boolean
+		): Promise<NVMesh>;
 		function readMesh(
 			buffer: any,
 			name: any,

@@ -24,7 +24,7 @@ export interface IPointSetStatistics {
 }
 
 export interface IPointSetPoint {
-	comments: IPointSetComment[];
+	comments?: IPointSetComment[];
 	coordinates: IPointSetCoordinates;
 	legacy_stat?: 1;
 	statistics?: IPointSetStatistics;
@@ -51,34 +51,6 @@ export const rgbToHex = (rgb: [number, number, number]): string => {
 	const to = (color: number): string => color.toString(16).padStart(2, '0');
 	return `#${to(rgb[0])}${to(rgb[1])}${to(rgb[2])}`;
 };
-
-/**
- * class to maintain the state of the set point data
- */
-export class PointSetData {
-	public readonly data: IPointSetData;
-
-	constructor(args: { color: string } | { pointSetData: PointSetData }) {
-		if ('color' in args) {
-			this.data = {
-				color: hexToRgb(args.color),
-				data_type: 'fs_pointset',
-				points: [],
-				version: 1,
-				vox2ras: 'scanner_ras',
-			};
-			return;
-		}
-
-		if ('pointSetData' in args) {
-			this.data = {
-				...args.pointSetData.data,
-			};
-		}
-
-		throw new Error('no valid argument to instantiate PointSetData');
-	}
-}
 
 /**
  * interface to define, what all the point set file state classes need to contain

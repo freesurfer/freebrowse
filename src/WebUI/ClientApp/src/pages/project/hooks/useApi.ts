@@ -4,12 +4,11 @@ import { useApiPointSet } from '@/hooks/useApiPointSet';
 import { useApiProject } from '@/hooks/useApiProject';
 import { useApiSurface } from '@/hooks/useApiSurface';
 import { useApiVolume } from '@/hooks/useApiVolume';
-import { useQueue } from '@/pages/project/hooks/api/useQueue';
+import { useQueueDebounced } from '@/pages/project/hooks/api/useQueueDebounced';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import { ProjectState } from '@/pages/project/models/ProjectState';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
-import { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
 import type { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import type { Dispatch } from 'react';
 import { useCallback, useEffect, useState } from 'react';
@@ -287,7 +286,7 @@ export const useApi = (
 		currentProjectId,
 	]);
 
-	useQueue(
+	useQueueDebounced(
 		projectState,
 		true,
 		useCallback(
@@ -323,11 +322,17 @@ export const useApi = (
 					setProjectState
 				);
 
+				// handle new point sets
 				if (nextState.files.cachePointSets.length > 0) {
-					const response = await apiPointSet.create(
+					const projectResponse = await apiPointSet.create(
 						nextState.id,
 						nextState.files.cachePointSets
 					);
+
+					const cloudFiles = await Promise.all(
+						projectResponse.map(async (dto) => await apiPointSet.get(dto))
+					);
+
 					setProjectState((projectState) => {
 						if (projectState === undefined) return undefined;
 						return new ProjectState(
@@ -338,25 +343,7 @@ export const useApi = (
 									cachePointSets: [],
 									cloudPointSets: [
 										...projectState.files.cloudPointSets,
-										...response.map((dto) => {
-											if (dto.id === undefined)
-												throw new Error(
-													'each point set file needs to have an id'
-												);
-											if (dto.fileName === undefined)
-												throw new Error(
-													'each point set file needs to have a name'
-												);
-											if (dto.fileSize === undefined)
-												throw new Error(
-													'each point set file needs to have a size'
-												);
-											return new CloudPointSetFile(
-												dto.id,
-												dto.fileName,
-												dto.fileSize
-											);
-										}),
+										...cloudFiles,
 									],
 								}),
 							},
@@ -365,7 +352,45 @@ export const useApi = (
 					});
 				}
 
-				// TODO BERE 2 update cloudPointSet files if updated
+				// update point set
+				if (
+					previousState !== undefined &&
+					previousState.files.cloudPointSets !== nextState.files.cloudPointSets
+				) {
+					for (const cloudPointSetFile of nextState.files.cloudPointSets) {
+						if (
+							!previousState.files.cloudPointSets.some(
+								(file) => file.id === cloudPointSetFile.id
+							)
+						)
+							continue;
+
+						if (
+							previousState.files.cloudPointSets.some(
+								(file) =>
+									file.id === cloudPointSetFile.id &&
+									file.data === cloudPointSetFile.data
+							)
+						)
+							continue;
+
+						await apiPointSet.edit(cloudPointSetFile);
+					}
+				}
+
+				if (
+					previousState !== undefined &&
+					previousState.files.cloudPointSets !== nextState.files.cloudPointSets
+				) {
+					for (const file of previousState.files.cloudPointSets.filter(
+						(prevFile) =>
+							!nextState.files.cloudPointSets.some(
+								(nextFile) => nextFile.id === prevFile.id
+							)
+					)) {
+						await apiPointSet.remove(file);
+					}
+				}
 			},
 			[
 				apiProject,

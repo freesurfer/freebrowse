@@ -53,7 +53,10 @@ export const NewPointSetDialog = ({
 							setHandle({ isOpen: false });
 							resolve({
 								color: color ?? DEFAULT_COLOR,
-								name: name ?? `${CachePointSetFile.DEFAULT_NAME} ${nextCount}`,
+								name:
+									name !== undefined
+										? `${name}.json`
+										: `${CachePointSetFile.DEFAULT_NAME} ${nextCount}.json`,
 							});
 						},
 						canceled: () => {

@@ -1,5 +1,5 @@
 import type { ProjectState } from '@/pages/project/models/ProjectState';
-import { niivueHandleSurfaceUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleSurfaceUpdate';
+import { niivueHandleMeshesUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleMeshesUpdate';
 import { niivueHandleVolumeUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleVolumeUpdate';
 import type { Niivue } from '@niivue/niivue';
 import type { Dispatch } from 'react';
@@ -40,7 +40,7 @@ export const niivueHandleProjectUpdate = async (
 		setProjectState
 	);
 
-	hasChanged ||= await niivueHandleSurfaceUpdate(
+	hasChanged ||= await niivueHandleMeshesUpdate(
 		prev?.files,
 		next.files,
 		niivue,
@@ -51,7 +51,6 @@ export const niivueHandleProjectUpdate = async (
 
 	if (hasChanged) {
 		niivue.setSliceType(3);
-		console.log('render niivue canvas');
 		niivue.updateGLVolume();
 	}
 };

@@ -21,7 +21,7 @@ export const niivueHandleVolumeUpdate = async (
 			if (volume.niivueRef !== undefined) continue;
 
 			const niivueVolume = niivue.volumes.find(
-				(niivueVolume) => niivueVolume.name === volume.name
+				(niivueVolume) => niivueVolume.name === volume.uniqueName
 			);
 			if (niivueVolume === undefined) continue;
 			setProjectState((projectState) =>
@@ -41,7 +41,7 @@ export const niivueHandleVolumeUpdate = async (
 					.map((file) => {
 						return {
 							url: file.url,
-							name: file.name,
+							name: file.uniqueName,
 							opacity: file.opacity / 100,
 							colorMap: file.colorMap ?? 'gray',
 							cal_min: file.contrastMin,
@@ -67,10 +67,11 @@ export const niivueHandleVolumeUpdate = async (
 		let hasChanged = false;
 		for (const niivueVolume of niivue.volumes) {
 			if (
-				next.cloudVolumes.find(
+				!next.cloudVolumes.some(
 					(cloudVolume) =>
-						cloudVolume.isChecked && cloudVolume.name === niivueVolume.name
-				) === undefined
+						cloudVolume.isChecked &&
+						cloudVolume.uniqueName === niivueVolume.name
+				)
 			) {
 				// files that are contained in niivue, but not in the project files
 				// delete them from niivue
@@ -86,9 +87,9 @@ export const niivueHandleVolumeUpdate = async (
 		for (const cloudVolume of next.cloudVolumes) {
 			if (!cloudVolume.isChecked) continue;
 			if (
-				niivue.volumes.find(
-					(niivueVolume) => niivueVolume.name === cloudVolume.name
-				) !== undefined
+				niivue.volumes.some(
+					(niivueVolume) => niivueVolume.name === cloudVolume.uniqueName
+				)
 			)
 				continue;
 
@@ -101,7 +102,7 @@ export const niivueHandleVolumeUpdate = async (
 			}
 			const niivueVolume = await niivue.addVolumeFromUrl({
 				url: cloudVolume.url,
-				name: cloudVolume.name,
+				name: cloudVolume.uniqueName,
 				opacity: cloudVolume.opacity / 100,
 				cal_min: cloudVolume.contrastMin,
 				cal_max: cloudVolume.contrastMax,

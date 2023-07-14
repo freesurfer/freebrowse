@@ -29,7 +29,7 @@ export const LoadFileList = ({
 			].map((file) => {
 				if (file === undefined) return <></>;
 				return (
-					<div key={file.name} className="flex gap-3 border-b pb-3 pt-3">
+					<div key={file.uniqueName} className="flex gap-3 border-b pb-3 pt-3">
 						<div>
 							<div className="flex justify-between text-xs text-gray-500">
 								<span>{file.name}</span>
@@ -39,7 +39,7 @@ export const LoadFileList = ({
 						</div>
 						<button
 							onClick={() =>
-								setProjectFiles(projectFiles.fromDeletedFile(file.name))
+								setProjectFiles(projectFiles.fromDeletedFile(file.uniqueName))
 							}
 						>
 							<XMarkIcon className="w-6 text-gray-600"></XMarkIcon>

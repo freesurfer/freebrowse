@@ -99,7 +99,9 @@ export const TopBar = ({
 			const nextCount = projectState?.files.pointSets
 				.filter((file) => file.name.startsWith(CachePointSetFile.DEFAULT_NAME))
 				.map((file) =>
-					Number(file.name.slice(CachePointSetFile.DEFAULT_NAME.length))
+					Number(
+						file.name.slice(CachePointSetFile.DEFAULT_NAME.length).split('.')[0]
+					)
 				)
 				.sort()
 				.reverse()[0];

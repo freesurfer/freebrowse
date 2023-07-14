@@ -211,12 +211,12 @@ export const FileSettings = ({
 									</span>
 								}
 							>
-								{'dataWrapper' in pointSetFile ? (
+								{'data' in pointSetFile && pointSetFile.data !== undefined ? (
 									<div className="pl-1">
 										<ColorPicker
 											className="mt-2"
 											label="Color:"
-											value={rgbToHex(pointSetFile.dataWrapper.data.color)}
+											value={rgbToHex(pointSetFile.data.color)}
 											onChange={(value) =>
 												updateFileOptions(pointSetFile, { color: value }, false)
 											}

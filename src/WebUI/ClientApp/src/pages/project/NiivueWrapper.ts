@@ -1,9 +1,8 @@
 import lookUpTable from './ColorMaps/LookUpTable.json';
-import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { type ProjectState } from '@/pages/project/models/ProjectState';
 import type { ViewSettings } from '@/pages/project/models/ViewSettings';
 import { niivueHandleProjectUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleProjectUpdate';
-import { Niivue } from '@niivue/niivue';
-import type { LocationData } from '@niivue/niivue';
+import { type LocationData, type UIData, Niivue } from '@niivue/niivue';
 import type { Dispatch } from 'react';
 
 /**
@@ -44,7 +43,22 @@ export class NiivueWrapper {
 	) {
 		this.niivue.addColormap('LookupTable', lookUpTable);
 		void this.niivue.attachToCanvas(canvasRef);
-		// this.niivue.onMouseUp = (uiData) => this.onMouseUp(uiData);
+	}
+
+	public setOnMouseUp(callback: ((uiData: UIData) => void) | undefined): void {
+		if (callback === undefined) {
+			this.niivue.onMouseUp = () => {
+				// should be empty
+			};
+			return;
+		}
+		this.niivue.onMouseUp = (uiData) => callback(uiData);
+	}
+
+	coordinatesFromMouse(
+		fracPos: [number]
+	): ReturnType<typeof this.niivue.frac2mm> {
+		return this.niivue.frac2mm(fracPos);
 	}
 
 	/**
@@ -218,18 +232,19 @@ export class NiivueWrapper {
 		name: string;
 		value: number;
 		vox: [number, number, number];
-	}): string {
+	}): string | undefined {
 		const volume = this.niivue.volumes.find(
 			(v) => v.name === volumeLocationData.name
 		);
 
-		if (volume?.colormapLabel?.labels === undefined) return '';
+		if (volume?.colormapLabel?.labels === undefined) return undefined;
 
 		const value = Math.round(
 			volume.getValue(...volumeLocationData.vox, volume.frame4D)
 		);
 
-		if (value < 0 || value >= volume.colormapLabel.labels.length) return '';
+		if (value < 0 || value >= volume.colormapLabel.labels.length)
+			return undefined;
 
 		const label = volume.colormapLabel.labels[value];
 		return label;
@@ -281,17 +296,7 @@ export class NiivueWrapper {
 		this.niivue.updateGLVolume();
 	}
 
-	private onMouseUp(uiData: UIData): void {
-		if (uiData.fracPos[0] < 0) return; // not on volume
-		if (uiData.mouseButtonCenterDown) return;
-		const XYZmmVec = this.niivue.frac2mm(uiData.fracPos);
-		const XYZmm: [number, number, number] = [
-			XYZmmVec[0],
-			XYZmmVec[1],
-			XYZmmVec[2],
-		];
-		if (uiData.mouseButtonRightDown) this.deleteNode(XYZmm);
-		else this.addNode(XYZmm);
-	}
+	if (uiData.mouseButtonRightDown) this.deleteNode(XYZmm);
+	else this.addNode(XYZmm);
 	*/
 }
