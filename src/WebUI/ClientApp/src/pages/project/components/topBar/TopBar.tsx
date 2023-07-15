@@ -96,7 +96,7 @@ export const TopBar = ({
 
 	const openNewPointSetDialog = useCallback(() => {
 		const execute = async (): Promise<void> => {
-			const nextCount = projectState?.files.pointSets
+			const defaultFileNameNumbers = projectState?.files.pointSets
 				.filter((file) => file.name.startsWith(CachePointSetFile.DEFAULT_NAME))
 				.map((file) =>
 					Number(
@@ -105,9 +105,21 @@ export const TopBar = ({
 							.split('.')[0]
 					)
 				)
-				.sort((a, b) => b - a)[0];
+				.filter((number) => !isNaN(number));
 
-			const result = await open(nextCount === undefined ? 1 : nextCount + 1);
+			const smallestMissingNumber = (
+				defaultFileNameNumbers: number[]
+			): number => {
+				let index = 1;
+				while (true) {
+					if (!defaultFileNameNumbers.includes(index)) return index;
+					index++;
+				}
+			};
+
+			const result = await open(
+				smallestMissingNumber(defaultFileNameNumbers ?? [])
+			);
 			if (result === 'canceled') return;
 
 			setProjectState((projectState) =>
