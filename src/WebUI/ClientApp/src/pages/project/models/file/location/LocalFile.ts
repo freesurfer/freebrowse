@@ -9,11 +9,9 @@ import { convertFileToBase64 } from '@/pages/project/models/file/ProjectFileHelp
  */
 export abstract class LocalFile extends ProjectFileBase {
 	public readonly location = FileLocation.LOCAL;
-	public readonly uniqueName: string;
 
 	constructor(protected readonly file: File) {
 		super(file.name);
-		this.uniqueName = `local${this.name}`;
 	}
 
 	async getBase64(): Promise<string> {

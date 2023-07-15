@@ -156,7 +156,8 @@ export class ProjectState {
 					projectState: this,
 					files: this.files.fromAdaptedVolumes(
 						this.files.volumes.map((tmpVolume) =>
-							tmpVolume === file
+							tmpVolume.name === file.name &&
+							tmpVolume.location === file.location
 								? tmpVolume.from(options as Parameters<VolumeFile['from']>[0])
 								: tmpVolume
 						)
@@ -171,7 +172,8 @@ export class ProjectState {
 					projectState: this,
 					files: this.files.fromAdaptedSurfaces(
 						this.files.surfaces.map((tmpSurface) =>
-							tmpSurface === file
+							tmpSurface.name === file.name &&
+							tmpSurface.location === file.location
 								? tmpSurface.from(options as Parameters<SurfaceFile['from']>[0])
 								: tmpSurface
 						)
@@ -186,7 +188,8 @@ export class ProjectState {
 					projectState: this,
 					files: this.files.fromAdaptedPointSets(
 						this.files.pointSets.map((tmpPointSet) =>
-							tmpPointSet === file
+							tmpPointSet.name === file.name &&
+							tmpPointSet.location === file.location
 								? tmpPointSet.from(
 										options as Parameters<PointSetFile['from']>[0]
 								  )

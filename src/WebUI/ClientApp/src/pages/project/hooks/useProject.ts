@@ -25,6 +25,7 @@ export const useProject = (
 	const [projectState, setProjectState] = useState<ProjectState>();
 
 	const [query] = useQueryParams({
+		userMode: withDefault(ArrayParam, []),
 		volumes: withDefault(ArrayParam, []),
 		volumeOpacity: withDefault(ArrayParam, []),
 		volumeOrder: withDefault(ArrayParam, []),

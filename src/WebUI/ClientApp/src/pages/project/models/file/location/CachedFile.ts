@@ -8,7 +8,6 @@ import {
  */
 export abstract class CachedFile<T_DATA> extends ProjectFileBase {
 	public readonly location = FileLocation.CACHED;
-	public readonly uniqueName: string;
 
 	constructor(
 		name: string,
@@ -19,7 +18,6 @@ export abstract class CachedFile<T_DATA> extends ProjectFileBase {
 		public readonly data: T_DATA
 	) {
 		super(name);
-		this.uniqueName = `cached${this.name}`;
 	}
 
 	getBase64(): string {

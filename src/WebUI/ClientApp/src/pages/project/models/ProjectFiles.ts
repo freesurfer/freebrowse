@@ -340,21 +340,21 @@ export class ProjectFiles {
 		});
 	}
 
-	public fromDeletedFile(uniqueName: string): ProjectFiles {
+	public fromDeletedFile(name: string): ProjectFiles {
 		const cloudSurfaces = [
-			...this.cloudSurfaces.filter((file) => file.uniqueName !== uniqueName),
+			...this.cloudSurfaces.filter((file) => file.name !== name),
 		];
 		const cloudVolumes = [
-			...this.cloudVolumes.filter((file) => file.uniqueName !== uniqueName),
+			...this.cloudVolumes.filter((file) => file.name !== name),
 		];
 		const localSurfaces = [
-			...this.localSurfaces.filter((file) => file.uniqueName !== uniqueName),
+			...this.localSurfaces.filter((file) => file.name !== name),
 		];
 		const localVolumes = [
-			...this.localVolumes.filter((file) => file.uniqueName !== uniqueName),
+			...this.localVolumes.filter((file) => file.name !== name),
 		];
 		const cloudPointSets = [
-			...this.cloudPointSets.filter((file) => file.uniqueName !== uniqueName),
+			...this.cloudPointSets.filter((file) => file.name !== name),
 		];
 
 		return new ProjectFiles({

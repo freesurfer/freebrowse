@@ -36,6 +36,27 @@ export const niivueHandleMeshesUpdate = async (
 	const initMeshes = async (): Promise<boolean> => {
 		if (prev !== undefined) return false;
 
+		const putNiivueRefToFile = (): void => {
+			setProjectState((projectState) => {
+				if (projectState === undefined) return projectState;
+				let tmpProjectState = projectState;
+				for (const volume of next.surfaces) {
+					if (volume.niivueRef !== undefined) continue;
+
+					const niivueSurface = niivue.meshes.find(
+						(niivueSurface) => niivueSurface.name === volume.name
+					);
+					if (niivueSurface === undefined) continue;
+					tmpProjectState = tmpProjectState?.fromFileUpdate(
+						volume,
+						{ niivueRef: niivueSurface },
+						true
+					);
+				}
+				return tmpProjectState;
+			});
+		};
+
 		const passMeshesToNiivue = async (): Promise<void> => {
 			await niivue.loadMeshes(
 				next.cloudSurfaces
@@ -51,7 +72,7 @@ export const niivueHandleMeshesUpdate = async (
 							.filter((file) => file.isActive)
 							.map(
 								(file): NVMeshLayer => ({
-									name: file.uniqueName,
+									name: file.name,
 									url: file.url,
 									cal_min: 0.5,
 									cal_max: 5.5,
@@ -61,25 +82,12 @@ export const niivueHandleMeshesUpdate = async (
 							);
 						return {
 							url: file.url,
-							name: file.uniqueName,
+							name: file.name,
 							rgba255: NiivueWrapper.hexToRGBA(file.color),
 							layers,
 						};
 					})
 			);
-		};
-
-		const putNiivueRefToFile = (): void => {
-			for (const surface of next.surfaces) {
-				if (surface.niivueRef !== undefined) continue;
-				const niivueMesh = niivue.meshes.find(
-					(niivueSurface) => niivueSurface.name === surface.uniqueName
-				);
-				if (niivueMesh === undefined) continue;
-				setProjectState((projectState) =>
-					projectState?.fromFileUpdate(surface, { niivueRef: niivueMesh }, true)
-				);
-			}
 		};
 
 		try {
@@ -100,8 +108,7 @@ export const niivueHandleMeshesUpdate = async (
 			if (
 				!next.cloudSurfaces.some(
 					(cloudSurface) =>
-						cloudSurface.isChecked &&
-						cloudSurface.uniqueName === niivueSurface.name
+						cloudSurface.isChecked && cloudSurface.name === niivueSurface.name
 				) &&
 				!next.pointSets.some(
 					(file) => file.isChecked && file.niivueRef === niivueSurface
@@ -123,7 +130,7 @@ export const niivueHandleMeshesUpdate = async (
 			if (!surface.isChecked) continue;
 			if (
 				niivue.meshes.some(
-					(niivueSurface) => niivueSurface.name === surface.uniqueName
+					(niivueSurface) => niivueSurface.name === surface.name
 				)
 			)
 				continue;
@@ -137,7 +144,7 @@ export const niivueHandleMeshesUpdate = async (
 			}
 			const niivueSurface = await niivue.addMeshFromUrl({
 				url: surface.url,
-				name: surface.uniqueName,
+				name: surface.name,
 				rgba255: NiivueWrapper.hexToRGBA(surface.color),
 			});
 			setProjectState((projectState) =>
@@ -148,39 +155,6 @@ export const niivueHandleMeshesUpdate = async (
 				)
 			);
 		}
-
-		/*
-		for (const pointSets of next.cloudPointSets) {
-			if (!pointSets.isChecked) continue;
-			if (
-				niivue.meshes.some(
-					(niivueSurface) => niivueSurface === pointSets.niivueRef
-				)
-			)
-				continue;
-
-			// files that are contained in the project files, but not in niivue
-			// add them to niivue
-			if (pointSets.niivueRef !== undefined) {
-				niivue.addMesh(pointSets.niivueRef);
-				hasChanged = true;
-				continue;
-			}
-
-			const niivueSurface = await niivue.addMeshFromUrl({
-				url: pointSets.url,
-				name: pointSets.uniqueName,
-			});
-
-			setProjectState((projectState) =>
-				projectState?.fromFileUpdate(
-					pointSets,
-					{ niivueRef: niivueSurface },
-					false
-				)
-			);
-		}
-		*/
 
 		return hasChanged;
 	};
@@ -270,7 +244,7 @@ export const niivueHandleMeshesUpdate = async (
 			niivueSurface.layers = [];
 			await NVMesh.loadLayer(
 				{
-					name: activeFile.uniqueName,
+					name: activeFile.name,
 					url: activeFile.url,
 					cal_min: 0.5,
 					cal_max: 5.5,
@@ -314,10 +288,7 @@ export const niivueHandleMeshesUpdate = async (
 
 		for (const surfaceFile of surfaceFiles) {
 			if (surfaceFile.niivueRef === undefined) {
-				console.warn(
-					'no niivue surface for given file',
-					surfaceFile.uniqueName
-				);
+				console.warn('no niivue surface for given file', surfaceFile.name);
 				continue;
 			}
 

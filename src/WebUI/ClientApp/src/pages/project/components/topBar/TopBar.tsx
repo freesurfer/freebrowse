@@ -100,7 +100,9 @@ export const TopBar = ({
 				.filter((file) => file.name.startsWith(CachePointSetFile.DEFAULT_NAME))
 				.map((file) =>
 					Number(
-						file.name.slice(CachePointSetFile.DEFAULT_NAME.length).split('.')[0]
+						file.name
+							.slice(CachePointSetFile.DEFAULT_NAME.length + 1)
+							.split('.')[0]
 					)
 				)
 				.sort((a, b) => b - a)[0];

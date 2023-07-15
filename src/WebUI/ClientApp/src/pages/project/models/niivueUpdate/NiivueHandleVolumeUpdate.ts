@@ -17,17 +17,24 @@ export const niivueHandleVolumeUpdate = async (
 	let hasChanged = false;
 
 	const putNiivueRefToFile = (): void => {
-		for (const volume of next.volumes) {
-			if (volume.niivueRef !== undefined) continue;
+		setProjectState((projectState) => {
+			if (projectState === undefined) return projectState;
+			let tmpProjectState = projectState;
+			for (const volume of next.volumes) {
+				if (volume.niivueRef !== undefined) continue;
 
-			const niivueVolume = niivue.volumes.find(
-				(niivueVolume) => niivueVolume.name === volume.uniqueName
-			);
-			if (niivueVolume === undefined) continue;
-			setProjectState((projectState) =>
-				projectState?.fromFileUpdate(volume, { niivueRef: niivueVolume }, true)
-			);
-		}
+				const niivueVolume = niivue.volumes.find(
+					(niivueVolume) => niivueVolume.name === volume.name
+				);
+				if (niivueVolume === undefined) continue;
+				tmpProjectState = tmpProjectState?.fromFileUpdate(
+					volume,
+					{ niivueRef: niivueVolume },
+					true
+				);
+			}
+			return tmpProjectState;
+		});
 	};
 
 	const initVolumes = async (): Promise<boolean> => {
@@ -41,7 +48,7 @@ export const niivueHandleVolumeUpdate = async (
 					.map((file) => {
 						return {
 							url: file.url,
-							name: file.uniqueName,
+							name: file.name,
 							opacity: file.opacity / 100,
 							colorMap: file.colorMap ?? 'gray',
 							cal_min: file.contrastMin,
@@ -69,8 +76,7 @@ export const niivueHandleVolumeUpdate = async (
 			if (
 				!next.cloudVolumes.some(
 					(cloudVolume) =>
-						cloudVolume.isChecked &&
-						cloudVolume.uniqueName === niivueVolume.name
+						cloudVolume.isChecked && cloudVolume.name === niivueVolume.name
 				)
 			) {
 				// files that are contained in niivue, but not in the project files
@@ -88,7 +94,7 @@ export const niivueHandleVolumeUpdate = async (
 			if (!cloudVolume.isChecked) continue;
 			if (
 				niivue.volumes.some(
-					(niivueVolume) => niivueVolume.name === cloudVolume.uniqueName
+					(niivueVolume) => niivueVolume.name === cloudVolume.name
 				)
 			)
 				continue;
@@ -102,7 +108,7 @@ export const niivueHandleVolumeUpdate = async (
 			}
 			const niivueVolume = await niivue.addVolumeFromUrl({
 				url: cloudVolume.url,
-				name: cloudVolume.uniqueName,
+				name: cloudVolume.name,
 				opacity: cloudVolume.opacity / 100,
 				cal_min: cloudVolume.contrastMin,
 				cal_max: cloudVolume.contrastMax,

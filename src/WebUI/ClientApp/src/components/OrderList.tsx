@@ -64,7 +64,7 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 			...(filesWithoutOrder ?? []),
 		].reduce<IRow<T_FILE_TYPE>[]>((result, file, index) => {
 			const existsAlready = this.rows.find(
-				(row) => row.projectFile.uniqueName === file.uniqueName
+				(row) => row.projectFile.name === file.name
 			);
 
 			if (existsAlready === undefined) {
@@ -297,7 +297,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 				if (row.label === undefined) return <></>;
 				return (
 					<div
-						key={row.projectFile.uniqueName}
+						key={row.projectFile.name}
 						ref={(ref) => {
 							row.ref = ref;
 						}}
