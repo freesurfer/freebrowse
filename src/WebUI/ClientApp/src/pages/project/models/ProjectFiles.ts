@@ -768,7 +768,7 @@ export class ProjectFiles {
 					},
 					true,
 					true,
-					undefined
+					-1
 				),
 			],
 			projectFiles: this,

@@ -108,7 +108,8 @@ export class NiivueWrapper {
 		try {
 			this.niivue.createOnLocationChange();
 		} catch (error) {
-			console.warn('ignore?!');
+			// something seems to fail here, but it should not stop the execution
+			console.warn('ignore?!', error);
 		}
 		this.niivue.updateGLVolume();
 	}

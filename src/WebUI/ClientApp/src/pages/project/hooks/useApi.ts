@@ -333,7 +333,15 @@ export const useApi = (
 					);
 
 					const cloudFiles = await Promise.all(
-						projectResponse.map(async (dto) => await apiPointSet.get(dto))
+						projectResponse.map(
+							async (dto) =>
+								await apiPointSet.get(
+									dto,
+									nextState.files.cachePointSets.find(
+										(file) => file.name === dto.fileName
+									)
+								)
+						)
 					);
 
 					setProjectState((projectState) => {

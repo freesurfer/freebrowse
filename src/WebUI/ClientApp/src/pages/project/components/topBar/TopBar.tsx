@@ -103,8 +103,7 @@ export const TopBar = ({
 						file.name.slice(CachePointSetFile.DEFAULT_NAME.length).split('.')[0]
 					)
 				)
-				.sort()
-				.reverse()[0];
+				.sort((a, b) => b - a)[0];
 
 			const result = await open(nextCount === undefined ? 1 : nextCount + 1);
 			if (result === 'canceled') return;

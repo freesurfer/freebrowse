@@ -58,38 +58,35 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 			(a, b) => (a?.order ?? 0) - (b?.order ?? 0)
 		);
 
-		let order = 0;
-
 		this.rows = [
 			...(sortedFilesWithOrder ?? []),
 			...(filesWithoutOrder ?? []),
-		].map((file): IRow<T_FILE_TYPE> => {
-			const currentOrder = order;
-			order = order + 1;
-
+		].reduce<IRow<T_FILE_TYPE>[]>((result, file, index) => {
 			const existsAlready = this.rows.find(
 				(row) => row.projectFile.uniqueName === file.uniqueName
 			);
 
 			if (existsAlready === undefined) {
-				return {
+				result.push({
 					projectFile: file,
 					label: file?.name,
-					order: currentOrder,
-					top: currentOrder * ROW_HEIGHT,
+					order: index,
+					top: index * ROW_HEIGHT,
 					isActive: file?.isActive ?? false,
 					isChecked: file?.isChecked ?? false,
-				};
+				});
+				return result;
 			}
 
-			existsAlready.order = currentOrder;
-			existsAlready.top = currentOrder * ROW_HEIGHT;
+			existsAlready.order = index;
+			existsAlready.top = index * ROW_HEIGHT;
 			existsAlready.isActive = file?.isActive;
 			existsAlready.isChecked = file?.isChecked;
 			existsAlready.projectFile = file;
 
-			return existsAlready;
-		});
+			result.push(existsAlready);
+			return result;
+		}, []);
 		this.setRows(this.rows);
 		this.pushNewOrder();
 	}

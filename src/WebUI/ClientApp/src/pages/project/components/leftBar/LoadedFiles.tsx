@@ -49,83 +49,97 @@ export const LoadedFiles = ({
 			}
 		>
 			<div className="mr-4">
-				<Collapse
-					className="mt-2"
-					title={
-						<span className="grow border-b border-gray text-xs">Volumes</span>
-					}
-				>
-					<OrderList
-						files={projectState.files.volumes}
-						setFiles={(files) => {
-							setProjectState((projectState) =>
-								projectState?.fromFiles(
-									projectState.files.fromAdaptedVolumes(files)
-								)
-							);
-						}}
-						setFileActive={(file) => {
-							setProjectState((projectState) =>
-								projectState?.fromFiles(
-									projectState.files.fromOneVolumeActivated(file)
-								)
-							);
-						}}
-						hideFileExtension={true}
-					></OrderList>
-				</Collapse>
-				<Collapse
-					className="mt-2"
-					title={
-						<span className="grow border-b border-gray text-xs">Surfaces</span>
-					}
-				>
-					<OrderList
-						files={projectState.files.surfaces}
-						setFiles={(files) => {
-							setProjectState((projectState) =>
-								projectState?.fromFiles(
-									projectState.files.fromAdaptedSurfaces(files)
-								)
-							);
-						}}
-						setFileActive={(file) => {
-							setProjectState((projectState) =>
-								projectState?.fromFiles(
-									projectState.files.fromOneSurfaceActivated(file)
-								)
-							);
-						}}
-						hideFileExtension={false}
-					></OrderList>
-				</Collapse>
-				<Collapse
-					className="mt-2"
-					title={
-						<span className="grow border-b border-gray text-xs">
-							Point Sets
-						</span>
-					}
-				>
-					<OrderList
-						files={projectState.files.pointSets}
-						setFiles={(files) => {
-							setProjectState((projectState) =>
-								projectState?.fromFiles(
-									projectState.files.fromAdaptedPointSets(files)
-								)
-							);
-						}}
-						setFileActive={(file) => {
-							setProjectState((projectState) =>
-								projectState?.fromFiles(
-									projectState.files.fromOnePointSetActivated(file)
-								)
-							);
-						}}
-						hideFileExtension={false}
-					></OrderList>
-				</Collapse>
+				{projectState.files.volumes.length > 0 ? (
+					<Collapse
+						className="mt-2"
+						title={
+							<span className="grow border-b border-gray text-xs">Volumes</span>
+						}
+					>
+						<OrderList
+							files={projectState.files.volumes}
+							setFiles={(files) => {
+								setProjectState((projectState) =>
+									projectState?.fromFiles(
+										projectState.files.fromAdaptedVolumes(files)
+									)
+								);
+							}}
+							setFileActive={(file) => {
+								setProjectState((projectState) =>
+									projectState?.fromFiles(
+										projectState.files.fromOneVolumeActivated(file)
+									)
+								);
+							}}
+							hideFileExtension={true}
+						></OrderList>
+					</Collapse>
+				) : (
+					<></>
+				)}
+				{projectState.files.surfaces.length > 0 ? (
+					<Collapse
+						className="mt-2"
+						title={
+							<span className="grow border-b border-gray text-xs">
+								Surfaces
+							</span>
+						}
+					>
+						<OrderList
+							files={projectState.files.surfaces}
+							setFiles={(files) => {
+								setProjectState((projectState) =>
+									projectState?.fromFiles(
+										projectState.files.fromAdaptedSurfaces(files)
+									)
+								);
+							}}
+							setFileActive={(file) => {
+								setProjectState((projectState) =>
+									projectState?.fromFiles(
+										projectState.files.fromOneSurfaceActivated(file)
+									)
+								);
+							}}
+							hideFileExtension={false}
+						></OrderList>
+					</Collapse>
+				) : (
+					<></>
+				)}
+				{projectState.files.pointSets.length > 0 ? (
+					<Collapse
+						className="mt-2"
+						title={
+							<span className="grow border-b border-gray text-xs">
+								Point Sets
+							</span>
+						}
+					>
+						<OrderList
+							files={projectState.files.pointSets}
+							setFiles={(files) => {
+								setProjectState((projectState) =>
+									projectState?.fromFiles(
+										projectState.files.fromAdaptedPointSets(files)
+									)
+								);
+							}}
+							setFileActive={(file) => {
+								setProjectState((projectState) =>
+									projectState?.fromFiles(
+										projectState.files.fromOnePointSetActivated(file)
+									)
+								);
+							}}
+							hideFileExtension={false}
+						></OrderList>
+					</Collapse>
+				) : (
+					<></>
+				)}
 			</div>
 		</Collapse>
 	);

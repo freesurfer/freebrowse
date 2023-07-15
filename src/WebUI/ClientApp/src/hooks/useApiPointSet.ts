@@ -18,7 +18,8 @@ import { useRef } from 'react';
 
 export const useApiPointSet = (): {
 	get: (
-		dto: CreatePointSetResponseDto | GetProjectPointSetDto
+		dto: CreatePointSetResponseDto | GetProjectPointSetDto,
+		cacheFile?: CachePointSetFile
 	) => Promise<CloudPointSetFile>;
 	create: (
 		projectId: number,
@@ -30,7 +31,8 @@ export const useApiPointSet = (): {
 	const client = useRef(new PointSetClient(getApiUrl()));
 
 	const get = async (
-		dto: CreatePointSetResponseDto | GetProjectPointSetDto
+		dto: CreatePointSetResponseDto | GetProjectPointSetDto,
+		cacheFile?: CachePointSetFile
 	): Promise<CloudPointSetFile> => {
 		if (dto.id === undefined)
 			throw new Error('each point set file needs to have an id');
@@ -49,7 +51,7 @@ export const useApiPointSet = (): {
 				dto.fileName,
 				dto.fileSize,
 				data,
-				false,
+				cacheFile?.isActive ?? false,
 				dto.visible ?? true,
 				dto.order
 			);
@@ -68,12 +70,14 @@ export const useApiPointSet = (): {
 	): Promise<CreatePointSetResponseDto[]> =>
 		await Promise.all(
 			pointSets.map(
-				async (addedPointSetFile) =>
+				async (file) =>
 					await client.current.create(
 						new CreatePointSetCommand({
 							projectId,
-							fileName: addedPointSetFile.name,
-							base64: addedPointSetFile.getBase64(),
+							fileName: file.name,
+							base64: file.getBase64(),
+							order: file.order,
+							visible: file.isChecked,
 						})
 					)
 			)
