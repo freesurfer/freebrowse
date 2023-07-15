@@ -134,6 +134,7 @@ export const LoadedFiles = ({
 									)
 								);
 							}}
+							multiselect={false}
 							hideFileExtension={false}
 						></OrderList>
 					</Collapse>

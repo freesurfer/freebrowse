@@ -182,17 +182,11 @@ export class ProjectFiles {
 				? this.cloudSurfaces.map((file) => file.from({ isActive: false }))
 				: undefined;
 
-		const cachePointSets =
-			this.cachePointSets.find((file) => file.isActive) !== undefined
-				? this.cachePointSets.map((file) => file.from({ isActive: false }))
-				: undefined;
-
 		return new ProjectFiles({
 			localVolumes,
 			localSurfaces,
 			cloudVolumes,
 			cloudSurfaces,
-			cachePointSets,
 			projectFiles: this,
 		});
 	}
@@ -269,17 +263,11 @@ export class ProjectFiles {
 			file.from({ isActive: file === surface })
 		);
 
-		const cachePointSets =
-			this.cachePointSets.find((file) => file.isActive) !== undefined
-				? this.cachePointSets.map((file) => file.from({ isActive: false }))
-				: undefined;
-
 		return new ProjectFiles({
 			localVolumes,
 			localSurfaces,
 			cloudVolumes,
 			cloudSurfaces,
-			cachePointSets,
 			projectFiles: this,
 		});
 	}
@@ -288,26 +276,6 @@ export class ProjectFiles {
 	 * when the user clicks on a surface, we want to highlight only that one surface as active and deactivate all the others
 	 */
 	public fromOnePointSetActivated(pointSet: PointSetFile): ProjectFiles {
-		const localVolumes =
-			this.localVolumes.find((file) => file.isActive) !== undefined
-				? this.localVolumes.map((file) => file.from({ isActive: false }))
-				: undefined;
-
-		const localSurfaces =
-			this.localSurfaces.find((file) => file.isActive) !== undefined
-				? this.localSurfaces.map((file) => file.from({ isActive: false }))
-				: undefined;
-
-		const cloudVolumes =
-			this.cloudVolumes.find((file) => file.isActive) !== undefined
-				? this.cloudVolumes.map((file) => file.from({ isActive: false }))
-				: undefined;
-
-		const cloudSurfaces =
-			this.cloudSurfaces.find((file) => file.isActive) !== undefined
-				? this.cloudSurfaces.map((file) => file.from({ isActive: false }))
-				: undefined;
-
 		const cachePointSets =
 			this.cachePointSets.find((file) => file === pointSet || file.isActive) !==
 			undefined
@@ -325,10 +293,6 @@ export class ProjectFiles {
 				: this.cloudPointSets;
 
 		return new ProjectFiles({
-			localVolumes,
-			localSurfaces,
-			cloudVolumes,
-			cloudSurfaces,
 			cachePointSets,
 			cloudPointSets,
 			projectFiles: this,
@@ -755,8 +719,11 @@ export class ProjectFiles {
 
 	public fromNewPointSetFile(name: string, color: string): ProjectFiles {
 		return new ProjectFiles({
+			cloudPointSets: this.cloudPointSets.map((file) =>
+				file.from({ isActive: false })
+			),
 			cachePointSets: [
-				...this.cachePointSets,
+				...this.cachePointSets.map((file) => file.from({ isActive: false })),
 				new CachePointSetFile(
 					name,
 					{
