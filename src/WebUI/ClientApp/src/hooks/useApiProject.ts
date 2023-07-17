@@ -21,7 +21,8 @@ export const useApiProject = (): {
 	create: (
 		projectName: string | undefined,
 		projectMeshThicknessOn2D: number | undefined,
-		projectFiles: ProjectFiles
+		projectFiles: ProjectFiles,
+		apiPointSet: ReturnType<typeof useApiPointSet>
 	) => Promise<{
 		projectId: number;
 		projectFiles: ProjectFiles;
@@ -90,7 +91,8 @@ export const useApiProject = (): {
 	const create = async (
 		projectName: string | undefined,
 		projectMeshThicknessOn2D: number | undefined,
-		projectFiles: ProjectFiles
+		projectFiles: ProjectFiles,
+		apiPointSet: ReturnType<typeof useApiPointSet>
 	): Promise<{
 		projectId: number;
 		projectFiles: ProjectFiles;
@@ -131,6 +133,14 @@ export const useApiProject = (): {
 
 		if (createProjectResponse.id === undefined)
 			throw new Error('no project id received from backend');
+
+		if (projectFiles.localPointSets.length > 0) {
+			await apiPointSet.create(
+				createProjectResponse.id,
+				projectFiles.localPointSets
+			);
+		}
+
 		return {
 			projectId: createProjectResponse.id,
 			projectFiles,

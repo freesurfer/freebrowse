@@ -1,4 +1,5 @@
 import { Tabs } from '@/components/Tabs';
+import { useApiPointSet } from '@/hooks/useApiPointSet';
 import { useApiProject } from '@/hooks/useApiProject';
 import { useApiSurface } from '@/hooks/useApiSurface';
 import { useApiVolume } from '@/hooks/useApiVolume';
@@ -64,6 +65,7 @@ export const OpenProjectDialog = ({
 	const apiProject = useApiProject();
 	const apiVolume = useApiVolume();
 	const apiSurface = useApiSurface();
+	const apiPointSet = useApiPointSet();
 
 	const onOpenClick = useCallback(async (): Promise<void> => {
 		if (
@@ -77,7 +79,9 @@ export const OpenProjectDialog = ({
 
 		const createProjectInBackend = async (): Promise<void> => {
 			try {
-				resolve(await apiProject.create(projectName, 0.5, projectFiles));
+				resolve(
+					await apiProject.create(projectName, 0.5, projectFiles, apiPointSet)
+				);
 			} catch (error) {
 				console.error('something went wrong', error);
 				reject('UNKNOWN_ERROR');
@@ -180,6 +184,7 @@ export const OpenProjectDialog = ({
 		apiVolume,
 		apiProject,
 		apiSurface,
+		apiPointSet,
 		projectFiles,
 		projectName,
 		projectState,
