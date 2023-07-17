@@ -1,3 +1,4 @@
+import type { ColorMap } from '@/pages/project/models/ColorMap';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
@@ -113,7 +114,7 @@ export class ProjectState {
 					isActive: volumeSelected[index] === 'true',
 					isChecked: volumeVisible[index] === 'true',
 					opacity: Number(volumeOpacity[index]),
-					colorMap: volumeColormap[index] ?? undefined,
+					colorMap: (volumeColormap[index] as ColorMap) ?? undefined,
 					contrastMin: Number(volumeContrastMin[index]),
 					contrastMax: Number(volumeContrastMax[index]),
 				});

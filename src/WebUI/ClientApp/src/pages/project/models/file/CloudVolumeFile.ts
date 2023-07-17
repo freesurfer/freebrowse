@@ -1,4 +1,5 @@
 import type { GetProjectVolumeDto } from '@/generated/web-api-client';
+import type { ColorMap } from '@/pages/project/models/ColorMap';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
 import type { IManageableFile } from '@/pages/project/models/file/extension/ManageableFile';
 import type { IOrderableFile } from '@/pages/project/models/file/extension/OrderableFile';
@@ -10,7 +11,7 @@ export class CloudVolumeFile
 	extends CloudFile
 	implements IVolumeFile, IOrderableFile, IManageableFile
 {
-	static DEFAULT_COLOR_MAP = 'gray';
+	static DEFAULT_COLOR_MAP: ColorMap = 'gray';
 
 	public readonly type = FileType.VOLUME;
 	public readonly progress = 100;
@@ -31,6 +32,15 @@ export class CloudVolumeFile
 
 		if (fileDto?.colorMap === undefined)
 			throw new Error('no file without colorMap');
+
+		if (
+			fileDto.colorMap !== 'gray' &&
+			fileDto.colorMap !== 'Hot' &&
+			fileDto.colorMap !== 'LookupTable'
+		)
+			throw new Error(
+				`${fileDto.colorMap} is not one of the supported color schemes`
+			);
 
 		return new CloudVolumeFile(
 			fileDto.id,
@@ -54,7 +64,7 @@ export class CloudVolumeFile
 		public readonly isChecked = true,
 		public readonly order: number,
 		public readonly opacity: number,
-		public readonly colorMap: string,
+		public readonly colorMap: ColorMap,
 		public readonly contrastMin = 0,
 		public readonly contrastMax = 100
 	) {
@@ -67,7 +77,7 @@ export class CloudVolumeFile
 		isActive?: boolean;
 		isChecked?: boolean;
 		opacity?: number;
-		colorMap?: string;
+		colorMap?: ColorMap;
 		contrastMin?: number;
 		contrastMax?: number;
 	}): CloudVolumeFile {

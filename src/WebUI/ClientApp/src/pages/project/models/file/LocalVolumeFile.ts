@@ -1,3 +1,4 @@
+import { COLOR_MAP, ColorMap } from '@/pages/project/models/ColorMap';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
 import type { IManageableFile } from '@/pages/project/models/file/extension/ManageableFile';
 import type { IOrderableFile } from '@/pages/project/models/file/extension/OrderableFile';
@@ -18,7 +19,7 @@ export class LocalVolumeFile
 		public readonly isChecked = true,
 		public readonly order: number | undefined = undefined,
 		public readonly opacity = 100,
-		public readonly colorMap = 'gray',
+		public readonly colorMap: ColorMap = ColorMap.from(COLOR_MAP.GRAY),
 		public readonly contrastMin = 0,
 		public readonly contrastMax = 100
 	) {
@@ -31,7 +32,7 @@ export class LocalVolumeFile
 		isActive?: boolean;
 		isChecked?: boolean;
 		opacity?: number;
-		colorMap?: string;
+		colorMap?: ColorMap;
 		contrastMin?: number;
 		contrastMax?: number;
 	}): LocalVolumeFile {
