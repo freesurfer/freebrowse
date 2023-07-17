@@ -98,6 +98,11 @@ export class ProjectState {
 		surfaceOrder: (string | null)[],
 		surfaceVisible: (string | null)[],
 		surfaceSelected: (string | null)[],
+		pointSets: (string | null)[],
+		pointSetOpacity: (string | null)[],
+		pointSetOrder: (string | null)[],
+		pointSetVisible: (string | null)[],
+		pointSetSelected: (string | null)[],
 		upload = true
 	): ProjectState {
 		const volumeFiles: VolumeFile[] = this.files.volumes.map((volume) => {
@@ -131,9 +136,26 @@ export class ProjectState {
 			return surface.from({ isChecked: false });
 		});
 
+		const pointSetFiles: PointSetFile[] = this.files.pointSets.map(
+			(pointSet) => {
+				const index = pointSets.indexOf(pointSet.name);
+				if (index !== -1) {
+					return pointSet.from({
+						order: Number(pointSetOrder[index]),
+						isActive: pointSetSelected[index] === 'true',
+						isChecked: pointSetVisible[index] === 'true',
+						opacity: Number(pointSetOpacity[index]),
+					});
+				}
+
+				return pointSet.from({ isChecked: false });
+			}
+		);
+
 		const files = this.files
 			.fromAdaptedVolumes(volumeFiles)
-			.fromAdaptedSurfaces(surfaceFiles);
+			.fromAdaptedSurfaces(surfaceFiles)
+			.fromAdaptedPointSets(pointSetFiles);
 
 		return this.fromFiles(files, upload);
 	}

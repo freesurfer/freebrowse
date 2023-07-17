@@ -72,6 +72,14 @@ export const TopBar = ({
 			}&surfaceVisible=${surface.isChecked.toString()}&surfaceSelected=${surface.isActive.toString()}`;
 		});
 
+		projectState?.files.pointSets.forEach((pointSet) => {
+			deepLink += `&pointSets=${encodeURIComponent(
+				pointSet.name
+			)}&pointSetOrder=${
+				pointSet.order ?? 0
+			}&pointSetVisible=${pointSet.isChecked.toString()}&pointSetSelected=${pointSet.isActive.toString()}`;
+		});
+
 		return deepLink;
 	};
 
