@@ -211,10 +211,19 @@ export const niivueHandleVolumeUpdate = async (
 		return hasChanged;
 	};
 
+	const cleanCache = (): void => {
+		for (const key of cache.volumes.keys()) {
+			if (!next.volumes.some((file) => file.name === key))
+				cache.volumes.delete(key);
+		}
+	};
+
 	const renderForInit = await initVolumes();
 	const renderForRemove = remove();
 	const renderForAdd = await add();
 	const renderForProperties = propagateProperties();
+	cleanCache();
+
 	return (
 		renderForInit || renderForRemove || renderForAdd || renderForProperties
 	);

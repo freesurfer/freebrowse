@@ -282,11 +282,25 @@ export const niivueHandleMeshesUpdate = async (
 		return hasChanged;
 	};
 
+	const cleanCache = (): void => {
+		for (const key of cache.surfaces.keys()) {
+			if (!next.surfaces.some((file) => file.name === key))
+				cache.surfaces.delete(key);
+		}
+
+		for (const key of cache.pointSets.keys()) {
+			if (!next.pointSets.some((file) => file.name === key))
+				cache.surfaces.delete(key);
+		}
+	};
+
 	const renderForInit = await initMeshes();
 	const renderForRemove = remove();
 	const renderForAdd = await add();
 	const renderForPointSet = await updatePointSetData();
 	const renderForProperties = await propagateProperties();
+	cleanCache();
+
 	return (
 		renderForInit ||
 		renderForRemove ||
