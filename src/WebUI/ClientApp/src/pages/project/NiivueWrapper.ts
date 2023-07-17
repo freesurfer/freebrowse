@@ -9,7 +9,6 @@ import {
 	type NVImage,
 	type NVMesh,
 } from '@niivue/niivue';
-import type { Dispatch } from 'react';
 
 export interface INiivueCache {
 	volumes: Map<string, NVImage>;
@@ -83,10 +82,7 @@ export class NiivueWrapper {
 	public async next(
 		previousState: ProjectState | undefined,
 		nextState: ProjectState,
-		viewSettings: ViewSettings | undefined,
-		setProjectState: Dispatch<
-			(currentState: ProjectState | undefined) => ProjectState | undefined
-		>
+		viewSettings: ViewSettings | undefined
 	): Promise<void> {
 		await niivueHandleProjectUpdate(
 			previousState,
