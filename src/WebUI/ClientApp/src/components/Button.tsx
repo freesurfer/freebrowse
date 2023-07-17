@@ -32,7 +32,7 @@ export const Button = ({
 	return (
 		<button
 			onClick={onClick}
-			className="flex rounded-[0.25rem] border border-primary p-0.5 text-primary"
+			className="flex rounded border border-primary p-0.5 text-primary"
 		>
 			{iconChooser()}
 			{titleChooser()}

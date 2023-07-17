@@ -25,19 +25,20 @@ export const useProject = (
 	const [projectState, setProjectState] = useState<ProjectState>();
 
 	const [query] = useQueryParams({
+		userMode: withDefault(ArrayParam, []),
 		volumes: withDefault(ArrayParam, []),
-		volumeOpacity: withDefault<number[]>(ArrayParam, []),
-		volumeOrder: withDefault<number[]>(ArrayParam, []),
-		volumeVisible: withDefault<boolean[]>(ArrayParam, [] as boolean[]),
-		volumeSelected: withDefault<boolean[]>(ArrayParam, [] as boolean[]),
-		volumeContrastMin: withDefault<number[]>(ArrayParam, []),
-		volumeContrastMax: withDefault<number[]>(ArrayParam, []),
-		volumeColormap: withDefault<string[]>(ArrayParam, []),
+		volumeOpacity: withDefault(ArrayParam, []),
+		volumeOrder: withDefault(ArrayParam, []),
+		volumeVisible: withDefault(ArrayParam, []),
+		volumeSelected: withDefault(ArrayParam, []),
+		volumeContrastMin: withDefault(ArrayParam, []),
+		volumeContrastMax: withDefault(ArrayParam, []),
+		volumeColormap: withDefault(ArrayParam, []),
 		surfaces: withDefault(ArrayParam, []),
-		surfaceOpacity: withDefault<number[]>(ArrayParam, []),
-		surfaceOrder: withDefault<number[]>(ArrayParam, []),
-		surfaceVisible: withDefault<boolean[]>(ArrayParam, [] as boolean[]),
-		surfaceSelected: withDefault<boolean[]>(ArrayParam, [] as boolean[]),
+		surfaceOpacity: withDefault(ArrayParam, []),
+		surfaceOrder: withDefault(ArrayParam, []),
+		surfaceVisible: withDefault(ArrayParam, []),
+		surfaceSelected: withDefault(ArrayParam, []),
 	});
 
 	const {
@@ -83,7 +84,11 @@ export const useProject = (
 		}
 	}, [initialState]); // eslint-disable-line react-hooks/exhaustive-deps
 
-	const { location, niivueWrapper } = useNiivue(canvas, projectState);
+	const { location, niivueWrapper } = useNiivue(
+		canvas,
+		projectState,
+		setProjectState
+	);
 
 	return { projectState, setProjectState, location, niivueWrapper };
 };

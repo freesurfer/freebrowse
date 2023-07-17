@@ -5,7 +5,8 @@ import type { FileType } from '@/pages/project/models/file/ProjectFile';
 export type VolumeFile = CloudVolumeFile | LocalVolumeFile;
 
 export interface IVolumeFile {
-	type: FileType.VOLUME;
+	readonly type: FileType.VOLUME;
+	readonly opacity: number;
 
 	from: (options: {
 		order?: number;

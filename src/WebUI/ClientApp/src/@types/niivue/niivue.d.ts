@@ -24,6 +24,8 @@ declare module '@niivue/niivue' {
 		pan2Dxyzmm: [number, number, number, number];
 		dpr: number;
 		mouseButtonCenterDown: boolean;
+		fracPos: [number];
+		mouseButtonRightDown: boolean;
 	}
 
 	export class LocationData {
@@ -35,7 +37,7 @@ declare module '@niivue/niivue' {
 			name: string;
 			value: number;
 			vox: [number, number, number];
-			label: string;
+			label: string | undefined;
 		}[];
 		vox: [number, number, number];
 		xy: [number, number];
@@ -888,6 +890,7 @@ declare module '@niivue/niivue' {
 		moveVolumeToTop(volume: NVImage): void;
 		mouseDown(x: any, y: any): void;
 		mouseMove(x: any, y: any): void;
+		onMouseUp(uiData: UIData): void;
 		/**
 		 * convert spherical AZIMUTH, ELEVATION to Cartesian
 		 * @param {number} azimuth azimuth number

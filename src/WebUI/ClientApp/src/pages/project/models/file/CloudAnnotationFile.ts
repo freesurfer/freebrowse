@@ -1,10 +1,14 @@
 import type { GetProjectAnnotationDto } from '@/generated/web-api-client';
-import type { IAnnotationFile } from '@/pages/project/models/file/AnnotationFile';
-import { CloudFile } from '@/pages/project/models/file/CloudFile';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
+import type { ISelectableFile } from '@/pages/project/models/file/extension/SelectableFile';
+import { CloudFile } from '@/pages/project/models/file/location/CloudFile';
+import type { IAnnotationFile } from '@/pages/project/models/file/type/AnnotationFile';
 import { getApiUrl } from '@/utils';
 
-export class CloudAnnotationFile extends CloudFile implements IAnnotationFile {
+export class CloudAnnotationFile
+	extends CloudFile
+	implements IAnnotationFile, ISelectableFile
+{
 	public readonly type = FileType.ANNOTATION;
 
 	static fromDto(fileDto: GetProjectAnnotationDto): CloudAnnotationFile {
@@ -19,45 +23,16 @@ export class CloudAnnotationFile extends CloudFile implements IAnnotationFile {
 		return new CloudAnnotationFile(
 			fileDto.id,
 			fileDto.fileName,
-			fileDto.fileSize,
-			fileDto.selected ?? false,
-			fileDto.visible ?? false,
-			undefined,
-			fileDto.opacity ?? 100
+			fileDto.selected ?? false
 		);
 	}
 
-	constructor(
-		id: number,
-		name: string,
-		size: number,
-		isActive: boolean,
-		isChecked: boolean,
-		order: number | undefined,
-		opacity: number
-	) {
-		super(
-			id,
-			name,
-			size,
-			`${getApiUrl()}/api/Annotation?Id=${String(id)}`,
-			isActive,
-			isChecked,
-			order,
-			opacity
-		);
+	constructor(id: number, name: string, public readonly isActive: boolean) {
+		super(id, name, `${getApiUrl()}/api/Annotation?Id=${String(id)}`);
 	}
 
 	fromIsActive(isActive: boolean): CloudAnnotationFile {
 		if (this.isActive === isActive) return this;
-		return new CloudAnnotationFile(
-			this.id,
-			this.name,
-			this.size,
-			isActive,
-			this.isChecked,
-			this.order,
-			this.opacity
-		);
+		return new CloudAnnotationFile(this.id, this.name, isActive);
 	}
 }

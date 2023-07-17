@@ -1,9 +1,23 @@
-import type { GetProjectDto } from '@/generated/web-api-client';
-import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
+import { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
+import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
+import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
+import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
+import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
-import { FileType } from '@/pages/project/models/file/ProjectFile';
-import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
-import type { VolumeFile } from '@/pages/project/models/file/VolumeFile';
+import type { PointSetFile } from '@/pages/project/models/file/type/PointSetFile';
+import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
+import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
+
+/**
+ * The mode the user is interacting with the UI right now
+ */
+export enum USER_MODE {
+	NAVIGATE,
+	EDIT_VOXEL,
+	EDIT_POINTS,
+}
 
 /**
  * class to uncouple backend dto from data used from ui
@@ -20,85 +34,70 @@ export class ProjectState {
 	 */
 	public readonly name: string | undefined;
 	/**
+	 * the mode the user is interacting with the UI right now
+	 */
+	public readonly userMode: USER_MODE;
+	/**
 	 * thickness of the mesh on the 2d plane
 	 */
 	public readonly meshThicknessOn2D: number | undefined;
-	/**
-	 * state of data received on the last fetch
-	 */
-	public readonly backendState: GetProjectDto;
 	/**
 	 * all files related to the project
 	 */
 	public readonly files: ProjectFiles;
 
 	constructor(
-		initialState:
-			| {
-					backendState: GetProjectDto;
-			  }
-			| { projectState: ProjectState; projectFiles: ProjectFiles }
+		args:
 			| {
 					id: number;
-					name: string | undefined;
+					name: string;
 					meshThicknessOn2D?: number;
-					backendStateDto: GetProjectDto;
 					files: ProjectFiles;
+			  }
+			| {
+					projectState: ProjectState;
+					userMode?: USER_MODE;
+					meshThicknessOn2D?: number;
+					files?: ProjectFiles;
 			  },
 		public readonly upload: boolean
 	) {
-		if ('backendState' in initialState) {
-			if (initialState.backendState.id === undefined)
-				throw new Error('no id given for project');
-			this.id = initialState.backendState.id;
-			this.name = initialState.backendState.name;
-			this.meshThicknessOn2D = initialState.backendState.meshThicknessOn2D ?? 0;
-			this.backendState = initialState.backendState;
-			this.files = new ProjectFiles({
-				backendState: initialState.backendState,
-			});
+		if ('id' in args) {
+			this.id = args.id;
+			this.name = args.name;
+			this.userMode = USER_MODE.NAVIGATE;
+			this.meshThicknessOn2D = args.meshThicknessOn2D ?? 0;
+			this.files = args.files;
 			return;
 		}
 
-		if ('projectState' in initialState) {
-			this.id = initialState.projectState.id;
-			this.name = initialState.projectState.name;
-			this.meshThicknessOn2D = initialState.projectState.meshThicknessOn2D ?? 0;
-			this.backendState = initialState.projectState.backendState;
-			this.files = initialState.projectFiles;
-			return;
-		}
+		this.id = args.projectState.id;
+		this.name = args.projectState.name;
 
-		if ('id' in initialState) {
-			this.id = initialState.id;
-			this.name = initialState.name;
-			this.meshThicknessOn2D = initialState.meshThicknessOn2D ?? 0;
-			this.backendState = initialState.backendStateDto;
-			this.files = initialState.files;
-			return;
-		}
-
-		throw new Error('initial state is not as expected');
+		this.userMode = args.userMode ?? args.projectState.userMode;
+		this.meshThicknessOn2D =
+			args.meshThicknessOn2D ?? args.projectState.meshThicknessOn2D;
+		this.files = args.files ?? args.projectState.files;
 	}
 
-	fromFiles(projectFiles: ProjectFiles, upload = true): ProjectState {
-		return new ProjectState({ projectState: this, projectFiles }, upload);
+	fromFiles(files: ProjectFiles, upload = true): ProjectState {
+		return new ProjectState({ projectState: this, files }, upload);
 	}
 
 	fromQuery(
-		volumes: string[],
-		volumeOpacity: string[],
-		volumeOrder: string[],
-		volumeSelected: string[],
-		volumeVisible: string[],
-		volumeContrastMin: string[],
-		volumeContrastMax: string[],
-		volumeColormap: string[],
-		surfaces: string[],
-		surfaceOpacity: string[],
-		surfaceOrder: string[],
-		surfaceVisible: string[],
-		surfaceSelected: string[],
+		volumes: (string | null)[],
+		volumeOpacity: (string | null)[],
+		volumeOrder: (string | null)[],
+		volumeSelected: (string | null)[],
+		volumeVisible: (string | null)[],
+		volumeContrastMin: (string | null)[],
+		volumeContrastMax: (string | null)[],
+		volumeColormap: (string | null)[],
+		surfaces: (string | null)[],
+		surfaceOpacity: (string | null)[],
+		surfaceOrder: (string | null)[],
+		surfaceVisible: (string | null)[],
+		surfaceSelected: (string | null)[],
 		upload = true
 	): ProjectState {
 		const volumeFiles: VolumeFile[] = this.files.volumes.map((volume) => {
@@ -109,9 +108,9 @@ export class ProjectState {
 					isActive: volumeSelected[index] === 'true',
 					isChecked: volumeVisible[index] === 'true',
 					opacity: Number(volumeOpacity[index]),
+					colorMap: volumeColormap[index] ?? undefined,
 					contrastMin: Number(volumeContrastMin[index]),
 					contrastMax: Number(volumeContrastMax[index]),
-					colorMap: volumeColormap[index],
 				});
 			}
 
@@ -151,26 +150,50 @@ export class ProjectState {
 		options: Parameters<T_FILE_TYPE['from']>[0],
 		upload: boolean
 	): ProjectState {
-		if (file.type === FileType.VOLUME)
+		if (file instanceof CloudVolumeFile || file instanceof LocalVolumeFile)
 			return new ProjectState(
 				{
 					projectState: this,
-					projectFiles: this.files.fromAdaptedVolumes(
+					files: this.files.fromAdaptedVolumes(
 						this.files.volumes.map((tmpVolume) =>
-							tmpVolume === file ? tmpVolume.from(options) : tmpVolume
+							tmpVolume.name === file.name &&
+							tmpVolume.location === file.location
+								? tmpVolume.from(options as Parameters<VolumeFile['from']>[0])
+								: tmpVolume
 						)
 					),
 				},
 				upload
 			);
 
-		if (file.type === FileType.SURFACE)
+		if (file instanceof CloudSurfaceFile || file instanceof LocalSurfaceFile)
 			return new ProjectState(
 				{
 					projectState: this,
-					projectFiles: this.files.fromAdaptedSurfaces(
+					files: this.files.fromAdaptedSurfaces(
 						this.files.surfaces.map((tmpSurface) =>
-							tmpSurface === file ? tmpSurface.from(options) : tmpSurface
+							tmpSurface.name === file.name &&
+							tmpSurface.location === file.location
+								? tmpSurface.from(options as Parameters<SurfaceFile['from']>[0])
+								: tmpSurface
+						)
+					),
+				},
+				upload
+			);
+
+		if (file instanceof CloudPointSetFile || file instanceof CachePointSetFile)
+			return new ProjectState(
+				{
+					projectState: this,
+					files: this.files.fromAdaptedPointSets(
+						this.files.pointSets.map((tmpPointSet) =>
+							tmpPointSet.name === file.name &&
+							tmpPointSet.location === file.location
+								? tmpPointSet.from(
+										options as Parameters<PointSetFile['from']>[0]
+								  )
+								: tmpPointSet
 						)
 					),
 				},
@@ -178,27 +201,5 @@ export class ProjectState {
 			);
 
 		throw new Error('file type unknown');
-	}
-
-	/**
-	 * to update a property of a project
-	 * @param options property value to update
-	 * @param upload flag, if the change should get pushed to the backend
-	 * @returns new instance of the project state
-	 */
-	fromProjectUpdate(
-		options: Partial<ProjectState>,
-		upload: boolean
-	): ProjectState {
-		return new ProjectState(
-			{
-				id: options.id ?? this.id,
-				name: options.name ?? this.name,
-				meshThicknessOn2D: options.meshThicknessOn2D ?? this.meshThicknessOn2D,
-				backendStateDto: options.backendState ?? this.backendState,
-				files: options.files ?? this.files,
-			},
-			upload
-		);
 	}
 }

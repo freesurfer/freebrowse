@@ -22,6 +22,7 @@ export const ProjectPage = (): React.ReactElement => {
 				projectState={projectState}
 				location={location}
 				niivueWrapper={niivueWrapper}
+				setProjectState={setProjectState}
 			></TopBar>
 			<div className="border-5 flex h-full flex-row border-red">
 				<LeftBar

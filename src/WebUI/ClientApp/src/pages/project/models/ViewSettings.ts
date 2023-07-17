@@ -1,32 +1,32 @@
 export class ViewSettings {
-	public readonly sliceX: number;
-	public readonly sliceY: number;
-	public readonly sliceZ: number;
-	public readonly rasX: number;
-	public readonly rasY: number;
-	public readonly rasZ: number;
-	public readonly zoom3d: number;
-	public readonly zoom2d: number;
-	public readonly zoom2dX: number;
-	public readonly zoom2dY: number;
-	public readonly zoom2dZ: number;
-	public readonly renderAzimuth: number;
-	public readonly renderElevation: number;
+	public readonly sliceX: number | undefined;
+	public readonly sliceY: number | undefined;
+	public readonly sliceZ: number | undefined;
+	public readonly rasX: number | undefined;
+	public readonly rasY: number | undefined;
+	public readonly rasZ: number | undefined;
+	public readonly zoom3d: number | undefined;
+	public readonly zoom2d: number | undefined;
+	public readonly zoom2dX: number | undefined;
+	public readonly zoom2dY: number | undefined;
+	public readonly zoom2dZ: number | undefined;
+	public readonly renderAzimuth: number | undefined;
+	public readonly renderElevation: number | undefined;
 
 	constructor(
-		zoom2d: number,
-		zoom2dX: number,
-		zoom2dY: number,
-		zoom2dZ: number,
-		zoom3d: number,
-		sliceX: number,
-		sliceY: number,
-		sliceZ: number,
-		rasX: number,
-		rasY: number,
-		rasZ: number,
-		renderAzimuth: number,
-		renderElevation: number
+		zoom2d: number | undefined,
+		zoom2dX: number | undefined,
+		zoom2dY: number | undefined,
+		zoom2dZ: number | undefined,
+		zoom3d: number | undefined,
+		sliceX: number | undefined,
+		sliceY: number | undefined,
+		sliceZ: number | undefined,
+		rasX: number | undefined,
+		rasY: number | undefined,
+		rasZ: number | undefined,
+		renderAzimuth: number | undefined,
+		renderElevation: number | undefined
 	) {
 		this.zoom2d = zoom2d;
 		this.zoom2dX = zoom2dX;

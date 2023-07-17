@@ -46,7 +46,8 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 	constructor(
 		private readonly setFiles: (files: T_FILE_TYPE[]) => void,
 		private readonly setRows: (rows: IRow<T_FILE_TYPE>[]) => void,
-		private readonly setFileActive: (file: T_FILE_TYPE) => void
+		private readonly setFileActive: (file: T_FILE_TYPE) => void,
+		private readonly multiselect: boolean
 	) {}
 
 	updateSource(files: readonly T_FILE_TYPE[]): void {
@@ -58,52 +59,50 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 			(a, b) => (a?.order ?? 0) - (b?.order ?? 0)
 		);
 
-		let order = 0;
-
 		this.rows = [
 			...(sortedFilesWithOrder ?? []),
 			...(filesWithoutOrder ?? []),
-		].map((file): IRow<T_FILE_TYPE> => {
-			const currentOrder = order;
-			order = order + 1;
-
+		].reduce<IRow<T_FILE_TYPE>[]>((result, file, index) => {
 			const existsAlready = this.rows.find(
-				(row) => row.projectFile.name === file?.name
+				(row) => row.projectFile.name === file.name
 			);
 
 			if (existsAlready === undefined) {
-				return {
+				result.push({
 					projectFile: file,
 					label: file?.name,
-					order: currentOrder,
-					top: currentOrder * ROW_HEIGHT,
+					order: index,
+					top: index * ROW_HEIGHT,
 					isActive: file?.isActive ?? false,
 					isChecked: file?.isChecked ?? false,
-				};
+				});
+				return result;
 			}
 
-			existsAlready.order = currentOrder;
-			existsAlready.top = currentOrder * ROW_HEIGHT;
+			existsAlready.order = index;
+			existsAlready.top = index * ROW_HEIGHT;
 			existsAlready.isActive = file?.isActive;
 			existsAlready.isChecked = file?.isChecked;
 			existsAlready.projectFile = file;
 
-			return existsAlready;
-		});
+			result.push(existsAlready);
+			return result;
+		}, []);
 		this.setRows(this.rows);
 		this.pushNewOrder();
 	}
 
 	private pushNewOrder(): void {
-		const newFiles: T_FILE_TYPE[] = [];
-		let orderHasChanged = false;
-		for (const row of this.rows) {
-			if (row.projectFile.order !== row.order) orderHasChanged = true;
-			newFiles.push(row.projectFile.from({ order: row.order }) as T_FILE_TYPE);
-		}
-		if (orderHasChanged) {
-			this.setFiles(newFiles);
-		}
+		const orderHasChanged = this.rows.some(
+			(row) => row.order !== row.projectFile.order
+		);
+		if (!orderHasChanged) return;
+
+		this.setFiles(
+			this.rows.map(
+				(row) => row.projectFile.from({ order: row.order }) as T_FILE_TYPE
+			)
+		);
 	}
 
 	startDrag(mouseStart: number, entry: IRow<T_FILE_TYPE>): void {
@@ -152,6 +151,10 @@ class OrderState<T_FILE_TYPE extends ProjectFile> {
 
 		if (dragState.isClick) {
 			if (!this.isControlKeyPressed) {
+				this.setFileActive(dragState.entry.projectFile);
+				return;
+			}
+			if (!this.multiselect && !dragState.entry.projectFile.isActive) {
 				this.setFileActive(dragState.entry.projectFile);
 				return;
 			}
@@ -239,16 +242,18 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 	files,
 	setFiles,
 	setFileActive,
+	multiselect = true,
 	hideFileExtension = false,
 }: {
 	files: readonly T_FILE_TYPE[];
 	setFiles: (files: T_FILE_TYPE[]) => void;
 	setFileActive: (file: T_FILE_TYPE) => void;
+	multiselect?: boolean;
 	hideFileExtension?: boolean;
 }): React.ReactElement => {
 	const [rows, setRows] = useState<IRow<T_FILE_TYPE>[]>();
 	const state = useRef<OrderState<T_FILE_TYPE>>(
-		new OrderState(setFiles, setRows, setFileActive)
+		new OrderState(setFiles, setRows, setFileActive, multiselect)
 	);
 
 	useEffect(() => {
@@ -292,7 +297,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 				if (row.label === undefined) return <></>;
 				return (
 					<div
-						key={row.label}
+						key={row.projectFile.name}
 						ref={(ref) => {
 							row.ref = ref;
 						}}

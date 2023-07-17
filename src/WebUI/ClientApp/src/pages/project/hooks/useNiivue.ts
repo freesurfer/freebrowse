@@ -1,9 +1,14 @@
 import { NiivueWrapper } from '@/pages/project/NiivueWrapper';
-import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { useQueueDebounced } from '@/pages/project/hooks/api/useQueueDebounced';
+import {
+	USER_MODE,
+	type ProjectState,
+} from '@/pages/project/models/ProjectState';
 import { ViewSettings } from '@/pages/project/models/ViewSettings';
 // import type { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
-import type { LocationData } from '@niivue/niivue';
-import { useRef, useState, useEffect, useCallback } from 'react';
+import type { LocationData, UIData } from '@niivue/niivue';
+import { useRef, useState, useEffect, useCallback, type Dispatch } from 'react';
+import { Store } from 'react-notifications-component';
 import { useQueryParams, withDefault, NumberParam } from 'use-query-params';
 
 /**
@@ -12,7 +17,10 @@ import { useQueryParams, withDefault, NumberParam } from 'use-query-params';
  */
 export const useNiivue = (
 	canvas: HTMLCanvasElement | null | undefined,
-	projectState: ProjectState | undefined
+	projectState: ProjectState | undefined,
+	setProjectState: Dispatch<
+		(currentState: ProjectState | undefined) => ProjectState | undefined
+	>
 ): {
 	location: LocationData | undefined;
 	niivueWrapper: NiivueWrapper | undefined;
@@ -97,57 +105,161 @@ export const useNiivue = (
 		};
 	}, [canvas]);
 
+	const onMouseUp = useCallback(
+		(uiData: UIData): void => {
+			setProjectState((projectState) => {
+				if (projectState === undefined) return projectState;
+				if (niivueWrapper.current === undefined) return projectState;
+
+				const file = projectState.files.pointSets.find((file) => file.isActive);
+				if (file === undefined) {
+					Store.addNotification({
+						message: 'you need to select a point set to add points',
+						type: 'warning',
+						insert: 'top',
+						container: 'top-right',
+						animationIn: ['animate__animated', 'animate__fadeIn'],
+						animationOut: ['animate__animated', 'animate__fadeOut'],
+						dismiss: {
+							duration: 1500,
+							onScreen: true,
+						},
+					});
+					return projectState;
+				}
+				if (!file.isChecked) {
+					Store.addNotification({
+						message: 'the selected file needs to be visible to add points',
+						type: 'warning',
+						insert: 'top',
+						container: 'top-right',
+						animationIn: ['animate__animated', 'animate__fadeIn'],
+						animationOut: ['animate__animated', 'animate__fadeOut'],
+						dismiss: {
+							duration: 1500,
+							onScreen: true,
+						},
+					});
+					return projectState;
+				}
+				if (file.data === undefined) return projectState;
+
+				if (uiData.fracPos[0] < 0) return projectState; // not on volume
+				if (uiData.mouseButtonCenterDown) return projectState;
+
+				const position = niivueWrapper.current.coordinatesFromMouse(
+					uiData.fracPos
+				);
+
+				return projectState.fromFileUpdate(
+					file,
+					{
+						data: {
+							...file.data,
+							points: [
+								...file.data.points,
+								{
+									coordinates: {
+										x: position[0],
+										y: position[1],
+										z: position[2],
+									},
+									comments: [
+										{
+											text: 'name',
+											prefilled: ['true'],
+											timestamp: '1234',
+											user: 'me',
+										},
+									],
+									legacy_stat: 1,
+								},
+							],
+						},
+					},
+					true
+				);
+			});
+		},
+		[setProjectState, niivueWrapper]
+	);
+
 	useEffect(() => {
-		if (
-			projectState === undefined ||
-			niivueWrapper === undefined ||
-			niivueWrapper.current === undefined ||
-			niivueWrapper.current === null
-		)
-			return;
+		if (projectState?.userMode !== USER_MODE.EDIT_POINTS) return;
 
-		if (deeplinkInitialized || rasX === undefined) {
-			niivueWrapper.current.next(projectState, undefined);
-		} else {
-			niivueWrapper.current.next(
-				projectState,
-				new ViewSettings(
-					zoom2d,
-					zoom2dX,
-					zoom2dY,
-					zoom2dZ,
-					zoom3d,
-					sliceX,
-					sliceY,
-					sliceZ,
-					rasX,
-					rasY,
-					rasZ,
-					renderAzimuth,
-					renderElevation
-				)
-			);
+		niivueWrapper.current?.setOnMouseUp(onMouseUp);
 
-			setDeeplinkInitialized(true);
-		}
-	}, [
+		return () =>
+			niivueWrapper.current?.setOnMouseUp(() => {
+				/* do nothing */
+			});
+	}, [projectState, onMouseUp]);
+
+	useQueueDebounced(
 		projectState,
-		niivueWrapper,
-		deeplinkInitialized,
-		sliceX,
-		sliceY,
-		sliceZ,
-		zoom3d,
-		zoom2d,
-		zoom2dX,
-		zoom2dY,
-		zoom2dZ,
-		rasX,
-		rasY,
-		rasZ,
-		renderAzimuth,
-		renderElevation,
-	]);
+		false,
+		useCallback(
+			async (previousState, nextState) => {
+				if (
+					niivueWrapper === undefined ||
+					niivueWrapper.current === undefined ||
+					niivueWrapper.current === null
+				)
+					return;
+
+				if (deeplinkInitialized || rasX === undefined) {
+					// TODO Bere do not use projectChangeDetection class, pass two states and create a helper function for each iteration
+					await niivueWrapper.current.next(
+						previousState,
+						nextState,
+						undefined,
+						setProjectState
+					);
+				} else {
+					await niivueWrapper.current.next(
+						previousState,
+						nextState,
+						new ViewSettings(
+							zoom2d,
+							zoom2dX,
+							zoom2dY,
+							zoom2dZ,
+							zoom3d,
+							sliceX,
+							sliceY,
+							sliceZ,
+							rasX,
+							rasY,
+							rasZ,
+							renderAzimuth,
+							renderElevation
+						),
+						setProjectState
+					);
+
+					setDeeplinkInitialized(true);
+				}
+			},
+			[
+				niivueWrapper,
+				deeplinkInitialized,
+				sliceX,
+				sliceY,
+				sliceZ,
+				zoom3d,
+				zoom2d,
+				zoom2dX,
+				zoom2dY,
+				zoom2dZ,
+				rasX,
+				rasY,
+				rasZ,
+				renderAzimuth,
+				renderElevation,
+				setProjectState,
+			]
+		)
+	);
 
 	const handleKeyDown = useCallback((event: KeyboardEvent) => {
 		if (niivueWrapper.current === undefined) return;

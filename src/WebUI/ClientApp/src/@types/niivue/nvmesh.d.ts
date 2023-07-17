@@ -106,7 +106,7 @@ declare module '@niivue/niivue' {
 		vertexBuffer: any;
 		vao: any;
 		offsetPt0: any;
-		hasConnectome: any;
+		hasConnectome: boolean;
 		pts: any;
 		layers: NVMeshLayer[];
 		fiberLength: any;
@@ -278,6 +278,14 @@ declare module '@niivue/niivue' {
 					scalars: any[];
 			  };
 		function loadConnectomeFromJSON(
+			json: any,
+			gl: any,
+			name?: string,
+			colorMap?: string,
+			opacity?: number,
+			visible?: boolean
+		): Promise<NVMesh>;
+		function loadConnectomeFromFreeSurfer(
 			json: any,
 			gl: any,
 			name?: string,

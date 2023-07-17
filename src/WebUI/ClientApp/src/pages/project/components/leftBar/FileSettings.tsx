@@ -3,8 +3,9 @@ import { ColorPicker } from '@/components/ColorPicker';
 import { DropDown } from '@/components/DropDown';
 import { Slider } from '@/components/Slider';
 import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
-import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { ProjectState } from '@/pages/project/models/ProjectState';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
+import { rgbToHex } from '@/pages/project/models/file/type/PointSetFile';
 import { useCallback, type Dispatch } from 'react';
 
 export const FileSettings = ({
@@ -16,13 +17,16 @@ export const FileSettings = ({
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
 }): React.ReactElement => {
-	const selectedVolumes =
-		projectState?.files.volumes.filter((volume) => volume.isActive) ?? [];
+	const activeVolumes =
+		projectState?.files.volumes.filter((file) => file.isActive) ?? [];
 
-	const selectedSurfaces =
-		projectState?.files.surfaces.filter((surface) => surface.isActive) ?? [];
+	const activeSurfaces =
+		projectState?.files.surfaces.filter((file) => file.isActive) ?? [];
 
-	const selectedFiles = [...selectedVolumes, ...selectedSurfaces];
+	const activePointSets =
+		projectState?.files.pointSets.filter((file) => file.isActive) ?? [];
+
+	const activeFiles = [...activeVolumes, ...activeSurfaces, ...activePointSets];
 
 	const updateFileOptions = useCallback(
 		<T_FILE_TYPE extends ProjectFile>(
@@ -37,30 +41,18 @@ export const FileSettings = ({
 		[setProjectState]
 	);
 
-	const updateProjectOptions = useCallback(
-		(
-			options: Parameters<ProjectState['fromProjectUpdate']>[0],
-			upload: boolean
-		) => {
-			setProjectState((currentProjectState) =>
-				currentProjectState?.fromProjectUpdate(options, upload)
-			);
-		},
-		[setProjectState]
-	);
-
 	return (
 		<Collapse
 			className="border-b border-gray py-2 text-xs"
 			title={<span className="text-xs font-semibold">File Settings</span>}
 		>
-			{selectedFiles.length === 0 ? (
+			{activeFiles.length === 0 ? (
 				<span className="ml-1 mr-1 mt-2 block text-left text-xs text-gray-500">
 					Select a file to use this section.
 				</span>
 			) : (
 				<>
-					{selectedVolumes.map((volume) => {
+					{activeVolumes.map((volume) => {
 						if (volume === undefined) return <></>;
 						return (
 							<Collapse
@@ -147,7 +139,7 @@ export const FileSettings = ({
 							</Collapse>
 						);
 					})}
-					{selectedSurfaces.map((surfaceFile) => {
+					{activeSurfaces.map((surfaceFile) => {
 						if (surfaceFile === undefined) return <></>;
 						return (
 							<Collapse
@@ -160,18 +152,6 @@ export const FileSettings = ({
 								}
 							>
 								<div className="pl-1">
-									<Slider
-										className="mt-2"
-										label="Opacity:"
-										value={surfaceFile.opacity}
-										unit="%"
-										onChange={(value) =>
-											updateFileOptions(surfaceFile, { opacity: value }, false)
-										}
-										onEnd={(value) =>
-											updateFileOptions(surfaceFile, { opacity: value }, true)
-										}
-									></Slider>
 									<ColorPicker
 										className="mt-2"
 										label="Edge-Color:"
@@ -191,16 +171,22 @@ export const FileSettings = ({
 										min={0}
 										max={10}
 										onChange={(value) =>
-											updateProjectOptions(
-												{ meshThicknessOn2D: value * 0.1 },
-												false
-											)
+											setProjectState((projectState) => {
+												if (projectState === undefined) return undefined;
+												return new ProjectState(
+													{ projectState, meshThicknessOn2D: value * 0.1 },
+													false
+												);
+											})
 										}
 										onEnd={(value) =>
-											updateProjectOptions(
-												{ meshThicknessOn2D: value * 0.1 },
-												true
-											)
+											setProjectState((projectState) => {
+												if (projectState === undefined) return undefined;
+												return new ProjectState(
+													{ projectState, meshThicknessOn2D: value * 0.1 },
+													true
+												);
+											})
 										}
 									></Slider>
 									<FileSelection
@@ -210,6 +196,38 @@ export const FileSettings = ({
 										surfaceFile={surfaceFile}
 									></FileSelection>
 								</div>
+							</Collapse>
+						);
+					})}
+					{activePointSets.map((pointSetFile) => {
+						if (pointSetFile === undefined) return <></>;
+						return (
+							<Collapse
+								key={pointSetFile?.name}
+								className="mt-1 pr-4"
+								title={
+									<span className="grow border-b border-gray text-xs">
+										{pointSetFile.name ?? 'No file selected'}
+									</span>
+								}
+							>
+								{'data' in pointSetFile && pointSetFile.data !== undefined ? (
+									<div className="pl-1">
+										<ColorPicker
+											className="mt-2"
+											label="Color:"
+											value={rgbToHex(pointSetFile.data.color)}
+											onChange={(value) =>
+												updateFileOptions(pointSetFile, { color: value }, false)
+											}
+											onEnd={(value) =>
+												updateFileOptions(pointSetFile, { color: value }, true)
+											}
+										></ColorPicker>
+									</div>
+								) : (
+									<></>
+								)}
 							</Collapse>
 						);
 					})}

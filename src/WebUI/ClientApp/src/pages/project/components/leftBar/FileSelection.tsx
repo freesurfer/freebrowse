@@ -1,7 +1,7 @@
 import { AddFileButton } from '@/components/AddFileButton';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
-import type { SurfaceFile } from '@/pages/project/models/file/SurfaceFile';
+import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import type { Dispatch, ReactElement } from 'react';
 
@@ -102,7 +102,7 @@ export const FileSelection = ({
 								onClick={(event) => {
 									event.stopPropagation();
 									if (cascadingFile.type === FileType.OVERLAY) {
-										return setProjectState((projectState) =>
+										setProjectState((projectState) =>
 											projectState?.fromFiles(
 												projectState.files.fromDeletedOverlay(
 													surfaceFile,
@@ -110,8 +110,9 @@ export const FileSelection = ({
 												)
 											)
 										);
+										return;
 									}
-									return setProjectState((projectState) =>
+									setProjectState((projectState) =>
 										projectState?.fromFiles(
 											projectState.files.fromDeletedAnnotation(
 												surfaceFile,

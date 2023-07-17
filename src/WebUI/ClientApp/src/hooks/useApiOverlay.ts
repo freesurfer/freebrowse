@@ -37,8 +37,6 @@ export const useApiOverlay = (): {
 						base64: await overlayFile.getBase64(),
 						color: undefined,
 						opacity: 100,
-						visible: overlayFile.isChecked,
-						selected: overlayFile.isActive,
 					}),
 				],
 			})
@@ -50,8 +48,6 @@ export const useApiOverlay = (): {
 			new EditOverlayCommand({
 				id: overlayFile.id,
 				selected: overlayFile.isActive,
-				visible: overlayFile.isChecked,
-				opacity: overlayFile.opacity,
 			})
 		);
 	};

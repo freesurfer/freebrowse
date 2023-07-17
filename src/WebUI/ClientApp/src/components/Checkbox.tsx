@@ -24,7 +24,7 @@ export const Checkbox = ({
 				}}
 			></input>
 			<div
-				className={`h-4 w-4 rounded-[4px] border ${
+				className={`h-4 w-4 rounded border ${
 					isChecked ? 'bg-primary' : 'bg-white'
 				}`}
 			>

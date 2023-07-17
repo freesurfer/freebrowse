@@ -2,6 +2,7 @@ import { Tabs } from '@/components/Tabs';
 import { useApiProject } from '@/hooks/useApiProject';
 import { useApiSurface } from '@/hooks/useApiSurface';
 import { useApiVolume } from '@/hooks/useApiVolume';
+import { DialogFrame } from '@/pages/project/dialogs/DialogFrame';
 import { useProjectDialogState } from '@/pages/project/dialogs/openProject/hooks/useProjectDialogState';
 import { MyComputerDialogTab } from '@/pages/project/dialogs/openProject/tabs/my-computer/MyComputerDialogTab';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
@@ -10,9 +11,8 @@ import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
 import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
 import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
-import { ArrowUpTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { createContext, useCallback } from 'react';
-import Modal from 'react-modal';
 
 export type ResolveCreateProjectDialogResult =
 	| {
@@ -43,33 +43,6 @@ export const OpenProjectDialogContext = createContext<IOpenProjectDialog>({
 		throw new Error('not initialized yet');
 	},
 });
-
-const customStyles = {
-	overlay: {
-		zIndex: 1,
-	},
-	content: {
-		top: '50%',
-		left: '50%',
-		right: 'auto',
-		bottom: 'auto',
-		marginRight: '-50%',
-		transform: 'translate(-50%, -50%)',
-		padding: '0px',
-		maxHeight: '100vh',
-		maxWidth: '100vw',
-	},
-};
-
-/**
- * Make sure to bind modal to your appElement
- * https://reactcommunity.org/react-modal/accessibility/
- */
-const bindModalToRoot = (): void => {
-	const rootElement = document.getElementById('root');
-	if (rootElement !== null) Modal.setAppElement(rootElement);
-};
-bindModalToRoot();
 
 export const OpenProjectDialog = ({
 	children,
@@ -220,72 +193,47 @@ export const OpenProjectDialog = ({
 			<OpenProjectDialogContext.Provider value={context}>
 				{children}
 			</OpenProjectDialogContext.Provider>
-			<Modal
+			<DialogFrame
 				isOpen={isOpen}
-				style={customStyles}
-				contentLabel="Load volumes & surfaces"
+				onDone={() => {
+					void onOpenClick();
+				}}
+				onCancel={() => resolve?.('canceled')}
+				title="Load volumes & surfaces"
+				doneButtonLabel={projectState === undefined ? 'Open' : 'Update'}
+				icon={
+					<ArrowUpTrayIcon className="h-8 w-8 shrink-0 text-gray-500"></ArrowUpTrayIcon>
+				}
 			>
 				{projectFiles !== undefined &&
 				setProjectFiles !== undefined &&
 				setProjectName !== undefined &&
 				resolve !== undefined &&
 				reject !== undefined ? (
-					<>
-						<div className="m-4 flex items-center gap-4">
-							<ArrowUpTrayIcon className="h-8 w-8 shrink-0 text-gray-500"></ArrowUpTrayIcon>
-							<h1 className="mr-12 text-xl font-bold text-gray-500">
-								Load volumes & surfaces
-							</h1>
-						</div>
-						<button
-							onClick={() => resolve('canceled')}
-							className="absolute right-0 top-0 p-2 text-gray-600"
-						>
-							<XMarkIcon className="h-6 w-6 shrink-0"></XMarkIcon>
-						</button>
-
-						<Tabs
-							tabs={[
-								{
-									title: 'My computer',
-									content: (
-										<MyComputerDialogTab
-											projectFiles={projectFiles}
-											setProjectFiles={setProjectFiles}
-											projectName={projectName}
-											setProjectName={setProjectName}
-											projectState={projectState}
-										></MyComputerDialogTab>
-									),
-								},
-								{
-									title: 'Cloud',
-									content: <></>,
-								},
-							]}
-						/>
-
-						<div className="m-2 flex justify-end">
-							<button
-								className="m-2 rounded-md bg-gray-200 px-5 py-3 text-sm font-semibold text-gray-500"
-								onClick={() => resolve('canceled')}
-							>
-								Cancel
-							</button>
-							<button
-								className="m-2 rounded-md bg-gray-500 px-5 py-3 text-sm font-semibold text-white"
-								onClick={() => {
-									void onOpenClick();
-								}}
-							>
-								{projectState === undefined ? 'Open' : 'Update'}
-							</button>
-						</div>
-					</>
+					<Tabs
+						tabs={[
+							{
+								title: 'My computer',
+								content: (
+									<MyComputerDialogTab
+										projectFiles={projectFiles}
+										setProjectFiles={setProjectFiles}
+										projectName={projectName}
+										setProjectName={setProjectName}
+										projectState={projectState}
+									></MyComputerDialogTab>
+								),
+							},
+							{
+								title: 'Cloud',
+								content: <></>,
+							},
+						]}
+					/>
 				) : (
 					<></>
 				)}
-			</Modal>
+			</DialogFrame>
 		</>
 	);
 };

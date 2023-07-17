@@ -1,30 +1,48 @@
-import EqualSplitView from '@/assets/EqualSplitView.svg';
-import Navigate from '@/assets/Navigate.svg';
-import SaveAll from '@/assets/SaveAll.svg';
+import { BrainIcon } from '@/assets/BrainIcon';
+import { EqualSplitViewIcon } from '@/assets/EqualSplitViewIcon';
+import { NavigateIcon } from '@/assets/NavigateIcon';
+import { SaveAllIcon } from '@/assets/SaveAllIcon';
 import type { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { ToolButton } from '@/pages/project/components/topBar/ToolButton';
-import type { ProjectState } from '@/pages/project/models/ProjectState';
+import { ToolButtonRadio } from '@/pages/project/components/topBar/ToolButtonRadio';
+import { ToolButtonSelect } from '@/pages/project/components/topBar/ToolButtonSelect';
+import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
+import { USER_MODE, ProjectState } from '@/pages/project/models/ProjectState';
 import {
 	ArrowUturnLeftIcon,
 	ArrowUturnRightIcon,
-	CircleStackIcon,
-	DocumentIcon,
+	DocumentPlusIcon,
+	PencilIcon,
+	PencilSquareIcon,
 	ShareIcon,
 } from '@heroicons/react/24/outline';
 import type { LocationData } from '@niivue/niivue';
+import { type Dispatch, useCallback, useContext } from 'react';
 import { Store } from 'react-notifications-component';
-
-const ICON_STYLE = 'h-7 w-7 shrink-0 text-white';
+import { useNavigate } from 'react-router';
 
 export const TopBar = ({
 	projectState,
 	location,
 	niivueWrapper,
+	setProjectState,
 }: {
 	projectState: ProjectState | undefined;
 	location: LocationData | undefined;
 	niivueWrapper: NiivueWrapper | undefined;
+	setProjectState: Dispatch<
+		(currentState: ProjectState | undefined) => ProjectState | undefined
+	>;
 }): React.ReactElement => {
+	const navigate = useNavigate();
+	const { createProject } = useContext(OpenProjectDialogContext);
+
+	const onGetStartedClick = useCallback(async (): Promise<void> => {
+		const result = await createProject();
+		if (result === 'canceled') return;
+		navigate(`/project/${result.projectId}`);
+	}, [createProject, navigate]);
+
 	const createDeepLink = (
 		projectState: ProjectState | undefined,
 		location: LocationData | undefined,
@@ -49,9 +67,7 @@ export const TopBar = ({
 		});
 
 		projectState?.files.surfaces.forEach((surface) => {
-			deepLink += `&surfaces=${encodeURIComponent(
-				surface.name
-			)}&surfaceOpacity=${surface.opacity}&surfaceOrder=${
+			deepLink += `&surfaces=${encodeURIComponent(surface.name)}&surfaceOrder=${
 				surface.order ?? 0
 			}&surfaceVisible=${surface.isChecked.toString()}&surfaceSelected=${surface.isActive.toString()}`;
 		});
@@ -76,61 +92,87 @@ export const TopBar = ({
 
 	return (
 		<div className="flex items-baseline bg-font px-4">
-			<ToolButton
-				title="Load Project"
-				isExpandable={true}
-				icon={<DocumentIcon className={ICON_STYLE} />}
-			></ToolButton>
-			<ToolButton
-				title="Navigate"
-				isExpandable={true}
-				isActive={true}
-				icon={<img src={Navigate} className={ICON_STYLE} alt="Navigate" />}
-			></ToolButton>
-			{/* <ToolButton
-				title="Edit Voxel"
-				isExpandable={true}
-				isActive={true}
-				icon={<PencilIcon className={ICON_STYLE} />}
-			></ToolButton> */}
-			<ToolButton
-				title="Equal Split"
-				isExpandable={true}
-				icon={
-					<img
-						src={EqualSplitView}
-						className={ICON_STYLE}
-						alt="EqualSplitView"
-					/>
+			<ToolButtonSelect
+				label="FreeBrowse"
+				icon={(className) => <BrainIcon className={className} />}
+				entries={[
+					{
+						label: 'Back to project space',
+						icon: (className) => <ArrowUturnLeftIcon className={className} />,
+						onClick: () => navigate('/'),
+					},
+					{
+						label: 'Create new project',
+						icon: (className) => <DocumentPlusIcon className={className} />,
+						onClick: () => {
+							void onGetStartedClick();
+						},
+					},
+				]}
+			></ToolButtonSelect>
+			<ToolButtonRadio
+				entries={[
+					{
+						label: 'Navigate',
+						icon: (className) => <NavigateIcon className={className} />,
+						value: USER_MODE.NAVIGATE,
+						shortcut: 'M',
+					},
+					{
+						label: 'Edit Voxel',
+						icon: (className) => <PencilIcon className={className} />,
+						value: USER_MODE.EDIT_VOXEL,
+						shortcut: 'V',
+					},
+					{
+						label: 'Edit Points',
+						icon: (className) => <PencilSquareIcon className={className} />,
+						value: USER_MODE.EDIT_POINTS,
+						shortcut: 'P',
+					},
+				]}
+				value={projectState?.userMode ?? USER_MODE.NAVIGATE}
+				onChange={(value) =>
+					setProjectState((projectState) => {
+						if (projectState === undefined) return undefined;
+						return new ProjectState({ projectState, userMode: value }, false);
+					})
 				}
-			></ToolButton>
+			></ToolButtonRadio>
 			<ToolButton
-				title="PointSet"
-				isExpandable={true}
-				icon={<CircleStackIcon className={ICON_STYLE} />}
-			></ToolButton>
-			<ToolButton
-				title="Save All"
-				isExpandable={true}
-				icon={<img src={SaveAll} className={ICON_STYLE} alt="EqualSplitView" />}
-			></ToolButton>
-			<ToolButton
-				title="Undo"
-				icon={<ArrowUturnLeftIcon className={ICON_STYLE} />}
-			/>
-			<ToolButton
-				title="Redo"
-				icon={<ArrowUturnRightIcon className={ICON_STYLE} />}
-			/>
-			<ToolButton
-				title="Share"
-				onClick={() => {
-					void navigator.clipboard.writeText(
-						createDeepLink(projectState, location, niivueWrapper)
-					);
-					displayDeeplinkCopiedNotification();
+				label="Equal Split"
+				icon={(className) => <EqualSplitViewIcon className={className} />}
+				buttonProps={{
+					onClick: () => alert('Not implemented yet - Equal Split'),
 				}}
-				icon={<ShareIcon className={ICON_STYLE} />}
+			></ToolButton>
+			<ToolButton
+				label="Save All"
+				icon={(className) => <SaveAllIcon className={className} />}
+				buttonProps={{ onClick: () => alert('Not implemented yet - Save All') }}
+			></ToolButton>
+			<ToolButton
+				label="Undo"
+				icon={(className) => <ArrowUturnLeftIcon className={className} />}
+				buttonProps={{ onClick: () => alert('Not implemented yet - Undo') }}
+			/>
+			<ToolButton
+				label="Redo"
+				icon={(className) => <ArrowUturnRightIcon className={className} />}
+				buttonProps={{ onClick: () => alert('Not implemented yet - Redo') }}
+			/>
+			<ToolButton
+				label="Share"
+				icon={(className) => <ShareIcon className={className} />}
+				buttonProps={{
+					onClick: () => {
+						void navigator.clipboard
+							.writeText(createDeepLink(projectState, location, niivueWrapper))
+							.then(() => {
+								displayDeeplinkCopiedNotification();
+							});
+					},
+				}}
 			/>
 		</div>
 	);

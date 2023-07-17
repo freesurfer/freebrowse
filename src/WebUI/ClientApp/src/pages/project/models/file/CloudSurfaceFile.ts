@@ -1,17 +1,23 @@
 import type { GetProjectSurfaceDto } from '@/generated/web-api-client';
-import type { AnnotationFile } from '@/pages/project/models/file/AnnotationFile';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
-import { CloudFile } from '@/pages/project/models/file/CloudFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { LocalAnnotationFile } from '@/pages/project/models/file/LocalAnnotationFile';
 import { LocalOverlayFile } from '@/pages/project/models/file/LocalOverlayFile';
-import type { OverlayFile } from '@/pages/project/models/file/OverlayFile';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
-import type { ISurfaceFile } from '@/pages/project/models/file/SurfaceFile';
+import type { IManageableFile } from '@/pages/project/models/file/extension/ManageableFile';
+import type { IOrderableFile } from '@/pages/project/models/file/extension/OrderableFile';
+import { CloudFile } from '@/pages/project/models/file/location/CloudFile';
+import type { AnnotationFile } from '@/pages/project/models/file/type/AnnotationFile';
+import type { OverlayFile } from '@/pages/project/models/file/type/OverlayFile';
+import type { ISurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
 import { getApiUrl } from '@/utils';
 
-export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
+export class CloudSurfaceFile
+	extends CloudFile
+	implements ISurfaceFile, IOrderableFile, IManageableFile
+{
 	public readonly type = FileType.SURFACE;
+	public readonly progress = 100;
 
 	static fromDto(fileDto: GetProjectSurfaceDto): CloudSurfaceFile {
 		if (fileDto === undefined)
@@ -31,8 +37,7 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			fileDto.fileSize,
 			false,
 			fileDto.visible,
-			fileDto.order,
-			fileDto.opacity ?? 100,
+			fileDto.order ?? 0,
 			fileDto.color ?? '#ffffff',
 			fileDto.overlays?.map((overlayDto) =>
 				CloudOverlayFile.fromDto(overlayDto)
@@ -46,26 +51,16 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 	constructor(
 		id: number,
 		name: string,
-		size: number,
-		isActive = false,
-		isChecked = true,
-		order: number | undefined,
-		opacity: number,
+		public readonly size: number,
+		public readonly isActive = false,
+		public readonly isChecked = true,
+		public readonly order: number | undefined,
 		public readonly color = '#ffffff',
 		public readonly overlayFiles: readonly OverlayFile[] = [],
 		public readonly annotationFiles: readonly AnnotationFile[] = []
 	) {
 		if (id === undefined) throw new Error('no id for cloud surface file');
-		super(
-			id,
-			name,
-			size,
-			`${getApiUrl()}/api/Surface?Id=${String(id)}`,
-			isActive,
-			isChecked,
-			order,
-			opacity
-		);
+		super(id, name, `${getApiUrl()}/api/Surface?Id=${String(id)}`);
 	}
 
 	public from(options: {
@@ -84,7 +79,6 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			options.isActive ?? this.isActive,
 			options.isChecked ?? this.isChecked,
 			options.order ?? this.order,
-			options.opacity ?? this.opacity,
 			options.color ?? this.color,
 			options.overlayFiles ?? this.overlayFiles,
 			options.annotationFiles ?? this.annotationFiles
@@ -106,11 +100,10 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			this.isActive,
 			this.isChecked,
 			this.order,
-			this.opacity,
 			this.color,
 			[
 				...this.overlayFiles.map((overlay) => overlay.fromIsActive(false)),
-				new LocalOverlayFile(file, true, true),
+				new LocalOverlayFile(file, true),
 			],
 			this.annotationFiles
 		);
@@ -131,14 +124,13 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			this.isActive,
 			this.isChecked,
 			this.order,
-			this.opacity,
 			this.color,
 			this.overlayFiles,
 			[
 				...this.annotationFiles.map((annotation) =>
 					annotation.fromIsActive(false)
 				),
-				new LocalAnnotationFile(file, true, true),
+				new LocalAnnotationFile(file, true),
 			]
 		);
 	}
@@ -151,7 +143,6 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			this.isActive,
 			this.isChecked,
 			this.order,
-			this.opacity,
 			this.color,
 			this.overlayFiles.filter(
 				(thisOverlayFile) => thisOverlayFile.name !== overlayFile.name
@@ -168,7 +159,6 @@ export class CloudSurfaceFile extends CloudFile implements ISurfaceFile {
 			this.isActive,
 			this.isChecked,
 			this.order,
-			this.opacity,
 			this.color,
 			this.overlayFiles,
 			this.annotationFiles.filter(
