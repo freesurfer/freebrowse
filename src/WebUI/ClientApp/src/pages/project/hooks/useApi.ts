@@ -326,10 +326,14 @@ export const useApi = (
 				);
 
 				// handle new point sets
-				if (nextState.files.cachePointSets.length > 0) {
+				const newPointSets = [
+					...nextState.files.localPointSets,
+					...nextState.files.cachePointSets,
+				];
+				if (newPointSets.length > 0) {
 					const projectResponse = await apiPointSet.create(
 						nextState.id,
-						nextState.files.cachePointSets
+						newPointSets
 					);
 
 					const cloudFiles = await Promise.all(
@@ -337,9 +341,7 @@ export const useApi = (
 							async (dto) =>
 								await apiPointSet.get(
 									dto,
-									nextState.files.cachePointSets.find(
-										(file) => file.name === dto.fileName
-									)
+									newPointSets.find((file) => file.name === dto.fileName)
 								)
 						)
 					);
@@ -351,6 +353,7 @@ export const useApi = (
 								projectState,
 								files: new ProjectFiles({
 									projectFiles: projectState.files,
+									localPointSets: [],
 									cachePointSets: [],
 									cloudPointSets: [
 										...projectState.files.cloudPointSets,

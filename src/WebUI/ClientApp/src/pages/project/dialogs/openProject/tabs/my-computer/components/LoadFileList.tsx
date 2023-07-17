@@ -25,6 +25,7 @@ export const LoadFileList = ({
 				...projectFiles.cloudVolumes,
 				...projectFiles.localSurfaces,
 				...projectFiles.cloudSurfaces,
+				...projectFiles.localPointSets,
 				...projectFiles.cloudPointSets,
 			].map((file) => {
 				if (file === undefined) return <></>;
