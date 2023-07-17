@@ -110,7 +110,7 @@ export const TopBar = ({
 			const smallestMissingNumber = (
 				defaultFileNameNumbers: number[]
 			): number => {
-				let index = 1;
+				let index = 0;
 				while (true) {
 					if (!defaultFileNameNumbers.includes(index)) return index;
 					index++;
