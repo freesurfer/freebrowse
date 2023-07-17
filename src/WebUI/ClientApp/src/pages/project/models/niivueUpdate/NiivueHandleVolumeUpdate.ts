@@ -1,40 +1,26 @@
+import type { INiivueCache } from '@/pages/project/NiivueWrapper';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
-import type { ProjectState } from '@/pages/project/models/ProjectState';
 import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 import type { NVImage, Niivue } from '@niivue/niivue';
-import type { Dispatch } from 'react';
 
 export const niivueHandleVolumeUpdate = async (
 	prev: ProjectFiles | undefined,
 	next: ProjectFiles,
 	niivue: Niivue,
-	setProjectState: Dispatch<
-		(currentState: ProjectState | undefined) => ProjectState | undefined
-	>
+	cache: INiivueCache
 ): Promise<boolean> => {
 	if (prev !== undefined && prev.volumes === next.volumes) return false;
 
-	let hasChanged = false;
-
 	const putNiivueRefToFile = (): void => {
-		setProjectState((projectState) => {
-			if (projectState === undefined) return projectState;
-			let tmpProjectState = projectState;
-			for (const volume of next.volumes) {
-				if (volume.niivueRef !== undefined) continue;
+		for (const volume of next.volumes) {
+			if (cache.volumes.has(volume.name)) continue;
 
-				const niivueVolume = niivue.volumes.find(
-					(niivueVolume) => niivueVolume.name === volume.name
-				);
-				if (niivueVolume === undefined) continue;
-				tmpProjectState = tmpProjectState?.fromFileUpdate(
-					volume,
-					{ niivueRef: niivueVolume },
-					true
-				);
-			}
-			return tmpProjectState;
-		});
+			const niivueVolume = niivue.volumes.find(
+				(niivueVolume) => niivueVolume.name === volume.name
+			);
+			if (niivueVolume === undefined) continue;
+			cache.volumes.set(volume.name, niivueVolume);
+		}
 	};
 
 	const initVolumes = async (): Promise<boolean> => {
@@ -101,11 +87,13 @@ export const niivueHandleVolumeUpdate = async (
 
 			// files that are contained in the project files, but not in niivue
 			// add them to niivue
-			if (cloudVolume.niivueRef !== undefined) {
-				niivue.addVolume(cloudVolume.niivueRef);
+			const cachedNiivueVolume = cache.volumes.get(cloudVolume.name);
+			if (cachedNiivueVolume !== undefined) {
+				niivue.addVolume(cachedNiivueVolume);
 				hasChanged = true;
 				continue;
 			}
+
 			const niivueVolume = await niivue.addVolumeFromUrl({
 				url: cloudVolume.url,
 				name: cloudVolume.name,
@@ -113,13 +101,8 @@ export const niivueHandleVolumeUpdate = async (
 				cal_min: cloudVolume.contrastMin,
 				cal_max: cloudVolume.contrastMax,
 			});
-			setProjectState((projectState) =>
-				projectState?.fromFileUpdate(
-					cloudVolume,
-					{ niivueRef: niivueVolume },
-					false
-				)
-			);
+			cache.volumes.set(cloudVolume.name, niivueVolume);
+			hasChanged = true;
 		}
 		return hasChanged;
 	};
@@ -210,26 +193,29 @@ export const niivueHandleVolumeUpdate = async (
 			.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
 
 		for (const volumeFile of volumeFiles) {
-			if (volumeFile.niivueRef === undefined) continue;
+			const niivueVolume = cache.volumes.get(volumeFile.name);
+			if (niivueVolume === undefined) continue;
 
-			updateVolumeOrder(volumeFile.niivueRef, tmpOrder++);
+			updateVolumeOrder(niivueVolume, tmpOrder++);
 
 			/*
 			 * the order is important here!
 			 * the color map seems to need to get set before we adapt the contrast
 			 */
-			updateVolumeColorMap(volumeFile.niivueRef, volumeFile);
+			updateVolumeColorMap(niivueVolume, volumeFile);
 
-			updateVolumeBrightness(volumeFile.niivueRef, volumeFile);
+			updateVolumeBrightness(niivueVolume, volumeFile);
 			hasChanged = true;
 		}
 
 		return hasChanged;
 	};
 
-	hasChanged ||= await initVolumes();
-	hasChanged ||= remove();
-	hasChanged ||= await add();
-	hasChanged ||= propagateProperties();
-	return hasChanged;
+	const renderForInit = await initVolumes();
+	const renderForRemove = remove();
+	const renderForAdd = await add();
+	const renderForProperties = propagateProperties();
+	return (
+		renderForInit || renderForRemove || renderForAdd || renderForProperties
+	);
 };

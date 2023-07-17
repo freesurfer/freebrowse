@@ -1,8 +1,8 @@
+import type { INiivueCache } from '@/pages/project/NiivueWrapper';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { niivueHandleMeshesUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleMeshesUpdate';
 import { niivueHandleVolumeUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleVolumeUpdate';
 import type { Niivue } from '@niivue/niivue';
-import type { Dispatch } from 'react';
 
 /**
  * helper class while state change to propagate only the changed parts to the niivue library
@@ -14,12 +14,8 @@ export const niivueHandleProjectUpdate = async (
 	prev: ProjectState | undefined,
 	next: ProjectState,
 	niivue: Niivue,
-	setProjectState: Dispatch<
-		(currentState: ProjectState | undefined) => ProjectState | undefined
-	>
+	cache: INiivueCache
 ): Promise<void> => {
-	let hasChanged = false;
-
 	const propagateProjectProperties = (): boolean => {
 		if (
 			prev !== undefined &&
@@ -33,23 +29,23 @@ export const niivueHandleProjectUpdate = async (
 		return true;
 	};
 
-	hasChanged ||= await niivueHandleVolumeUpdate(
+	const renderForVolumes = await niivueHandleVolumeUpdate(
 		prev?.files,
 		next.files,
 		niivue,
-		setProjectState
+		cache
 	);
 
-	hasChanged ||= await niivueHandleMeshesUpdate(
+	const renderForMeshes = await niivueHandleMeshesUpdate(
 		prev?.files,
 		next.files,
 		niivue,
-		setProjectState
+		cache
 	);
 
-	hasChanged ||= propagateProjectProperties();
+	const renderForProperties = propagateProjectProperties();
 
-	if (hasChanged) {
+	if (renderForMeshes || renderForVolumes || renderForProperties) {
 		niivue.setSliceType(niivue.sliceTypeMultiplanar);
 		niivue.updateGLVolume();
 	}

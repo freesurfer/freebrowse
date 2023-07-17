@@ -1,7 +1,6 @@
 import type { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import type { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
 import type { FileType } from '@/pages/project/models/file/ProjectFile';
-import type { NVMesh } from '@niivue/niivue';
 
 export type PointSetFile = CachePointSetFile | CloudPointSetFile;
 
@@ -57,12 +56,4 @@ export const rgbToHex = (rgb: [number, number, number]): string => {
  */
 export interface IPointSetFile {
 	readonly type: FileType.POINT_SET;
-
-	/**
-	 * reference to niivue working object
-	 * will be filled, if it has been passed to the niivue library already
-	 * to cache while hidden and for easier tracking of changes
-	 * @important not immutable - the content of the reference is not immutable -> no state changes when the library adapts it
-	 */
-	readonly niivueRef: NVMesh | undefined;
 }

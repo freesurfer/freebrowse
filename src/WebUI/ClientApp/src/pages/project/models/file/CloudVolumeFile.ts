@@ -5,7 +5,6 @@ import type { IOrderableFile } from '@/pages/project/models/file/extension/Order
 import { CloudFile } from '@/pages/project/models/file/location/CloudFile';
 import type { IVolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 import { getApiUrl } from '@/utils';
-import type { NVImage } from '@niivue/niivue';
 
 export class CloudVolumeFile
 	extends CloudFile
@@ -57,8 +56,7 @@ export class CloudVolumeFile
 		public readonly opacity: number,
 		public readonly colorMap: string,
 		public readonly contrastMin = 0,
-		public readonly contrastMax = 100,
-		public readonly niivueRef: NVImage | undefined = undefined
+		public readonly contrastMax = 100
 	) {
 		if (id === undefined) throw new Error('no id for cloud volume file');
 		super(id, name, `${getApiUrl()}/api/Volume?Id=${String(id)}`);
@@ -72,7 +70,6 @@ export class CloudVolumeFile
 		colorMap?: string;
 		contrastMin?: number;
 		contrastMax?: number;
-		niivueRef?: NVImage;
 	}): CloudVolumeFile {
 		return new CloudVolumeFile(
 			this.id,
@@ -84,8 +81,7 @@ export class CloudVolumeFile
 			options.opacity ?? this.opacity,
 			options.colorMap ?? this.colorMap,
 			options.contrastMin ?? this.contrastMin,
-			options.contrastMax ?? this.contrastMax,
-			options.niivueRef ?? this.niivueRef
+			options.contrastMax ?? this.contrastMax
 		);
 	}
 }

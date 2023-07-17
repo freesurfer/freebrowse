@@ -2,8 +2,20 @@ import lookUpTable from './ColorMaps/LookUpTable.json';
 import { type ProjectState } from '@/pages/project/models/ProjectState';
 import type { ViewSettings } from '@/pages/project/models/ViewSettings';
 import { niivueHandleProjectUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleProjectUpdate';
-import { type LocationData, type UIData, Niivue } from '@niivue/niivue';
+import {
+	type LocationData,
+	type UIData,
+	Niivue,
+	type NVImage,
+	type NVMesh,
+} from '@niivue/niivue';
 import type { Dispatch } from 'react';
+
+export interface INiivueCache {
+	volumes: Map<string, NVImage>;
+	surfaces: Map<string, NVMesh>;
+	pointSets: Map<string, NVMesh>;
+}
 
 /**
  * this class is a wrapper for the niivue library reference
@@ -25,12 +37,23 @@ export class NiivueWrapper {
 			}),
 		dragAndDropEnabled: false,
 		dragMode: 3,
+		meshThicknessOn2D: 10,
 		isHighResolutionCapable: false,
 		isOrientCube: false,
 		enableBorderHighlight: true,
 		displaySliceInfo: true,
 		multiplanarForceRender: true,
 	});
+
+	/**
+	 * the cache is used to map the file state instances to the niivue image/mesh objects
+	 * also necessary to preserver hidden files to add them fast again
+	 */
+	private readonly cache: INiivueCache = {
+		volumes: new Map<string, NVImage>([]),
+		surfaces: new Map<string, NVMesh>([]),
+		pointSets: new Map<string, NVMesh>([]),
+	};
 
 	private hooveredView = 0;
 
@@ -69,7 +92,7 @@ export class NiivueWrapper {
 			previousState,
 			nextState,
 			this.niivue,
-			setProjectState
+			this.cache
 		);
 
 		if (previousState === undefined) {

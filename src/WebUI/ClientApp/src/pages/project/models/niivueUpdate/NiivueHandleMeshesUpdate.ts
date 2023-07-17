@@ -1,6 +1,8 @@
-import { NiivueWrapper } from '@/pages/project/NiivueWrapper';
+import {
+	type INiivueCache,
+	NiivueWrapper,
+} from '@/pages/project/NiivueWrapper';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
-import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
@@ -11,7 +13,6 @@ import {
 	type NVMeshLayer,
 	NVMesh,
 } from '@niivue/niivue';
-import type { Dispatch } from 'react';
 
 /**
  * handles surfaces and point sets, since both are getting treated as meshes
@@ -20,9 +21,7 @@ export const niivueHandleMeshesUpdate = async (
 	prev: ProjectFiles | undefined,
 	next: ProjectFiles,
 	niivue: Niivue,
-	setProjectState: Dispatch<
-		(currentState: ProjectState | undefined) => ProjectState | undefined
-	>
+	cache: INiivueCache
 ): Promise<boolean> => {
 	if (
 		prev !== undefined &&
@@ -31,30 +30,19 @@ export const niivueHandleMeshesUpdate = async (
 	)
 		return false;
 
-	let hasChanged = false;
-
 	const initMeshes = async (): Promise<boolean> => {
 		if (prev !== undefined) return false;
 
 		const putNiivueRefToFile = (): void => {
-			setProjectState((projectState) => {
-				if (projectState === undefined) return projectState;
-				let tmpProjectState = projectState;
-				for (const volume of next.surfaces) {
-					if (volume.niivueRef !== undefined) continue;
+			for (const surface of next.surfaces) {
+				if (cache.surfaces.has(surface.name)) continue;
 
-					const niivueSurface = niivue.meshes.find(
-						(niivueSurface) => niivueSurface.name === volume.name
-					);
-					if (niivueSurface === undefined) continue;
-					tmpProjectState = tmpProjectState?.fromFileUpdate(
-						volume,
-						{ niivueRef: niivueSurface },
-						true
-					);
-				}
-				return tmpProjectState;
-			});
+				const niivueSurface = niivue.meshes.find(
+					(niivueSurface) => niivueSurface.name === surface.name
+				);
+				if (niivueSurface === undefined) continue;
+				cache.surfaces.set(surface.name, niivueSurface);
+			}
 		};
 
 		const passMeshesToNiivue = async (): Promise<void> => {
@@ -104,19 +92,21 @@ export const niivueHandleMeshesUpdate = async (
 
 	const remove = (): boolean => {
 		let hasChanged = false;
-		for (const niivueSurface of niivue.meshes) {
+		for (const niivueMesh of niivue.meshes) {
 			if (
 				!next.cloudSurfaces.some(
 					(cloudSurface) =>
-						cloudSurface.isChecked && cloudSurface.name === niivueSurface.name
+						cloudSurface.isChecked &&
+						cache.surfaces.get(cloudSurface.name) === niivueMesh
 				) &&
 				!next.pointSets.some(
-					(file) => file.isChecked && file.niivueRef === niivueSurface
+					(file) =>
+						file.isChecked && cache.pointSets.get(file.name) === niivueMesh
 				)
 			) {
 				// files that are contained in niivue, but not in the project files
 				// delete them from niivue
-				niivue.setMesh(niivueSurface, -1);
+				niivue.setMesh(niivueMesh, -1);
 				hasChanged = true;
 			}
 		}
@@ -137,8 +127,9 @@ export const niivueHandleMeshesUpdate = async (
 
 			// files that are contained in the project files, but not in niivue
 			// add them to niivue
-			if (surface.niivueRef !== undefined) {
-				niivue.addMesh(surface.niivueRef);
+			const niivueMesh = cache.surfaces.get(surface.name);
+			if (niivueMesh !== undefined) {
+				niivue.addMesh(niivueMesh);
 				hasChanged = true;
 				continue;
 			}
@@ -147,13 +138,7 @@ export const niivueHandleMeshesUpdate = async (
 				name: surface.name,
 				rgba255: NiivueWrapper.hexToRGBA(surface.color),
 			});
-			setProjectState((projectState) =>
-				projectState?.fromFileUpdate(
-					surface,
-					{ niivueRef: niivueSurface },
-					false
-				)
-			);
+			cache.surfaces.set(surface.name, niivueSurface);
 		}
 
 		return hasChanged;
@@ -173,11 +158,12 @@ export const niivueHandleMeshesUpdate = async (
 			)
 				continue;
 
+			const niivuePointSet = cache.pointSets.get(pointSet.name);
 			if (
-				pointSet.niivueRef !== undefined &&
-				niivue.meshes.some((niivueMesh) => niivueMesh === pointSet.niivueRef)
+				niivuePointSet !== undefined &&
+				niivue.meshes.some((niivueMesh) => niivueMesh === niivuePointSet)
 			) {
-				niivue.setMesh(pointSet.niivueRef, -1);
+				niivue.setMesh(niivuePointSet, -1);
 			}
 
 			if (
@@ -187,7 +173,7 @@ export const niivueHandleMeshesUpdate = async (
 			)
 				continue;
 
-			const niivueSurface = await NVMesh.loadConnectomeFromFreeSurfer(
+			const niivueMesh = await NVMesh.loadConnectomeFromFreeSurfer(
 				pointSet.data,
 				niivue.gl,
 				pointSet.name,
@@ -195,17 +181,11 @@ export const niivueHandleMeshesUpdate = async (
 				1.0,
 				true
 			);
-			niivue.addMesh(niivueSurface);
-			niivueSurface.updateMesh(niivue.gl);
+			niivue.addMesh(niivueMesh);
+			niivueMesh.updateMesh(niivue.gl);
 			hasChanged = true;
 
-			setProjectState((projectState) =>
-				projectState?.fromFileUpdate(
-					pointSet,
-					{ niivueRef: niivueSurface },
-					false
-				)
-			);
+			cache.pointSets.set(pointSet.name, niivueMesh);
 		}
 		return hasChanged;
 	};
@@ -287,27 +267,31 @@ export const niivueHandleMeshesUpdate = async (
 			.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
 
 		for (const surfaceFile of surfaceFiles) {
-			if (surfaceFile.niivueRef === undefined) {
+			const niivueSurface = cache.surfaces.get(surfaceFile.name);
+			if (niivueSurface === undefined) {
 				console.warn('no niivue surface for given file', surfaceFile.name);
 				continue;
 			}
 
-			updateSurfaceColor(surfaceFile.niivueRef, surfaceFile);
-			updateSurfaceOrder(surfaceFile.niivueRef, tmpOrder++);
-			await updateSurfaceOverlayAndAnnotation(
-				surfaceFile,
-				surfaceFile.niivueRef
-			);
+			updateSurfaceColor(niivueSurface, surfaceFile);
+			updateSurfaceOrder(niivueSurface, tmpOrder++);
+			await updateSurfaceOverlayAndAnnotation(surfaceFile, niivueSurface);
 			hasChanged = true;
 		}
 
 		return hasChanged;
 	};
 
-	hasChanged ||= await initMeshes();
-	hasChanged ||= remove();
-	hasChanged ||= await add();
-	hasChanged ||= await updatePointSetData();
-	hasChanged ||= await propagateProperties();
-	return hasChanged;
+	const renderForInit = await initMeshes();
+	const renderForRemove = remove();
+	const renderForAdd = await add();
+	const renderForPointSet = await updatePointSetData();
+	const renderForProperties = await propagateProperties();
+	return (
+		renderForInit ||
+		renderForRemove ||
+		renderForAdd ||
+		renderForPointSet ||
+		renderForProperties
+	);
 };

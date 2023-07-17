@@ -83,7 +83,7 @@ export const useApiProject = (): {
 				meshThicknessOn2D: backendState.meshThicknessOn2D,
 				files,
 			},
-			false
+			true
 		);
 	};
 

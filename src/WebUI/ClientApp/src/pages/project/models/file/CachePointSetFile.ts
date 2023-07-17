@@ -5,7 +5,6 @@ import type {
 	IPointSetData,
 	IPointSetFile,
 } from '@/pages/project/models/file/type/PointSetFile';
-import type { NVMesh } from '@niivue/niivue';
 
 export class CachePointSetFile
 	extends CachedFile<IPointSetData>
@@ -23,8 +22,7 @@ export class CachePointSetFile
 		data: IPointSetData,
 		public readonly isActive: boolean,
 		public readonly isChecked: boolean,
-		public readonly order: number | undefined,
-		public readonly niivueRef: NVMesh | undefined = undefined
+		public readonly order: number | undefined
 	) {
 		super(name, data);
 	}
@@ -34,15 +32,13 @@ export class CachePointSetFile
 		isChecked?: boolean;
 		order?: number | undefined;
 		data?: IPointSetData;
-		niivueRef?: NVMesh;
 	}): CachePointSetFile {
 		return new CachePointSetFile(
 			this.name,
 			options.data ?? this.data,
 			options.isActive ?? this.isActive,
 			options.isChecked ?? this.isChecked,
-			options.order ?? this.order,
-			options.niivueRef ?? this.niivueRef
+			options.order ?? this.order
 		);
 	}
 }

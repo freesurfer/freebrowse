@@ -11,7 +11,6 @@ import type { AnnotationFile } from '@/pages/project/models/file/type/Annotation
 import type { OverlayFile } from '@/pages/project/models/file/type/OverlayFile';
 import type { ISurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
 import { getApiUrl } from '@/utils';
-import type { NVMesh } from '@niivue/niivue';
 
 export class CloudSurfaceFile
 	extends CloudFile
@@ -58,8 +57,7 @@ export class CloudSurfaceFile
 		public readonly order: number | undefined,
 		public readonly color = '#ffffff',
 		public readonly overlayFiles: readonly OverlayFile[] = [],
-		public readonly annotationFiles: readonly AnnotationFile[] = [],
-		public readonly niivueRef: NVMesh | undefined = undefined
+		public readonly annotationFiles: readonly AnnotationFile[] = []
 	) {
 		if (id === undefined) throw new Error('no id for cloud surface file');
 		super(id, name, `${getApiUrl()}/api/Surface?Id=${String(id)}`);
@@ -73,7 +71,6 @@ export class CloudSurfaceFile
 		color?: string;
 		overlayFiles?: OverlayFile[];
 		annotationFiles?: AnnotationFile[];
-		niivueRef?: NVMesh;
 	}): CloudSurfaceFile {
 		return new CloudSurfaceFile(
 			this.id,
@@ -84,8 +81,7 @@ export class CloudSurfaceFile
 			options.order ?? this.order,
 			options.color ?? this.color,
 			options.overlayFiles ?? this.overlayFiles,
-			options.annotationFiles ?? this.annotationFiles,
-			options.niivueRef ?? this.niivueRef
+			options.annotationFiles ?? this.annotationFiles
 		);
 	}
 
