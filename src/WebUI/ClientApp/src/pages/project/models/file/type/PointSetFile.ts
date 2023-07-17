@@ -1,8 +1,12 @@
 import type { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import type { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
+import type { LocalPointSetFile } from '@/pages/project/models/file/LocalPointSetFile';
 import type { FileType } from '@/pages/project/models/file/ProjectFile';
 
-export type PointSetFile = CachePointSetFile | CloudPointSetFile;
+export type PointSetFile =
+	| LocalPointSetFile
+	| CachePointSetFile
+	| CloudPointSetFile;
 
 export interface IPointSetCoordinates {
 	x: number;

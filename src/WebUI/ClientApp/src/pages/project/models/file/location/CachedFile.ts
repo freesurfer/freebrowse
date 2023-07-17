@@ -20,7 +20,7 @@ export abstract class CachedFile<T_DATA> extends ProjectFileBase {
 		super(name);
 	}
 
-	getBase64(): string {
-		return btoa(JSON.stringify(this.data));
+	async getBase64(): Promise<string> {
+		return await Promise.resolve(btoa(JSON.stringify(this.data)));
 	}
 }

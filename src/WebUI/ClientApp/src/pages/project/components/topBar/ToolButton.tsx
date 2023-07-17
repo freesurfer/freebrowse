@@ -30,7 +30,13 @@ export const ToolButton = ({
 	return (
 		<button
 			{...getProps()}
-			className="flex h-full w-20 shrink-0 flex-col items-center rounded pb-3 pt-4 last-of-type:ml-auto active:bg-primary"
+			className={`flex h-full w-20 shrink-0 flex-col items-center rounded pb-3 pt-4 transition-colors last-of-type:ml-auto active:bg-primary ${
+				'getToggleProps' in buttonProps
+					? buttonProps.isExpanded
+						? 'bg-primary'
+						: ''
+					: ''
+			}`}
 		>
 			<div className="flex items-center">
 				{icon('w-7 h-7 shrink-0 text-white')}
