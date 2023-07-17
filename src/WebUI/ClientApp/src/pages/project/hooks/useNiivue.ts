@@ -127,6 +127,21 @@ export const useNiivue = (
 					});
 					return projectState;
 				}
+				if (!file.isChecked) {
+					Store.addNotification({
+						message: 'the selected file needs to be visible to add points',
+						type: 'warning',
+						insert: 'top',
+						container: 'top-right',
+						animationIn: ['animate__animated', 'animate__fadeIn'],
+						animationOut: ['animate__animated', 'animate__fadeOut'],
+						dismiss: {
+							duration: 1500,
+							onScreen: true,
+						},
+					});
+					return projectState;
+				}
 				if (file.data === undefined) return projectState;
 
 				if (uiData.fracPos[0] < 0) return projectState; // not on volume
