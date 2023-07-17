@@ -6,14 +6,11 @@ import type { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { ToolButton } from '@/pages/project/components/topBar/ToolButton';
 import { ToolButtonRadio } from '@/pages/project/components/topBar/ToolButtonRadio';
 import { ToolButtonSelect } from '@/pages/project/components/topBar/ToolButtonSelect';
-import { NewPointSetDialogContext } from '@/pages/project/dialogs/newPointSet/NewPointSetDialog';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
 import { USER_MODE, ProjectState } from '@/pages/project/models/ProjectState';
-import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import {
 	ArrowUturnLeftIcon,
 	ArrowUturnRightIcon,
-	CircleStackIcon,
 	DocumentPlusIcon,
 	PencilIcon,
 	PencilSquareIcon,
@@ -37,7 +34,6 @@ export const TopBar = ({
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
 }): React.ReactElement => {
-	const { open } = useContext(NewPointSetDialogContext);
 	const navigate = useNavigate();
 	const { createProject } = useContext(OpenProjectDialogContext);
 
@@ -94,44 +90,6 @@ export const TopBar = ({
 		});
 	};
 
-	const openNewPointSetDialog = useCallback(() => {
-		const execute = async (): Promise<void> => {
-			const defaultFileNameNumbers = projectState?.files.pointSets
-				.filter((file) => file.name.startsWith(CachePointSetFile.DEFAULT_NAME))
-				.map((file) =>
-					Number(
-						file.name
-							.slice(CachePointSetFile.DEFAULT_NAME.length + 1)
-							.split('.')[0]
-					)
-				)
-				.filter((number) => !isNaN(number));
-
-			const smallestMissingNumber = (
-				defaultFileNameNumbers: number[]
-			): number => {
-				let index = 0;
-				while (true) {
-					if (!defaultFileNameNumbers.includes(index)) return index;
-					index++;
-				}
-			};
-
-			const result = await open(
-				smallestMissingNumber(defaultFileNameNumbers ?? [])
-			);
-			if (result === 'canceled') return;
-
-			setProjectState((projectState) =>
-				projectState?.fromFiles(
-					projectState.files.fromNewPointSetFile(result.name, result.color)
-				)
-			);
-		};
-
-		void execute();
-	}, [setProjectState, projectState, open]);
-
 	return (
 		<div className="flex items-baseline bg-font px-4">
 			<ToolButtonSelect
@@ -187,11 +145,6 @@ export const TopBar = ({
 				buttonProps={{
 					onClick: () => alert('Not implemented yet - Equal Split'),
 				}}
-			></ToolButton>
-			<ToolButton
-				label="PointSet"
-				icon={(className) => <CircleStackIcon className={className} />}
-				buttonProps={{ onClick: openNewPointSetDialog }}
 			></ToolButton>
 			<ToolButton
 				label="Save All"

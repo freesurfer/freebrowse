@@ -1,20 +1,20 @@
 import { ChevronUpIcon } from '@heroicons/react/24/outline';
-import { useEffect } from 'react';
+import { type ReactElement, useEffect } from 'react';
 import { useCollapse } from 'react-collapsed';
 
 export const Collapse = ({
 	className,
 	title,
-	button,
+	titleBarElement,
 	children,
 	initialState = true,
 }: {
 	className?: string;
-	title: React.ReactElement;
-	button?: React.ReactElement;
-	children: React.ReactElement;
+	title: ReactElement;
+	titleBarElement?: ReactElement;
+	children: ReactElement;
 	initialState?: boolean;
-}): React.ReactElement => {
+}): ReactElement => {
 	const { getCollapseProps, getToggleProps, isExpanded, setExpanded } =
 		useCollapse({ defaultExpanded: initialState });
 
@@ -32,7 +32,7 @@ export const Collapse = ({
 					></ChevronUpIcon>
 					<div className="flex grow items-center text-start">{title}</div>
 				</button>
-				{button}
+				{titleBarElement}
 			</div>
 			<section {...getCollapseProps()}>
 				<div className="ml-5">{children}</div>
