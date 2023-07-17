@@ -3,9 +3,9 @@ import { ColorPicker } from '@/components/ColorPicker';
 import { DropDown } from '@/components/DropDown';
 import { Slider } from '@/components/Slider';
 import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
+import { FileSettingsWayPoints } from '@/pages/project/components/leftBar/FileSettingsWayPoints';
 import { ProjectState } from '@/pages/project/models/ProjectState';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
-import { rgbToHex } from '@/pages/project/models/file/type/PointSetFile';
 import { useCallback, type Dispatch } from 'react';
 
 export const FileSettings = ({
@@ -211,23 +211,10 @@ export const FileSettings = ({
 									</span>
 								}
 							>
-								{'data' in pointSetFile && pointSetFile.data !== undefined ? (
-									<div className="pl-1">
-										<ColorPicker
-											className="mt-2"
-											label="Color:"
-											value={rgbToHex(pointSetFile.data.color)}
-											onChange={(value) =>
-												updateFileOptions(pointSetFile, { color: value }, false)
-											}
-											onEnd={(value) =>
-												updateFileOptions(pointSetFile, { color: value }, true)
-											}
-										></ColorPicker>
-									</div>
-								) : (
-									<></>
-								)}
+								<FileSettingsWayPoints
+									pointSetFile={pointSetFile}
+									setProjectState={setProjectState}
+								></FileSettingsWayPoints>
 							</Collapse>
 						);
 					})}

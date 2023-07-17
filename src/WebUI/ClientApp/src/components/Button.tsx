@@ -1,41 +1,28 @@
-import { Cog8ToothIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import type { ReactElement } from 'react';
-
-const ICON_SIZE = 1;
 
 export const Button = ({
 	icon,
-	title,
+	readonly = false,
 	onClick,
 }: {
-	icon: 'settings' | 'remove';
-	title?: string;
+	icon: (className: string) => ReactElement;
+	readonly?: boolean;
 	onClick: () => void;
 }): ReactElement => {
-	const iconStyle = { width: `${ICON_SIZE}rem`, height: `${ICON_SIZE}rem` };
-
-	const iconChooser = (): ReactElement => {
-		switch (icon) {
-			case 'settings':
-				return <Cog8ToothIcon style={iconStyle}></Cog8ToothIcon>;
-			case 'remove':
-				return <XMarkIcon style={iconStyle}></XMarkIcon>;
-		}
-	};
-
-	const titleChooser = (): ReactElement => {
-		if (title !== undefined)
-			return <span className="mx-1 font-semibold">{title}</span>;
-		return <></>;
-	};
-
 	return (
 		<button
-			onClick={onClick}
-			className="flex rounded border border-primary p-0.5 text-primary"
+			onClick={
+				readonly
+					? () => {
+							/* do nothing */
+					  }
+					: onClick
+			}
+			className={`flex rounded border-[1.5px]  p-0.5  ${
+				readonly ? 'border-gray text-gray' : 'border-primary text-primary'
+			}`}
 		>
-			{iconChooser()}
-			{titleChooser()}
+			{icon('w-4 h-4 shrink-0')}
 		</button>
 	);
 };
