@@ -1,10 +1,11 @@
 import { LandingPage } from '@/pages/landing/LandingPage';
 import { ProjectPage } from '@/pages/project/ProjectPage';
+import type { ReactElement } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter6Adapter } from 'use-query-params/adapters/react-router-6';
 
-export const MainRouter = (): React.ReactElement => {
+export const MainRouter = (): ReactElement => {
 	return (
 		<div className="flex h-full flex-col">
 			<BrowserRouter>

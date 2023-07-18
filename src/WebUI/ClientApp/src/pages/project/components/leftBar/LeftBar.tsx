@@ -3,7 +3,7 @@ import { LoadedFiles } from '@/pages/project/components/leftBar/LoadedFiles';
 import { VoxelInfo } from '@/pages/project/components/leftBar/VoxelInfo';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import type { LocationData } from '@niivue/niivue';
-import type { Dispatch } from 'react';
+import type { Dispatch, ReactElement } from 'react';
 
 export const LeftBar = ({
 	projectState,
@@ -15,7 +15,7 @@ export const LeftBar = ({
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
 	location: LocationData | undefined;
-}): React.ReactElement => {
+}): ReactElement => {
 	return (
 		<div
 			className="flex h-full flex-col overflow-y-auto overflow-x-hidden pt-2"

@@ -1,8 +1,10 @@
+import type { ReactElement } from 'react';
+
 export const MainView = ({
 	setCanvas,
 }: {
 	setCanvas: (ref: HTMLCanvasElement | null) => void;
-}): React.ReactElement => {
+}): ReactElement => {
 	return (
 		<div className="relative grow overflow-hidden">
 			<canvas className="" ref={(canvas) => setCanvas(canvas)} />

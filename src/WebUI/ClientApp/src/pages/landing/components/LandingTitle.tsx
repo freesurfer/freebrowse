@@ -1,13 +1,14 @@
 import brain from '@/pages/landing/assets/brain_fancy.jpg';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
 import { useCallback, useContext } from 'react';
+import type { ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const LandingTitle = ({
 	className,
 }: {
 	className?: string;
-}): React.ReactElement => {
+}): ReactElement => {
 	const navigate = useNavigate();
 	const { createProject } = useContext(OpenProjectDialogContext);
 

@@ -17,6 +17,8 @@ export const niivueHandleProjectUpdate = async (
 	cache: INiivueCache
 ): Promise<void> => {
 	const propagateProjectProperties = (): boolean => {
+		let hasChanged = false;
+
 		if (
 			prev?.crosshairPosition === undefined ||
 			prev?.crosshairPosition !== next.crosshairPosition
@@ -34,19 +36,21 @@ export const niivueHandleProjectUpdate = async (
 			) {
 				niivue.scene.crosshairPos = newPosition;
 				niivue.createOnLocationChange();
+				hasChanged = true;
 			}
 		}
 
 		if (
-			prev !== undefined &&
-			prev?.meshThicknessOn2D === next.meshThicknessOn2D
-		)
-			return true;
+			prev === undefined ||
+			prev?.meshThicknessOn2D !== next.meshThicknessOn2D
+		) {
+			// otherwise we only need to update the options
+			// niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);
+			niivue.opts.meshThicknessOn2D = next.meshThicknessOn2D ?? 0.5;
+			hasChanged = true;
+		}
 
-		// otherwise we only need to update the options
-		// niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);
-		// niivue.opts.meshThicknessOn2D = next.meshThicknessOn2D ?? 0.5;
-		return true;
+		return hasChanged;
 	};
 
 	const renderForVolumes = await niivueHandleVolumeUpdate(

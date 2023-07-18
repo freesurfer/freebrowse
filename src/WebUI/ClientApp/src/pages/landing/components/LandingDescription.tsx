@@ -1,10 +1,11 @@
 import description from '@/pages/landing/assets/description.png';
+import type { ReactElement } from 'react';
 
 export const LandingDescription = ({
 	className,
 }: {
 	className?: string;
-}): React.ReactElement => (
+}): ReactElement => (
 	<div className={`${className ?? ''} flex flex-row bg-gray-100`}>
 		<div className="flex w-full grow items-center justify-center">
 			<img

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, createRef, useRef } from 'react';
+import type { ReactElement } from 'react';
 
 /**
  * time in milliseconds to un stress the render interval on value updates
@@ -36,7 +37,7 @@ export const Slider = ({
 	unit?: string | undefined;
 	onChange?: (value: number) => void;
 	onEnd?: (value: number) => void;
-}): React.ReactElement => {
+}): ReactElement => {
 	/**
 	 * the data needed for the mouseMove transition to know,
 	 * where it has started and that it's in progress right now

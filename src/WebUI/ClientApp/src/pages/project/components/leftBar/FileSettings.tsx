@@ -11,7 +11,7 @@ import {
 } from '@/pages/project/models/ColorMap';
 import { ProjectState } from '@/pages/project/models/ProjectState';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
-import { useCallback, type Dispatch } from 'react';
+import { useCallback, type Dispatch, type ReactElement } from 'react';
 
 export const FileSettings = ({
 	projectState,
@@ -21,7 +21,7 @@ export const FileSettings = ({
 	setProjectState: Dispatch<
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
-}): React.ReactElement => {
+}): ReactElement => {
 	const activeVolumes =
 		projectState?.files.volumes.filter((file) => file.isActive) ?? [];
 
@@ -204,7 +204,7 @@ export const FileSettings = ({
 										value={(projectState?.meshThicknessOn2D ?? 0) * 10}
 										unit=""
 										min={0}
-										max={10}
+										max={50}
 										onChange={(value) =>
 											setProjectState((projectState) => {
 												if (projectState === undefined) return undefined;

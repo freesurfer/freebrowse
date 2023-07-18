@@ -1,13 +1,14 @@
 import { useState } from 'react';
+import type { ReactElement } from 'react';
 
 export const Tabs = ({
 	tabs,
 }: {
 	tabs: {
 		title: string;
-		content: React.ReactElement;
+		content: ReactElement;
 	}[];
-}): React.ReactElement => {
+}): ReactElement => {
 	const [activeTab, setActiveTab] = useState<string | undefined>(
 		tabs[0]?.title
 	);

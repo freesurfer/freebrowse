@@ -6,7 +6,7 @@ import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useCallback, useContext } from 'react';
-import type { Dispatch } from 'react';
+import type { Dispatch, ReactElement } from 'react';
 
 export const LoadedFiles = ({
 	projectState,
@@ -16,7 +16,7 @@ export const LoadedFiles = ({
 	setProjectState: Dispatch<
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
-}): React.ReactElement => {
+}): ReactElement => {
 	const { open } = useContext(NewPointSetDialogContext);
 
 	const { editProject } = useContext(OpenProjectDialogContext);

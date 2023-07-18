@@ -1,6 +1,7 @@
 import { ProgressBar } from '@/pages/project/dialogs/openProject/tabs/my-computer/components/ProgressBar';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import type { ReactElement } from 'react';
 
 /*
 const options = [
@@ -17,7 +18,7 @@ export const LoadFileList = ({
 	className?: string;
 	projectFiles: ProjectFiles;
 	setProjectFiles: (projectFiles: ProjectFiles) => void;
-}): React.ReactElement => {
+}): ReactElement => {
 	return (
 		<div className={className}>
 			{[

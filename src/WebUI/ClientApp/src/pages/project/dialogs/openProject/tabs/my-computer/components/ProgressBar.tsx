@@ -1,10 +1,12 @@
+import type { ReactElement } from 'react';
+
 export const ProgressBar = ({
 	progress,
 	className,
 }: {
 	progress: number;
 	className?: string;
-}): React.ReactElement => {
+}): ReactElement => {
 	return (
 		<div className={`h-0.5 bg-gray-200 ${className ?? ''}`}>
 			<div
