@@ -8,6 +8,10 @@ body,
 	height: 100%;
 }
 
+*:focus {
+	outline: none;
+}
+
 /* hide step arrows from input */
 /* Works for Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
