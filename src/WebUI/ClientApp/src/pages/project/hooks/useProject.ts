@@ -1,5 +1,6 @@
 import type { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { useApi } from '@/pages/project/hooks/useApi';
+import { useLocalStorage } from '@/pages/project/hooks/useLocalStorage';
 import { useNiivue } from '@/pages/project/hooks/useNiivue';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import type { LocationData } from '@niivue/niivue';
@@ -67,13 +68,20 @@ export const useProject = (
 		pointSetSelected,
 	} = query;
 
+	const localStorage = useLocalStorage(projectState);
+
 	const { initialState } = useApi(projectId, setProjectState, projectState);
 	useEffect(() => {
-		if (initialState === undefined) return;
+		if (initialState === undefined || localStorage === undefined) return;
 
-		if (volumes.length > 0 || surfaces.length > 0) {
-			setProjectState(
-				initialState.fromQuery(
+		setProjectState(() => {
+			const stateWithUser =
+				localStorage.userName !== undefined
+					? initialState.from({ user: { name: localStorage.userName } })
+					: initialState;
+
+			if (volumes.length > 0 || surfaces.length > 0) {
+				return stateWithUser.fromQuery(
 					volumes,
 					volumeOpacity,
 					volumeOrder,
@@ -92,12 +100,11 @@ export const useProject = (
 					pointSetOrder,
 					pointSetVisible,
 					pointSetSelected
-				)
-			);
-		} else {
-			setProjectState(initialState);
-		}
-	}, [initialState]); // eslint-disable-line react-hooks/exhaustive-deps
+				);
+			}
+			return stateWithUser;
+		});
+	}, [initialState, localStorage]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const { location, niivueWrapper } = useNiivue(
 		canvas,

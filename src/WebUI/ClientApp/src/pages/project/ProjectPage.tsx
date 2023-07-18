@@ -32,7 +32,10 @@ export const ProjectPage = (): ReactElement => {
 					location={location}
 				></LeftBar>
 				<MainView setCanvas={setCanvas}></MainView>
-				<RightBar projectState={projectState}></RightBar>
+				<RightBar
+					projectState={projectState}
+					setProjectState={setProjectState}
+				></RightBar>
 			</div>
 		</div>
 	);

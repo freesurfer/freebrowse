@@ -1,15 +1,19 @@
 import { Collapse } from '@/components/Collapse';
 import { AddComment } from '@/pages/project/components/rightBar/AddComment';
 import { CommentEntry } from '@/pages/project/components/rightBar/CommentEntry';
+import type { ProjectState } from '@/pages/project/models/ProjectState';
 import type { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
-import type { ReactElement } from 'react';
+import type { ReactElement, SetStateAction } from 'react';
 
 export const Comments = ({
 	pointSetFile,
+	userName,
+	setProjectState,
 }: {
 	pointSetFile: CloudPointSetFile | undefined;
+	userName: string;
+	setProjectState: React.Dispatch<SetStateAction<ProjectState | undefined>>;
 }): ReactElement => {
-	const userName = 'Anonymus User';
 	return (
 		<Collapse
 			className="border-b border-gray py-2 text-xs"
@@ -23,6 +27,24 @@ export const Comments = ({
 							<CommentEntry
 								userName="anonymous"
 								comment={pointSetFile?.data.overall_quality}
+								setUserName={(userName) =>
+									setProjectState((projectState) =>
+										projectState
+											?.from({ user: { name: userName } })
+											.fromFileUpdate(
+												pointSetFile,
+												{
+													data: {
+														...pointSetFile.data,
+														points: pointSetFile.data.points.map(
+															(point) => point
+														),
+													},
+												},
+												true
+											)
+									)
+								}
 							/>
 						) : (
 							<AddComment userName={userName} />
@@ -39,6 +61,24 @@ export const Comments = ({
 								userName={comment.user}
 								timestamp={comment.timestamp}
 								comment={comment.text}
+								setUserName={(userName) =>
+									setProjectState((projectState) =>
+										projectState
+											?.from({ user: { name: userName } })
+											.fromFileUpdate(
+												pointSetFile,
+												{
+													data: {
+														...pointSetFile.data,
+														points: pointSetFile.data.points.map(
+															(point) => point
+														),
+													},
+												},
+												true
+											)
+									)
+								}
 							/>
 						))}
 						<AddComment userName={userName} />
