@@ -1,4 +1,4 @@
-import type { ColorMap } from '@/pages/project/models/ColorMap';
+import { ColorMap } from '@/pages/project/models/ColorMap';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
@@ -18,6 +18,12 @@ export enum USER_MODE {
 	NAVIGATE,
 	EDIT_VOXEL,
 	EDIT_POINTS,
+}
+
+export interface ICrosshairPosition {
+	x: number;
+	y: number;
+	z: number;
 }
 
 /**
@@ -47,6 +53,11 @@ export class ProjectState {
 	 */
 	public readonly files: ProjectFiles;
 
+	/**
+	 * the 3D point which is marked in the niivue canvas
+	 */
+	public readonly crosshairPosition: ICrosshairPosition | undefined = undefined;
+
 	constructor(
 		args:
 			| {
@@ -60,6 +71,7 @@ export class ProjectState {
 					userMode?: USER_MODE;
 					meshThicknessOn2D?: number;
 					files?: ProjectFiles;
+					crosshairPosition?: ICrosshairPosition;
 			  },
 		public readonly upload: boolean
 	) {
@@ -76,9 +88,32 @@ export class ProjectState {
 		this.name = args.projectState.name;
 
 		this.userMode = args.userMode ?? args.projectState.userMode;
+		this.crosshairPosition =
+			args.crosshairPosition ?? args.projectState.crosshairPosition;
 		this.meshThicknessOn2D =
 			args.meshThicknessOn2D ?? args.projectState.meshThicknessOn2D;
 		this.files = args.files ?? args.projectState.files;
+	}
+
+	from(
+		options: {
+			userMode?: USER_MODE;
+			meshThicknessOn2D?: number;
+			files?: ProjectFiles;
+			crosshairPosition?: ICrosshairPosition;
+		},
+		upload = true
+	): ProjectState {
+		return new ProjectState(
+			{
+				projectState: this,
+				userMode: options.userMode ?? this.userMode,
+				meshThicknessOn2D: options.meshThicknessOn2D ?? this.meshThicknessOn2D,
+				files: options.files ?? this.files,
+				crosshairPosition: options.crosshairPosition ?? this.crosshairPosition,
+			},
+			upload
+		);
 	}
 
 	fromFiles(files: ProjectFiles, upload = true): ProjectState {
@@ -114,7 +149,7 @@ export class ProjectState {
 					isActive: volumeSelected[index] === 'true',
 					isChecked: volumeVisible[index] === 'true',
 					opacity: Number(volumeOpacity[index]),
-					colorMap: (volumeColormap[index] as ColorMap) ?? undefined,
+					colorMap: ColorMap.fromBackend(volumeColormap[index]) ?? undefined,
 					contrastMin: Number(volumeContrastMin[index]),
 					contrastMax: Number(volumeContrastMax[index]),
 				});

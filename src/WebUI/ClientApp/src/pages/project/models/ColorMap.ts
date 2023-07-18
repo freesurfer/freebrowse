@@ -1,10 +1,11 @@
 /**
  * developer wording
+ * passed to the backend
  */
 export enum COLOR_MAP {
-	GRAY,
-	HEAT,
-	LOOKUP_TABLE,
+	GRAY = 'gray',
+	HEAT = 'heat',
+	LOOKUP_TABLE = 'LookupTable',
 }
 
 /**
@@ -69,6 +70,24 @@ export class ColorMap {
 				return ColorMap.from(COLOR_MAP.HEAT);
 			default:
 				throw new Error(`there is no color map for ${colorMapTranslation}`);
+		}
+	}
+
+	static fromBackend(
+		colorMapBackend: string | undefined | null
+	): ColorMap | undefined {
+		switch (colorMapBackend) {
+			case undefined:
+			case null:
+				return undefined;
+			case COLOR_MAP.GRAY:
+				return ColorMap.from(COLOR_MAP.GRAY);
+			case COLOR_MAP.LOOKUP_TABLE:
+				return ColorMap.from(COLOR_MAP.LOOKUP_TABLE);
+			case COLOR_MAP.HEAT:
+				return ColorMap.from(COLOR_MAP.HEAT);
+			default:
+				throw new Error(`there is no color map for ${colorMapBackend}`);
 		}
 	}
 }

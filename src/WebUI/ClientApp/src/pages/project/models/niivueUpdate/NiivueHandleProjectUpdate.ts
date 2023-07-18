@@ -18,10 +18,30 @@ export const niivueHandleProjectUpdate = async (
 ): Promise<void> => {
 	const propagateProjectProperties = (): boolean => {
 		if (
+			prev?.crosshairPosition === undefined ||
+			prev?.crosshairPosition !== next.crosshairPosition
+		) {
+			const newPosition = niivue.mm2frac([
+				next.crosshairPosition?.x ?? 0,
+				next.crosshairPosition?.y ?? 0,
+				next.crosshairPosition?.z ?? 0,
+			]);
+
+			if (
+				newPosition[0] !== niivue.scene.crosshairPos[0] ||
+				newPosition[1] !== niivue.scene.crosshairPos[1] ||
+				newPosition[2] !== niivue.scene.crosshairPos[2]
+			) {
+				niivue.scene.crosshairPos = newPosition;
+				niivue.createOnLocationChange();
+			}
+		}
+
+		if (
 			prev !== undefined &&
 			prev?.meshThicknessOn2D === next.meshThicknessOn2D
 		)
-			return false;
+			return true;
 
 		// otherwise we only need to update the options
 		// niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);

@@ -99,7 +99,19 @@ export const useNiivue = (
 
 	useEffect(() => {
 		if (canvas === undefined || canvas === null) return;
-		niivueWrapper.current = new NiivueWrapper(canvas, setLocation);
+		niivueWrapper.current = new NiivueWrapper(canvas, (location) => {
+			if (location !== undefined)
+				setProjectState((projectState) =>
+					projectState?.from({
+						crosshairPosition: {
+							x: location?.mm[0],
+							y: location?.mm[1],
+							z: location?.mm[2],
+						},
+					})
+				);
+			setLocation(location);
+		});
 		return () => {
 			niivueWrapper.current = undefined;
 		};

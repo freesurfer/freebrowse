@@ -7,7 +7,13 @@ import {
 	ChevronLeftIcon,
 	ChevronRightIcon,
 } from '@heroicons/react/24/outline';
-import { useState, type ReactElement, type Dispatch, useEffect } from 'react';
+import {
+	type ReactElement,
+	type Dispatch,
+	useEffect,
+	useCallback,
+	useState,
+} from 'react';
 
 export const FileSettingsWayPoints = ({
 	pointSetFile,
@@ -24,8 +30,18 @@ export const FileSettingsWayPoints = ({
 		if (!('data' in pointSetFile)) return;
 		if (pointSetFile.data === undefined) return;
 		if (pointSetFile.data.points.length < selectedWaypoint)
-			setSelectedWaypoint(pointSetFile.data.points.length);
+			setSelectedWaypoint(() => pointSetFile.data.points.length);
 	}, [setSelectedWaypoint, selectedWaypoint, pointSetFile]);
+
+	const adjustCrosshairPosition = useCallback((): void => {
+		if (!('data' in pointSetFile) || pointSetFile.data === undefined) return;
+		const position = pointSetFile.data.points[selectedWaypoint - 1];
+		setProjectState((projectState) =>
+			projectState?.from({
+				crosshairPosition: position?.coordinates,
+			})
+		);
+	}, [setProjectState, pointSetFile, selectedWaypoint]);
 
 	if (!('data' in pointSetFile && pointSetFile.data !== undefined)) {
 		return <></>;
@@ -48,7 +64,7 @@ export const FileSettingsWayPoints = ({
 									type="number"
 									value={selectedWaypoint}
 									onChange={(event) =>
-										setSelectedWaypoint(parseInt(event.target.value))
+										setSelectedWaypoint(() => parseInt(event.target.value))
 									}
 									min={1}
 									max={pointSetFile.data.points.length}
@@ -57,7 +73,7 @@ export const FileSettingsWayPoints = ({
 									icon={(className) => (
 										<MagnifyingGlassIcon className={className} />
 									)}
-									onClick={() => alert('not implemented')}
+									onClick={adjustCrosshairPosition}
 								/>
 								<Button
 									icon={(className) => <TrashIcon className={className} />}

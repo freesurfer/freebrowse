@@ -58,9 +58,7 @@ export class NiivueWrapper {
 
 	constructor(
 		canvasRef: HTMLCanvasElement,
-		private readonly setLocation: (
-			value: React.SetStateAction<LocationData | undefined>
-		) => void
+		private readonly setLocation: (value: LocationData | undefined) => void
 	) {
 		this.niivue.addColormap('LookupTable', lookUpTable);
 		void this.niivue.attachToCanvas(canvasRef);
