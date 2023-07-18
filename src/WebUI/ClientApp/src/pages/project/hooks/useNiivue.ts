@@ -230,7 +230,6 @@ export const useNiivue = (
 					return;
 
 				if (deeplinkInitialized || rasX === undefined) {
-					// TODO Bere do not use projectChangeDetection class, pass two states and create a helper function for each iteration
 					await niivueWrapper.current.next(previousState, nextState, undefined);
 				} else {
 					await niivueWrapper.current.next(
