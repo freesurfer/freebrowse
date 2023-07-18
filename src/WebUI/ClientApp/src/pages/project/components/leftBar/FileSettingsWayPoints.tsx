@@ -1,4 +1,5 @@
 import { Button } from '@/components/Button';
+import { NumberInput } from '@/components/NumberInput';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import type { PointSetFile } from '@/pages/project/models/file/type/PointSetFile';
 import {
@@ -59,16 +60,11 @@ export const FileSettingsWayPoints = ({
 						<span>Current point:</span>
 						<div className="flex flex-col gap-1 text-font">
 							<div className="flex flex-row gap-1">
-								<input
-									className="flex rounded border-[1.5px] border-gray-300 px-2 text-center text-xs"
-									type="number"
+								<NumberInput
 									value={selectedWaypoint}
-									onChange={(event) =>
-										setSelectedWaypoint(() => parseInt(event.target.value))
-									}
-									min={1}
+									onChange={(value) => setSelectedWaypoint(value)}
 									max={pointSetFile.data.points.length}
-								></input>
+								/>
 								<Button
 									icon={(className) => (
 										<MagnifyingGlassIcon className={className} />
