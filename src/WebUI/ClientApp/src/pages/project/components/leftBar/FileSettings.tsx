@@ -5,7 +5,7 @@ import { Slider } from '@/components/Slider';
 import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
 import { FileSettingsWayPoints } from '@/pages/project/components/leftBar/FileSettingsWayPoints';
 import {
-	COLOR_MAP,
+	COLOR_MAP_BACKEND,
 	COLOR_MAP_TRANSLATION,
 	ColorMap,
 } from '@/pages/project/models/ColorMap';
@@ -123,7 +123,7 @@ export const FileSettings = ({
 										/>
 									</div>
 									*/}
-									{volume.colorMap.developer === COLOR_MAP.GRAY ? (
+									{volume.colorMap.backend === COLOR_MAP_BACKEND.GRAY ? (
 										<>
 											<span className="font-semibold">
 												Contrast & Brightness

@@ -1,4 +1,5 @@
 import lookUpTable from './ColorMaps/LookUpTable.json';
+import { COLOR_MAP_NIIVUE } from '@/pages/project/models/ColorMap';
 import { type ProjectState } from '@/pages/project/models/ProjectState';
 import type { ViewSettings } from '@/pages/project/models/ViewSettings';
 import { niivueHandleProjectUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleProjectUpdate';
@@ -25,7 +26,7 @@ export class NiivueWrapper {
 	public readonly niivue = new Niivue({
 		show3Dcrosshair: false,
 		onLocationChange: (location) =>
-			this.setLocation({
+			this.onLocationChange?.({
 				...location,
 				values: location.values.map((v) => {
 					return {
@@ -44,6 +45,10 @@ export class NiivueWrapper {
 		multiplanarForceRender: true,
 	});
 
+	private onLocationChange:
+		| ((value: LocationData | undefined) => void)
+		| undefined;
+
 	/**
 	 * the cache is used to map the file state instances to the niivue image/mesh objects
 	 * also necessary to preserver hidden files to add them fast again
@@ -56,12 +61,15 @@ export class NiivueWrapper {
 
 	private hooveredView = 0;
 
-	constructor(
-		canvasRef: HTMLCanvasElement,
-		private readonly setLocation: (value: LocationData | undefined) => void
-	) {
-		this.niivue.addColormap('LookupTable', lookUpTable);
+	constructor(canvasRef: HTMLCanvasElement) {
+		this.niivue.addColormap(COLOR_MAP_NIIVUE.LOOKUP_TABLE, lookUpTable);
 		void this.niivue.attachToCanvas(canvasRef);
+	}
+
+	public setOnLocationChange(
+		callback: ((value: LocationData | undefined) => void) | undefined
+	): void {
+		this.onLocationChange = callback;
 	}
 
 	public setOnMouseUp(callback: (uiData: UIData) => void): void {

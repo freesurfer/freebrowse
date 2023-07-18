@@ -99,19 +99,7 @@ export const useNiivue = (
 
 	useEffect(() => {
 		if (canvas === undefined || canvas === null) return;
-		niivueWrapper.current = new NiivueWrapper(canvas, (location) => {
-			if (location !== undefined)
-				setProjectState((projectState) =>
-					projectState?.from({
-						crosshairPosition: {
-							x: location?.mm[0],
-							y: location?.mm[1],
-							z: location?.mm[2],
-						},
-					})
-				);
-			setLocation(location);
-		});
+		niivueWrapper.current = new NiivueWrapper(canvas);
 		return () => {
 			niivueWrapper.current = undefined;
 		};
@@ -206,6 +194,28 @@ export const useNiivue = (
 				/* do nothing */
 			});
 	}, [projectState, onMouseUp]);
+
+	const onLocationChange = useCallback(
+		(location: LocationData | undefined) => {
+			if (location !== undefined)
+				setProjectState((projectState) =>
+					projectState?.from({
+						crosshairPosition: {
+							x: location?.mm[0],
+							y: location?.mm[1],
+							z: location?.mm[2],
+						},
+					})
+				);
+			setLocation(location);
+		},
+		[setProjectState, setLocation]
+	);
+
+	useEffect(() => {
+		niivueWrapper.current?.setOnLocationChange(onLocationChange);
+		return () => niivueWrapper.current?.setOnLocationChange(undefined);
+	}, [projectState, onLocationChange]);
 
 	useQueueDebounced(
 		projectState,

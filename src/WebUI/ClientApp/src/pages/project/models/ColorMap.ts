@@ -2,9 +2,9 @@
  * developer wording
  * passed to the backend
  */
-export enum COLOR_MAP {
-	GRAY = 'gray',
-	HEAT = 'heat',
+export enum COLOR_MAP_BACKEND {
+	GRAY = 'Gray',
+	HEAT = 'Heat',
 	LOOKUP_TABLE = 'LookupTable',
 }
 
@@ -12,9 +12,9 @@ export enum COLOR_MAP {
  * niivue wording
  */
 export enum COLOR_MAP_NIIVUE {
-	GRAY = 'gray',
-	LOOKUP_TABLE = 'LookupTable',
+	GRAY = 'Gray',
 	HEAT = 'Hot',
+	LOOKUP_TABLE = 'Lookuptable',
 }
 
 /**
@@ -22,32 +22,32 @@ export enum COLOR_MAP_NIIVUE {
  */
 export enum COLOR_MAP_TRANSLATION {
 	GRAY = 'Gray',
-	LOOKUP_TABLE = 'LookupTable',
 	HEAT = 'Heat',
+	LOOKUP_TABLE = 'LookupTable',
 }
 
 export class ColorMap {
 	private constructor(
-		public readonly developer: COLOR_MAP,
+		public readonly backend: COLOR_MAP_BACKEND,
 		public readonly niivue: COLOR_MAP_NIIVUE,
 		public readonly translation: COLOR_MAP_TRANSLATION
 	) {}
 
-	public static from(colorMap: COLOR_MAP): ColorMap {
+	public static from(colorMap: COLOR_MAP_BACKEND): ColorMap {
 		switch (colorMap) {
-			case COLOR_MAP.GRAY:
+			case COLOR_MAP_BACKEND.GRAY:
 				return new ColorMap(
 					colorMap,
 					COLOR_MAP_NIIVUE.GRAY,
 					COLOR_MAP_TRANSLATION.GRAY
 				);
-			case COLOR_MAP.LOOKUP_TABLE:
+			case COLOR_MAP_BACKEND.LOOKUP_TABLE:
 				return new ColorMap(
 					colorMap,
 					COLOR_MAP_NIIVUE.LOOKUP_TABLE,
 					COLOR_MAP_TRANSLATION.LOOKUP_TABLE
 				);
-			case COLOR_MAP.HEAT:
+			case COLOR_MAP_BACKEND.HEAT:
 				return new ColorMap(
 					colorMap,
 					COLOR_MAP_NIIVUE.HEAT,
@@ -63,11 +63,11 @@ export class ColorMap {
 			case undefined:
 				return undefined;
 			case COLOR_MAP_TRANSLATION.GRAY:
-				return ColorMap.from(COLOR_MAP.GRAY);
+				return ColorMap.from(COLOR_MAP_BACKEND.GRAY);
 			case COLOR_MAP_TRANSLATION.LOOKUP_TABLE:
-				return ColorMap.from(COLOR_MAP.LOOKUP_TABLE);
+				return ColorMap.from(COLOR_MAP_BACKEND.LOOKUP_TABLE);
 			case COLOR_MAP_TRANSLATION.HEAT:
-				return ColorMap.from(COLOR_MAP.HEAT);
+				return ColorMap.from(COLOR_MAP_BACKEND.HEAT);
 			default:
 				throw new Error(`there is no color map for ${colorMapTranslation}`);
 		}
@@ -79,13 +79,12 @@ export class ColorMap {
 		switch (colorMapBackend) {
 			case undefined:
 			case null:
-				return undefined;
-			case COLOR_MAP.GRAY:
-				return ColorMap.from(COLOR_MAP.GRAY);
-			case COLOR_MAP.LOOKUP_TABLE:
-				return ColorMap.from(COLOR_MAP.LOOKUP_TABLE);
-			case COLOR_MAP.HEAT:
-				return ColorMap.from(COLOR_MAP.HEAT);
+			case COLOR_MAP_BACKEND.GRAY:
+				return ColorMap.from(COLOR_MAP_BACKEND.GRAY);
+			case COLOR_MAP_BACKEND.LOOKUP_TABLE:
+				return ColorMap.from(COLOR_MAP_BACKEND.LOOKUP_TABLE);
+			case COLOR_MAP_BACKEND.HEAT:
+				return ColorMap.from(COLOR_MAP_BACKEND.HEAT);
 			default:
 				throw new Error(`there is no color map for ${colorMapBackend}`);
 		}

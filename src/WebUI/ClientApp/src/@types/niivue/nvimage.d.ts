@@ -322,8 +322,6 @@ declare module '@niivue/niivue' {
 		arrayEquals(a: any, b: any): boolean;
 		setColorMap(cm: any): void;
 		setColormapLabel(cm: any): void;
-		set colorMap(arg: any);
-		get colorMap(): any;
 		set colormap(arg: any);
 		get colormap(): any;
 		set opacity(arg: any);

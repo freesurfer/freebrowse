@@ -62,7 +62,7 @@ export const TopBar = ({
 			}&volumeVisible=${volume.isChecked.toString()}&volumeSelected=${volume.isActive.toString()}&volumeContrastMin=${
 				volume.contrastMin
 			}&volumeContrastMax=${volume.contrastMax.toString()}&volumeColormap=${
-				volume.colorMap ?? 'Gray'
+				volume.colorMap.backend
 			}`;
 		});
 

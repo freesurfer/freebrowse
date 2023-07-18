@@ -4,6 +4,7 @@ import type {
 	CreateOverlayResponseDto,
 	CreateAnnotationResponseDto,
 } from '@/generated/web-api-client';
+import { ColorMap } from '@/pages/project/models/ColorMap';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { CloudAnnotationFile } from '@/pages/project/models/file/CloudAnnotationFile';
 import { CloudOverlayFile } from '@/pages/project/models/file/CloudOverlayFile';
@@ -489,7 +490,8 @@ export class ProjectFiles {
 					localFile.isChecked,
 					uploadResponse.order,
 					uploadResponse.opacity,
-					uploadResponse.colorMap ?? CloudVolumeFile.DEFAULT_COLOR_MAP,
+					ColorMap.fromBackend(uploadResponse.colorMap) ??
+						CloudVolumeFile.DEFAULT_COLOR_MAP,
 					uploadResponse.contrastMin,
 					uploadResponse.contrastMax
 				);

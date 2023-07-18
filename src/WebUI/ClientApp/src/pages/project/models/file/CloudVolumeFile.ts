@@ -1,5 +1,5 @@
 import type { GetProjectVolumeDto } from '@/generated/web-api-client';
-import type { ColorMap } from '@/pages/project/models/ColorMap';
+import { COLOR_MAP_BACKEND, ColorMap } from '@/pages/project/models/ColorMap';
 import { FileType } from '@/pages/project/models/file/ProjectFile';
 import type { IManageableFile } from '@/pages/project/models/file/extension/ManageableFile';
 import type { IOrderableFile } from '@/pages/project/models/file/extension/OrderableFile';
@@ -11,7 +11,7 @@ export class CloudVolumeFile
 	extends CloudFile
 	implements IVolumeFile, IOrderableFile, IManageableFile
 {
-	static DEFAULT_COLOR_MAP: ColorMap = 'gray';
+	static DEFAULT_COLOR_MAP: ColorMap = ColorMap.from(COLOR_MAP_BACKEND.GRAY);
 
 	public readonly type = FileType.VOLUME;
 	public readonly progress = 100;
@@ -34,9 +34,10 @@ export class CloudVolumeFile
 			throw new Error('no file without colorMap');
 
 		if (
-			fileDto.colorMap !== 'gray' &&
-			fileDto.colorMap !== 'Hot' &&
-			fileDto.colorMap !== 'LookupTable'
+			fileDto.colorMap !== COLOR_MAP_BACKEND.GRAY &&
+			fileDto.colorMap !== COLOR_MAP_BACKEND.HEAT &&
+			fileDto.colorMap !== COLOR_MAP_BACKEND.LOOKUP_TABLE &&
+			fileDto.colorMap !== null
 		)
 			throw new Error(
 				`${fileDto.colorMap} is not one of the supported color schemes`
@@ -50,7 +51,8 @@ export class CloudVolumeFile
 			fileDto.visible,
 			fileDto.order,
 			fileDto.opacity ?? 100,
-			fileDto.colorMap ?? CloudVolumeFile.DEFAULT_COLOR_MAP,
+			ColorMap.fromBackend(fileDto.colorMap) ??
+				CloudVolumeFile.DEFAULT_COLOR_MAP,
 			fileDto.contrastMin ?? 0,
 			fileDto.contrastMax ?? 100
 		);
