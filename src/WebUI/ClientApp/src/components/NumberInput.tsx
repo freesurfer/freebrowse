@@ -12,6 +12,7 @@ export const NumberInput = ({
 	const reducer = useCallback(
 		(prevValue: number, newValue: number) => {
 			if (newValue > max) newValue = max;
+			if (prevValue === newValue) return prevValue;
 			if (!isNaN(newValue)) onChange(newValue);
 			return newValue;
 		},
