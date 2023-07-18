@@ -10,7 +10,7 @@ export const Comments = ({
 	userName,
 	setProjectState,
 }: {
-	pointSetFile: CloudPointSetFile | undefined;
+	pointSetFile: CloudPointSetFile;
 	userName: string;
 	setProjectState: React.Dispatch<SetStateAction<ProjectState | undefined>>;
 }): ReactElement => {
@@ -25,24 +25,11 @@ export const Comments = ({
 					<div className="mt-1 flex flex-col pr-4">
 						{pointSetFile?.data.overall_quality !== undefined ? (
 							<CommentEntry
-								userName="anonymous"
+								userName={userName}
 								comment={pointSetFile?.data.overall_quality}
 								setUserName={(userName) =>
 									setProjectState((projectState) =>
-										projectState
-											?.from({ user: { name: userName } })
-											.fromFileUpdate(
-												pointSetFile,
-												{
-													data: {
-														...pointSetFile.data,
-														points: pointSetFile.data.points.map(
-															(point) => point
-														),
-													},
-												},
-												true
-											)
+										projectState?.from({ user: { name: userName } })
 									)
 								}
 							/>
@@ -52,38 +39,57 @@ export const Comments = ({
 					</div>
 				</div>
 
-				<div className="mt-5 flex flex-col pl-1">
-					<span className="grow border-b">{pointSetFile?.name}: Point #3</span>
-					<div className="mt-1 flex flex-col pr-4">
-						{pointSetFile?.data.points[0]?.comments?.map((comment, index) => (
-							<CommentEntry
-								key={index}
-								userName={comment.user}
-								timestamp={comment.timestamp}
-								comment={comment.text}
-								setUserName={(userName) =>
-									setProjectState((projectState) =>
-										projectState
-											?.from({ user: { name: userName } })
-											.fromFileUpdate(
-												pointSetFile,
-												{
-													data: {
-														...pointSetFile.data,
-														points: pointSetFile.data.points.map(
-															(point) => point
-														),
+				{pointSetFile?.data.points.length > 0 ? (
+					<div className="mt-5 flex flex-col pl-1">
+						<span className="grow border-b">
+							{pointSetFile?.name}: Point #{pointSetFile?.selectedWayPoint}
+						</span>
+						<div className="mt-1 flex flex-col pr-4">
+							{pointSetFile?.data.points[
+								pointSetFile.selectedWayPoint - 1
+							]?.comments?.map((comment, index) => (
+								<CommentEntry
+									key={index}
+									userName={comment.user}
+									timestamp={comment.timestamp}
+									comment={comment.text}
+									setUserName={(userName) =>
+										setProjectState((projectState) =>
+											projectState
+												?.from({ user: { name: userName } })
+												.fromFileUpdate(
+													pointSetFile,
+													{
+														data: {
+															...pointSetFile.data,
+															points: pointSetFile.data.points.map(
+																(point, index) =>
+																	index === pointSetFile.selectedWayPoint - 1
+																		? {
+																				...point,
+																				comments: point.comments?.map(
+																					(iterateComment) =>
+																						iterateComment === comment
+																							? { ...comment, user: userName }
+																							: comment
+																				),
+																		  }
+																		: point
+															),
+														},
 													},
-												},
-												true
-											)
-									)
-								}
-							/>
-						))}
-						<AddComment userName={userName} />
+													true
+												)
+										)
+									}
+								/>
+							))}
+							<AddComment userName={userName} />
+						</div>
 					</div>
-				</div>
+				) : (
+					<></>
+				)}
 			</>
 		</Collapse>
 	);

@@ -164,14 +164,6 @@ export const useNiivue = (
 										y: position[1],
 										z: position[2],
 									},
-									comments: [
-										{
-											text: 'name',
-											prefilled: ['true'],
-											timestamp: '1234',
-											user: 'me',
-										},
-									],
 									legacy_stat: 1,
 								},
 							],

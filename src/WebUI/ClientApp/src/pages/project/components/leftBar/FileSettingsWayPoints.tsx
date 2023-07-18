@@ -13,7 +13,6 @@ import {
 	type Dispatch,
 	useEffect,
 	useCallback,
-	useState,
 } from 'react';
 
 export const FileSettingsWayPoints = ({
@@ -25,24 +24,32 @@ export const FileSettingsWayPoints = ({
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
 }): ReactElement => {
-	const [selectedWaypoint, setSelectedWaypoint] = useState<number>(1);
-
 	useEffect(() => {
 		if (!('data' in pointSetFile)) return;
 		if (pointSetFile.data === undefined) return;
-		if (pointSetFile.data.points.length < selectedWaypoint)
-			setSelectedWaypoint(() => pointSetFile.data.points.length);
-	}, [setSelectedWaypoint, selectedWaypoint, pointSetFile]);
+		if (
+			pointSetFile.data.points.length > 0 &&
+			pointSetFile.data.points.length < pointSetFile.selectedWayPoint
+		)
+			setProjectState((projectState) =>
+				projectState?.fromFileUpdate(
+					pointSetFile,
+					{ selectedWayPoint: pointSetFile.data.points.length },
+					false
+				)
+			);
+	}, [setProjectState, pointSetFile]);
 
 	const adjustCrosshairPosition = useCallback((): void => {
 		if (!('data' in pointSetFile) || pointSetFile.data === undefined) return;
-		const position = pointSetFile.data.points[selectedWaypoint - 1];
+		const position =
+			pointSetFile.data.points[pointSetFile.selectedWayPoint - 1];
 		setProjectState((projectState) =>
 			projectState?.from({
 				crosshairPosition: position?.coordinates,
 			})
 		);
-	}, [setProjectState, pointSetFile, selectedWaypoint]);
+	}, [setProjectState, pointSetFile]);
 
 	if (!('data' in pointSetFile && pointSetFile.data !== undefined)) {
 		return <></>;
@@ -61,8 +68,16 @@ export const FileSettingsWayPoints = ({
 						<div className="flex flex-col gap-1 text-font">
 							<div className="flex flex-row gap-1">
 								<NumberInput
-									value={selectedWaypoint}
-									onChange={(value) => setSelectedWaypoint(value)}
+									value={pointSetFile.selectedWayPoint}
+									onChange={(value) =>
+										setProjectState((projectState) =>
+											projectState?.fromFileUpdate(
+												pointSetFile,
+												{ selectedWayPoint: value },
+												false
+											)
+										)
+									}
 									max={pointSetFile.data.points.length}
 								/>
 								<Button
@@ -81,7 +96,8 @@ export const FileSettingsWayPoints = ({
 													data: {
 														...pointSetFile.data,
 														points: pointSetFile.data.points.filter(
-															(file, index) => index + 1 !== selectedWaypoint
+															(file, index) =>
+																index + 1 !== pointSetFile.selectedWayPoint
 														),
 													},
 												},
@@ -96,10 +112,14 @@ export const FileSettingsWayPoints = ({
 									icon={(className) => (
 										<ChevronLeftIcon className={className} />
 									)}
-									readonly={selectedWaypoint <= 1}
+									readonly={pointSetFile.selectedWayPoint <= 1}
 									onClick={() =>
-										setSelectedWaypoint(
-											(selectedWaypoint) => --selectedWaypoint
+										setProjectState((projectState) =>
+											projectState?.fromFileUpdate(
+												pointSetFile,
+												{ selectedWayPoint: pointSetFile.selectedWayPoint - 1 },
+												false
+											)
 										)
 									}
 								/>
@@ -107,10 +127,17 @@ export const FileSettingsWayPoints = ({
 									icon={(className) => (
 										<ChevronRightIcon className={className} />
 									)}
-									readonly={selectedWaypoint >= pointSetFile.data.points.length}
+									readonly={
+										pointSetFile.selectedWayPoint >=
+										pointSetFile.data.points.length
+									}
 									onClick={() =>
-										setSelectedWaypoint(
-											(selectedWaypoint) => ++selectedWaypoint
+										setProjectState((projectState) =>
+											projectState?.fromFileUpdate(
+												pointSetFile,
+												{ selectedWayPoint: pointSetFile.selectedWayPoint + 1 },
+												false
+											)
 										)
 									}
 								/>

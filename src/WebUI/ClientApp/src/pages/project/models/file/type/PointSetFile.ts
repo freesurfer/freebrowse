@@ -60,4 +60,9 @@ export const rgbToHex = (rgb: [number, number, number]): string => {
  */
 export interface IPointSetFile {
 	readonly type: FileType.POINT_SET;
+
+	/**
+	 * the from the user temporally selected way point
+	 */
+	readonly selectedWayPoint: number;
 }
