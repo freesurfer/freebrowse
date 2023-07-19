@@ -16,7 +16,7 @@ export interface IPointSetCoordinates {
 
 export interface IPointSetComment {
 	edited?: boolean;
-	prefilled: string[];
+	prefilled?: string[];
 	text: string;
 	timestamp: string;
 	user: string;

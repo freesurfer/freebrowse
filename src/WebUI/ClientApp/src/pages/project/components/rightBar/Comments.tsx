@@ -1,8 +1,10 @@
 import { Collapse } from '@/components/Collapse';
+import { toIsoString } from '@/model/humanizeTimeSpan';
 import { AddComment } from '@/pages/project/components/rightBar/AddComment';
 import { CommentEntry } from '@/pages/project/components/rightBar/CommentEntry';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import type { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
+import type { IPointSetComment } from '@/pages/project/models/file/type/PointSetFile';
 import type { ReactElement, SetStateAction } from 'react';
 
 export const Comments = ({
@@ -34,7 +36,23 @@ export const Comments = ({
 								}
 							/>
 						) : (
-							<AddComment userName={userName} />
+							<AddComment
+								onAdd={(message) =>
+									setProjectState((projectState) =>
+										projectState?.fromFileUpdate(
+											pointSetFile,
+											{
+												data: {
+													...pointSetFile.data,
+													overall_quality: message,
+												},
+											},
+											true
+										)
+									)
+								}
+								userName={userName}
+							/>
 						)}
 					</div>
 				</div>
@@ -49,7 +67,7 @@ export const Comments = ({
 								pointSetFile.selectedWayPoint - 1
 							]?.comments?.map((comment, index) => (
 								<CommentEntry
-									key={index}
+									key={`${pointSetFile.name}${pointSetFile.selectedWayPoint}${index}`}
 									userName={comment.user}
 									timestamp={comment.timestamp}
 									comment={comment.text}
@@ -68,10 +86,14 @@ export const Comments = ({
 																		? {
 																				...point,
 																				comments: point.comments?.map(
-																					(iterateComment) =>
-																						iterateComment === comment
-																							? { ...comment, user: userName }
-																							: comment
+																					(iterateComment) => {
+																						if (iterateComment === comment)
+																							return {
+																								...iterateComment,
+																								user: userName,
+																							};
+																						return iterateComment;
+																					}
 																				),
 																		  }
 																		: point
@@ -84,7 +106,40 @@ export const Comments = ({
 									}
 								/>
 							))}
-							<AddComment userName={userName} />
+							<AddComment
+								onAdd={(message) =>
+									setProjectState((projectState) => {
+										const newComment: IPointSetComment = {
+											user: userName,
+											text: message,
+											timestamp: toIsoString(new Date()),
+										};
+										return projectState?.fromFileUpdate(
+											pointSetFile,
+											{
+												data: {
+													...pointSetFile.data,
+													points: [
+														...pointSetFile.data.points.map((point, index) =>
+															index === pointSetFile.selectedWayPoint - 1
+																? {
+																		...point,
+																		comments:
+																			point.comments !== undefined
+																				? [...point.comments, newComment]
+																				: [newComment],
+																  }
+																: point
+														),
+													],
+												},
+											},
+											true
+										);
+									})
+								}
+								userName={userName}
+							/>
 						</div>
 					</div>
 				) : (
