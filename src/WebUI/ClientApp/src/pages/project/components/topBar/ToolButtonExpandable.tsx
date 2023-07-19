@@ -33,7 +33,7 @@ export const ToolButtonExpandable = ({
 				if (wrapperRef.current === undefined) return;
 				if (
 					wrapperRef.current === null ||
-					(target instanceof HTMLElement && wrapperRef.current.contains(target))
+					(target instanceof Node && wrapperRef.current.contains(target))
 				)
 					return;
 				setExpanded(false);
@@ -46,10 +46,7 @@ export const ToolButtonExpandable = ({
 	useEffect(() => {
 		if (!isExpanded) return;
 		document.addEventListener('mousedown', handleMouseDown);
-
-		return () => {
-			document.removeEventListener('mousedown', handleMouseDown);
-		};
+		return () => document.removeEventListener('mousedown', handleMouseDown);
 	}, [handleMouseDown, isExpanded]);
 
 	return (

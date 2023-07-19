@@ -34,6 +34,34 @@ export const Comments = ({
 										projectState?.from({ user: { name: userName } })
 									)
 								}
+								deleteComment={() =>
+									setProjectState((projectState) =>
+										projectState?.fromFileUpdate(
+											pointSetFile,
+											{
+												data: {
+													...pointSetFile.data,
+													overall_quality: undefined,
+												},
+											},
+											true
+										)
+									)
+								}
+								updateComment={(text) =>
+									setProjectState((projectState) =>
+										projectState?.fromFileUpdate(
+											pointSetFile,
+											{
+												data: {
+													...pointSetFile.data,
+													overall_quality: text,
+												},
+											},
+											true
+										)
+									)
+								}
 							/>
 						) : (
 							<AddComment
@@ -65,43 +93,69 @@ export const Comments = ({
 						<div className="mt-1 flex flex-col pr-4">
 							{pointSetFile?.data.points[
 								pointSetFile.selectedWayPoint - 1
-							]?.comments?.map((comment, index) => (
+							]?.comments?.map((comment) => (
 								<CommentEntry
-									key={`${pointSetFile.name}${pointSetFile.selectedWayPoint}${index}`}
+									key={comment.timestamp}
 									userName={comment.user}
 									timestamp={comment.timestamp}
 									comment={comment.text}
-									setUserName={(userName) =>
+									deleteComment={() =>
 										setProjectState((projectState) =>
-											projectState
-												?.from({ user: { name: userName } })
-												.fromFileUpdate(
-													pointSetFile,
-													{
-														data: {
-															...pointSetFile.data,
-															points: pointSetFile.data.points.map(
-																(point, index) =>
-																	index === pointSetFile.selectedWayPoint - 1
-																		? {
-																				...point,
-																				comments: point.comments?.map(
-																					(iterateComment) => {
-																						if (iterateComment === comment)
-																							return {
-																								...iterateComment,
-																								user: userName,
-																							};
-																						return iterateComment;
-																					}
-																				),
-																		  }
-																		: point
-															),
-														},
+											projectState?.fromFileUpdate(
+												pointSetFile,
+												{
+													data: {
+														...pointSetFile.data,
+														points: pointSetFile.data.points.map(
+															(point, index) =>
+																index === pointSetFile.selectedWayPoint - 1
+																	? {
+																			...point,
+																			comments: point.comments?.filter(
+																				(iterateComment) =>
+																					iterateComment !== comment
+																			),
+																	  }
+																	: point
+														),
 													},
-													true
-												)
+												},
+												true
+											)
+										)
+									}
+									updateComment={(text) =>
+										setProjectState((projectState) =>
+											projectState?.fromFileUpdate(
+												pointSetFile,
+												{
+													data: {
+														...pointSetFile.data,
+														points: pointSetFile.data.points.map(
+															(point, index) =>
+																index === pointSetFile.selectedWayPoint - 1
+																	? {
+																			...point,
+																			comments: point.comments?.map(
+																				(iterateComment) =>
+																					iterateComment === comment
+																						? {
+																								...iterateComment,
+																								text,
+																								edited: true,
+																								timestamp: toIsoString(
+																									new Date()
+																								),
+																						  }
+																						: iterateComment
+																			),
+																	  }
+																	: point
+														),
+													},
+												},
+												true
+											)
 										)
 									}
 								/>

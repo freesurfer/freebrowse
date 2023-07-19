@@ -21,7 +21,7 @@ export const AddComment = ({
 	);
 
 	return (
-		<div className="mt-1 flex flex-row gap-1">
+		<div className="mt-2 flex flex-row gap-1">
 			<NameIcon userName={userName} size={'big'} />
 			<div className="flex grow justify-center overflow-hidden rounded border-[1.5px]">
 				<input
