@@ -26,6 +26,10 @@ export interface ICrosshairPosition {
 	z: number;
 }
 
+export interface IUser {
+	name: string;
+}
+
 /**
  * class to uncouple backend dto from data used from ui
  * - keep the expected backend data state without fetching it again
@@ -48,6 +52,10 @@ export class ProjectState {
 	 * thickness of the mesh on the 2d plane
 	 */
 	public readonly meshThicknessOn2D: number | undefined;
+	/**
+	 * user information
+	 */
+	public readonly user: IUser = { name: 'Anonymus User' };
 	/**
 	 * all files related to the project
 	 */
@@ -72,6 +80,7 @@ export class ProjectState {
 					meshThicknessOn2D?: number;
 					files?: ProjectFiles;
 					crosshairPosition?: ICrosshairPosition;
+					user?: IUser;
 			  },
 		public readonly upload: boolean
 	) {
@@ -92,6 +101,7 @@ export class ProjectState {
 			args.crosshairPosition ?? args.projectState.crosshairPosition;
 		this.meshThicknessOn2D =
 			args.meshThicknessOn2D ?? args.projectState.meshThicknessOn2D;
+		this.user = args.user ?? args.projectState.user;
 		this.files = args.files ?? args.projectState.files;
 	}
 
@@ -101,6 +111,7 @@ export class ProjectState {
 			meshThicknessOn2D?: number;
 			files?: ProjectFiles;
 			crosshairPosition?: ICrosshairPosition;
+			user?: IUser;
 		},
 		upload = true
 	): ProjectState {
@@ -111,6 +122,7 @@ export class ProjectState {
 				meshThicknessOn2D: options.meshThicknessOn2D ?? this.meshThicknessOn2D,
 				files: options.files ?? this.files,
 				crosshairPosition: options.crosshairPosition ?? this.crosshairPosition,
+				user: options.user ?? this.user,
 			},
 			upload
 		);

@@ -191,15 +191,23 @@ export const niivueHandleMeshesUpdate = async (
 	};
 
 	const propagateProperties = async (): Promise<boolean> => {
-		const updateSurfaceOrder = (niivueSurface: NVMesh, order: number): void => {
-			if (niivue.getMeshIndexByID(niivueSurface.id) === order) return;
+		const updateSurfaceOrder = (
+			niivueSurface: NVMesh,
+			order: number
+		): boolean => {
+			if (niivue.getMeshIndexByID(niivueSurface.id) === order) return false;
 			niivue.setMesh(niivueSurface, order);
+			// setMesh calls the render method already
+			return false;
 		};
 
 		const updateSurfaceOverlayAndAnnotation = async (
 			surfaceFile: SurfaceFile,
 			niivueSurface: NVMesh
-		): Promise<void> => {
+		): Promise<boolean> => {
+			if (prev?.surfaces.some((file) => file === surfaceFile) === true)
+				return false;
+
 			const getActiveCascadingFile = (
 				surfaceFile: SurfaceFile
 			): CloudOverlayFile | CloudAnnotationFile | undefined => {
@@ -217,7 +225,7 @@ export const niivueHandleMeshesUpdate = async (
 			if (activeFile === undefined) {
 				niivueSurface.layers = [];
 				niivueSurface.updateMesh(niivue.gl);
-				return;
+				return true;
 			}
 
 			// necessary if something wents wrong to clean the state from before
@@ -234,18 +242,20 @@ export const niivueHandleMeshesUpdate = async (
 				niivueSurface
 			);
 			niivueSurface.updateMesh(niivue.gl);
+			return true;
 		};
 
 		const updateSurfaceColor = (
 			niivueSurface: NVMesh,
 			surfaceFile: SurfaceFile
-		): void => {
+		): boolean => {
 			const newRgba = NiivueWrapper.hexToRGBA(surfaceFile.color);
-			if (NiivueWrapper.compareRgba(niivueSurface.rgba255, newRgba)) return;
+			if (NiivueWrapper.compareRgba(niivueSurface.rgba255, newRgba))
+				return false;
 
 			const index = niivue.getMeshIndexByID(niivueSurface.id);
 			if (index < 0) {
-				return;
+				return false;
 			}
 
 			niivue.meshes[index]?.setProperty('rgba255', newRgba, niivue.gl);
@@ -254,6 +264,7 @@ export const niivueHandleMeshesUpdate = async (
 			// 	'rgba255',
 			// 	newRgba
 			// );
+			return true;
 		};
 
 		/**
@@ -273,10 +284,16 @@ export const niivueHandleMeshesUpdate = async (
 				continue;
 			}
 
-			updateSurfaceColor(niivueSurface, surfaceFile);
-			updateSurfaceOrder(niivueSurface, tmpOrder++);
-			await updateSurfaceOverlayAndAnnotation(surfaceFile, niivueSurface);
-			hasChanged = true;
+			const renderForColor = updateSurfaceColor(niivueSurface, surfaceFile);
+			const renderForOrder = updateSurfaceOrder(niivueSurface, tmpOrder++);
+			const renderForOverlayAndAnnotation =
+				await updateSurfaceOverlayAndAnnotation(surfaceFile, niivueSurface);
+
+			hasChanged =
+				hasChanged ||
+				renderForColor ||
+				renderForOrder ||
+				renderForOverlayAndAnnotation;
 		}
 
 		return hasChanged;

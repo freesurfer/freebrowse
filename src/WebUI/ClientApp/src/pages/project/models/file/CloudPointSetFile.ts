@@ -22,7 +22,8 @@ export class CloudPointSetFile
 		public readonly data: IPointSetData,
 		public readonly isActive: boolean,
 		public readonly isChecked: boolean,
-		public readonly order: number | undefined
+		public readonly order: number | undefined,
+		public readonly selectedWayPoint: number = 1
 	) {
 		if (id === undefined) throw new Error('no id for cloud volume file');
 		super(id, name, `${getApiUrl()}/api/PointSet?Id=${String(id)}`);
@@ -33,6 +34,7 @@ export class CloudPointSetFile
 		isActive?: boolean;
 		isChecked?: boolean;
 		data?: IPointSetData;
+		selectedWayPoint?: number;
 	}): CloudPointSetFile {
 		return new CloudPointSetFile(
 			this.id,
@@ -41,7 +43,8 @@ export class CloudPointSetFile
 			options.data ?? this.data,
 			options.isActive ?? this.isActive,
 			options.isChecked ?? this.isChecked,
-			options.order ?? this.order
+			options.order ?? this.order,
+			options.selectedWayPoint ?? this.selectedWayPoint
 		);
 	}
 

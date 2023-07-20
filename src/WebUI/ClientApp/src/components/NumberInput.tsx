@@ -1,4 +1,4 @@
-import { type ReactElement, useReducer, useCallback, useEffect } from 'react';
+import { type ReactElement, useEffect, useState } from 'react';
 
 export const NumberInput = ({
 	value,
@@ -9,15 +9,7 @@ export const NumberInput = ({
 	onChange: (value: number) => void;
 	max: number;
 }): ReactElement => {
-	const reducer = useCallback(
-		(prevValue: number, newValue: number) => {
-			if (newValue > max) newValue = max;
-			if (!isNaN(newValue)) onChange(newValue);
-			return newValue;
-		},
-		[onChange, max]
-	);
-	const [tmpValue, setTmpValue] = useReducer(reducer, value);
+	const [tmpValue, setTmpValue] = useState<number>(value);
 	useEffect(() => {
 		setTmpValue(value);
 	}, [value]);
@@ -27,8 +19,14 @@ export const NumberInput = ({
 			className="flex rounded border-[1.5px] border-gray-300 px-2 text-center text-xs"
 			type="number"
 			value={tmpValue}
-			onChange={(event) => setTmpValue(parseInt(event.target.value))}
-			onBlurCapture={() => setTmpValue(value)}
+			onChange={(event) =>
+				setTmpValue(
+					parseInt(event.target.value) > max
+						? max
+						: parseInt(event.target.value)
+				)
+			}
+			onBlurCapture={() => onChange(tmpValue)}
 			min={1}
 			max={max}
 		></input>

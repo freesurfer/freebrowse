@@ -164,14 +164,6 @@ export const useNiivue = (
 										y: position[1],
 										z: position[2],
 									},
-									comments: [
-										{
-											text: 'name',
-											prefilled: ['true'],
-											timestamp: '1234',
-											user: 'me',
-										},
-									],
 									legacy_stat: 1,
 								},
 							],
@@ -230,7 +222,6 @@ export const useNiivue = (
 					return;
 
 				if (deeplinkInitialized || rasX === undefined) {
-					// TODO Bere do not use projectChangeDetection class, pass two states and create a helper function for each iteration
 					await niivueWrapper.current.next(previousState, nextState, undefined);
 				} else {
 					await niivueWrapper.current.next(

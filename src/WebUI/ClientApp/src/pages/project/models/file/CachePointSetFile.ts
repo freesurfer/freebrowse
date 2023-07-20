@@ -22,7 +22,8 @@ export class CachePointSetFile
 		data: IPointSetData,
 		public readonly isActive: boolean,
 		public readonly isChecked: boolean,
-		public readonly order: number | undefined
+		public readonly order: number | undefined,
+		public readonly selectedWayPoint: number = 1
 	) {
 		super(name, data);
 	}
@@ -32,13 +33,15 @@ export class CachePointSetFile
 		isChecked?: boolean;
 		order?: number | undefined;
 		data?: IPointSetData;
+		selectedWayPoint?: number;
 	}): CachePointSetFile {
 		return new CachePointSetFile(
 			this.name,
 			options.data ?? this.data,
 			options.isActive ?? this.isActive,
 			options.isChecked ?? this.isChecked,
-			options.order ?? this.order
+			options.order ?? this.order,
+			options.selectedWayPoint ?? this.selectedWayPoint
 		);
 	}
 }

@@ -16,7 +16,8 @@ export class LocalPointSetFile
 		file: File,
 		public readonly isActive = false,
 		public readonly isChecked = true,
-		public readonly order: number | undefined = undefined
+		public readonly order: number | undefined = undefined,
+		public readonly selectedWayPoint: number = 1
 	) {
 		super(file);
 		this.size = file.size;
@@ -27,12 +28,14 @@ export class LocalPointSetFile
 		isActive?: boolean;
 		isChecked?: boolean;
 		opacity?: number;
+		selectedWayPoint?: number;
 	}): LocalPointSetFile {
 		return new LocalPointSetFile(
 			this.file,
 			options.isActive ?? this.isActive,
 			options.isChecked ?? this.isChecked,
-			options.order ?? this.order
+			options.order ?? this.order,
+			options.selectedWayPoint ?? this.selectedWayPoint
 		);
 	}
 }

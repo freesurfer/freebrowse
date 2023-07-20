@@ -101,28 +101,6 @@ export const FileSettings = ({
 											updateFileOptions(volume, { opacity: value }, true)
 										}
 									></Slider>
-									{/*
-									<div className="mb-4 flex items-center">
-										<span className="mr-2 grow">Color Map:</span>
-										<Select
-											options={colorMapOptions}
-											classNames={{
-												indicatorSeparator: () => 'hidden',
-												singleValue: () => 'text-xs z-1',
-												menu: () => 'text-xs',
-											}}
-											value={colorMapOptions.find(
-												(colorMapOption) =>
-													colorMapOption.value === volume.colorMap
-											)}
-											onChange={(colorMap) => {
-												if (colorMap === null) return;
-												volume.colorMap = colorMap.value;
-												niivueWrapper?.current?.niivue.updateGLVolume();
-											}}
-										/>
-									</div>
-									*/}
 									{volume.colorMap.backend === COLOR_MAP_BACKEND.GRAY ? (
 										<>
 											<span className="font-semibold">
