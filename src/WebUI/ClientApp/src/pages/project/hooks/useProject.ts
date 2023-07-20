@@ -1,5 +1,6 @@
 import type { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { useApi } from '@/pages/project/hooks/useApi';
+import { useHistory } from '@/pages/project/hooks/useHistory';
 import { useLocalStorage } from '@/pages/project/hooks/useLocalStorage';
 import { useNiivue } from '@/pages/project/hooks/useNiivue';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
@@ -22,6 +23,8 @@ export const useProject = (
 	setProjectState: Dispatch<React.SetStateAction<ProjectState | undefined>>;
 	location: LocationData | undefined;
 	niivueWrapper: NiivueWrapper | undefined;
+	wayPointUndo: () => void;
+	wayPointRedo: () => void;
 } => {
 	const [projectState, setProjectState] = useState<ProjectState>();
 
@@ -112,5 +115,17 @@ export const useProject = (
 		setProjectState
 	);
 
-	return { projectState, setProjectState, location, niivueWrapper };
+	const { wayPointUndo, wayPointRedo } = useHistory(
+		projectState,
+		setProjectState
+	);
+
+	return {
+		projectState,
+		setProjectState,
+		location,
+		niivueWrapper,
+		wayPointUndo,
+		wayPointRedo,
+	};
 };

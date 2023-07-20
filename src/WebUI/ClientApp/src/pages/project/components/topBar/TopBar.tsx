@@ -27,6 +27,8 @@ export const TopBar = ({
 	location,
 	niivueWrapper,
 	setProjectState,
+	wayPointUndo,
+	wayPointRedo,
 }: {
 	projectState: ProjectState | undefined;
 	location: LocationData | undefined;
@@ -34,6 +36,8 @@ export const TopBar = ({
 	setProjectState: Dispatch<
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
+	wayPointUndo: () => void;
+	wayPointRedo: () => void;
 }): ReactElement => {
 	const navigate = useNavigate();
 	const { createProject } = useContext(OpenProjectDialogContext);
@@ -99,6 +103,22 @@ export const TopBar = ({
 		});
 	};
 
+	const onClickUndo = useCallback(() => {
+		if (projectState?.userMode === USER_MODE.EDIT_POINTS) {
+			wayPointUndo();
+			return;
+		}
+		console.warn('no action defined for undo on other user modes');
+	}, [projectState, wayPointUndo]);
+
+	const onClickRedo = useCallback(() => {
+		if (projectState?.userMode === USER_MODE.EDIT_POINTS) {
+			wayPointRedo();
+			return;
+		}
+		console.warn('no action defined for undo on other user modes');
+	}, [projectState, wayPointRedo]);
+
 	return (
 		<div className="flex items-baseline bg-font px-4">
 			<ToolButtonSelect
@@ -163,12 +183,12 @@ export const TopBar = ({
 			<ToolButton
 				label="Undo"
 				icon={(className) => <ArrowUturnLeftIcon className={className} />}
-				buttonProps={{ onClick: () => alert('Not implemented yet - Undo') }}
+				buttonProps={{ onClick: onClickUndo }}
 			/>
 			<ToolButton
 				label="Redo"
 				icon={(className) => <ArrowUturnRightIcon className={className} />}
-				buttonProps={{ onClick: () => alert('Not implemented yet - Redo') }}
+				buttonProps={{ onClick: onClickRedo }}
 			/>
 			<ToolButton
 				label="Share"
