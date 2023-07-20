@@ -1,5 +1,5 @@
 import { ColorMap } from '@/pages/project/models/ColorMap';
-import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
+import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
 import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
@@ -153,39 +153,47 @@ export class ProjectState {
 		pointSetSelected: (string | null)[],
 		upload = true
 	): ProjectState {
-		const volumeFiles: VolumeFile[] = this.files.volumes.map((volume) => {
-			const index = volumes.indexOf(volume.name);
-			if (index !== -1) {
-				return volume.from({
-					order: Number(volumeOrder[index]),
-					isActive: volumeSelected[index] === 'true',
-					isChecked: volumeVisible[index] === 'true',
-					opacity: Number(volumeOpacity[index]),
-					colorMap: ColorMap.fromBackend(volumeColormap[index]) ?? undefined,
-					contrastMin: Number(volumeContrastMin[index]),
-					contrastMax: Number(volumeContrastMax[index]),
-				});
-			}
+		const mapVolumes = <T extends VolumeFile>(
+			sourceVolumes: readonly T[]
+		): T[] =>
+			sourceVolumes.map<T>((volume): T => {
+				const index = volumes.indexOf(volume.name);
+				if (index !== -1) {
+					return volume.from({
+						order: Number(volumeOrder[index]),
+						isActive: volumeSelected[index] === 'true',
+						isChecked: volumeVisible[index] === 'true',
+						opacity: Number(volumeOpacity[index]),
+						colorMap: ColorMap.fromBackend(volumeColormap[index]) ?? undefined,
+						contrastMin: Number(volumeContrastMin[index]),
+						contrastMax: Number(volumeContrastMax[index]),
+					}) as T;
+				}
 
-			return volume.from({ isChecked: false });
-		});
+				return volume.from({ isChecked: false }) as T;
+			});
 
-		const surfaceFiles: SurfaceFile[] = this.files.surfaces.map((surface) => {
-			const index = surfaces.indexOf(surface.name);
-			if (index !== -1) {
-				return surface.from({
-					order: Number(surfaceOrder[index]),
-					isActive: surfaceSelected[index] === 'true',
-					isChecked: surfaceVisible[index] === 'true',
-					opacity: Number(surfaceOpacity[index]),
-				});
-			}
+		const mapSurfaces = <T extends SurfaceFile>(
+			sourceSurfaces: readonly T[]
+		): T[] =>
+			sourceSurfaces.map((surface) => {
+				const index = surfaces.indexOf(surface.name);
+				if (index !== -1) {
+					return surface.from({
+						order: Number(surfaceOrder[index]),
+						isActive: surfaceSelected[index] === 'true',
+						isChecked: surfaceVisible[index] === 'true',
+						opacity: Number(surfaceOpacity[index]),
+					}) as T;
+				}
 
-			return surface.from({ isChecked: false });
-		});
+				return surface.from({ isChecked: false }) as T;
+			});
 
-		const pointSetFiles: PointSetFile[] = this.files.pointSets.map(
-			(pointSet) => {
+		const mapPointSets = <T extends PointSetFile>(
+			sourcePointSet: readonly T[]
+		): T[] =>
+			sourcePointSet.map((pointSet) => {
 				const index = pointSets.indexOf(pointSet.name);
 				if (index !== -1) {
 					return pointSet.from({
@@ -193,19 +201,31 @@ export class ProjectState {
 						isActive: pointSetSelected[index] === 'true',
 						isChecked: pointSetVisible[index] === 'true',
 						opacity: Number(pointSetOpacity[index]),
-					});
+					}) as T;
 				}
 
-				return pointSet.from({ isChecked: false });
-			}
+				return pointSet.from({ isChecked: false }) as T;
+			});
+
+		return this.fromFiles(
+			new ProjectFiles({
+				projectFiles: this.files,
+				volumes: {
+					local: mapVolumes(this.files.volumes.local),
+					cloud: mapVolumes(this.files.volumes.cloud),
+				},
+				surfaces: {
+					local: mapSurfaces(this.files.surfaces.local),
+					cloud: mapSurfaces(this.files.surfaces.cloud),
+				},
+				pointSets: {
+					local: mapPointSets(this.files.pointSets.local),
+					cache: mapPointSets(this.files.pointSets.cache),
+					cloud: mapPointSets(this.files.pointSets.cloud),
+				},
+			}),
+			upload
 		);
-
-		const files = this.files
-			.fromAdaptedVolumes(volumeFiles)
-			.fromAdaptedSurfaces(surfaceFiles)
-			.fromAdaptedPointSets(pointSetFiles);
-
-		return this.fromFiles(files, upload);
 	}
 
 	/**
@@ -224,14 +244,23 @@ export class ProjectState {
 			return new ProjectState(
 				{
 					projectState: this,
-					files: this.files.fromAdaptedVolumes(
-						this.files.volumes.map((tmpVolume) =>
-							tmpVolume.name === file.name &&
-							tmpVolume.location === file.location
-								? tmpVolume.from(options as Parameters<VolumeFile['from']>[0])
-								: tmpVolume
-						)
-					),
+					files: new ProjectFiles({
+						projectFiles: this.files,
+						volumes: {
+							cloud: this.files.volumes.cloud.map((tmpVolume) =>
+								tmpVolume.name === file.name &&
+								tmpVolume.location === file.location
+									? tmpVolume.from(options as Parameters<VolumeFile['from']>[0])
+									: tmpVolume
+							),
+							local: this.files.volumes.local.map((tmpVolume) =>
+								tmpVolume.name === file.name &&
+								tmpVolume.location === file.location
+									? tmpVolume.from(options as Parameters<VolumeFile['from']>[0])
+									: tmpVolume
+							),
+						},
+					}),
 				},
 				upload
 			);
@@ -240,14 +269,27 @@ export class ProjectState {
 			return new ProjectState(
 				{
 					projectState: this,
-					files: this.files.fromAdaptedSurfaces(
-						this.files.surfaces.map((tmpSurface) =>
-							tmpSurface.name === file.name &&
-							tmpSurface.location === file.location
-								? tmpSurface.from(options as Parameters<SurfaceFile['from']>[0])
-								: tmpSurface
-						)
-					),
+					files: new ProjectFiles({
+						projectFiles: this.files,
+						surfaces: {
+							cloud: this.files.surfaces.cloud.map((tmpSurface) =>
+								tmpSurface.name === file.name &&
+								tmpSurface.location === file.location
+									? tmpSurface.from(
+											options as Parameters<SurfaceFile['from']>[0]
+									  )
+									: tmpSurface
+							),
+							local: this.files.surfaces.local.map((tmpSurface) =>
+								tmpSurface.name === file.name &&
+								tmpSurface.location === file.location
+									? tmpSurface.from(
+											options as Parameters<SurfaceFile['from']>[0]
+									  )
+									: tmpSurface
+							),
+						},
+					}),
 				},
 				upload
 			);
@@ -256,16 +298,32 @@ export class ProjectState {
 			return new ProjectState(
 				{
 					projectState: this,
-					files: this.files.fromAdaptedPointSets(
-						this.files.pointSets.map((tmpPointSet) =>
-							tmpPointSet.name === file.name &&
-							tmpPointSet.location === file.location
-								? tmpPointSet.from(
-										options as Parameters<PointSetFile['from']>[0]
-								  )
-								: tmpPointSet
-						)
-					),
+					files: new ProjectFiles({
+						projectFiles: this.files,
+						pointSets: {
+							local: this.files.pointSets.local.map((tmpPointSet) =>
+								tmpPointSet.name === file.name
+									? tmpPointSet.from(
+											options as Parameters<PointSetFile['from']>[0]
+									  )
+									: tmpPointSet
+							),
+							cloud: this.files.pointSets.cloud.map((tmpPointSet) =>
+								tmpPointSet.name === file.name
+									? tmpPointSet.from(
+											options as Parameters<PointSetFile['from']>[0]
+									  )
+									: tmpPointSet
+							),
+							cache: this.files.pointSets.cache.map((tmpPointSet) =>
+								tmpPointSet.name === file.name
+									? tmpPointSet.from(
+											options as Parameters<PointSetFile['from']>[0]
+									  )
+									: tmpPointSet
+							),
+						},
+					}),
 				},
 				upload
 			);

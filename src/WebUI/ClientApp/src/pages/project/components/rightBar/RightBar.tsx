@@ -9,7 +9,7 @@ export const RightBar = ({
 	projectState: ProjectState | undefined;
 	setProjectState: React.Dispatch<SetStateAction<ProjectState | undefined>>;
 }): ReactElement => {
-	const selectedPointSetFile = projectState?.files.cloudPointSets.find(
+	const selectedPointSetFile = projectState?.files.pointSets.cloud.find(
 		(file) => file.isActive
 	);
 

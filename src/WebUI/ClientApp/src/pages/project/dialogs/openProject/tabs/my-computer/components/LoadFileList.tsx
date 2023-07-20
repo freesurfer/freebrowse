@@ -22,12 +22,13 @@ export const LoadFileList = ({
 	return (
 		<div className={className}>
 			{[
-				...projectFiles.localVolumes,
-				...projectFiles.cloudVolumes,
-				...projectFiles.localSurfaces,
-				...projectFiles.cloudSurfaces,
-				...projectFiles.localPointSets,
-				...projectFiles.cloudPointSets,
+				...projectFiles.volumes.local,
+				...projectFiles.volumes.cloud,
+				...projectFiles.surfaces.local,
+				...projectFiles.surfaces.cloud,
+				...projectFiles.pointSets.local,
+				...projectFiles.pointSets.cloud,
+				...projectFiles.pointSets.cache,
 			].map((file) => {
 				if (file === undefined) return <></>;
 				return (
@@ -35,7 +36,11 @@ export const LoadFileList = ({
 						<div>
 							<div className="flex justify-between text-xs text-gray-500">
 								<span>{file.name}</span>
-								<span>{`${Math.floor(file.size / 10000) / 100} MB`}</span>
+								<span>
+									{'size' in file
+										? `${Math.floor(file.size / 10000) / 100} MB`
+										: '-'}
+								</span>
 							</div>
 							<ProgressBar className="mt-1 w-60" progress={100}></ProgressBar>
 						</div>

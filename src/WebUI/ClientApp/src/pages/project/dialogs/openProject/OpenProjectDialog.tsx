@@ -98,21 +98,29 @@ export const OpenProjectDialog = ({
 			let temporaryProjectFiles = projectFiles;
 
 			const deletedSurfaces =
-				projectState.files.surfaces?.filter(
+				[
+					...projectState.files.surfaces.local,
+					...projectState.files.surfaces.cloud,
+				]?.filter(
 					(backendFile) =>
-						temporaryProjectFiles.surfaces.find(
-							(tmpFile) => tmpFile.name === backendFile.name
-						) === undefined
+						![
+							...temporaryProjectFiles.surfaces.local,
+							...temporaryProjectFiles.surfaces.cloud,
+						].some((tmpFile) => tmpFile.name === backendFile.name)
 				) ?? [];
 			for (const deletedSurface of deletedSurfaces)
 				if (deletedSurface instanceof CloudSurfaceFile)
 					await apiSurface.remove(deletedSurface);
 
-			const addedSurfaces = temporaryProjectFiles.surfaces.filter(
+			const addedSurfaces = [
+				...temporaryProjectFiles.surfaces.local,
+				...temporaryProjectFiles.surfaces.cloud,
+			].filter(
 				(tmpFile) =>
-					projectState.files.surfaces?.find(
-						(backendFile) => backendFile.name === tmpFile.name
-					) === undefined
+					![
+						...projectState.files.surfaces.local,
+						...projectState.files.surfaces.cloud,
+					]?.some((backendFile) => backendFile.name === tmpFile.name)
 			);
 
 			const addedCloudSurfaceFiles = addedSurfaces.filter(
@@ -134,21 +142,29 @@ export const OpenProjectDialog = ({
 			}
 
 			const deletedVolumes =
-				projectState.files.volumes?.filter(
+				[
+					...projectState.files.volumes.local,
+					...projectState.files.volumes.cloud,
+				]?.filter(
 					(backendFile) =>
-						temporaryProjectFiles.volumes.find(
-							(tmpFile) => tmpFile.name === backendFile.name
-						) === undefined
+						![
+							...temporaryProjectFiles.volumes.local,
+							...temporaryProjectFiles.volumes.cloud,
+						].some((tmpFile) => tmpFile.name === backendFile.name)
 				) ?? [];
 			for (const deletedVolume of deletedVolumes)
 				if (deletedVolume instanceof CloudVolumeFile)
 					await apiVolume.remove(deletedVolume);
 
-			const addedVolumes = projectFiles.volumes.filter(
+			const addedVolumes = [
+				...projectFiles.volumes.local,
+				...projectFiles.volumes.cloud,
+			].filter(
 				(tmpFile) =>
-					projectState.files.volumes?.find(
-						(backendFile) => backendFile.name === tmpFile.name
-					) === undefined
+					![
+						...projectState.files.volumes.local,
+						...projectState.files.volumes.cloud,
+					]?.some((backendFile) => backendFile.name === tmpFile.name)
 			);
 			const addedCloudVolumeFiles = addedVolumes.filter(
 				(file): file is CloudVolumeFile => file instanceof CloudVolumeFile

@@ -1,11 +1,14 @@
+import {
+	ProjectFiles,
+	type IPointSets,
+} from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
-import type { PointSetFile } from '@/pages/project/models/file/type/PointSetFile';
 import { type Dispatch, useState, useEffect, useCallback } from 'react';
 
 interface IHistory {
-	past: (readonly PointSetFile[])[];
-	present: readonly PointSetFile[] | undefined;
-	future: (readonly PointSetFile[])[];
+	past: IPointSets[];
+	present: IPointSets | undefined;
+	future: IPointSets[];
 }
 
 /**
@@ -30,14 +33,22 @@ export const useHistory = (
 	>(undefined);
 
 	const pointHasBeenRemovedOrAdded = (
-		next: readonly PointSetFile[],
-		prev: readonly PointSetFile[] | undefined
+		next: IPointSets,
+		prev: IPointSets | undefined
 	): boolean => {
-		if (prev === undefined || next.length !== prev.length) return true;
+		if (
+			prev === undefined ||
+			next.cache.length !== prev.cache.length ||
+			next.local.length !== prev.local.length ||
+			next.cloud.length !== prev.cloud.length
+		)
+			return true;
 
-		for (const nextFile of next) {
+		for (const nextFile of [...next.cache, ...next.cloud, ...next.local]) {
 			// get matching file from previous state
-			const prevFile = prev.find((prevFile) => nextFile.name === prevFile.name);
+			const prevFile = [...prev.cache, ...prev.cloud, ...prev.local].find(
+				(prevFile) => nextFile.name === prevFile.name
+			);
 			if (prevFile === undefined) return true;
 
 			// if previous file has no data
@@ -161,7 +172,10 @@ export const useHistory = (
 
 		setProjectState((projectState) =>
 			projectState?.fromFiles(
-				projectState.files.fromAdaptedPointSets(stepBackState)
+				new ProjectFiles({
+					projectFiles: projectState.files,
+					pointSets: stepBackState,
+				})
 			)
 		);
 		console.info('BERE apply history step');
@@ -189,7 +203,10 @@ export const useHistory = (
 
 		setProjectState((projectState) =>
 			projectState?.fromFiles(
-				projectState.files.fromAdaptedPointSets(stepForwardState)
+				new ProjectFiles({
+					projectFiles: projectState.files,
+					pointSets: stepForwardState,
+				})
 			)
 		);
 		console.info('BERE apply history step');
