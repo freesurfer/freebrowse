@@ -87,7 +87,7 @@ export const useApiVolume = (): {
 					order: currentCloudVolume.order,
 					contrastMin: currentCloudVolume.contrastMin,
 					contrastMax: currentCloudVolume.contrastMax,
-					colorMap: currentCloudVolume.colorMap,
+					colorMap: currentCloudVolume.colorMap.backend,
 					opacity: currentCloudVolume.opacity,
 					visible: currentCloudVolume.isChecked,
 				})

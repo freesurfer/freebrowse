@@ -4,9 +4,10 @@ import { RightBar } from '@/pages/project/components/rightBar/RightBar';
 import { TopBar } from '@/pages/project/components/topBar/TopBar';
 import { useProject } from '@/pages/project/hooks/useProject';
 import { useState } from 'react';
+import type { ReactElement } from 'react';
 import { useParams } from 'react-router-dom';
 
-export const ProjectPage = (): React.ReactElement => {
+export const ProjectPage = (): ReactElement => {
 	const { projectId } = useParams();
 
 	const [canvas, setCanvas] = useState<HTMLCanvasElement | null>();
@@ -31,7 +32,7 @@ export const ProjectPage = (): React.ReactElement => {
 					location={location}
 				></LeftBar>
 				<MainView setCanvas={setCanvas}></MainView>
-				<RightBar></RightBar>
+				<RightBar projectState={projectState}></RightBar>
 			</div>
 		</div>
 	);

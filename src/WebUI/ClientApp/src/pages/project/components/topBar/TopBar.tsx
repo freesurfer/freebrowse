@@ -18,6 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 import type { LocationData } from '@niivue/niivue';
 import { type Dispatch, useCallback, useContext } from 'react';
+import type { ReactElement } from 'react';
 import { Store } from 'react-notifications-component';
 import { useNavigate } from 'react-router';
 
@@ -33,7 +34,7 @@ export const TopBar = ({
 	setProjectState: Dispatch<
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
-}): React.ReactElement => {
+}): ReactElement => {
 	const navigate = useNavigate();
 	const { createProject } = useContext(OpenProjectDialogContext);
 
@@ -62,7 +63,7 @@ export const TopBar = ({
 			}&volumeVisible=${volume.isChecked.toString()}&volumeSelected=${volume.isActive.toString()}&volumeContrastMin=${
 				volume.contrastMin
 			}&volumeContrastMax=${volume.contrastMax.toString()}&volumeColormap=${
-				volume.colorMap ?? 'Gray'
+				volume.colorMap.backend
 			}`;
 		});
 
@@ -70,6 +71,14 @@ export const TopBar = ({
 			deepLink += `&surfaces=${encodeURIComponent(surface.name)}&surfaceOrder=${
 				surface.order ?? 0
 			}&surfaceVisible=${surface.isChecked.toString()}&surfaceSelected=${surface.isActive.toString()}`;
+		});
+
+		projectState?.files.pointSets.forEach((pointSet) => {
+			deepLink += `&pointSets=${encodeURIComponent(
+				pointSet.name
+			)}&pointSetOrder=${
+				pointSet.order ?? 0
+			}&pointSetVisible=${pointSet.isChecked.toString()}&pointSetSelected=${pointSet.isActive.toString()}`;
 		});
 
 		return deepLink;

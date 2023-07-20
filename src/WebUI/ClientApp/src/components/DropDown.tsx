@@ -1,5 +1,4 @@
-import type React from 'react';
-import { useState } from 'react';
+import { type ReactElement, useState } from 'react';
 
 export const DropDown = ({
 	className,
@@ -13,7 +12,7 @@ export const DropDown = ({
 	value: string;
 	onChange?: (value: string) => void;
 	options: string[];
-}): React.ReactElement => {
+}): ReactElement => {
 	const [selectedValue, setSelectedValue] = useState(value);
 
 	const updateValue = (newValue: string): void => {

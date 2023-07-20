@@ -3,10 +3,15 @@ import { ColorPicker } from '@/components/ColorPicker';
 import { DropDown } from '@/components/DropDown';
 import { Slider } from '@/components/Slider';
 import { FileSelection } from '@/pages/project/components/leftBar/FileSelection';
+import { FileSettingsWayPoints } from '@/pages/project/components/leftBar/FileSettingsWayPoints';
+import {
+	COLOR_MAP_BACKEND,
+	COLOR_MAP_TRANSLATION,
+	ColorMap,
+} from '@/pages/project/models/ColorMap';
 import { ProjectState } from '@/pages/project/models/ProjectState';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
-import { rgbToHex } from '@/pages/project/models/file/type/PointSetFile';
-import { useCallback, type Dispatch } from 'react';
+import { useCallback, type Dispatch, type ReactElement } from 'react';
 
 export const FileSettings = ({
 	projectState,
@@ -16,7 +21,7 @@ export const FileSettings = ({
 	setProjectState: Dispatch<
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
-}): React.ReactElement => {
+}): ReactElement => {
 	const activeVolumes =
 		projectState?.files.volumes.filter((file) => file.isActive) ?? [];
 
@@ -68,15 +73,21 @@ export const FileSettings = ({
 									<DropDown
 										className="mt-2"
 										label="Color Map:"
-										value={volume.colorMap ?? 'Gray'}
+										value={
+											volume.colorMap.translation ?? COLOR_MAP_TRANSLATION.GRAY
+										}
 										onChange={(value) =>
 											updateFileOptions(
 												volume,
-												{ colorMap: value === 'Heat' ? 'Hot' : value },
+												{ colorMap: ColorMap.fromTranslation(value) },
 												true
 											)
 										}
-										options={['Gray', 'Heat', 'LookupTable']}
+										options={[
+											COLOR_MAP_TRANSLATION.GRAY,
+											COLOR_MAP_TRANSLATION.HEAT,
+											COLOR_MAP_TRANSLATION.LOOKUP_TABLE,
+										]}
 									/>
 									<Slider
 										className="mt-2"
@@ -112,29 +123,53 @@ export const FileSettings = ({
 										/>
 									</div>
 									*/}
-									<span className="font-semibold">Contrast & Brightness</span>
-									<Slider
-										className="mt-2"
-										label="Minimum:"
-										value={volume.contrastMin}
-										onChange={(value) =>
-											updateFileOptions(volume, { contrastMin: value }, false)
-										}
-										onEnd={(value) =>
-											updateFileOptions(volume, { contrastMin: value }, true)
-										}
-									></Slider>
-									<Slider
-										className="mt-2"
-										label="Maximum:"
-										value={volume.contrastMax}
-										onChange={(value) =>
-											updateFileOptions(volume, { contrastMax: value }, false)
-										}
-										onEnd={(value) =>
-											updateFileOptions(volume, { contrastMax: value }, true)
-										}
-									></Slider>
+									{volume.colorMap.backend === COLOR_MAP_BACKEND.GRAY ? (
+										<>
+											<span className="font-semibold">
+												Contrast & Brightness
+											</span>
+											<Slider
+												className="mt-2"
+												label="Minimum:"
+												value={volume.contrastMin}
+												onChange={(value) =>
+													updateFileOptions(
+														volume,
+														{ contrastMin: value },
+														false
+													)
+												}
+												onEnd={(value) =>
+													updateFileOptions(
+														volume,
+														{ contrastMin: value },
+														true
+													)
+												}
+											></Slider>
+											<Slider
+												className="mt-2"
+												label="Maximum:"
+												value={volume.contrastMax}
+												onChange={(value) =>
+													updateFileOptions(
+														volume,
+														{ contrastMax: value },
+														false
+													)
+												}
+												onEnd={(value) =>
+													updateFileOptions(
+														volume,
+														{ contrastMax: value },
+														true
+													)
+												}
+											></Slider>
+										</>
+									) : (
+										<></>
+									)}
 								</div>
 							</Collapse>
 						);
@@ -169,7 +204,7 @@ export const FileSettings = ({
 										value={(projectState?.meshThicknessOn2D ?? 0) * 10}
 										unit=""
 										min={0}
-										max={10}
+										max={50}
 										onChange={(value) =>
 											setProjectState((projectState) => {
 												if (projectState === undefined) return undefined;
@@ -211,23 +246,10 @@ export const FileSettings = ({
 									</span>
 								}
 							>
-								{'data' in pointSetFile && pointSetFile.data !== undefined ? (
-									<div className="pl-1">
-										<ColorPicker
-											className="mt-2"
-											label="Color:"
-											value={rgbToHex(pointSetFile.data.color)}
-											onChange={(value) =>
-												updateFileOptions(pointSetFile, { color: value }, false)
-											}
-											onEnd={(value) =>
-												updateFileOptions(pointSetFile, { color: value }, true)
-											}
-										></ColorPicker>
-									</div>
-								) : (
-									<></>
-								)}
+								<FileSettingsWayPoints
+									pointSetFile={pointSetFile}
+									setProjectState={setProjectState}
+								></FileSettingsWayPoints>
 							</Collapse>
 						);
 					})}

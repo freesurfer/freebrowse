@@ -99,7 +99,7 @@ export const useNiivue = (
 
 	useEffect(() => {
 		if (canvas === undefined || canvas === null) return;
-		niivueWrapper.current = new NiivueWrapper(canvas, setLocation);
+		niivueWrapper.current = new NiivueWrapper(canvas);
 		return () => {
 			niivueWrapper.current = undefined;
 		};
@@ -142,7 +142,7 @@ export const useNiivue = (
 					});
 					return projectState;
 				}
-				if (file.data === undefined) return projectState;
+				if (!('data' in file) || file.data === undefined) return projectState;
 
 				if (uiData.fracPos[0] < 0) return projectState; // not on volume
 				if (uiData.mouseButtonCenterDown) return projectState;
@@ -195,6 +195,28 @@ export const useNiivue = (
 			});
 	}, [projectState, onMouseUp]);
 
+	const onLocationChange = useCallback(
+		(location: LocationData | undefined) => {
+			if (location !== undefined)
+				setProjectState((projectState) =>
+					projectState?.from({
+						crosshairPosition: {
+							x: location?.mm[0],
+							y: location?.mm[1],
+							z: location?.mm[2],
+						},
+					})
+				);
+			setLocation(location);
+		},
+		[setProjectState, setLocation]
+	);
+
+	useEffect(() => {
+		niivueWrapper.current?.setOnLocationChange(onLocationChange);
+		return () => niivueWrapper.current?.setOnLocationChange(undefined);
+	}, [projectState, onLocationChange]);
+
 	useQueueDebounced(
 		projectState,
 		false,
@@ -209,12 +231,7 @@ export const useNiivue = (
 
 				if (deeplinkInitialized || rasX === undefined) {
 					// TODO Bere do not use projectChangeDetection class, pass two states and create a helper function for each iteration
-					await niivueWrapper.current.next(
-						previousState,
-						nextState,
-						undefined,
-						setProjectState
-					);
+					await niivueWrapper.current.next(previousState, nextState, undefined);
 				} else {
 					await niivueWrapper.current.next(
 						previousState,
@@ -233,8 +250,7 @@ export const useNiivue = (
 							rasZ,
 							renderAzimuth,
 							renderElevation
-						),
-						setProjectState
+						)
 					);
 
 					setDeeplinkInitialized(true);
@@ -256,7 +272,6 @@ export const useNiivue = (
 				rasZ,
 				renderAzimuth,
 				renderElevation,
-				setProjectState,
 			]
 		)
 	);

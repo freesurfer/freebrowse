@@ -39,6 +39,11 @@ export const useProject = (
 		surfaceOrder: withDefault(ArrayParam, []),
 		surfaceVisible: withDefault(ArrayParam, []),
 		surfaceSelected: withDefault(ArrayParam, []),
+		pointSets: withDefault(ArrayParam, []),
+		pointSetOpacity: withDefault(ArrayParam, []),
+		pointSetOrder: withDefault(ArrayParam, []),
+		pointSetVisible: withDefault(ArrayParam, []),
+		pointSetSelected: withDefault(ArrayParam, []),
 	});
 
 	const {
@@ -55,6 +60,11 @@ export const useProject = (
 		surfaceOrder,
 		surfaceVisible,
 		surfaceSelected,
+		pointSets,
+		pointSetOpacity,
+		pointSetOrder,
+		pointSetVisible,
+		pointSetSelected,
 	} = query;
 
 	const { initialState } = useApi(projectId, setProjectState, projectState);
@@ -76,7 +86,12 @@ export const useProject = (
 					surfaceOpacity,
 					surfaceOrder,
 					surfaceVisible,
-					surfaceSelected
+					surfaceSelected,
+					pointSets,
+					pointSetOpacity,
+					pointSetOrder,
+					pointSetVisible,
+					pointSetSelected
 				)
 			);
 		} else {

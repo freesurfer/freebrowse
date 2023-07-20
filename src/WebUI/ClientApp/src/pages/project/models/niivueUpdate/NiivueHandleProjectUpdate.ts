@@ -17,16 +17,40 @@ export const niivueHandleProjectUpdate = async (
 	cache: INiivueCache
 ): Promise<void> => {
 	const propagateProjectProperties = (): boolean => {
-		if (
-			prev !== undefined &&
-			prev?.meshThicknessOn2D === next.meshThicknessOn2D
-		)
-			return false;
+		let hasChanged = false;
 
-		// otherwise we only need to update the options
-		// niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);
-		// niivue.opts.meshThicknessOn2D = next.meshThicknessOn2D ?? 0.5;
-		return true;
+		if (
+			prev?.crosshairPosition === undefined ||
+			prev?.crosshairPosition !== next.crosshairPosition
+		) {
+			const newPosition = niivue.mm2frac([
+				next.crosshairPosition?.x ?? 0,
+				next.crosshairPosition?.y ?? 0,
+				next.crosshairPosition?.z ?? 0,
+			]);
+
+			if (
+				newPosition[0] !== niivue.scene.crosshairPos[0] ||
+				newPosition[1] !== niivue.scene.crosshairPos[1] ||
+				newPosition[2] !== niivue.scene.crosshairPos[2]
+			) {
+				niivue.scene.crosshairPos = newPosition;
+				niivue.createOnLocationChange();
+				hasChanged = true;
+			}
+		}
+
+		if (
+			prev === undefined ||
+			prev?.meshThicknessOn2D !== next.meshThicknessOn2D
+		) {
+			// otherwise we only need to update the options
+			// niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);
+			niivue.opts.meshThicknessOn2D = next.meshThicknessOn2D ?? 0.5;
+			hasChanged = true;
+		}
+
+		return hasChanged;
 	};
 
 	const renderForVolumes = await niivueHandleVolumeUpdate(

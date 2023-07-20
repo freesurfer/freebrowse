@@ -1,4 +1,4 @@
-import type React from 'react';
+import type { ReactElement } from 'react';
 import { useState, useCallback, useEffect } from 'react';
 
 const UNBOUNCE_DELAY = 10;
@@ -15,7 +15,7 @@ export const ColorPicker = ({
 	value: string;
 	onChange?: (value: string) => void;
 	onEnd?: (value: string) => void;
-}): React.ReactElement => {
+}): ReactElement => {
 	const [isLocked, setIsLocked] = useState(false);
 	const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 	const [action, setAction] = useState<(() => void) | null>(null);

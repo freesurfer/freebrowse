@@ -1,4 +1,5 @@
 import type { INiivueCache } from '@/pages/project/NiivueWrapper';
+import { COLOR_MAP_NIIVUE } from '@/pages/project/models/ColorMap';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 import type { NVImage, Niivue } from '@niivue/niivue';
@@ -36,7 +37,7 @@ export const niivueHandleVolumeUpdate = async (
 							url: file.url,
 							name: file.name,
 							opacity: file.opacity / 100,
-							colorMap: file.colorMap ?? 'gray',
+							colorMap: file.colorMap.niivue ?? COLOR_MAP_NIIVUE.GRAY,
 							cal_min: file.contrastMin,
 							cal_max: file.contrastMax,
 						};
@@ -145,24 +146,25 @@ export const niivueHandleVolumeUpdate = async (
 			niivueVolume: NVImage,
 			volumeFile: VolumeFile
 		): void => {
-			if (niivueVolume.colorMap === volumeFile.colorMap) return;
+			if (
+				niivueVolume === undefined ||
+				niivueVolume.colormap === volumeFile.colorMap.niivue
+			)
+				return;
 
-			const index = niivue.getVolumeIndexByID(niivueVolume.id);
-			const volume = niivue.volumes[index];
-			if (volume !== undefined) {
-				volume.colormap = volumeFile.colorMap ?? 'gray';
-				const cmap = niivue.colormapFromKey(volume.colormap);
+			niivueVolume.colormap = volumeFile.colorMap.niivue;
+			const cmap = niivue.colormapFromKey(niivueVolume.colormap);
 
-				if (
-					cmap.R !== undefined &&
-					cmap.labels !== undefined &&
-					cmap.labels.length !== 0
-				) {
-					volume.setColormapLabel(cmap);
-				} else {
-					volume.colormapLabel = [];
-				}
+			if (
+				cmap.R !== undefined &&
+				cmap.labels !== undefined &&
+				cmap.labels.length !== 0
+			) {
+				niivueVolume.setColormapLabel(cmap);
+			} else {
+				niivueVolume.colormapLabel = [];
 			}
+
 			// niivue.setColorMap(niivueVolume.id, volumeFile.colorMap ?? 'gray');
 		};
 

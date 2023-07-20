@@ -18,6 +18,7 @@ declare module '@niivue/niivue' {
 		renderAzimuth: number;
 		renderElevation: number;
 		volScaleMultiplier: number;
+		crosshairPos: number[];
 	}
 
 	export class UIData {

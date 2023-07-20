@@ -4,6 +4,7 @@ import { TextInputRow } from '@/pages/project/dialogs/components/TextInputRow';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { CircleStackIcon } from '@heroicons/react/24/outline';
 import { createContext, useCallback, useState } from 'react';
+import type { ReactElement } from 'react';
 
 const DEFAULT_COLOR = '#ffffff';
 
@@ -31,8 +32,8 @@ export const NewPointSetDialogContext = createContext<INewPointSetDialog>({
 export const NewPointSetDialog = ({
 	children,
 }: {
-	children: React.ReactElement;
-}): React.ReactElement => {
+	children: ReactElement;
+}): ReactElement => {
 	const [handle, setHandle] = useState<{
 		isOpen: boolean;
 		done?: (color: string | undefined, name: string | undefined) => void;

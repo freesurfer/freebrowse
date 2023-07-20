@@ -2,6 +2,7 @@ import { Checkbox } from '@/components/Checkbox';
 import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
 import { ArrowsUpDownIcon } from '@heroicons/react/24/outline';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReactElement } from 'react';
 
 const CLICK_THRESHOLD = 3;
 
@@ -250,7 +251,7 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 	setFileActive: (file: T_FILE_TYPE) => void;
 	multiselect?: boolean;
 	hideFileExtension?: boolean;
-}): React.ReactElement => {
+}): ReactElement => {
 	const [rows, setRows] = useState<IRow<T_FILE_TYPE>[]>();
 	const state = useRef<OrderState<T_FILE_TYPE>>(
 		new OrderState(setFiles, setRows, setFileActive, multiselect)

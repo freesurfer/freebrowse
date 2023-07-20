@@ -14,6 +14,7 @@ import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
 import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { createContext, useCallback } from 'react';
+import type { ReactElement } from 'react';
 
 export type ResolveCreateProjectDialogResult =
 	| {
@@ -48,8 +49,8 @@ export const OpenProjectDialogContext = createContext<IOpenProjectDialog>({
 export const OpenProjectDialog = ({
 	children,
 }: {
-	children: React.ReactElement;
-}): React.ReactElement => {
+	children: ReactElement;
+}): ReactElement => {
 	const {
 		context,
 		isOpen,

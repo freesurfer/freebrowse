@@ -4,6 +4,7 @@ import {
 } from '@/pages/project/models/file/ProjectFile';
 import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { useCallback } from 'react';
+import type { ReactElement } from 'react';
 import { useDropzone } from 'react-dropzone';
 import type { FileError } from 'react-dropzone';
 
@@ -13,7 +14,7 @@ export const DropZone = ({
 }: {
 	className?: string;
 	onFileOpen: (files: File[]) => void;
-}): React.ReactElement => {
+}): ReactElement => {
 	const onDrop = useCallback(
 		(acceptedFiles: File[]) => onFileOpen(acceptedFiles),
 		[onFileOpen]

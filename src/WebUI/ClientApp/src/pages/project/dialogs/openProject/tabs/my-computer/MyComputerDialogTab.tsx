@@ -2,6 +2,7 @@ import { DropZone } from '@/pages/project/dialogs/openProject/tabs/my-computer/c
 import { LoadFileList } from '@/pages/project/dialogs/openProject/tabs/my-computer/components/LoadFileList';
 import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import type { ReactElement } from 'react';
 
 export const MyComputerDialogTab = ({
 	projectFiles,
@@ -15,7 +16,7 @@ export const MyComputerDialogTab = ({
 	projectName: string | undefined;
 	setProjectName: (projectName: string) => void;
 	projectState: ProjectState | undefined;
-}): React.ReactElement => {
+}): ReactElement => {
 	return (
 		<div
 			onDragEnter={(event) => event.preventDefault()}

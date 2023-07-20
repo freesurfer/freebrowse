@@ -1,3 +1,4 @@
+import type { ColorMap } from '@/pages/project/models/ColorMap';
 import type { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import type { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
 import type { FileType } from '@/pages/project/models/file/ProjectFile';
@@ -12,7 +13,7 @@ export interface IVolumeFile {
 		order?: number;
 		isActive?: boolean;
 		isChecked?: boolean;
-		colorMap?: string;
+		colorMap?: ColorMap;
 		opacity?: number;
 		contrastMin?: number;
 		contrastMax?: number;
