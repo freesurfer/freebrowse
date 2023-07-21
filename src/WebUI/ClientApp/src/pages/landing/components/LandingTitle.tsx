@@ -1,4 +1,4 @@
-import brain from '@/pages/landing/assets/brain_fancy.jpg';
+import { BrainIcon } from '@/assets/BrainIcon';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
 import { useCallback, useContext } from 'react';
 import type { ReactElement } from 'react';
@@ -30,18 +30,14 @@ export const LandingTitle = ({
 						onClick={() => {
 							void onGetStartedClick();
 						}}
-						className="mt-4 rounded bg-gray-500 px-6 py-4 font-bold text-white hover:bg-gray-600 focus:outline-none focus:ring focus:ring-gray-300 active:bg-gray-700"
+						className="mt-16 rounded bg-gray-500 px-6 py-4 font-bold text-white hover:bg-gray-600 focus:outline-none focus:ring focus:ring-gray-300 active:bg-gray-700"
 					>
 						Get started
 					</button>
 				</div>
 			</div>
 			<div className="flex h-full w-full grow items-center">
-				<img
-					src={brain}
-					alt="brain"
-					className="h-full w-full object-cover"
-				></img>
+				<BrainIcon className="h-full w-full object-cover text-primary" />
 			</div>
 		</div>
 	);

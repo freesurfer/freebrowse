@@ -171,7 +171,7 @@ export const niivueHandleMeshesUpdate = async (
 			}
 
 			if (
-				pointSet.isChecked ||
+				!pointSet.isChecked ||
 				pointSet.data?.points === undefined ||
 				pointSet.data.points.length === 0
 			)
