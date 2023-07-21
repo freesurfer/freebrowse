@@ -33,7 +33,7 @@ export const AddComment = ({
 					onKeyDown={(event) => event.code === 'Enter' && addComment(message)}
 				/>
 				<button onClick={() => addComment(message)}>
-					<ArrowUpCircleIcon className="h-full px-1 py-1 text-gray-500" />
+					<ArrowUpCircleIcon className="h-5 w-5 px-1 py-1 text-gray-500" />
 				</button>
 			</div>
 		</div>
