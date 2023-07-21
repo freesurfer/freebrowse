@@ -79,10 +79,6 @@ export const useHistory = (
 	};
 
 	useEffect(() => {
-		console.log('BERE', history);
-	}, [history]);
-
-	useEffect(() => {
 		if (projectState === undefined) return;
 		if (projectState === previousProjectState) return;
 		setPreviousProjectState(projectState);
@@ -134,7 +130,6 @@ export const useHistory = (
 					previousProjectState?.files.pointSets
 				)
 			) {
-				console.info('useHistory - waypoint added or removed');
 				return {
 					past: [...prevHistory.past, prevHistory.present],
 					present: state,
@@ -143,7 +138,6 @@ export const useHistory = (
 				};
 			}
 
-			console.info('useHistory - update state without changing history');
 			return {
 				past: [...prevHistory.past],
 				present: state,
@@ -178,7 +172,6 @@ export const useHistory = (
 				})
 			)
 		);
-		console.info('BERE apply history step');
 	}, [history, setProjectState]);
 
 	const wayPointRedo = useCallback(() => {
@@ -209,7 +202,6 @@ export const useHistory = (
 				})
 			)
 		);
-		console.info('BERE apply history step');
 	}, [history, setProjectState]);
 
 	return {
