@@ -55,15 +55,6 @@ export const FileSettingsWayPoints = ({
 									value={pointSetFile.selectedWayPoint}
 									onChange={(value) =>
 										setProjectState((projectState) =>
-											projectState?.fromFileUpdate(
-												pointSetFile,
-												{ selectedWayPoint: value },
-												false
-											)
-										)
-									}
-									onEnter={(value) =>
-										setProjectState((projectState) =>
 											projectState
 												?.fromFileUpdate(
 													pointSetFile,
@@ -72,10 +63,13 @@ export const FileSettingsWayPoints = ({
 												)
 												.from({
 													crosshairPosition:
-														pointSetFile.data.points[value - 1]?.coordinates,
+														pointSetFile.data.points[
+															pointSetFile.selectedWayPoint - 1
+														]?.coordinates,
 												})
 										)
 									}
+									min={1}
 									max={pointSetFile.data.points.length}
 								/>
 								<Button

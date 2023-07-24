@@ -48,6 +48,8 @@ export class ProjectState {
 	 * the mode the user is interacting with the UI right now
 	 */
 	public readonly userMode: USER_MODE;
+	public readonly brushSize: number | undefined;
+	public readonly brushValue: number | undefined;
 	/**
 	 * thickness of the mesh on the 2d plane
 	 */
@@ -77,6 +79,8 @@ export class ProjectState {
 			| {
 					projectState: ProjectState;
 					userMode?: USER_MODE;
+					brushSize?: number;
+					brushValue?: number;
 					meshThicknessOn2D?: number;
 					files?: ProjectFiles;
 					crosshairPosition?: ICrosshairPosition;
@@ -88,6 +92,8 @@ export class ProjectState {
 			this.id = args.id;
 			this.name = args.name;
 			this.userMode = USER_MODE.NAVIGATE;
+			this.brushSize = 1;
+			this.brushValue = 0;
 			this.meshThicknessOn2D = args.meshThicknessOn2D ?? 0;
 			this.files = args.files;
 			return;
@@ -97,6 +103,9 @@ export class ProjectState {
 		this.name = args.projectState.name;
 
 		this.userMode = args.userMode ?? args.projectState.userMode;
+		this.brushSize = args.brushSize ?? args.projectState.brushSize;
+		this.brushValue = args.brushValue ?? args.projectState.brushValue;
+
 		this.crosshairPosition =
 			args.crosshairPosition ?? args.projectState.crosshairPosition;
 		this.meshThicknessOn2D =
@@ -108,6 +117,8 @@ export class ProjectState {
 	from(
 		options: {
 			userMode?: USER_MODE;
+			brushSize?: number;
+			brushValue?: number;
 			meshThicknessOn2D?: number;
 			files?: ProjectFiles;
 			crosshairPosition?: ICrosshairPosition;
@@ -119,6 +130,8 @@ export class ProjectState {
 			{
 				projectState: this,
 				userMode: options.userMode ?? this.userMode,
+				brushSize: options.brushSize ?? this.brushSize,
+				brushValue: options.brushValue ?? this.brushValue,
 				meshThicknessOn2D: options.meshThicknessOn2D ?? this.meshThicknessOn2D,
 				files: options.files ?? this.files,
 				crosshairPosition: options.crosshairPosition ?? this.crosshairPosition,

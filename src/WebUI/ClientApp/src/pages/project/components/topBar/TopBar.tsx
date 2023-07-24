@@ -17,8 +17,12 @@ import {
 	ShareIcon,
 } from '@heroicons/react/24/outline';
 import type { LocationData } from '@niivue/niivue';
-import { type Dispatch, useCallback, useContext } from 'react';
-import type { ReactElement } from 'react';
+import {
+	type Dispatch,
+	type ReactElement,
+	useCallback,
+	useContext,
+} from 'react';
 import { Store } from 'react-notifications-component';
 import { useNavigate } from 'react-router';
 
@@ -118,16 +122,26 @@ export const TopBar = ({
 			wayPointUndo();
 			return;
 		}
+
+		if (projectState?.userMode === USER_MODE.EDIT_VOXEL) {
+			niivueWrapper?.niivue.undoLastVoxelEdit();
+		}
+
 		console.warn('no action defined for undo on other user modes');
-	}, [projectState, wayPointUndo]);
+	}, [projectState, niivueWrapper, wayPointUndo]);
 
 	const onClickRedo = useCallback(() => {
 		if (projectState?.userMode === USER_MODE.EDIT_POINTS) {
 			wayPointRedo();
 			return;
 		}
+
+		if (projectState?.userMode === USER_MODE.EDIT_VOXEL) {
+			niivueWrapper?.niivue.redoLastVoxelEditUndo();
+		}
+
 		console.warn('no action defined for undo on other user modes');
-	}, [projectState, wayPointRedo]);
+	}, [projectState, niivueWrapper, wayPointRedo]);
 
 	return (
 		<div className="flex items-baseline bg-font px-4">

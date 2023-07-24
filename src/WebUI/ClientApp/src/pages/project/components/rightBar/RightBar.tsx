@@ -1,5 +1,9 @@
+import { BrushSettings } from '@/pages/project/components/rightBar/BrushSettings';
 import { Comments } from '@/pages/project/components/rightBar/Comments';
-import type { ProjectState } from '@/pages/project/models/ProjectState';
+import {
+	type ProjectState,
+	USER_MODE,
+} from '@/pages/project/models/ProjectState';
 import type { ReactElement, SetStateAction } from 'react';
 
 export const RightBar = ({
@@ -16,19 +20,29 @@ export const RightBar = ({
 	return (
 		<div
 			style={{ width: '300px', maxWidth: '300px' }}
-			className="h-full border"
+			className="h-full border pl-1"
 		>
-			{projectState !== undefined && selectedPointSetFile !== undefined ? (
+			{projectState !== undefined &&
+				projectState.userMode === USER_MODE.EDIT_VOXEL && (
+					<BrushSettings
+						projectState={projectState}
+						setProjectState={setProjectState}
+					/>
+				)}
+			{projectState !== undefined && selectedPointSetFile !== undefined && (
 				<Comments
 					pointSetFile={selectedPointSetFile}
 					userName={projectState.user.name}
 					setProjectState={setProjectState}
 				/>
-			) : (
-				<span className="mt-8 flex justify-center text-xs text-gray-400">
-					Nothing to show
-				</span>
 			)}
+			{projectState === undefined ||
+				(projectState.userMode !== USER_MODE.EDIT_VOXEL &&
+					selectedPointSetFile === undefined && (
+						<span className="mt-8 flex justify-center text-xs text-gray-400">
+							Nothing to show
+						</span>
+					))}
 		</div>
 	);
 };

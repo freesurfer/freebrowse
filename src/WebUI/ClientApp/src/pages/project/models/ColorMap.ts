@@ -14,7 +14,7 @@ export enum COLOR_MAP_BACKEND {
 export enum COLOR_MAP_NIIVUE {
 	GRAY = 'Gray',
 	HEAT = 'Hot',
-	LOOKUP_TABLE = 'Lookuptable',
+	LOOKUP_TABLE = 'LookupTable',
 }
 
 /**

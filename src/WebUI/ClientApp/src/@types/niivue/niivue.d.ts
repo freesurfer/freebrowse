@@ -25,6 +25,7 @@ declare module '@niivue/niivue' {
 		pan2Dxyzmm: [number, number, number, number];
 		dpr: number;
 		mouseButtonCenterDown: boolean;
+		mouseButtonLeftDown: boolean;
 		fracPos: [number];
 		mouseButtonRightDown: boolean;
 	}
@@ -37,6 +38,7 @@ declare module '@niivue/niivue' {
 			mm: [number, number, number, number];
 			name: string;
 			value: number;
+			rawValue: number;
 			vox: [number, number, number];
 			label: string | undefined;
 		}[];
@@ -488,6 +490,9 @@ declare module '@niivue/niivue' {
 		DISTANCE_FROM_CAMERA: any;
 		graph: any;
 		meshShaders: any;
+		undoStack: any;
+		redoStack: any;
+		bufferStack: any;
 		onLocationChange: any;
 		onIntensityChange: any;
 		onImageLoaded: any;
@@ -694,6 +699,71 @@ declare module '@niivue/niivue' {
 		 * @see {@link https://niivue.github.io/niivue/features/worldspace2.html|live demo usage}
 		 */
 		setSliceMM(isSliceMM: boolean): void;
+		/**
+		 * @param {number} volume the volume of the image
+		 * @param {number} index the index of the change inside the image
+		 * @param {number} value the value that got changed
+		 * @returns
+		 */
+		addElementToBuffer(volume: number, index: number, value: number): void;
+		undoLastVoxelEdit(): void;
+		redoLastVoxelEditUndo(): void;
+		/**
+		 * Sets the intesity of a specific voxel to a given value
+		 * @param {number} x x coordinate of the voxel
+		 * @param {number} y y coordinate of the voxel
+		 * @param {number} z z coordinate of the voxel
+		 * @param {number} value number between 0 and 1, where 1 is full intensity and 0 is no intensity(black)
+		 * @param {number} volume which volume should get changed
+		 * @param {number} [frame4D=0] volume displayed, 0 indexed, must be less than nFrame4D
+		 */
+		setVoxel(
+			x: number,
+			y: number,
+			z: number,
+			value: number,
+			volume: number,
+			frame4D: number
+		): void;
+		/**
+		 * Sets the intensity of one or several voxels based on a single voxel and brush size
+		 * @param {number} x x coordinate of the voxel
+		 * @param {number} y y coordinate of the voxel
+		 * @param {number} z z coordinate of the voxel
+		 * @param {number} value number between 0 and 1, where 1 is full intensity and 0 is no intensity(black)
+		 * @param {number} volume which volume should get changed
+		 * @param {number} [brushSize=1] size of the brush cannot be 0
+		 * @param {number} [frame4D=0] volume displayed, 0 indexed, must be less than nFrame4D
+		 * @throws Will throw, if brush size is set to 0
+		 */
+		setVoxelsWithBrushSize(
+			x: number,
+			y: number,
+			z: number,
+			value: number,
+			volume: number,
+			brushSize: number,
+			frame4D: number
+		): void;
+		/**
+		 * Creates an array of voxels based on a given voxel and a brush size
+		 * @param {number} x x coordinate of the voxel
+		 * @param {number} y y coordinate of the voxel
+		 * @param {number} z z coordinate of the voxel
+		 * @param {number} [brushSize=1] size of the brush cannot be 0
+		 * @param {number} axCorSag 0 = Axial view, 1 = Coronal view, 2 = Sagittal view
+		 * @returns an Array of Voxels
+		 * @example getBrushSizeVoxelMapping(12,30,10,4,0)
+		 * @throws Will throw, if brush size is set to 0
+		 * @throws Will throw, if axCorSag is not equal to 0 or 1 or 2
+		 */
+		getBrushSizeVoxelMapping(
+			x: number,
+			y: number,
+			z: number,
+			brushSize: number,
+			axCorSag: number
+		): number[][];
 		/**
 		 * Detect if display is using radiological or neurological convention.
 		 * @returns {boolean} radiological convention status

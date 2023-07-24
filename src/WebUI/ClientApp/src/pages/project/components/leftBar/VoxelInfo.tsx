@@ -41,7 +41,9 @@ export const VoxelInfo = ({
 								<span>{value?.vox[1] !== undefined ? value.vox[1] : '-'}</span>
 								<span>{value?.vox[2] !== undefined ? value.vox[2] : '-'}</span>
 								<span>
-									{value?.value !== undefined ? Math.round(value.value) : '-'}
+									{value?.rawValue !== undefined
+										? Math.round(value.rawValue)
+										: '-'}
 								</span>
 							</Fragment>
 						))}

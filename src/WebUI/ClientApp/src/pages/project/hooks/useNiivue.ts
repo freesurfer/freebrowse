@@ -271,33 +271,6 @@ export const useNiivue = (
 		)
 	);
 
-	const handleKeyDown = useCallback((event: KeyboardEvent) => {
-		if (niivueWrapper.current === undefined) return;
-		niivueWrapper.current.handleKeyDown(event);
-	}, []);
-
-	const handleKeyUp = useCallback((event: KeyboardEvent) => {
-		if (niivueWrapper.current === undefined) return;
-		niivueWrapper.current.handleKeyUp(event);
-	}, []);
-
-	const handleMouseMove = useCallback((event: MouseEvent) => {
-		if (niivueWrapper.current === undefined) return;
-		niivueWrapper.current.handleMouseMove(event);
-	}, []);
-
-	useEffect(() => {
-		document.addEventListener('keydown', handleKeyDown);
-		document.addEventListener('keyup', handleKeyUp);
-		document.addEventListener('mousemove', handleMouseMove);
-
-		return () => {
-			document.removeEventListener('keydown', handleKeyDown);
-			document.removeEventListener('keyup', handleKeyUp);
-			document.removeEventListener('mousemove', handleMouseMove);
-		};
-	}, [handleKeyDown, handleKeyUp, handleMouseMove]);
-
 	return {
 		location,
 		niivueWrapper: niivueWrapper.current,

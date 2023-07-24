@@ -1,6 +1,10 @@
-import lookUpTable from './ColorMaps/LookUpTable.json';
+import LookUpTable from '@/pages/project/colorMaps/LookUpTable.json';
+import { NiivueEventHandlers } from '@/pages/project/eventHandlers/NiivueEventHandlers';
 import { COLOR_MAP_NIIVUE } from '@/pages/project/models/ColorMap';
-import { type ProjectState } from '@/pages/project/models/ProjectState';
+import {
+	type ProjectState,
+	USER_MODE,
+} from '@/pages/project/models/ProjectState';
 import type { ViewSettings } from '@/pages/project/models/ViewSettings';
 import { niivueHandleProjectUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleProjectUpdate';
 import {
@@ -25,7 +29,7 @@ export interface INiivueCache {
 export class NiivueWrapper {
 	public readonly niivue = new Niivue({
 		show3Dcrosshair: false,
-		onLocationChange: (location) =>
+		onLocationChange: (location) => {
 			this.onLocationChange?.({
 				...location,
 				values: location.values.map((v) => {
@@ -34,7 +38,31 @@ export class NiivueWrapper {
 						label: this.getVoxelLabel(v),
 					};
 				}),
-			}),
+			});
+
+			if (
+				this.projectState?.userMode === USER_MODE.EDIT_VOXEL &&
+				this.niivue.uiData.mouseButtonLeftDown
+			) {
+				this.projectState.files.volumes.cloud.forEach((volume) => {
+					if (volume.isActive) {
+						const index = this.niivue.volumes.findIndex(
+							(niivueVolume) => niivueVolume.name === volume.name
+						);
+						if (index === -1) return;
+						this.niivue.setVoxelsWithBrushSize(
+							location.values[index]?.vox[0] ?? 0,
+							location.values[index]?.vox[1] ?? 0,
+							location.values[index]?.vox[2] ?? 0,
+							this.projectState?.brushValue ?? 0,
+							index,
+							this.projectState?.brushSize ?? 0,
+							0
+						);
+					}
+				});
+			}
+		},
 		dragAndDropEnabled: false,
 		dragMode: 3,
 		meshThicknessOn2D: 10,
@@ -59,11 +87,18 @@ export class NiivueWrapper {
 		pointSets: new Map<string, NVMesh>([]),
 	};
 
-	private hooveredView = 0;
+	private projectState: ProjectState | undefined;
 
 	constructor(canvasRef: HTMLCanvasElement) {
-		this.niivue.addColormap(COLOR_MAP_NIIVUE.LOOKUP_TABLE, lookUpTable);
+		this.niivue.addColormap(COLOR_MAP_NIIVUE.LOOKUP_TABLE, LookUpTable);
 		void this.niivue.attachToCanvas(canvasRef);
+		this.niivueEventHandlers = new NiivueEventHandlers(
+			this.niivue,
+			() => this.projectState
+		);
+		document.addEventListener('keydown', this.handleKeyDown.bind(this));
+		document.addEventListener('keyup', this.handleKeyUp.bind(this));
+		document.addEventListener('mousemove', this.handleMouseMove.bind(this));
 	}
 
 	public setOnLocationChange(
@@ -96,6 +131,9 @@ export class NiivueWrapper {
 			this.niivue,
 			this.cache
 		);
+
+		this.projectState = nextState;
+		this.niivueEventHandlers.updateProjectState(this.projectState);
 
 		if (previousState === undefined) {
 			await this.setViewState(viewSettings);
@@ -159,69 +197,6 @@ export class NiivueWrapper {
 		);
 	}
 
-	public handleKeyDown = (event: KeyboardEvent): void => {
-		switch (event.key) {
-			case 'Control':
-				this.niivue.opts.dragMode = this.niivue.dragModes.none;
-				break;
-			case 'ArrowUp':
-				this.moveSlices(1);
-				break;
-			case 'ArrowDown':
-				this.moveSlices(-1);
-				break;
-			default:
-				break;
-		}
-	};
-
-	public handleKeyUp = (event: KeyboardEvent): void => {
-		if (this.niivue === undefined) return;
-
-		if (event.key === 'Control') {
-			this.niivue.opts.dragMode = this.niivue.dragModes.pan;
-		}
-	};
-
-	public handleMouseMove = (event: MouseEvent): void => {
-		if (this.niivue === undefined) return;
-		if (this.niivue.canvas === undefined || this.niivue.canvas === null) return;
-
-		const rect = this.niivue.canvas.getBoundingClientRect();
-		const x = (event.clientX - rect.left) * this.niivue.uiData.dpr;
-		const y = (event.clientY - rect.top) * this.niivue.uiData.dpr;
-		for (let i = 0; i < this.niivue.screenSlices.length; i++) {
-			const axCorSag = this.niivue.screenSlices[i].axCorSag;
-			if (axCorSag > 3) continue;
-			const texFrac = this.niivue.screenXY2TextureFrac(x, y, i);
-			if (
-				texFrac[0] === undefined ||
-				texFrac[0] < 0 ||
-				axCorSag === this.hooveredView
-			)
-				continue;
-			this.hooveredView = axCorSag;
-		}
-		if (
-			this.niivue.opts.dragMode === this.niivue.dragModes.none &&
-			this.niivue.uiData.mouseButtonCenterDown
-		) {
-			this.moveSlices(event.movementY);
-		}
-	};
-
-	public moveSlices(sliceValue: number): void {
-		if (this.niivue === undefined) return;
-
-		if (this.hooveredView === 2) {
-			this.niivue.moveCrosshairInVox(sliceValue, 0, 0);
-		} else if (this.hooveredView === 1) {
-			this.niivue.moveCrosshairInVox(0, sliceValue, 0);
-		} else {
-			this.niivue.moveCrosshairInVox(0, 0, sliceValue);
-		}
-	}
-
 	private navigateToSlice(
 		x: number | undefined,
 		y: number | undefined,
@@ -254,6 +229,7 @@ export class NiivueWrapper {
 		mm: [number, number, number, number];
 		name: string;
 		value: number;
+		rawValue: number;
 		vox: [number, number, number];
 	}): string | undefined {
 		const volume = this.niivue.volumes.find(
@@ -263,7 +239,7 @@ export class NiivueWrapper {
 		if (volume?.colormapLabel?.labels === undefined) return undefined;
 
 		const value = Math.round(
-			volume.getValue(...volumeLocationData.vox, volume.frame4D)
+			volume.getRawValue(...volumeLocationData.vox, volume.frame4D)
 		);
 
 		if (value < 0 || value >= volume.colormapLabel.labels.length)
@@ -271,6 +247,20 @@ export class NiivueWrapper {
 
 		const label = volume.colormapLabel.labels[value];
 		return label;
+	}
+
+	private readonly niivueEventHandlers: NiivueEventHandlers;
+
+	public handleKeyDown(event: KeyboardEvent): void {
+		this.niivueEventHandlers.handleKeyDown(event);
+	}
+
+	public handleKeyUp(event: KeyboardEvent): void {
+		this.niivueEventHandlers.handleKeyUp(event);
+	}
+
+	public handleMouseMove(event: MouseEvent): void {
+		this.niivueEventHandlers.handleMouseMove(event);
 	}
 
 	/*

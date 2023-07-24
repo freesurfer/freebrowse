@@ -373,6 +373,7 @@ declare module '@niivue/niivue' {
 		 */
 		getImageMetadata(): NVImageMetadata;
 		getValue(x: any, y: any, z: any, frame4D?: number): any;
+		getRawValue(x: any, y: any, z: any, frame4D?: number): any;
 		/**
 		 * calculate cuboid extents via pixdims * dims
 		 * @returns {number[]}
@@ -518,5 +519,28 @@ declare module '@niivue/niivue' {
 		 * newZeroImage = NVImage.zerosLike(myImage)
 		 */
 		function zerosLike(nvImage: NVImage, dataType?: string): NVImage;
+		function getValue(x: number, y: number, z: number, frame4D: number): number;
+		/**
+		 * Sets the intesity of a specific voxel to a given value
+		 * @param {number} x x coordinate of the voxel
+		 * @param {number} y y coordinate of the voxel
+		 * @param {number} z z coordinate of the voxel
+		 * @param {number} value number between 0 and 1, where 1 is full intensity and 0 is no intensity(black)
+		 * @param {number} [frame4D=0] volume displayed, 0 indexed, must be less than nFrame4D
+		 */
+		function setVoxel(
+			x: number,
+			y: number,
+			z: number,
+			value: number,
+			frame4D: number
+		);
+		function setVoxelValueOnIndex(index: number, value: number);
+		/**
+		 * Converts an input value to the intensity value of the corresponding image
+		 * @param {number} value needs to be a value between 0 and 1, where 1 is high intensity and 0 is no intensity
+		 * @returns {number} converted value for the given into to the corresponding image
+		 */
+		function convertToIntensityValue(value: number): number;
 	}
 }
