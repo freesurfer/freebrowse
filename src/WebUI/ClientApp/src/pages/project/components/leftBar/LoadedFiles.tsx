@@ -34,7 +34,11 @@ export const LoadedFiles = ({
 
 	const openNewPointSetDialog = useCallback(() => {
 		const execute = async (): Promise<void> => {
-			const defaultFileNameNumbers = projectState?.files.pointSets
+			const defaultFileNameNumbers = [
+				...(projectState?.files.pointSets.local ?? []),
+				...(projectState?.files.pointSets.cloud ?? []),
+				...(projectState?.files.pointSets.cache ?? []),
+			]
 				.filter((file) => file.name.startsWith(CachePointSetFile.DEFAULT_NAME))
 				.map((file) =>
 					Number(
@@ -102,7 +106,10 @@ export const LoadedFiles = ({
 			}
 		>
 			<div className="mr-4">
-				{projectState.files.volumes.length > 0 ? (
+				{[
+					...projectState.files.volumes.local,
+					...projectState.files.volumes.cloud,
+				].length > 0 ? (
 					<Collapse
 						className="mt-2"
 						title={
@@ -110,7 +117,10 @@ export const LoadedFiles = ({
 						}
 					>
 						<OrderList
-							files={projectState.files.volumes}
+							files={[
+								...projectState.files.volumes.local,
+								...projectState.files.volumes.cloud,
+							]}
 							setFiles={(files) => {
 								setProjectState((projectState) =>
 									projectState?.fromFiles(
@@ -131,7 +141,10 @@ export const LoadedFiles = ({
 				) : (
 					<></>
 				)}
-				{projectState.files.surfaces.length > 0 ? (
+				{[
+					...projectState.files.surfaces.local,
+					...projectState.files.surfaces.cloud,
+				].length > 0 ? (
 					<Collapse
 						className="mt-2"
 						title={
@@ -141,7 +154,10 @@ export const LoadedFiles = ({
 						}
 					>
 						<OrderList
-							files={projectState.files.surfaces}
+							files={[
+								...projectState.files.surfaces.local,
+								...projectState.files.surfaces.cloud,
+							]}
 							setFiles={(files) => {
 								setProjectState((projectState) =>
 									projectState?.fromFiles(
@@ -162,7 +178,11 @@ export const LoadedFiles = ({
 				) : (
 					<></>
 				)}
-				{projectState.files.pointSets.length > 0 ? (
+				{[
+					...projectState.files.pointSets.cache,
+					...projectState.files.pointSets.cloud,
+					...projectState.files.pointSets.local,
+				].length > 0 ? (
 					<Collapse
 						className="mt-2"
 						title={
@@ -172,7 +192,11 @@ export const LoadedFiles = ({
 						}
 					>
 						<OrderList
-							files={projectState.files.pointSets}
+							files={[
+								...projectState.files.pointSets.cache,
+								...projectState.files.pointSets.cloud,
+								...projectState.files.pointSets.local,
+							]}
 							setFiles={(files) => {
 								setProjectState((projectState) =>
 									projectState?.fromFiles(

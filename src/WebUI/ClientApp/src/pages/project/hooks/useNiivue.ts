@@ -111,7 +111,11 @@ export const useNiivue = (
 				if (projectState === undefined) return projectState;
 				if (niivueWrapper.current === undefined) return projectState;
 
-				const file = projectState.files.pointSets.find((file) => file.isActive);
+				const file = [
+					...projectState.files.pointSets.cache,
+					...projectState.files.pointSets.cloud,
+					...projectState.files.pointSets.local,
+				].find((file) => file.isActive);
 				if (file === undefined) {
 					Store.addNotification({
 						message: 'you need to select a point set to add points',

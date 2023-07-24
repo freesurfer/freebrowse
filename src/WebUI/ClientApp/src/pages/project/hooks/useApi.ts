@@ -308,17 +308,17 @@ export const useApi = (
 
 				if (
 					previousState === undefined ||
-					nextState.files.cloudVolumes !== previousState.files.cloudVolumes
+					nextState.files.volumes.cloud !== previousState.files.volumes.cloud
 				) {
 					await apiVolume.edit(
-						nextState.files.cloudVolumes,
-						previousState?.files.cloudVolumes
+						nextState.files.volumes.cloud,
+						previousState?.files.volumes.cloud
 					);
 				}
 
 				await handleCloudSurface(
-					nextState.files.cloudSurfaces,
-					previousState?.files.cloudSurfaces,
+					nextState.files.surfaces.cloud,
+					previousState?.files.surfaces.cloud,
 					apiSurface,
 					apiOverlay,
 					apiAnnotation,
@@ -327,8 +327,8 @@ export const useApi = (
 
 				// handle new point sets
 				const newPointSets = [
-					...nextState.files.localPointSets,
-					...nextState.files.cachePointSets,
+					...nextState.files.pointSets.local,
+					...nextState.files.pointSets.cache,
 				];
 				if (newPointSets.length > 0) {
 					const projectResponse = await apiPointSet.create(
@@ -353,12 +353,14 @@ export const useApi = (
 								projectState,
 								files: new ProjectFiles({
 									projectFiles: projectState.files,
-									localPointSets: [],
-									cachePointSets: [],
-									cloudPointSets: [
-										...projectState.files.cloudPointSets,
-										...cloudFiles,
-									],
+									pointSets: {
+										local: [],
+										cache: [],
+										cloud: [
+											...projectState.files.pointSets.cloud,
+											...cloudFiles,
+										],
+									},
 								}),
 							},
 							false
@@ -369,18 +371,19 @@ export const useApi = (
 				// update point set
 				if (
 					previousState !== undefined &&
-					previousState.files.cloudPointSets !== nextState.files.cloudPointSets
+					previousState.files.pointSets.cloud !==
+						nextState.files.pointSets.cloud
 				) {
-					for (const cloudPointSetFile of nextState.files.cloudPointSets) {
+					for (const cloudPointSetFile of nextState.files.pointSets.cloud) {
 						if (
-							!previousState.files.cloudPointSets.some(
+							!previousState.files.pointSets.cloud.some(
 								(file) => file.id === cloudPointSetFile.id
 							)
 						)
 							continue;
 
 						if (
-							previousState.files.cloudPointSets.some(
+							previousState.files.pointSets.cloud.some(
 								(file) =>
 									file.id === cloudPointSetFile.id &&
 									file.data === cloudPointSetFile.data &&
@@ -396,11 +399,12 @@ export const useApi = (
 
 				if (
 					previousState !== undefined &&
-					previousState.files.cloudPointSets !== nextState.files.cloudPointSets
+					previousState.files.pointSets.cloud !==
+						nextState.files.pointSets.cloud
 				) {
-					for (const file of previousState.files.cloudPointSets.filter(
+					for (const file of previousState.files.pointSets.cloud.filter(
 						(prevFile) =>
-							!nextState.files.cloudPointSets.some(
+							!nextState.files.pointSets.cloud.some(
 								(nextFile) => nextFile.id === prevFile.id
 							)
 					)) {

@@ -23,13 +23,23 @@ export const FileSettings = ({
 	>;
 }): ReactElement => {
 	const activeVolumes =
-		projectState?.files.volumes.filter((file) => file.isActive) ?? [];
+		[
+			...(projectState?.files.volumes.cloud ?? []),
+			...(projectState?.files.volumes.local ?? []),
+		].filter((file) => file.isActive) ?? [];
 
 	const activeSurfaces =
-		projectState?.files.surfaces.filter((file) => file.isActive) ?? [];
+		[
+			...(projectState?.files.surfaces.cloud ?? []),
+			...(projectState?.files.surfaces.local ?? []),
+		].filter((file) => file.isActive) ?? [];
 
 	const activePointSets =
-		projectState?.files.pointSets.filter((file) => file.isActive) ?? [];
+		[
+			...(projectState?.files.pointSets.cloud ?? []),
+			...(projectState?.files.pointSets.local ?? []),
+			...(projectState?.files.pointSets.cache ?? []),
+		].filter((file) => file.isActive) ?? [];
 
 	const activeFiles = [...activeVolumes, ...activeSurfaces, ...activePointSets];
 

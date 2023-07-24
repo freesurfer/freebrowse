@@ -1,4 +1,4 @@
-import { LOCAL_STORAGE_KEY, get, set } from '@/model/localstorage';
+import { LOCAL_STORAGE_KEY, get, set } from '@/model/localStorage';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
 import { useEffect, useState } from 'react';
 

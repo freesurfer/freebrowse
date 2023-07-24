@@ -72,9 +72,19 @@ export const useApiProject = (): {
 
 		const files = new ProjectFiles({
 			projectFiles: new ProjectFiles(),
-			cloudVolumes,
-			cloudSurfaces,
-			cloudPointSets,
+			volumes: {
+				cloud: cloudVolumes,
+				local: [],
+			},
+			surfaces: {
+				cloud: cloudSurfaces,
+				local: [],
+			},
+			pointSets: {
+				cloud: cloudPointSets,
+				local: [],
+				cache: [],
+			},
 		});
 
 		return new ProjectState(
@@ -102,7 +112,7 @@ export const useApiProject = (): {
 				name: projectName,
 				meshThicknessOn2D: projectMeshThicknessOn2D,
 				volumes: await Promise.all(
-					projectFiles.localVolumes.map(
+					projectFiles.volumes.local.map(
 						async (file) =>
 							new CreateProjectVolumeDto({
 								base64: await file.getBase64(),
@@ -117,7 +127,7 @@ export const useApiProject = (): {
 					)
 				),
 				surfaces: await Promise.all(
-					projectFiles.localSurfaces.map(
+					projectFiles.surfaces.local.map(
 						async (file) =>
 							new CreateProjectSurfaceDto({
 								base64: await file.getBase64(),
@@ -134,10 +144,10 @@ export const useApiProject = (): {
 		if (createProjectResponse.id === undefined)
 			throw new Error('no project id received from backend');
 
-		if (projectFiles.localPointSets.length > 0) {
+		if (projectFiles.pointSets.local.length > 0) {
 			await apiPointSet.create(
 				createProjectResponse.id,
-				projectFiles.localPointSets
+				projectFiles.pointSets.local
 			);
 		}
 

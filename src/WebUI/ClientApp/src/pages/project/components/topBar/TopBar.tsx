@@ -27,6 +27,8 @@ export const TopBar = ({
 	location,
 	niivueWrapper,
 	setProjectState,
+	wayPointUndo,
+	wayPointRedo,
 }: {
 	projectState: ProjectState | undefined;
 	location: LocationData | undefined;
@@ -34,6 +36,8 @@ export const TopBar = ({
 	setProjectState: Dispatch<
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
+	wayPointUndo: () => void;
+	wayPointRedo: () => void;
 }): ReactElement => {
 	const navigate = useNavigate();
 	const { createProject } = useContext(OpenProjectDialogContext);
@@ -55,7 +59,10 @@ export const TopBar = ({
 			deepLink += `sliceX=${location.vox[0]}&sliceY=${location.vox[1]}&sliceZ=${location.vox[2]}&zoom2dX=${niivueWrapper.niivue.uiData.pan2Dxyzmm[0]}&zoom2dY=${niivueWrapper.niivue.uiData.pan2Dxyzmm[1]}&zoom2dZ=${niivueWrapper.niivue.uiData.pan2Dxyzmm[2]}&zoom2d=${niivueWrapper.niivue.uiData.pan2Dxyzmm[3]}&zoom3d=${niivueWrapper.niivue.scene.volScaleMultiplier}&rasX=${location.mm[0]}&rasY=${location.mm[1]}&rasZ=${location.mm[2]}&renderAzimuth=${niivueWrapper.niivue.scene.renderAzimuth}&renderElevation=${niivueWrapper.niivue.scene.renderElevation}`;
 		}
 
-		projectState?.files.volumes.forEach((volume) => {
+		[
+			...(projectState?.files.volumes.cloud ?? []),
+			...(projectState?.files.volumes.local ?? []),
+		].forEach((volume) => {
 			deepLink += `&volumes=${encodeURIComponent(
 				volume.name.toString()
 			)}&volumeOpacity=${volume.opacity.toString()}&volumeOrder=${
@@ -67,13 +74,20 @@ export const TopBar = ({
 			}`;
 		});
 
-		projectState?.files.surfaces.forEach((surface) => {
+		[
+			...(projectState?.files.surfaces.cloud ?? []),
+			...(projectState?.files.surfaces.local ?? []),
+		].forEach((surface) => {
 			deepLink += `&surfaces=${encodeURIComponent(surface.name)}&surfaceOrder=${
 				surface.order ?? 0
 			}&surfaceVisible=${surface.isChecked.toString()}&surfaceSelected=${surface.isActive.toString()}`;
 		});
 
-		projectState?.files.pointSets.forEach((pointSet) => {
+		[
+			...(projectState?.files.pointSets.cache ?? []),
+			...(projectState?.files.pointSets.cloud ?? []),
+			...(projectState?.files.pointSets.local ?? []),
+		].forEach((pointSet) => {
 			deepLink += `&pointSets=${encodeURIComponent(
 				pointSet.name
 			)}&pointSetOrder=${
@@ -98,6 +112,22 @@ export const TopBar = ({
 			},
 		});
 	};
+
+	const onClickUndo = useCallback(() => {
+		if (projectState?.userMode === USER_MODE.EDIT_POINTS) {
+			wayPointUndo();
+			return;
+		}
+		console.warn('no action defined for undo on other user modes');
+	}, [projectState, wayPointUndo]);
+
+	const onClickRedo = useCallback(() => {
+		if (projectState?.userMode === USER_MODE.EDIT_POINTS) {
+			wayPointRedo();
+			return;
+		}
+		console.warn('no action defined for undo on other user modes');
+	}, [projectState, wayPointRedo]);
 
 	return (
 		<div className="flex items-baseline bg-font px-4">
@@ -163,12 +193,12 @@ export const TopBar = ({
 			<ToolButton
 				label="Undo"
 				icon={(className) => <ArrowUturnLeftIcon className={className} />}
-				buttonProps={{ onClick: () => alert('Not implemented yet - Undo') }}
+				buttonProps={{ onClick: onClickUndo }}
 			/>
 			<ToolButton
 				label="Redo"
 				icon={(className) => <ArrowUturnRightIcon className={className} />}
-				buttonProps={{ onClick: () => alert('Not implemented yet - Redo') }}
+				buttonProps={{ onClick: onClickRedo }}
 			/>
 			<ToolButton
 				label="Share"

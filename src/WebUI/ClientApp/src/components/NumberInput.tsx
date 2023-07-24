@@ -3,10 +3,12 @@ import { type ReactElement, useEffect, useState } from 'react';
 export const NumberInput = ({
 	value,
 	onChange,
+	onEnter,
 	max,
 }: {
 	value: number;
 	onChange: (value: number) => void;
+	onEnter: (value: number) => void;
 	max: number;
 }): ReactElement => {
 	const [tmpValue, setTmpValue] = useState<number>(value);
@@ -27,6 +29,7 @@ export const NumberInput = ({
 				)
 			}
 			onBlurCapture={() => onChange(tmpValue)}
+			onKeyDown={(event) => event.code === 'Enter' && onEnter(tmpValue)}
 			min={1}
 			max={max}
 		></input>

@@ -13,7 +13,7 @@ export const niivueHandleVolumeUpdate = async (
 	if (prev !== undefined && prev.volumes === next.volumes) return false;
 
 	const putNiivueRefToFile = (): void => {
-		for (const volume of next.volumes) {
+		for (const volume of [...next.volumes.local, ...next.volumes.cloud]) {
 			if (cache.volumes.has(volume.name)) continue;
 
 			const niivueVolume = niivue.volumes.find(
@@ -29,7 +29,7 @@ export const niivueHandleVolumeUpdate = async (
 
 		const passVolumesToNiivue = async (): Promise<void> => {
 			await niivue.loadVolumes(
-				next.cloudVolumes
+				next.volumes.cloud
 					.filter((file) => file.isChecked)
 					.sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
 					.map((file) => {
@@ -61,7 +61,7 @@ export const niivueHandleVolumeUpdate = async (
 		let hasChanged = false;
 		for (const niivueVolume of niivue.volumes) {
 			if (
-				!next.cloudVolumes.some(
+				!next.volumes.cloud.some(
 					(cloudVolume) =>
 						cloudVolume.isChecked && cloudVolume.name === niivueVolume.name
 				)
@@ -77,7 +77,7 @@ export const niivueHandleVolumeUpdate = async (
 
 	const add = async (): Promise<boolean> => {
 		let hasChanged = false;
-		for (const cloudVolume of next.cloudVolumes) {
+		for (const cloudVolume of next.volumes.cloud) {
 			if (!cloudVolume.isChecked) continue;
 			if (
 				niivue.volumes.some(
@@ -190,7 +190,7 @@ export const niivueHandleVolumeUpdate = async (
 		let tmpOrder = 0;
 		let hasChanged = false;
 
-		const volumeFiles = next.volumes
+		const volumeFiles = [...next.volumes.local, ...next.volumes.cloud]
 			.filter((volume) => volume.isChecked)
 			.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
 
@@ -215,7 +215,11 @@ export const niivueHandleVolumeUpdate = async (
 
 	const cleanCache = (): void => {
 		for (const key of cache.volumes.keys()) {
-			if (!next.volumes.some((file) => file.name === key))
+			if (
+				![...next.volumes.local, ...next.volumes.cloud].some(
+					(file) => file.name === key
+				)
+			)
 				cache.volumes.delete(key);
 		}
 	};

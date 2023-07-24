@@ -8,12 +8,7 @@ import {
 	ChevronLeftIcon,
 	ChevronRightIcon,
 } from '@heroicons/react/24/outline';
-import {
-	type ReactElement,
-	type Dispatch,
-	useEffect,
-	useCallback,
-} from 'react';
+import { type ReactElement, type Dispatch, useEffect } from 'react';
 
 export const FileSettingsWayPoints = ({
 	pointSetFile,
@@ -38,17 +33,6 @@ export const FileSettingsWayPoints = ({
 					false
 				)
 			);
-	}, [setProjectState, pointSetFile]);
-
-	const adjustCrosshairPosition = useCallback((): void => {
-		if (!('data' in pointSetFile) || pointSetFile.data === undefined) return;
-		const position =
-			pointSetFile.data.points[pointSetFile.selectedWayPoint - 1];
-		setProjectState((projectState) =>
-			projectState?.from({
-				crosshairPosition: position?.coordinates,
-			})
-		);
 	}, [setProjectState, pointSetFile]);
 
 	if (!('data' in pointSetFile && pointSetFile.data !== undefined)) {
@@ -78,32 +62,71 @@ export const FileSettingsWayPoints = ({
 											)
 										)
 									}
+									onEnter={(value) =>
+										setProjectState((projectState) =>
+											projectState
+												?.fromFileUpdate(
+													pointSetFile,
+													{ selectedWayPoint: value },
+													false
+												)
+												.from({
+													crosshairPosition:
+														pointSetFile.data.points[value - 1]?.coordinates,
+												})
+										)
+									}
 									max={pointSetFile.data.points.length}
 								/>
 								<Button
 									icon={(className) => (
 										<MagnifyingGlassIcon className={className} />
 									)}
-									onClick={adjustCrosshairPosition}
+									onClick={(): void =>
+										setProjectState((projectState) =>
+											projectState?.from({
+												crosshairPosition:
+													pointSetFile.data.points[
+														pointSetFile.selectedWayPoint - 1
+													]?.coordinates,
+											})
+										)
+									}
 								/>
 								<Button
 									icon={(className) => <TrashIcon className={className} />}
 									onClick={() =>
-										setProjectState((projectState) =>
-											projectState?.fromFileUpdate(
+										setProjectState((projectState) => {
+											const newPointArray = pointSetFile.data.points.filter(
+												(_point, index) =>
+													index + 1 !== pointSetFile.selectedWayPoint
+											);
+
+											const updatedFileState = projectState?.fromFileUpdate(
 												pointSetFile,
 												{
 													data: {
 														...pointSetFile.data,
-														points: pointSetFile.data.points.filter(
-															(file, index) =>
-																index + 1 !== pointSetFile.selectedWayPoint
-														),
+														points: newPointArray,
 													},
 												},
 												true
-											)
-										)
+											);
+
+											const newActivePoint =
+												newPointArray[
+													pointSetFile.selectedWayPoint -
+														1 -
+														(newPointArray.length <
+														pointSetFile.selectedWayPoint
+															? 1
+															: 0)
+												];
+											if (newActivePoint === undefined) return updatedFileState;
+											return updatedFileState?.from({
+												crosshairPosition: newActivePoint.coordinates,
+											});
+										})
 									}
 								/>
 							</div>
@@ -115,11 +138,20 @@ export const FileSettingsWayPoints = ({
 									readonly={pointSetFile.selectedWayPoint <= 1}
 									onClick={() =>
 										setProjectState((projectState) =>
-											projectState?.fromFileUpdate(
-												pointSetFile,
-												{ selectedWayPoint: pointSetFile.selectedWayPoint - 1 },
-												false
-											)
+											projectState
+												?.fromFileUpdate(
+													pointSetFile,
+													{
+														selectedWayPoint: pointSetFile.selectedWayPoint - 1,
+													},
+													false
+												)
+												.from({
+													crosshairPosition:
+														pointSetFile.data.points[
+															pointSetFile.selectedWayPoint - 1 - 1
+														]?.coordinates,
+												})
 										)
 									}
 								/>
@@ -133,11 +165,20 @@ export const FileSettingsWayPoints = ({
 									}
 									onClick={() =>
 										setProjectState((projectState) =>
-											projectState?.fromFileUpdate(
-												pointSetFile,
-												{ selectedWayPoint: pointSetFile.selectedWayPoint + 1 },
-												false
-											)
+											projectState
+												?.fromFileUpdate(
+													pointSetFile,
+													{
+														selectedWayPoint: pointSetFile.selectedWayPoint + 1,
+													},
+													false
+												)
+												.from({
+													crosshairPosition:
+														pointSetFile.data.points[
+															pointSetFile.selectedWayPoint - 1 + 1
+														]?.coordinates,
+												})
 										)
 									}
 								/>

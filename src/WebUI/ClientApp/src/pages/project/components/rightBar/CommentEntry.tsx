@@ -1,5 +1,6 @@
 import { DropDownMenu } from '@/components/DropDownMenu';
 import { humanizeTimeSpan } from '@/model/humanizeTimeSpan';
+import { EditComment } from '@/pages/project/components/rightBar/EditComment';
 import { NameIcon } from '@/pages/project/components/rightBar/NameIcon';
 import {
 	EllipsisHorizontalIcon,
@@ -69,7 +70,7 @@ export const CommentEntry = ({
 							label: 'Edit',
 							icon: (className) => <PencilIcon className={className} />,
 							onClick: () => {
-								setEditMode(true);
+								setEditMode((editMode) => !editMode);
 							},
 						},
 						{
@@ -84,14 +85,13 @@ export const CommentEntry = ({
 			</div>
 
 			{editMode ? (
-				<input
-					type="text"
-					defaultValue={comment}
-					onBlur={(event) => {
+				<EditComment
+					onUpdate={(value) => {
 						setEditMode(false);
-						updateComment(event.target.value);
+						updateComment(value);
 					}}
-				></input>
+					defaultValue={comment}
+				/>
 			) : (
 				<span>{comment}</span>
 			)}

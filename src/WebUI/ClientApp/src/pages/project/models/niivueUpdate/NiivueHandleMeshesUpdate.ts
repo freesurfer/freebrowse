@@ -34,7 +34,7 @@ export const niivueHandleMeshesUpdate = async (
 		if (prev !== undefined) return false;
 
 		const putNiivueRefToFile = (): void => {
-			for (const surface of next.surfaces) {
+			for (const surface of [...next.surfaces.cloud, ...next.surfaces.local]) {
 				if (cache.surfaces.has(surface.name)) continue;
 
 				const niivueSurface = niivue.meshes.find(
@@ -47,7 +47,7 @@ export const niivueHandleMeshesUpdate = async (
 
 		const passMeshesToNiivue = async (): Promise<void> => {
 			await niivue.loadMeshes(
-				next.cloudSurfaces
+				next.surfaces.cloud
 					.filter((file) => file.isChecked)
 					.sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
 					.map((file): NVMeshFromUrlOptions => {
@@ -94,12 +94,16 @@ export const niivueHandleMeshesUpdate = async (
 		let hasChanged = false;
 		for (const niivueMesh of niivue.meshes) {
 			if (
-				!next.cloudSurfaces.some(
+				!next.surfaces.cloud.some(
 					(cloudSurface) =>
 						cloudSurface.isChecked &&
 						cache.surfaces.get(cloudSurface.name) === niivueMesh
 				) &&
-				!next.pointSets.some(
+				![
+					...next.pointSets.cache,
+					...next.pointSets.local,
+					...next.pointSets.cloud,
+				].some(
 					(file) =>
 						file.isChecked && cache.pointSets.get(file.name) === niivueMesh
 				)
@@ -116,7 +120,7 @@ export const niivueHandleMeshesUpdate = async (
 	const add = async (): Promise<boolean> => {
 		let hasChanged = false;
 
-		for (const surface of next.cloudSurfaces) {
+		for (const surface of next.surfaces.cloud) {
 			if (!surface.isChecked) continue;
 			if (
 				niivue.meshes.some(
@@ -146,10 +150,10 @@ export const niivueHandleMeshesUpdate = async (
 
 	const updatePointSetData = async (): Promise<boolean> => {
 		let hasChanged = false;
-		for (const pointSet of next.cloudPointSets) {
+		for (const pointSet of next.pointSets.cloud) {
 			if (prev === undefined) continue;
 			if (
-				prev.cloudPointSets.some(
+				prev.pointSets.cloud.some(
 					(file) =>
 						pointSet.id === file.id &&
 						pointSet.data === file.data &&
@@ -205,7 +209,11 @@ export const niivueHandleMeshesUpdate = async (
 			surfaceFile: SurfaceFile,
 			niivueSurface: NVMesh
 		): Promise<boolean> => {
-			if (prev?.surfaces.some((file) => file === surfaceFile) === true)
+			if (
+				[...(prev?.surfaces.cloud ?? []), ...(prev?.surfaces.local ?? [])].some(
+					(file) => file === surfaceFile
+				)
+			)
 				return false;
 
 			const getActiveCascadingFile = (
@@ -273,7 +281,7 @@ export const niivueHandleMeshesUpdate = async (
 		let tmpOrder = 0;
 		let hasChanged = false;
 
-		const surfaceFiles = next.surfaces
+		const surfaceFiles = [...next.surfaces.cloud, ...next.surfaces.local]
 			.filter((surface) => surface.isChecked)
 			.sort((a, b) => (b.order ?? 0) - (a.order ?? 0));
 
@@ -301,12 +309,22 @@ export const niivueHandleMeshesUpdate = async (
 
 	const cleanCache = (): void => {
 		for (const key of cache.surfaces.keys()) {
-			if (!next.surfaces.some((file) => file.name === key))
+			if (
+				![...next.surfaces.cloud, ...next.surfaces.local].some(
+					(file) => file.name === key
+				)
+			)
 				cache.surfaces.delete(key);
 		}
 
 		for (const key of cache.pointSets.keys()) {
-			if (!next.pointSets.some((file) => file.name === key))
+			if (
+				![
+					...next.pointSets.cache,
+					...next.pointSets.cloud,
+					...next.pointSets.local,
+				].some((file) => file.name === key)
+			)
 				cache.surfaces.delete(key);
 		}
 	};
