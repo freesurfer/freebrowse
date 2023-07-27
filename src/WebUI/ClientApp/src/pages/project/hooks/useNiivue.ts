@@ -6,7 +6,7 @@ import {
 } from '@/pages/project/models/ProjectState';
 import { ViewSettings } from '@/pages/project/models/ViewSettings';
 // import type { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
-import type { LocationData, UIData } from '@niivue/niivue';
+import type { LocationData } from '@niivue/niivue';
 import { useRef, useState, useEffect, useCallback, type Dispatch } from 'react';
 import { Store } from 'react-notifications-component';
 import { useQueryParams, withDefault, NumberParam } from 'use-query-params';
@@ -31,6 +31,12 @@ export const useNiivue = (
 	 */
 	const niivueWrapper = useRef<NiivueWrapper | undefined>();
 	const [location, setLocation] = useState<LocationData | undefined>();
+
+	/**
+	 * this flag is used to trigger a useEffect, after the niivue reference has been defined
+	 */
+	const [niivueWrapperInitialized, setNiivueWrapperInitialized] =
+		useState(false);
 	const [deeplinkInitialized, setDeeplinkInitialized] =
 		useState<boolean>(false);
 	const [query] = useQueryParams({
@@ -99,15 +105,40 @@ export const useNiivue = (
 
 	useEffect(() => {
 		if (canvas === undefined || canvas === null) return;
+
 		niivueWrapper.current = new NiivueWrapper(canvas);
+		setNiivueWrapperInitialized(true);
 		return () => {
 			niivueWrapper.current = undefined;
+			setNiivueWrapperInitialized(false);
 		};
 	}, [canvas]);
 
-	const onMouseUp = useCallback(
-		(uiData: UIData): void => {
+	useEffect(() => {
+		if (!niivueWrapperInitialized) return;
+
+		niivueWrapper.current?.setOnLocationChange((location) => {
+			// if we do not add a timeout here, we get infinity loops in the react render procedure
+			// when the user is creating new way points as fast as possible
+			setTimeout(() => {
+				if (location !== undefined)
+					setProjectState((projectState) => {
+						return projectState?.from({
+							crosshairPosition: {
+								x: location?.mm[0],
+								y: location?.mm[1],
+								z: location?.mm[2],
+							},
+						});
+					});
+				setLocation(location);
+			}, 0);
+		});
+
+		niivueWrapper.current?.setOnMouseUp((uiData) => {
 			setProjectState((projectState) => {
+				if (projectState?.userMode !== USER_MODE.EDIT_POINTS)
+					return projectState;
 				if (projectState === undefined) return projectState;
 				if (niivueWrapper.current === undefined) return projectState;
 
@@ -176,42 +207,15 @@ export const useNiivue = (
 					true
 				);
 			});
-		},
-		[setProjectState, niivueWrapper]
-	);
+		});
 
-	useEffect(() => {
-		if (projectState?.userMode !== USER_MODE.EDIT_POINTS) return;
-
-		niivueWrapper.current?.setOnMouseUp(onMouseUp);
-
-		return () =>
+		return () => {
+			niivueWrapper.current?.setOnLocationChange(undefined);
 			niivueWrapper.current?.setOnMouseUp(() => {
 				/* do nothing */
 			});
-	}, [projectState, onMouseUp]);
-
-	const onLocationChange = useCallback(
-		(location: LocationData | undefined) => {
-			if (location !== undefined)
-				setProjectState((projectState) =>
-					projectState?.from({
-						crosshairPosition: {
-							x: location?.mm[0],
-							y: location?.mm[1],
-							z: location?.mm[2],
-						},
-					})
-				);
-			setLocation(location);
-		},
-		[setProjectState, setLocation]
-	);
-
-	useEffect(() => {
-		niivueWrapper.current?.setOnLocationChange(onLocationChange);
-		return () => niivueWrapper.current?.setOnLocationChange(undefined);
-	}, [projectState, onLocationChange]);
+		};
+	}, [setProjectState, setLocation, niivueWrapperInitialized]);
 
 	useQueueDebounced(
 		projectState,

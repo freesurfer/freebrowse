@@ -23,11 +23,11 @@ export const useHistory = (
 	wayPointUndo: () => void;
 	wayPointRedo: () => void;
 } => {
-	const [history, setHistory] = useState<IHistory>({
+	const setHistory = useState<IHistory>({
 		past: [],
 		present: undefined,
 		future: [],
-	});
+	})[1];
 	const [previousProjectState, setPreviousProjectState] = useState<
 		ProjectState | undefined
 	>(undefined);
@@ -81,6 +81,7 @@ export const useHistory = (
 	useEffect(() => {
 		if (projectState === undefined) return;
 		if (projectState === previousProjectState) return;
+
 		setPreviousProjectState(projectState);
 
 		if (projectState.files.pointSets === previousProjectState?.files.pointSets)
@@ -146,63 +147,81 @@ export const useHistory = (
 		});
 	}, [projectState, setPreviousProjectState, previousProjectState, setHistory]);
 
-	const wayPointUndo = useCallback(() => {
-		// no previous step to step back to
-		if (history.past.length === 0) return;
+	const wayPointUndo = useCallback(
+		() =>
+			// timeout to allow react to rerender before applying a next state
+			// otherwise it seems, that react can get into infinity state update loops on fast user interaction
+			setTimeout(() => {
+				setHistory((history) => {
+					// no previous step to step back to
+					if (history.past.length === 0) return history;
 
-		const stepBackState = history.past.slice(-1)[0];
-		if (stepBackState === undefined)
-			// can not happen - just for types
-			return;
+					const stepBackState = history.past.slice(-1)[0];
+					if (stepBackState === undefined)
+						// can not happen - just for types
+						return history;
 
-		setHistory((prevHistory) => ({
-			past: prevHistory.past.filter((pastState) => pastState !== stepBackState),
-			present: stepBackState,
-			future:
-				prevHistory.present === undefined
-					? prevHistory.future
-					: [prevHistory.present, ...prevHistory.future],
-		}));
+					setProjectState((projectState) =>
+						projectState?.fromFiles(
+							new ProjectFiles({
+								projectFiles: projectState.files,
+								pointSets: stepBackState,
+							})
+						)
+					);
 
-		setProjectState((projectState) =>
-			projectState?.fromFiles(
-				new ProjectFiles({
-					projectFiles: projectState.files,
-					pointSets: stepBackState,
-				})
-			)
-		);
-	}, [history, setProjectState]);
+					return {
+						past: history.past.filter(
+							(pastState) => pastState !== stepBackState
+						),
+						present: stepBackState,
+						future:
+							history.present === undefined
+								? history.future
+								: [history.present, ...history.future],
+					};
+				});
+			}, 0),
+		[setProjectState, setHistory]
+	);
 
-	const wayPointRedo = useCallback(() => {
-		// no next step to step forward to
-		if (history.future.length === 0) return;
+	const wayPointRedo = useCallback(
+		() =>
+			// timeout to allow react to rerender before applying a next state
+			// otherwise it seems, that react can get into infinity state update loops on fast user interaction
+			setTimeout(() => {
+				setHistory((history) => {
+					// no next step to step forward to
+					if (history.future.length === 0) return history;
 
-		const stepForwardState = history.future.slice(0, 1)[0];
-		if (stepForwardState === undefined)
-			// can not happen - just for types
-			return;
+					const stepForwardState = history.future.slice(0, 1)[0];
+					if (stepForwardState === undefined)
+						// can not happen - just for types
+						return history;
 
-		setHistory((prevHistory) => ({
-			past:
-				prevHistory.present === undefined
-					? prevHistory.past
-					: [...prevHistory.past, prevHistory.present],
-			present: stepForwardState,
-			future: prevHistory.future.filter(
-				(futureState) => futureState !== stepForwardState
-			),
-		}));
+					setProjectState((projectState) =>
+						projectState?.fromFiles(
+							new ProjectFiles({
+								projectFiles: projectState.files,
+								pointSets: stepForwardState,
+							})
+						)
+					);
 
-		setProjectState((projectState) =>
-			projectState?.fromFiles(
-				new ProjectFiles({
-					projectFiles: projectState.files,
-					pointSets: stepForwardState,
-				})
-			)
-		);
-	}, [history, setProjectState]);
+					return {
+						past:
+							history.present === undefined
+								? history.past
+								: [...history.past, history.present],
+						present: stepForwardState,
+						future: history.future.filter(
+							(futureState) => futureState !== stepForwardState
+						),
+					};
+				});
+			}, 0),
+		[setProjectState, setHistory]
+	);
 
 	return {
 		wayPointUndo,

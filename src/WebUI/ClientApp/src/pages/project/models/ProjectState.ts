@@ -68,6 +68,8 @@ export class ProjectState {
 	 */
 	public readonly crosshairPosition: ICrosshairPosition | undefined = undefined;
 
+	public count: number;
+
 	constructor(
 		args:
 			| {
@@ -96,6 +98,7 @@ export class ProjectState {
 			this.brushValue = 0;
 			this.meshThicknessOn2D = args.meshThicknessOn2D ?? 0;
 			this.files = args.files;
+			this.count = 0;
 			return;
 		}
 
@@ -112,6 +115,7 @@ export class ProjectState {
 			args.meshThicknessOn2D ?? args.projectState.meshThicknessOn2D;
 		this.user = args.user ?? args.projectState.user;
 		this.files = args.files ?? args.projectState.files;
+		this.count = args.projectState.count + 1;
 	}
 
 	from(

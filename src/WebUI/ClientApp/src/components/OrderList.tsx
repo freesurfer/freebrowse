@@ -283,6 +283,8 @@ export const OrderList = <T_FILE_TYPE extends ProjectFile>({
 		return () => {
 			document.removeEventListener('mousemove', handleMove);
 			document.removeEventListener('mouseup', handleDrop);
+			document.removeEventListener('keydown', handleKeyDown);
+			document.removeEventListener('keyup', handleKeyUp);
 		};
 	}, [handleDrop, handleMove, handleKeyDown, handleKeyUp]);
 
