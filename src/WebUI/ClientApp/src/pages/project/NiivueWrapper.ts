@@ -1,5 +1,5 @@
 import LookUpTable from '@/pages/project/colorMaps/LookUpTable.json';
-import { NiivueEventHandlers } from '@/pages/project/eventHandlers/NiivueEventHandlers';
+import { NiivueEventHandlers } from '@/pages/project/eventHandlers/niivueEventHandlers';
 import { COLOR_MAP_NIIVUE } from '@/pages/project/models/ColorMap';
 import {
 	type ProjectState,
