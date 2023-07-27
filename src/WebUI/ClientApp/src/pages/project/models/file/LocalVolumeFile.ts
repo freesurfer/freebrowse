@@ -21,7 +21,9 @@ export class LocalVolumeFile
 		public readonly opacity = 100,
 		public readonly colorMap: ColorMap = ColorMap.from(COLOR_MAP_BACKEND.GRAY),
 		public readonly contrastMin = 0,
-		public readonly contrastMax = 100
+		public readonly contrastMax = 100,
+		public readonly contrastMinThreshold: number | undefined = undefined,
+		public readonly contrastMaxThreshold: number | undefined = undefined
 	) {
 		super(file);
 		this.size = file.size;
@@ -35,6 +37,8 @@ export class LocalVolumeFile
 		colorMap?: ColorMap;
 		contrastMin?: number;
 		contrastMax?: number;
+		contrastMinThreshold?: number | undefined;
+		contrastMaxThreshold?: number | undefined;
 	}): LocalVolumeFile {
 		return new LocalVolumeFile(
 			this.file,
@@ -44,7 +48,9 @@ export class LocalVolumeFile
 			options.opacity ?? this.opacity,
 			options.colorMap ?? this.colorMap,
 			options.contrastMin ?? this.contrastMin,
-			options.contrastMax ?? this.contrastMax
+			options.contrastMax ?? this.contrastMax,
+			options.contrastMinThreshold ?? this.contrastMinThreshold,
+			options.contrastMaxThreshold ?? this.contrastMaxThreshold
 		);
 	}
 }

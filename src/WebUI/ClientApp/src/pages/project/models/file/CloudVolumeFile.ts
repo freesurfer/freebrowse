@@ -68,7 +68,9 @@ export class CloudVolumeFile
 		public readonly opacity: number,
 		public readonly colorMap: ColorMap,
 		public readonly contrastMin = 0,
-		public readonly contrastMax = 100
+		public readonly contrastMax = 100,
+		public readonly contrastMinThreshold: number | undefined = undefined,
+		public readonly contrastMaxThreshold: number | undefined = undefined
 	) {
 		if (id === undefined) throw new Error('no id for cloud volume file');
 		super(id, name, `${getApiUrl()}/api/Volume?Id=${String(id)}`);
@@ -82,6 +84,8 @@ export class CloudVolumeFile
 		colorMap?: ColorMap;
 		contrastMin?: number;
 		contrastMax?: number;
+		contrastMinThreshold?: number | undefined;
+		contrastMaxThreshold?: number | undefined;
 	}): CloudVolumeFile {
 		return new CloudVolumeFile(
 			this.id,
@@ -93,7 +97,9 @@ export class CloudVolumeFile
 			options.opacity ?? this.opacity,
 			options.colorMap ?? this.colorMap,
 			options.contrastMin ?? this.contrastMin,
-			options.contrastMax ?? this.contrastMax
+			options.contrastMax ?? this.contrastMax,
+			options.contrastMinThreshold ?? this.contrastMinThreshold,
+			options.contrastMaxThreshold ?? this.contrastMaxThreshold
 		);
 	}
 }
