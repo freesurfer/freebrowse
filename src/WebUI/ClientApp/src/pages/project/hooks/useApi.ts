@@ -326,10 +326,22 @@ export const useApi = (
 				);
 
 				// handle new point sets
+				// not nice, it could happen, that a property has been changed from a local file, while it is getting uploaded already.
+				// Then it will upload it a second time here.
+				// A proper solution will need another way of state propagation where
+				// - either the next state after the upload will contain the set changes (added cloud files) already
+				// - or moving the adaptions in the backend to the actions instead of comparing states
 				const newPointSets = [
-					...nextState.files.pointSets.local,
-					...nextState.files.pointSets.cache,
+					...(nextState.files.pointSets.local !==
+					previousState?.files.pointSets.local
+						? nextState.files.pointSets.local
+						: []),
+					...(nextState.files.pointSets.cache !==
+					previousState?.files.pointSets.cache
+						? nextState.files.pointSets.cache
+						: []),
 				];
+
 				if (newPointSets.length > 0) {
 					const projectResponse = await apiPointSet.create(
 						nextState.id,
