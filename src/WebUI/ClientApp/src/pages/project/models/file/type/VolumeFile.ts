@@ -17,5 +17,7 @@ export interface IVolumeFile {
 		opacity?: number;
 		contrastMin?: number;
 		contrastMax?: number;
+		contrastMinThreshold?: number;
+		contrastMaxThreshold?: number;
 	}) => VolumeFile;
 }

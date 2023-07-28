@@ -4,15 +4,52 @@ import type { ProjectFiles } from '@/pages/project/models/ProjectFiles';
 import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 import type { NVImage, Niivue } from '@niivue/niivue';
 
+interface IVolumeFilePair {
+	niivueVolume: NVImage;
+	volume: VolumeFile;
+}
+
 export const niivueHandleVolumeUpdate = async (
 	prev: ProjectFiles | undefined,
 	next: ProjectFiles,
 	niivue: Niivue,
-	cache: INiivueCache
+	cache: INiivueCache,
+	updateMinMax: (
+		update: { volume: VolumeFile; min: number; max: number }[]
+	) => void
 ): Promise<boolean> => {
 	if (prev !== undefined && prev.volumes === next.volumes) return false;
 
-	const putNiivueRefToFile = (): void => {
+	const computeMinMax = ({
+		niivueVolume,
+		volume,
+	}: IVolumeFilePair): { volume: VolumeFile; min: number; max: number } => {
+		const { min, max } = niivueVolume.img.reduce<{
+			min: number | undefined;
+			max: number | undefined;
+		}>(
+			(
+				result,
+				value
+			): { min: number | undefined; max: number | undefined } => ({
+				min:
+					result.min === undefined || value < result.min ? value : result.min,
+				max:
+					result.max === undefined || value > result.max ? value : result.max,
+			}),
+			{
+				min: undefined,
+				max: undefined,
+			}
+		);
+		return { min: min ?? 0, max: max ?? 100, volume };
+	};
+
+	const putNiivueRefToFile = (): {
+		niivueVolume: NVImage;
+		volume: VolumeFile;
+	}[] => {
+		const newFiles: IVolumeFilePair[] = [];
 		for (const volume of [...next.volumes.local, ...next.volumes.cloud]) {
 			if (cache.volumes.has(volume.name)) continue;
 
@@ -21,7 +58,9 @@ export const niivueHandleVolumeUpdate = async (
 			);
 			if (niivueVolume === undefined) continue;
 			cache.volumes.set(volume.name, niivueVolume);
+			newFiles.push({ niivueVolume, volume });
 		}
+		return newFiles;
 	};
 
 	const initVolumes = async (): Promise<boolean> => {
@@ -40,6 +79,7 @@ export const niivueHandleVolumeUpdate = async (
 							colorMap: file.colorMap.niivue ?? COLOR_MAP_NIIVUE.GRAY,
 							cal_min: file.contrastMin,
 							cal_max: file.contrastMax,
+							trustCalMinMax: false,
 						};
 					})
 			);
@@ -47,7 +87,9 @@ export const niivueHandleVolumeUpdate = async (
 
 		try {
 			await passVolumesToNiivue();
-			putNiivueRefToFile();
+			const newFiles = putNiivueRefToFile();
+			if (newFiles.length > 0)
+				updateMinMax(newFiles.map((file) => computeMinMax(file)));
 		} catch (error) {
 			// probably we can just ignore that warning
 			console.warn(error);
@@ -77,6 +119,7 @@ export const niivueHandleVolumeUpdate = async (
 
 	const add = async (): Promise<boolean> => {
 		let hasChanged = false;
+		const newFiles: IVolumeFilePair[] = [];
 		for (const cloudVolume of next.volumes.cloud) {
 			if (!cloudVolume.isChecked) continue;
 			if (
@@ -101,10 +144,13 @@ export const niivueHandleVolumeUpdate = async (
 				opacity: cloudVolume.opacity / 100,
 				cal_min: cloudVolume.contrastMin,
 				cal_max: cloudVolume.contrastMax,
+				trustCalMinMax: false,
 			});
 			cache.volumes.set(cloudVolume.name, niivueVolume);
+			newFiles.push({ volume: cloudVolume, niivueVolume });
 			hasChanged = true;
 		}
+		newFiles.map((file) => computeMinMax(file));
 		return hasChanged;
 	};
 

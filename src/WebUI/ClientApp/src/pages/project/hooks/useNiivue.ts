@@ -209,9 +209,28 @@ export const useNiivue = (
 			});
 		});
 
+		niivueWrapper.current?.setOnMinMaxUpdate((updates) => {
+			setTimeout(() => {
+				setProjectState((projectState) =>
+					updates.reduce(
+						(result, { volume, min, max }) =>
+							result?.fromFileUpdate(
+								volume,
+								{ contrastMinThreshold: min, contrastMaxThreshold: max },
+								false
+							),
+						projectState
+					)
+				);
+			}, 1);
+		});
+
 		return () => {
 			niivueWrapper.current?.setOnLocationChange(undefined);
 			niivueWrapper.current?.setOnMouseUp(() => {
+				/* do nothing */
+			});
+			niivueWrapper.current?.setOnMinMaxUpdate(() => {
 				/* do nothing */
 			});
 		};

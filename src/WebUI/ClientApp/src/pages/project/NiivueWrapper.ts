@@ -6,6 +6,7 @@ import {
 	USER_MODE,
 } from '@/pages/project/models/ProjectState';
 import type { ViewSettings } from '@/pages/project/models/ViewSettings';
+import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 import { niivueHandleProjectUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleProjectUpdate';
 import {
 	type LocationData,
@@ -29,6 +30,7 @@ export interface INiivueCache {
 export class NiivueWrapper {
 	public readonly niivue = new Niivue({
 		show3Dcrosshair: false,
+		trustCalMinMax: false,
 		onLocationChange: (location) => {
 			this.onLocationChange?.({
 				...location,
@@ -77,6 +79,14 @@ export class NiivueWrapper {
 		| ((value: LocationData | undefined) => void)
 		| undefined;
 
+	// no this, since its only the empty initialization state
+	// eslint-disable-next-line class-methods-use-this
+	private onUpdateMinMax: (
+		update: { volume: VolumeFile; min: number; max: number }[]
+	) => void = (update) => {
+		/* do nothing */
+	};
+
 	/**
 	 * the cache is used to map the file state instances to the niivue image/mesh objects
 	 * also necessary to preserver hidden files to add them fast again
@@ -111,6 +121,14 @@ export class NiivueWrapper {
 		this.niivue.onMouseUp = (uiData) => callback(uiData);
 	}
 
+	public setOnMinMaxUpdate(
+		callback: (
+			update: { volume: VolumeFile; min: number; max: number }[]
+		) => void
+	): void {
+		this.onUpdateMinMax = callback;
+	}
+
 	coordinatesFromMouse(
 		fracPos: [number]
 	): ReturnType<typeof this.niivue.frac2mm> {
@@ -129,7 +147,8 @@ export class NiivueWrapper {
 			previousState,
 			nextState,
 			this.niivue,
-			this.cache
+			this.cache,
+			this.onUpdateMinMax
 		);
 
 		this.projectState = nextState;

@@ -23,8 +23,8 @@ export const Slider = ({
 	className,
 	label,
 	value,
-	min = 0,
-	max = 100,
+	min,
+	max,
 	unit,
 	onChange,
 	onEnd,
@@ -32,8 +32,8 @@ export const Slider = ({
 	className?: string;
 	label: string;
 	value: number;
-	min?: number;
-	max?: number;
+	min: number | undefined;
+	max: number | undefined;
 	unit?: string | undefined;
 	onChange?: (value: number) => void;
 	onEnd?: (value: number) => void;
@@ -58,6 +58,8 @@ export const Slider = ({
 
 	const updateValue = useCallback(
 		(newValue: number, upload: boolean) => {
+			if (min === undefined || max === undefined) return;
+
 			const doIt = (): void => {
 				if (!upload) {
 					onChange?.(normalizeValue(newValue, min, max));
@@ -90,6 +92,7 @@ export const Slider = ({
 	 */
 	const onMove = useCallback(
 		(event: Event): void => {
+			if (min === undefined || max === undefined) return;
 			if (
 				widthRef.current === null ||
 				startState === undefined ||
@@ -114,6 +117,7 @@ export const Slider = ({
 	 */
 	const onDrop = useCallback(
 		(event: Event): void => {
+			if (min === undefined || max === undefined) return;
 			if (
 				widthRef.current === null ||
 				startState === undefined ||
@@ -142,6 +146,7 @@ export const Slider = ({
 	 */
 	const jumpTo = useCallback(
 		(event: React.MouseEvent<HTMLDivElement, MouseEvent>): void => {
+			if (min === undefined || max === undefined) return;
 			event.preventDefault();
 			event.stopPropagation();
 
@@ -185,11 +190,13 @@ export const Slider = ({
 					step={1}
 					min={min}
 					max={max}
-					className="flex h-5 w-10 items-center justify-center rounded border border-gray px-1 py-3 text-center text-sm"
+					className="flex h-5 w-12 items-center justify-center rounded border border-gray px-1 py-3 text-center text-sm"
 				></input>
 				{unit !== undefined ? <span className="ml-1">{unit}</span> : <></>}
 			</div>
-			{
+			{min === undefined || max === undefined ? (
+				<div className="my-2 h-4 grow"></div>
+			) : (
 				// eslint-disable-next-line jsx-a11y/no-static-element-interactions
 				<div className="relative my-2 h-4 grow" onMouseDown={jumpTo}>
 					<div
@@ -217,7 +224,7 @@ export const Slider = ({
 						className="absolute -left-2 h-4 w-4 cursor-pointer rounded-full border-2 border-primary bg-white"
 					></button>
 				</div>
-			}
+			)}
 		</div>
 	);
 };

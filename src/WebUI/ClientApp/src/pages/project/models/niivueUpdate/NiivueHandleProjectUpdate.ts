@@ -1,5 +1,6 @@
 import type { INiivueCache } from '@/pages/project/NiivueWrapper';
 import type { ProjectState } from '@/pages/project/models/ProjectState';
+import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 import { niivueHandleMeshesUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleMeshesUpdate';
 import { niivueHandleVolumeUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleVolumeUpdate';
 import type { Niivue } from '@niivue/niivue';
@@ -14,7 +15,10 @@ export const niivueHandleProjectUpdate = async (
 	prev: ProjectState | undefined,
 	next: ProjectState,
 	niivue: Niivue,
-	cache: INiivueCache
+	cache: INiivueCache,
+	updateMinMax: (
+		update: { volume: VolumeFile; min: number; max: number }[]
+	) => void
 ): Promise<void> => {
 	const propagateProjectProperties = (): boolean => {
 		let hasChanged = false;
@@ -57,7 +61,8 @@ export const niivueHandleProjectUpdate = async (
 		prev?.files,
 		next.files,
 		niivue,
-		cache
+		cache,
+		updateMinMax
 	);
 
 	const renderForMeshes = await niivueHandleMeshesUpdate(

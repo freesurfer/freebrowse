@@ -110,6 +110,8 @@ export const FileSettings = ({
 										onEnd={(value) =>
 											updateFileOptions(volume, { opacity: value }, true)
 										}
+										min={0}
+										max={100}
 									></Slider>
 									{volume.colorMap.backend === COLOR_MAP_BACKEND.GRAY ? (
 										<>
@@ -134,6 +136,8 @@ export const FileSettings = ({
 														true
 													)
 												}
+												min={volume.contrastMinThreshold}
+												max={volume.contrastMaxThreshold}
 											></Slider>
 											<Slider
 												className="mt-2"
@@ -153,6 +157,8 @@ export const FileSettings = ({
 														true
 													)
 												}
+												min={volume.contrastMinThreshold}
+												max={volume.contrastMaxThreshold}
 											></Slider>
 										</>
 									) : (

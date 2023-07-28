@@ -279,7 +279,7 @@ declare module '@niivue/niivue' {
 		nFrame4D: any;
 		nVox3D: any;
 		nTotalFrame4D: any;
-		img: any;
+		img: Float64Array;
 		computeObliqueAngle(mtx44: any): number;
 		calculateOblique(): void;
 		oblique_angle: any;
@@ -310,7 +310,7 @@ declare module '@niivue/niivue' {
 		mm100: any;
 		mm010: any;
 		mm001: any;
-		dimsRAS: any;
+		dimsRAS: [number, number, number, number];
 		pixDimsRAS: any;
 		permRAS: any;
 		toRAS: any;
