@@ -78,8 +78,11 @@ export const useApiVolume = (): {
 				(previousCloudVolume) =>
 					previousCloudVolume.id === currentCloudVolume.id
 			);
-
-			if (!hasChanged(currentCloudVolume, previousCloudVolume)) continue;
+			if (
+				!hasChanged(currentCloudVolume, previousCloudVolume) &&
+				!currentCloudVolume.hasChanges
+			)
+				continue;
 
 			await client.current.edit(
 				new EditVolumeCommand({
@@ -90,6 +93,9 @@ export const useApiVolume = (): {
 					colorMap: currentCloudVolume.colorMap.backend,
 					opacity: currentCloudVolume.opacity,
 					visible: currentCloudVolume.isChecked,
+					base64: currentCloudVolume.hasChanges
+						? currentCloudVolume.base64
+						: undefined,
 				})
 			);
 		}

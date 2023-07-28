@@ -478,6 +478,8 @@ export class ProjectFiles {
 					uploadResponse.opacity,
 					ColorMap.fromBackend(uploadResponse.colorMap) ??
 						CloudVolumeFile.DEFAULT_COLOR_MAP,
+					false,
+					undefined,
 					uploadResponse.contrastMin,
 					uploadResponse.contrastMax
 				);

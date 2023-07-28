@@ -53,6 +53,8 @@ export class CloudVolumeFile
 			fileDto.opacity ?? 100,
 			ColorMap.fromBackend(fileDto.colorMap) ??
 				CloudVolumeFile.DEFAULT_COLOR_MAP,
+			false,
+			undefined,
 			fileDto.contrastMin ?? 0,
 			fileDto.contrastMax ?? 100
 		);
@@ -67,6 +69,8 @@ export class CloudVolumeFile
 		public readonly order: number,
 		public readonly opacity: number,
 		public readonly colorMap: ColorMap,
+		public readonly hasChanges: boolean,
+		public readonly base64: string | undefined,
 		public readonly contrastMin = 0,
 		public readonly contrastMax = 100,
 		public readonly contrastMinThreshold: number | undefined = undefined,
@@ -82,6 +86,8 @@ export class CloudVolumeFile
 		isChecked?: boolean;
 		opacity?: number;
 		colorMap?: ColorMap;
+		hasChanges?: boolean;
+		base64?: string;
 		contrastMin?: number;
 		contrastMax?: number;
 		contrastMinThreshold?: number | undefined;
@@ -96,6 +102,8 @@ export class CloudVolumeFile
 			options.order ?? this.order,
 			options.opacity ?? this.opacity,
 			options.colorMap ?? this.colorMap,
+			options.hasChanges ?? this.hasChanges,
+			options.base64 ?? this.base64,
 			options.contrastMin ?? this.contrastMin,
 			options.contrastMax ?? this.contrastMax,
 			options.contrastMinThreshold ?? this.contrastMinThreshold,

@@ -617,6 +617,38 @@
         }
       }
     },
+    "/api/Projects/Download": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "Projects_Download",
+        "parameters": [
+          {
+            "name": "Id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Surface": {
       "get": {
         "tags": [

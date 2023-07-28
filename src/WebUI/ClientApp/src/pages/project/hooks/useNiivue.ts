@@ -1,10 +1,8 @@
 import { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { useQueueDebounced } from '@/pages/project/hooks/api/useQueueDebounced';
-import {
-	USER_MODE,
-	type ProjectState,
-} from '@/pages/project/models/ProjectState';
+import { USER_MODE, ProjectState } from '@/pages/project/models/ProjectState';
 import { ViewSettings } from '@/pages/project/models/ViewSettings';
+import type { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 // import type { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import type { LocationData } from '@niivue/niivue';
 import { useRef, useState, useEffect, useCallback, type Dispatch } from 'react';
@@ -120,19 +118,89 @@ export const useNiivue = (
 		niivueWrapper.current?.setOnLocationChange((location) => {
 			// if we do not add a timeout here, we get infinity loops in the react render procedure
 			// when the user is creating new way points as fast as possible
-			setTimeout(() => {
-				if (location !== undefined)
-					setProjectState((projectState) => {
-						return projectState?.from({
+			// setTimeout(() => {
+			if (location !== undefined) {
+				const getChangedVolumes = (
+					location: LocationData
+				): CloudVolumeFile[] => {
+					const changedVolumesNames: string[] = [];
+
+					if (
+						projectState?.userMode === USER_MODE.EDIT_VOXEL &&
+						niivueWrapper.current !== undefined &&
+						niivueWrapper.current.niivue.uiData.mouseButtonLeftDown
+					) {
+						projectState?.files.volumes.cloud.forEach((volume) => {
+							if (volume.isActive) {
+								const index =
+									niivueWrapper.current?.niivue.volumes.findIndex(
+										(niivueVolume) => niivueVolume.name === volume.name
+									) ?? -1;
+
+								if (index === -1) return;
+
+								niivueWrapper.current?.niivue.setVoxelsWithBrushSize(
+									location.values[index]?.vox[0] ?? 0,
+									location.values[index]?.vox[1] ?? 0,
+									location.values[index]?.vox[2] ?? 0,
+									projectState?.brushValue ?? 0,
+									index,
+									projectState?.brushSize ?? 0,
+									0
+								);
+
+								changedVolumesNames.push(volume.name);
+							}
+						});
+					}
+
+					if (changedVolumesNames.length > 0) {
+						return (
+							projectState?.files.volumes.cloud.map((volume) =>
+								changedVolumesNames.some((name) => volume.name === name)
+									? volume.from({ hasChanges: true })
+									: volume
+							) ?? []
+						);
+					}
+
+					return [];
+				};
+
+				const changedVolumes = getChangedVolumes(location);
+				if (changedVolumes.length > 0) {
+					setProjectState((projectState) =>
+						projectState === undefined
+							? undefined
+							: new ProjectState(
+									{
+										projectState,
+										crosshairPosition: {
+											x: location?.mm[0],
+											y: location?.mm[1],
+											z: location?.mm[2],
+										},
+										files:
+											projectState?.files.fromAdaptedVolumes(changedVolumes),
+									},
+									true
+							  )
+					);
+				} else {
+					setProjectState((projectState) =>
+						projectState?.from({
 							crosshairPosition: {
 								x: location?.mm[0],
 								y: location?.mm[1],
 								z: location?.mm[2],
 							},
-						});
-					});
-				setLocation(location);
-			}, 0);
+						})
+					);
+				}
+			}
+
+			setLocation(location);
+			// }, 0);
 		});
 
 		niivueWrapper.current?.setOnMouseUp((uiData) => {
@@ -234,7 +302,7 @@ export const useNiivue = (
 				/* do nothing */
 			});
 		};
-	}, [setProjectState, setLocation, niivueWrapperInitialized]);
+	}, [setProjectState, setLocation, niivueWrapperInitialized, projectState]);
 
 	useQueueDebounced(
 		projectState,

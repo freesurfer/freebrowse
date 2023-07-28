@@ -25,9 +25,9 @@ export const ProjectPage = (): ReactElement => {
 		<div className="flex h-full flex-col text-font">
 			<TopBar
 				projectState={projectState}
+				setProjectState={setProjectState}
 				location={location}
 				niivueWrapper={niivueWrapper}
-				setProjectState={setProjectState}
 				wayPointUndo={wayPointUndo}
 				wayPointRedo={wayPointRedo}
 			></TopBar>

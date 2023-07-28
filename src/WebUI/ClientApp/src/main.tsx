@@ -1,5 +1,6 @@
 import { MainRouter } from '@/MainRouter';
 import '@/index.css';
+import { DownloadFilesDialog } from '@/pages/project/dialogs/downloadFiles/DownloadFilesDialog';
 import { NewPointSetDialog } from '@/pages/project/dialogs/newPointSet/NewPointSetDialog';
 import { OpenProjectDialog } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
 import React from 'react';
@@ -11,9 +12,11 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 	<React.StrictMode>
 		<ReactNotifications />
 		<OpenProjectDialog>
-			<NewPointSetDialog>
-				<MainRouter />
-			</NewPointSetDialog>
+			<DownloadFilesDialog>
+				<NewPointSetDialog>
+					<MainRouter />
+				</NewPointSetDialog>
+			</DownloadFilesDialog>
 		</OpenProjectDialog>
 	</React.StrictMode>
 );

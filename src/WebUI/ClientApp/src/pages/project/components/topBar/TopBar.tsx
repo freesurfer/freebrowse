@@ -2,55 +2,198 @@ import { BrainIcon } from '@/assets/BrainIcon';
 import { EqualSplitViewIcon } from '@/assets/EqualSplitViewIcon';
 import { NavigateIcon } from '@/assets/NavigateIcon';
 import { SaveAllIcon } from '@/assets/SaveAllIcon';
+import { useApiProject } from '@/hooks/useApiProject';
+import { useApiVolume } from '@/hooks/useApiVolume';
 import type { NiivueWrapper } from '@/pages/project/NiivueWrapper';
 import { ToolButton } from '@/pages/project/components/topBar/ToolButton';
 import { ToolButtonRadio } from '@/pages/project/components/topBar/ToolButtonRadio';
 import { ToolButtonSelect } from '@/pages/project/components/topBar/ToolButtonSelect';
+import { DownloadFilesDialogContext } from '@/pages/project/dialogs/downloadFiles/DownloadFilesDialog';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
 import { USER_MODE, ProjectState } from '@/pages/project/models/ProjectState';
+import type { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
+import { convertVolumeToBase64 } from '@/pages/project/models/file/ProjectFileHelper';
 import {
 	ArrowUturnLeftIcon,
 	ArrowUturnRightIcon,
 	DocumentPlusIcon,
 	PencilIcon,
 	PencilSquareIcon,
+	ArrowDownTrayIcon,
+	BookmarkSquareIcon,
 	ShareIcon,
 } from '@heroicons/react/24/outline';
-import type { LocationData } from '@niivue/niivue';
+import type { LocationData, NVImage } from '@niivue/niivue';
+import { saveAs } from 'file-saver';
 import {
 	type Dispatch,
 	type ReactElement,
 	useCallback,
 	useContext,
+	useEffect,
 } from 'react';
 import { Store } from 'react-notifications-component';
 import { useNavigate } from 'react-router';
 
 export const TopBar = ({
 	projectState,
+	setProjectState,
 	location,
 	niivueWrapper,
-	setProjectState,
 	wayPointUndo,
 	wayPointRedo,
 }: {
 	projectState: ProjectState | undefined;
-	location: LocationData | undefined;
-	niivueWrapper: NiivueWrapper | undefined;
 	setProjectState: Dispatch<
 		(currentState: ProjectState | undefined) => ProjectState | undefined
 	>;
+	location: LocationData | undefined;
+	niivueWrapper: NiivueWrapper | undefined;
 	wayPointUndo: () => void;
 	wayPointRedo: () => void;
 }): ReactElement => {
+	const apiProject = useApiProject();
 	const navigate = useNavigate();
 	const { createProject } = useContext(OpenProjectDialogContext);
+	const apiVolume = useApiVolume();
+	const { download } = useContext(DownloadFilesDialogContext);
+
+	const onDownloadClick = async (): Promise<void> => {
+		if (projectState === undefined) return;
+		if (niivueWrapper === undefined) return;
+
+		const changedVolumes = getChangedVolumes(projectState, niivueWrapper);
+
+		let result;
+		if (changedVolumes.length > 0) {
+			result = await download(projectState.id, changedVolumes);
+
+			if (result === 'canceled') return;
+
+			setProjectState((projectState) =>
+				projectState?.fromFiles(
+					projectState.files.fromAdaptedVolumes(
+						projectState.files.volumes.cloud.map((volume) =>
+							volume.from({ hasChanges: false })
+						)
+					)
+				)
+			);
+		} else {
+			result = await apiProject.download(projectState.id);
+		}
+
+		saveAs(
+			result.data,
+			`${projectState.name ?? 'FreeBrowse - Project Files'}.zip`
+		);
+	};
+
+	const onSaveClick = useCallback(async (): Promise<void> => {
+		if (projectState === undefined) return;
+		if (niivueWrapper === undefined) return;
+
+		const changedVolumes = getChangedVolumes(projectState, niivueWrapper);
+
+		if (changedVolumes.length > 0) {
+			const volumesWithBase64 = await Promise.all(
+				changedVolumes.map(async (v) =>
+					v.niivueVolume === undefined
+						? v.cloudVolume
+						: v.cloudVolume.from({
+								base64: await convertVolumeToBase64(v.niivueVolume),
+						  })
+				)
+			);
+
+			try {
+				await apiVolume.edit(
+					volumesWithBase64,
+					changedVolumes.map((v) => v.cloudVolume)
+				);
+
+				setProjectState((projectState) =>
+					projectState?.fromFiles(
+						projectState.files.fromAdaptedVolumes(
+							projectState.files.volumes.cloud.map((volume) =>
+								volume.from({ hasChanges: false })
+							)
+						)
+					)
+				);
+
+				Store.addNotification({
+					message: 'volume edits saved',
+					type: 'success',
+					insert: 'top',
+					container: 'top-right',
+					animationIn: ['animate__animated', 'animate__fadeIn'],
+					animationOut: ['animate__animated', 'animate__fadeOut'],
+					dismiss: {
+						duration: 1500,
+						onScreen: true,
+					},
+				});
+			} catch (error) {
+				console.error('something went wrong', error);
+			}
+		}
+	}, [projectState, setProjectState, niivueWrapper, apiVolume]);
+
+	const getChangedVolumes = (
+		projectState: ProjectState,
+		niivueWrapper: NiivueWrapper
+	): {
+		cloudVolume: CloudVolumeFile;
+		niivueVolume: NVImage | undefined;
+	}[] => {
+		return projectState.files.volumes.cloud
+			.map((v) => {
+				return {
+					cloudVolume: v,
+					niivueVolume: niivueWrapper.getCachedVolume(v.name),
+				};
+			})
+			.filter((v) => v.cloudVolume.hasChanges && v.niivueVolume !== undefined);
+	};
 
 	const onGetStartedClick = useCallback(async (): Promise<void> => {
 		const result = await createProject();
 		if (result === 'canceled') return;
 		navigate(`/project/${result.projectId}`);
 	}, [createProject, navigate]);
+
+	useEffect(() => {
+		const onKeyDown = (e: KeyboardEvent): void => {
+			if (e.ctrlKey && e.key === 's') {
+				e.preventDefault();
+				void onSaveClick();
+			}
+		};
+
+		const handleBrowserClose = (e: BeforeUnloadEvent): void => {
+			if (projectState === undefined) return;
+			if (niivueWrapper === undefined) return;
+
+			const changedVolumes = getChangedVolumes(projectState, niivueWrapper);
+			if (changedVolumes.length > 0) {
+				e.preventDefault();
+				e.returnValue = '';
+			}
+		};
+
+		window.addEventListener('beforeunload', handleBrowserClose, {
+			capture: true,
+		});
+		window.addEventListener('keydown', onKeyDown);
+
+		return () => {
+			window.removeEventListener('beforeunload', handleBrowserClose, {
+				capture: true,
+			});
+			window.removeEventListener('keydown', onKeyDown);
+		};
+	}, [projectState, niivueWrapper, onSaveClick]);
 
 	const createDeepLink = (
 		projectState: ProjectState | undefined,
@@ -143,8 +286,15 @@ export const TopBar = ({
 		console.warn('no action defined for undo on other user modes');
 	}, [projectState, niivueWrapper, wayPointRedo]);
 
+	const onShareClick = useCallback(async () => {
+		await navigator.clipboard.writeText(
+			createDeepLink(projectState, location, niivueWrapper)
+		);
+		displayDeeplinkCopiedNotification();
+	}, [projectState, location, niivueWrapper]);
+
 	return (
-		<div className="flex items-baseline bg-font px-4">
+		<div className="flex items-baseline bg-font px-4 [&>*:nth-child(7)]:ml-auto">
 			<ToolButtonSelect
 				label="FreeBrowse"
 				icon={(className) => <BrainIcon className={className} />}
@@ -215,15 +365,29 @@ export const TopBar = ({
 				buttonProps={{ onClick: onClickRedo }}
 			/>
 			<ToolButton
+				label="Save"
+				buttonProps={{
+					onClick: () => {
+						void onSaveClick();
+					},
+				}}
+				icon={(className) => <BookmarkSquareIcon className={className} />}
+			/>
+			<ToolButton
+				label="Download"
+				buttonProps={{
+					onClick: () => {
+						void onDownloadClick();
+					},
+				}}
+				icon={(className) => <ArrowDownTrayIcon className={className} />}
+			/>
+			<ToolButton
 				label="Share"
 				icon={(className) => <ShareIcon className={className} />}
 				buttonProps={{
 					onClick: () => {
-						void navigator.clipboard
-							.writeText(createDeepLink(projectState, location, niivueWrapper))
-							.then(() => {
-								displayDeeplinkCopiedNotification();
-							});
+						void onShareClick();
 					},
 				}}
 			/>

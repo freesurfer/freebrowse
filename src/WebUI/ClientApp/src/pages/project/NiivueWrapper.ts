@@ -1,10 +1,7 @@
 import LookUpTable from '@/pages/project/colorMaps/LookUpTable.json';
 import { NiivueEventHandlers } from '@/pages/project/eventHandlers/niivueEventHandlers';
 import { COLOR_MAP_NIIVUE } from '@/pages/project/models/ColorMap';
-import {
-	type ProjectState,
-	USER_MODE,
-} from '@/pages/project/models/ProjectState';
+import { type ProjectState } from '@/pages/project/models/ProjectState';
 import type { ViewSettings } from '@/pages/project/models/ViewSettings';
 import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
 import { niivueHandleProjectUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleProjectUpdate';
@@ -41,29 +38,6 @@ export class NiivueWrapper {
 					};
 				}),
 			});
-
-			if (
-				this.projectState?.userMode === USER_MODE.EDIT_VOXEL &&
-				this.niivue.uiData.mouseButtonLeftDown
-			) {
-				this.projectState.files.volumes.cloud.forEach((volume) => {
-					if (volume.isActive) {
-						const index = this.niivue.volumes.findIndex(
-							(niivueVolume) => niivueVolume.name === volume.name
-						);
-						if (index === -1) return;
-						this.niivue.setVoxelsWithBrushSize(
-							location.values[index]?.vox[0] ?? 0,
-							location.values[index]?.vox[1] ?? 0,
-							location.values[index]?.vox[2] ?? 0,
-							this.projectState?.brushValue ?? 0,
-							index,
-							this.projectState?.brushSize ?? 0,
-							0
-						);
-					}
-				});
-			}
 		},
 		dragAndDropEnabled: false,
 		dragMode: 3,
@@ -129,6 +103,10 @@ export class NiivueWrapper {
 		this.onUpdateMinMax = callback;
 	}
 
+	public getCachedVolume(key: string): NVImage | undefined {
+		return this.cache.volumes.get(key);
+	}
+
 	coordinatesFromMouse(
 		fracPos: [number]
 	): ReturnType<typeof this.niivue.frac2mm> {
@@ -153,7 +131,6 @@ export class NiivueWrapper {
 
 		this.projectState = nextState;
 		this.niivueEventHandlers.updateProjectState(this.projectState);
-
 		if (previousState === undefined) {
 			await this.setViewState(viewSettings);
 		}

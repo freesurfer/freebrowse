@@ -1,3 +1,4 @@
+import type { FileResponse } from '@/generated/web-api-client';
 import {
 	CreateProjectCommand,
 	CreateProjectSurfaceDto,
@@ -34,6 +35,7 @@ export const useApiProject = (): {
 	) => Promise<{
 		projectId: number;
 	}>;
+	download: (projectId: number) => Promise<FileResponse>;
 } => {
 	const projectClient = useRef(new ProjectsClient(getApiUrl()));
 
@@ -181,5 +183,13 @@ export const useApiProject = (): {
 		return { projectId: editProjectResponse.id };
 	};
 
-	return { get, create, edit };
+	const download = async (projectId: number): Promise<FileResponse> => {
+		if (projectId === undefined) {
+			throw new Error('no project id given');
+		}
+
+		return await projectClient.current.download(projectId);
+	};
+
+	return { get, create, edit, download };
 };

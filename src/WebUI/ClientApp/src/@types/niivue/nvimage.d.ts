@@ -37,6 +37,43 @@ declare module '@niivue/niivue' {
 		parse: (ext: any) => 0;
 	}>;
 
+	export interface INVImageFooter {
+		tr: number;
+		flipAngle: number;
+		te: number;
+		ti: number;
+		fov: number;
+		tagsBytes: Uint8Array;
+	}
+
+	export interface INVImageHeader {
+		img: byte[];
+		littleEndian: boolean;
+		dims: [number, number, number, number, number, number, number, number];
+		vox_offset: number;
+		numBitsPerVoxel: number;
+		datatypeCode: number;
+		pixDims: [number, number, number, number];
+		rot44: [
+			number,
+			number,
+			number,
+			number,
+			number,
+			number,
+			number,
+			number,
+			number,
+			number,
+			number,
+			number,
+			number,
+			number,
+			number,
+			number
+		];
+	}
+
 	/**
  * NVImageFromUrlOptions
  * @typedef  NVImageFromUrlOptions
@@ -274,7 +311,8 @@ declare module '@niivue/niivue' {
 		series: any;
 		onColorMapChange: any;
 		onOpacityChange: any;
-		hdr: any;
+		hdr: INVImageHeader;
+		footer: INVImageFooter;
 		imageType: any;
 		nFrame4D: any;
 		nVox3D: any;

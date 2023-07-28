@@ -1,4 +1,4 @@
-import { BrainIcon } from '@/assets/BrainIcon';
+import brain from '@/assets/brain.png';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
 import { useCallback, useContext } from 'react';
 import type { ReactElement } from 'react';
@@ -37,7 +37,7 @@ export const LandingTitle = ({
 				</div>
 			</div>
 			<div className="flex h-full w-full grow items-center">
-				<BrainIcon className="h-full w-full object-cover text-primary" />
+				<img alt="Brain" src={brain} className="h-full w-full object-cover" />
 			</div>
 		</div>
 	);

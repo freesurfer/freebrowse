@@ -39,7 +39,7 @@ export const niivueHandleProjectUpdate = async (
 				newPosition[2] !== niivue.scene.crosshairPos[2]
 			) {
 				niivue.scene.crosshairPos = newPosition;
-				niivue.createOnLocationChange();
+				//	niivue.createOnLocationChange();
 				hasChanged = true;
 			}
 		}
