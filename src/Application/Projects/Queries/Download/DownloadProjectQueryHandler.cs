@@ -51,35 +51,39 @@ public class DownloadProjectQueryHandler : IRequestHandler<DownloadProjectQuery,
 
 	private async Task<byte[]> CreateArchiveAsync(ProjectInfo project)
 	{
-		using var archiveStream = new MemoryStream();
-		using var archive = new ZipArchive(archiveStream, ZipArchiveMode.Create, true);
-			
-		foreach (var file in project.Volumes)
+		using (var archiveStream = new MemoryStream())
 		{
-			await this.AddFileToArchive(archive, file);
-		}
-
-		foreach (var file in project.Surfaces)
-		{
-			await this.AddFileToArchive(archive, file);
-
-			foreach (var overlay in file.Overlays)
+			using (var archive = new ZipArchive(archiveStream, ZipArchiveMode.Create, true))
 			{
-				await this.AddFileToArchive(archive, overlay);
+
+				foreach (var file in project.Volumes)
+				{
+					await this.AddFileToArchive(archive, file);
+				}
+
+				foreach (var file in project.Surfaces)
+				{
+					await this.AddFileToArchive(archive, file);
+
+					foreach (var overlay in file.Overlays)
+					{
+						await this.AddFileToArchive(archive, overlay);
+					}
+
+					foreach (var annotation in file.Annotations)
+					{
+						await this.AddFileToArchive(archive, annotation);
+					}
+				}
+
+				foreach (var file in project.PointSets)
+				{
+					await this.AddFileToArchive(archive, file);
+				}
 			}
 
-			foreach (var annotation in file.Annotations)
-			{
-				await this.AddFileToArchive(archive, annotation);
-			}
-		}
-
-		foreach (var file in project.PointSets)
-		{
-			await this.AddFileToArchive(archive, file);
-		}
-
-		return archiveStream.ToArray();		
+			return archiveStream.ToArray();
+		}	
 	}
 
 	private async Task AddFileToArchive(ZipArchive archive, FileInfo file)
