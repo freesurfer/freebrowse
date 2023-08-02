@@ -1,7 +1,6 @@
 import { BrainIcon } from '@/assets/BrainIcon';
 import { EqualSplitViewIcon } from '@/assets/EqualSplitViewIcon';
 import { NavigateIcon } from '@/assets/NavigateIcon';
-import { SaveAllIcon } from '@/assets/SaveAllIcon';
 import { useApiProject } from '@/hooks/useApiProject';
 import { useApiVolume } from '@/hooks/useApiVolume';
 import type { NiivueWrapper } from '@/pages/project/NiivueWrapper';
@@ -294,7 +293,7 @@ export const TopBar = ({
 	}, [projectState, location, niivueWrapper]);
 
 	return (
-		<div className="flex items-baseline bg-font px-4 [&>*:nth-child(7)]:ml-auto">
+		<div className="flex items-baseline bg-font px-4 [&>*:nth-child(6)]:ml-auto">
 			<ToolButtonSelect
 				label="FreeBrowse"
 				icon={(className) => <BrainIcon className={className} />}
@@ -348,11 +347,6 @@ export const TopBar = ({
 				buttonProps={{
 					onClick: () => alert('Not implemented yet - Equal Split'),
 				}}
-			></ToolButton>
-			<ToolButton
-				label="Save All"
-				icon={(className) => <SaveAllIcon className={className} />}
-				buttonProps={{ onClick: () => alert('Not implemented yet - Save All') }}
 			></ToolButton>
 			<ToolButton
 				label="Undo"

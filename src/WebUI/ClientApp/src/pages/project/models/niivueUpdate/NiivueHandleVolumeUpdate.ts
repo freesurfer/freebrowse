@@ -83,6 +83,20 @@ export const niivueHandleVolumeUpdate = async (
 						};
 					})
 			);
+
+			niivue.volumes.forEach((niivueVolume) => {
+				const cmap = niivue.colormapFromKey(niivueVolume.colormap);
+
+				if (
+					cmap.R !== undefined &&
+					cmap.labels !== undefined &&
+					cmap.labels.length !== 0
+				) {
+					niivueVolume.setColormapLabel(cmap);
+				} else {
+					niivueVolume.colormapLabel = [];
+				}
+			});
 		};
 
 		try {
