@@ -31,7 +31,12 @@ export const ProjectPage = (): ReactElement => {
 				wayPointUndo={wayPointUndo}
 				wayPointRedo={wayPointRedo}
 			></TopBar>
-			<div className="border-5 flex h-full flex-row border-red">
+			<div
+				className="border-5 flex h-full flex-row border-red"
+				style={{
+					height: 'calc(100% - 80px)',
+				}}
+			>
 				<LeftBar
 					projectState={projectState}
 					setProjectState={setProjectState}

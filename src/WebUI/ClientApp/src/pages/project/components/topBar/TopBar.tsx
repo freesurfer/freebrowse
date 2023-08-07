@@ -293,7 +293,7 @@ export const TopBar = ({
 	}, [projectState, location, niivueWrapper]);
 
 	return (
-		<div className="flex items-baseline bg-font px-4 [&>*:nth-child(6)]:ml-auto">
+		<div className="flex h-20 items-baseline bg-font px-4 [&>*:nth-child(6)]:ml-auto">
 			<ToolButtonSelect
 				label="FreeBrowse"
 				icon={(className) => <BrainIcon className={className} />}

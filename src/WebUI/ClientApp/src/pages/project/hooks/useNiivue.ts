@@ -271,6 +271,7 @@ export const useNiivue = (
 								},
 							],
 						},
+						selectedWayPoint: file.data.points.length + 1,
 					},
 					true
 				);

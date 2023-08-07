@@ -14,6 +14,14 @@ import {
 	NVMesh,
 } from '@niivue/niivue';
 
+interface Cmap {
+	R: [number, number];
+	G: [number, number];
+	B: [number, number];
+	A: [number, number];
+	I: [number, number];
+}
+
 /**
  * handles surfaces and point sets, since both are getting treated as meshes
  */
@@ -185,6 +193,11 @@ export const niivueHandleMeshesUpdate = async (
 				1.0,
 				true
 			);
+
+			const cmap = rgbToCmap(pointSet.data.color);
+			niivue.addColormap(pointSet.name, cmap);
+			niivueMesh.nodeColormap = pointSet.name;
+
 			niivue.addMesh(niivueMesh);
 			niivueMesh.updateMesh(niivue.gl);
 			hasChanged = true;
@@ -327,6 +340,22 @@ export const niivueHandleMeshesUpdate = async (
 			)
 				cache.surfaces.delete(key);
 		}
+	};
+
+	const rgbToCmap = (rgb: [number, number, number]): Cmap => {
+		if (rgb.length !== 3) {
+			throw new Error('Invalid RGB input');
+		}
+
+		const cmap: Cmap = {
+			R: [rgb[0], rgb[0]],
+			G: [rgb[1], rgb[1]],
+			B: [rgb[2], rgb[2]],
+			A: [0, 128],
+			I: [0, 255],
+		};
+
+		return cmap;
 	};
 
 	const renderForInit = await initMeshes();
