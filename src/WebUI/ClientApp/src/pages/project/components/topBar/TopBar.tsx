@@ -9,7 +9,11 @@ import { ToolButtonRadio } from '@/pages/project/components/topBar/ToolButtonRad
 import { ToolButtonSelect } from '@/pages/project/components/topBar/ToolButtonSelect';
 import { DownloadFilesDialogContext } from '@/pages/project/dialogs/downloadFiles/DownloadFilesDialog';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
-import { USER_MODE, ProjectState } from '@/pages/project/models/ProjectState';
+import {
+	USER_MODE,
+	ProjectState,
+	SLICE_TYPE,
+} from '@/pages/project/models/ProjectState';
 import type { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import { convertVolumeToBase64 } from '@/pages/project/models/file/ProjectFileHelper';
 import {
@@ -341,13 +345,47 @@ export const TopBar = ({
 					})
 				}
 			></ToolButtonRadio>
-			<ToolButton
-				label="Equal Split"
-				icon={(className) => <EqualSplitViewIcon className={className} />}
-				buttonProps={{
-					onClick: () => alert('Not implemented yet - Equal Split'),
-				}}
-			></ToolButton>
+			<ToolButtonRadio
+				entries={[
+					{
+						label: 'Axial',
+						icon: (className) => <EqualSplitViewIcon className={className} />,
+						value: SLICE_TYPE.AXIAL,
+						shortcut: '1',
+					},
+					{
+						label: 'Coronal',
+						icon: (className) => <EqualSplitViewIcon className={className} />,
+						value: SLICE_TYPE.CORONAL,
+						shortcut: '2',
+					},
+					{
+						label: 'Sagittal',
+						icon: (className) => <EqualSplitViewIcon className={className} />,
+						value: SLICE_TYPE.SAGITTAL,
+						shortcut: '3',
+					},
+					{
+						label: '3D Render',
+						icon: (className) => <EqualSplitViewIcon className={className} />,
+						value: SLICE_TYPE.RENDER,
+						shortcut: '4',
+					},
+					{
+						label: 'Equal Split',
+						icon: (className) => <EqualSplitViewIcon className={className} />,
+						value: SLICE_TYPE.MULTIPLANAR,
+						shortcut: '5',
+					},
+				]}
+				value={projectState?.sliceType ?? SLICE_TYPE.MULTIPLANAR}
+				onChange={(value) =>
+					setProjectState((projectState) => {
+						if (projectState === undefined) return undefined;
+						return new ProjectState({ projectState, sliceType: value }, false);
+					})
+				}
+			></ToolButtonRadio>
 			<ToolButton
 				label="Undo"
 				icon={(className) => <ArrowUturnLeftIcon className={className} />}

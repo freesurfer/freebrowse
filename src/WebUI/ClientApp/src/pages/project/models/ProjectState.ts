@@ -20,6 +20,17 @@ export enum USER_MODE {
 	EDIT_POINTS,
 }
 
+/**
+ * The slice type of the canvas
+ */
+export enum SLICE_TYPE {
+	AXIAL,
+	CORONAL,
+	SAGITTAL,
+	MULTIPLANAR,
+	RENDER,
+}
+
 export interface ICrosshairPosition {
 	x: number;
 	y: number;
@@ -48,7 +59,17 @@ export class ProjectState {
 	 * the mode the user is interacting with the UI right now
 	 */
 	public readonly userMode: USER_MODE;
+	/**
+	 * the mode the user is interacting with the UI right now
+	 */
+	public readonly sliceType: number | undefined;
+	/**
+	 * the size of the brush when editing the voxel
+	 */
 	public readonly brushSize: number | undefined;
+	/**
+	 * the value of the brush when editing the voxel
+	 */
 	public readonly brushValue: number | undefined;
 	/**
 	 * thickness of the mesh on the 2d plane
@@ -81,6 +102,7 @@ export class ProjectState {
 			| {
 					projectState: ProjectState;
 					userMode?: USER_MODE;
+					sliceType?: SLICE_TYPE;
 					brushSize?: number;
 					brushValue?: number;
 					meshThicknessOn2D?: number;
@@ -94,6 +116,7 @@ export class ProjectState {
 			this.id = args.id;
 			this.name = args.name;
 			this.userMode = USER_MODE.NAVIGATE;
+			this.sliceType = SLICE_TYPE.MULTIPLANAR;
 			this.brushSize = 1;
 			this.brushValue = 0;
 			this.meshThicknessOn2D = args.meshThicknessOn2D ?? 0;
@@ -106,6 +129,7 @@ export class ProjectState {
 		this.name = args.projectState.name;
 
 		this.userMode = args.userMode ?? args.projectState.userMode;
+		this.sliceType = args.sliceType ?? args.projectState.sliceType;
 		this.brushSize = args.brushSize ?? args.projectState.brushSize;
 		this.brushValue = args.brushValue ?? args.projectState.brushValue;
 
@@ -121,6 +145,7 @@ export class ProjectState {
 	from(
 		options: {
 			userMode?: USER_MODE;
+			sliceType?: SLICE_TYPE;
 			brushSize?: number;
 			brushValue?: number;
 			meshThicknessOn2D?: number;
@@ -134,6 +159,7 @@ export class ProjectState {
 			{
 				projectState: this,
 				userMode: options.userMode ?? this.userMode,
+				sliceType: options.sliceType ?? this.sliceType,
 				brushSize: options.brushSize ?? this.brushSize,
 				brushValue: options.brushValue ?? this.brushValue,
 				meshThicknessOn2D: options.meshThicknessOn2D ?? this.meshThicknessOn2D,

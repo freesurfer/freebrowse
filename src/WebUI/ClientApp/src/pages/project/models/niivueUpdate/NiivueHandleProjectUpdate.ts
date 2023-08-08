@@ -54,6 +54,13 @@ export const niivueHandleProjectUpdate = async (
 			hasChanged = true;
 		}
 
+		if (prev === undefined || prev?.sliceType !== next.sliceType) {
+			// otherwise we only need to update the options
+			// niivue.setMeshThicknessOn2D(projectState.meshThicknessOn2D ?? 0.5);
+			niivue.setSliceType(next?.sliceType ?? niivue.sliceTypeMultiplanar);
+			hasChanged = true;
+		}
+
 		return hasChanged;
 	};
 
@@ -75,7 +82,6 @@ export const niivueHandleProjectUpdate = async (
 	const renderForProperties = propagateProjectProperties();
 
 	if (renderForMeshes || renderForVolumes || renderForProperties) {
-		niivue.setSliceType(niivue.sliceTypeMultiplanar);
 		niivue.updateGLVolume();
 	}
 };
