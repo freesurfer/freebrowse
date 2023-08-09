@@ -46,6 +46,60 @@ Ensure to choose the appropriate storage method depending on your application's 
 
 ---
 
+## Tools and Development Environment
+
+### IDEs and Code Editors
+- [Visual Studio](https://visualstudio.microsoft.com/): Preferred for .NET development.
+- [Visual Studio Code](https://code.visualstudio.com/): Lightweight editor suitable for JavaScript development.
+- [SQL Server Management Studio (SSMS)](https://docs.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms): For managing and querying SQL Server databases.
+
+### Debugging Tools
+- Built-in debugging in [Visual Studio](https://learn.microsoft.com/en-us/visualstudio/debugger/debugger-feature-tour?view=vs-2022) of [Visual Studio Code](https://code.visualstudio.com/docs/editor/debugging): Utilize breakpoints, watch variables, inspect the call stack.
+- [Browser Developer Tools](https://developer.chrome.com/docs/devtools/): For client-side debugging.
+
+## Development Workflow
+1. Clone the Repository: Get the latest codebase from the repository.
+2. Branching: Create feature or bug-fix branches.
+3. Development: Make changes using the recommended IDEs.
+5. Code Review: Submit pull requests and have peer reviews.
+6. Merge and Deploy: Merge into the main branch and deploy to the desired environment.
+
+## Managing Services
+
+### To Start Services
+\`\`\`bash
+dotnet run
+\`\`\`
+
+### To Stop Services
+Press `Ctrl + C` in the terminal where the service is running.
+
+### To Restart Services
+Stop the service as above and start it again using `dotnet run`.
+
+### To Debug Services
+Use the debugging tools in the IDE, setting breakpoints and watching variables as needed.
+
+## Repositories
+- FreeBrowse: Main application repository, including the backend and client app.
+- Niivue.Fork: Contains the our version of the niivue package
+
+## Compilation
+1. Frontend:
+   \`\`\`bash
+   cd ClientApp
+   npm run build
+   \`\`\`
+
+2. Backend:
+   \`\`\`bash
+   dotnet build
+   \`\`\`
+
+Note: You don't have to build the frontend project every time you make changes to it. Simply refresh your browser to see the updates.
+
+---
+
 ## Jupyter Notebook with ipyniivue
 
 ### 1. **Prerequisites**:

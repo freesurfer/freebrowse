@@ -14,6 +14,10 @@ For detailed instructions on installation and usage, please refer to the [Instal
 
 For detailed usage instructions and list of supported features, please refer to the [User Guide](docs/UserGuide.pdf) file.
 
+## Licenses
+
+For detailed information about the packages used in the development and their licenses, please refer to the [LICENSES](docs/LICENSES.xlsx) file.
+
 ## Feedback
 
 Your feedback is invaluable to us as we continue to refine and develop FreeBrowse. If you encounter any issues, have feature requests, or want to share your thoughts on the project, please don't hesitate to reach out. You can submit bug reports, feature requests, or any other feedback to pwighton@mgh.harvard.edu.
