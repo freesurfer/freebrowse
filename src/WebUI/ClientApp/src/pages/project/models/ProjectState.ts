@@ -9,6 +9,7 @@ import {
 import { LOCAL_STORAGE_KEY, localStorageGet } from '@/model/localStorage';
 import {
 	DEFAULT_MESH_THICKNESS,
+	DEFAULT_CROSSHAIR_WIDTH,
 	NiivueWrapper,
 } from '@/pages/project/NiivueWrapper';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
@@ -86,6 +87,18 @@ export class ProjectState {
 	 * thickness of the mesh on the 2d plane
 	 */
 	public meshThicknessOn2D = DEFAULT_MESH_THICKNESS;
+	/**
+	 * thickness of the crosshair
+	 */
+	public crosshairWidth = DEFAULT_CROSSHAIR_WIDTH;
+	/**
+	 * show crosshair
+	 */
+	public showCrosshair = true;
+	/**
+	 * crosshair color
+	 */
+	public crosshairColor = [255, 0, 0, 1];
 	/**
 	 * user information
 	 */
@@ -284,6 +297,21 @@ export class ProjectState {
 		this.niivueUpdateMeshThickness();
 	}
 
+	setCrosshairWidth(crosshairWidth: number): void {
+		this.crosshairWidth = crosshairWidth;
+		this.niivueUpdateCrosshairWidth();
+	}
+
+	setShowCrosshair(showCrosshair: boolean): void {
+		this.showCrosshair = showCrosshair;
+		this.niivueUpdateShowCrosshair();
+	}
+
+	setCrosshairColor(crosshairColor: number[]): void {
+		this.crosshairColor = crosshairColor;
+		this.niivueUpdateCrosshairColor();
+	}
+
 	private async apiPutMeshThickness(): Promise<void> {
 		if (this.id === undefined) return;
 
@@ -303,6 +331,32 @@ export class ProjectState {
 		)
 			return;
 		this.niivueWrapper.niivue.opts.meshThicknessOn2D = this.meshThicknessOn2D;
+		this.niivueWrapper.niivue.updateGLVolume();
+	}
+
+	private niivueUpdateCrosshairWidth(): void {
+		if (this.crosshairWidth === this.niivueWrapper.niivue.opts.crosshairWidth)
+			return;
+		this.niivueWrapper.niivue.opts.crosshairWidth = this.crosshairWidth;
+		this.niivueWrapper.niivue.updateGLVolume();
+	}
+
+	private niivueUpdateShowCrosshair(): void {
+		if (this.showCrosshair)
+			this.niivueWrapper.niivue.opts.crosshairWidth = this.crosshairWidth;
+		else this.niivueWrapper.niivue.opts.crosshairWidth = 0;
+		this.niivueWrapper.niivue.updateGLVolume();
+	}
+
+	private niivueUpdateCrosshairColor(): void {
+		if (this.niivueWrapper.niivue.opts.crosshairColor !== undefined) {
+			this.niivueWrapper.niivue.opts.crosshairColor[0] =
+				(this.crosshairColor[0] ?? 255) / 255;
+			this.niivueWrapper.niivue.opts.crosshairColor[1] =
+				(this.crosshairColor[1] ?? 0) / 255;
+			this.niivueWrapper.niivue.opts.crosshairColor[2] =
+				(this.crosshairColor[2] ?? 0) / 255;
+		}
 		this.niivueWrapper.niivue.updateGLVolume();
 	}
 

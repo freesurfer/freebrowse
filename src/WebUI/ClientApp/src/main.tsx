@@ -3,6 +3,7 @@ import '@/index.css';
 import { DownloadFilesDialog } from '@/pages/project/dialogs/downloadFiles/DownloadFilesDialog';
 import { NewPointSetDialog } from '@/pages/project/dialogs/newPointSet/NewPointSetDialog';
 import { OpenProjectDialog } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
+import { ProjectSettingsDialog } from '@/pages/project/dialogs/projectSettings/ProjectSettingsDialog';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ReactNotifications } from 'react-notifications-component';
@@ -14,7 +15,9 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 		<OpenProjectDialog>
 			<DownloadFilesDialog>
 				<NewPointSetDialog>
-					<MainRouter />
+					<ProjectSettingsDialog>
+						<MainRouter />
+					</ProjectSettingsDialog>
 				</NewPointSetDialog>
 			</DownloadFilesDialog>
 		</OpenProjectDialog>

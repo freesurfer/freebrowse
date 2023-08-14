@@ -82,6 +82,9 @@ export class EventHandler {
 				case 'p':
 					this.projectState.setUserMode(USER_MODE.EDIT_POINTS);
 					break;
+				case 'h':
+					this.projectState.setShowCrosshair(!this.projectState.showCrosshair);
+					break;
 				case '1':
 					this.projectState.setSliceType(SLICE_TYPE.AXIAL);
 					break;

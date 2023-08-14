@@ -12,6 +12,8 @@ import {
 
 export const DEFAULT_MESH_THICKNESS = 1;
 
+export const DEFAULT_CROSSHAIR_WIDTH = 1;
+
 export interface INiivueCache {
 	volumes: Map<string, NVImage>;
 	surfaces: Map<string, NVMesh>;
@@ -41,6 +43,7 @@ export class NiivueWrapper {
 		dragAndDropEnabled: false,
 		dragMode: 3,
 		meshThicknessOn2D: DEFAULT_MESH_THICKNESS,
+		crosshairWidth: DEFAULT_CROSSHAIR_WIDTH,
 		isHighResolutionCapable: false,
 		isOrientCube: false,
 		enableBorderHighlight: true,

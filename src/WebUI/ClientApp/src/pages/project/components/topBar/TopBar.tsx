@@ -6,6 +6,7 @@ import { ToolButtonRadio } from '@/pages/project/components/topBar/ToolButtonRad
 import { ToolButtonSelect } from '@/pages/project/components/topBar/ToolButtonSelect';
 import { DownloadFilesDialogContext } from '@/pages/project/dialogs/downloadFiles/DownloadFilesDialog';
 import { OpenProjectDialogContext } from '@/pages/project/dialogs/openProject/OpenProjectDialog';
+import { ProjectSettingsDialogContext } from '@/pages/project/dialogs/projectSettings/ProjectSettingsDialog';
 import {
 	type ProjectState,
 	USER_MODE,
@@ -24,6 +25,7 @@ import {
 	PencilIcon,
 	PencilSquareIcon,
 	ShareIcon,
+	Cog8ToothIcon,
 } from '@heroicons/react/24/outline';
 import { observer } from 'mobx-react-lite';
 import { type ReactElement, useCallback, useContext, useEffect } from 'react';
@@ -38,6 +40,7 @@ export const TopBar = observer(
 		const navigate = useNavigate();
 		const { createProject } = useContext(OpenProjectDialogContext);
 		const { download } = useContext(DownloadFilesDialogContext);
+		const { openSettings } = useContext(ProjectSettingsDialogContext);
 
 		const onDownloadClick = useCallback(async (): Promise<void> => {
 			if (projectState?.id === undefined) return;
@@ -68,6 +71,12 @@ export const TopBar = observer(
 			if (result.id === undefined) return;
 			navigate(`/project/${result.id}`);
 		}, [createProject, navigate]);
+
+		const onProjectSettingsClick = useCallback(async (): Promise<void> => {
+			if (projectState !== undefined) {
+				await openSettings(projectState);
+			}
+		}, [openSettings, projectState]); // Make sure to include projectState in the dependencies array
 
 		useEffect(() => {
 			const onKeyDown = (e: KeyboardEvent): void => {
@@ -236,6 +245,15 @@ export const TopBar = observer(
 					buttonProps={{
 						onClick: () => {
 							void onShareClick();
+						},
+					}}
+				/>
+				<ToolButton
+					label="Settings"
+					icon={(className) => <Cog8ToothIcon className={className} />}
+					buttonProps={{
+						onClick: () => {
+							void onProjectSettingsClick();
 						},
 					}}
 				/>
