@@ -1,0 +1,16 @@
+**Investigation findings for FreeBrowse High-resolution data usecase**
+The following are our findings from the investigation for potential implementation of the High-resolution volumes handling in FreeBrowse. We assessed whether Niivue can handle such files or an alternative package can be used (Neuroglancer).
+
+**Niivue**
+Niivue is not suitable for high resolution data. High resolution data with size above a few hundreds of megabytes are not suitable to be loaded directly in the browser all at once. In addition without a change to how we upload the files to the FreeBrowse backend, the browser cannot handle files above 2Gb, due to a limit of 2Gb per ArrayBuffer that the browser imposes. If we want to be able to select and upload large files through the browser, we should split the files and send them in chunks to the backend and then assemble them together.
+	
+**Neuroglancer**
+PROS: [Neuroglancer](https://github.com/google/neuroglancer) is a good candidate to use as a framework for working with high resolution data. Neuroglancer supports a "[Precomputed"](https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/README.md) format as a data source. Precomputed sources consist of large amount of small chunks that are requested on demand by Neuroglancer as the user navigates through the volume. No special backend is required to support this format, in fact Precomputed files can be stored and served from a static cloud file storage such as Azure Blob or AWS S3. In order to create a Precomputed data source from an existing nifti file, we may use one of the following two approaches. 
+Approach one: The [neuroglancer command line tools](https://pypi.org/project/neuroglancer/) can be used to directly create Precomputed from a nifti file.
+Approach two: A combination of two Python libraries can be used to achieve a similar result. First the nifti file should be converted to Raw Image Data, this can be done with a library such as [NumPy](https://github.com/numpy/numpy). Once this is done, the raw data should be converted to "Precomputed", this can be done with [CloudVolume](https://github.com/seung-lab/cloud-volume).
+There are differences in the API's of the tools in those two approaches, so depending on our needs we may use one or the other approach.
+
+CONS: Neuroglancer has a readonly approach to handling the data. It doesn't support any way of editing a volume as it is and is designed to only read and display data. However based on our investigation, we think that it is feasible to assume that Neuroglancer's capabilities can be enhanced to write data as well. This would require changes on the frontend and also a specialized backend endpoint that is able to accept modified chunks of a larger file and store those changes accordingly.
+
+**Conclusion**
+The above stated Nuroglancer findings are theoretical and should be confirmed in practice before any larger scale planning is done in that area. We suggest that in order to use the above described approach for editing high-res data with Neuroglancer, first it should be proven as a viable and working solution by implementing it in a minimalistic manner by doing a Spike task to prove the concept in practice.
