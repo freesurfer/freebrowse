@@ -1,6 +1,11 @@
 import type { INVImageHeader, NVImage } from '@niivue/niivue';
 import * as fflate from 'fflate';
 
+export const deleteFromArray = <T>(myArray: T[], element: T): void => {
+	const index = myArray.indexOf(element, 0);
+	if (index > -1) myArray.splice(index, 1);
+};
+
 export const convertFileToBase64 = async (file: File): Promise<string> => {
 	return await new Promise<string>((resolve, reject) => {
 		const reader = new FileReader();

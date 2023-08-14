@@ -102,8 +102,8 @@ public static class ConfigureServices
 
 				// Register the signing and encryption credentials.
 				options
-					.AddDevelopmentEncryptionCertificate()
-					.AddDevelopmentSigningCertificate();
+					.AddEphemeralEncryptionKey()
+					.AddEphemeralSigningKey();
 
 				// Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
 				options

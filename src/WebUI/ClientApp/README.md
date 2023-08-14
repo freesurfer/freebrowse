@@ -4,10 +4,6 @@
 
 We recommend to use Visual Studio Code as IDE and install the recommend workspace extensions.
 
-Open the Folder `ClientApp` on VSCode to be able to run the project with F5 and have the full support of the recommend extensions.
-Feel free to install the recommend extensions defined in the .vscode/extensions.json file.
-The fastest way to launch and debug the frontend (along with a local backend deployment) is to press **F5** in Visual Studio code.
-
 ### Run the database on mac
 
 To get the database for the backend up locally on Mac-M1 (ARM) devices, we are using docker right now (to host a database supporting transactional queries).
@@ -27,7 +23,17 @@ Afterwards you can start the project using
 ### Check the Swagger API
 
 To take a look at the swagger api, you need to start the project from `Visual Studio` right now, NOT VSCode.
-Than you will be able to browse the api unter the URL https://localhost:5001/api/index.html?url=/api/specification.json#/
+Than you will be able to browse the api under the URL https://localhost:5001/api/index.html?url=/api/specification.json#/
+This also need to get done at least once on API changes or on initial setup to generate the typescript api file, used by the frontend code.
+
+### How to develop
+
+The project has been set up with eslint and prettier configuration to keep the developer from doing common mistakes and help to align on the same style on the project. We recommend to use the VSCode application and install the recommended extensions (.vscode/extensions.json). Afterwards the IDE should highlight the static code analysis rules already.
+
+### How to debug
+
+To debug the project, you should be able to just press F5 to run the server. In general that should also start the Backend on proper setup, but you can also start the Backend from Visual Studio and then run F5. It will only run the Frontend part then and start a Chrome Browser instance for you, with already connected debugger. You should be able to see the Debug logs in the DEBUG CONSOLE in VSCode and you should be able to set breakpoints directly in VSCode.
+Whenever a file is saved, the browser will automatically adapt to the change and reload that part of the page accordingly.
 
 ## Tailwind
 
@@ -37,21 +43,3 @@ We decided to use tailwind (instead of bootstrap) because its:
 - more flexible and smaller
 - recommend for webapps (while bootstrap has its advantages on websites)
 - we have designers, so we need to build our own themes anyway
-
-## Select Component
-
-To find a proper select element to save some time seems not that easy.
-
-- The Material-ui from Mui Select
-  - Seem to be nearest to what we try to achieve
-  - BUT that would be the only place, we would use this huge library right now
-  - Also i have not tried to style it accordingly yet
-
-- React-Select npm package
-  - It seems to be unnecessary hard to style the height already to the needed amount
-
-- HTML5 select
-  - it seems not to be possible to style the options, since they are browser dependent and native
-
-- own implementation
-  - most maintenance effort but also most flexible

@@ -10,13 +10,24 @@ export abstract class CloudFile extends ProjectFileBase {
 	public readonly location = FileLocation.CLOUD;
 
 	constructor(
-		public readonly id: number,
+		private _id: number,
 		name: string,
 		/**
 		 * url for niivue to load the image from
 		 */
-		public readonly url: string
+		public url: string
 	) {
 		super(name);
+	}
+
+	get id(): number {
+		return this._id;
+	}
+
+	/**
+	 * should only get used, after the same file has been recreated on the backend
+	 */
+	protected set id(id: number) {
+		this._id = id;
 	}
 }

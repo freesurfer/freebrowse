@@ -13,9 +13,13 @@ export const LandingTitle = ({
 	const { createProject } = useContext(OpenProjectDialogContext);
 
 	const onGetStartedClick = useCallback(async (): Promise<void> => {
-		const result = await createProject();
-		if (result === 'canceled') return;
-		navigate(`/project/${result.projectId}`);
+		const projectState = await createProject();
+		if (projectState === 'canceled') return;
+		if (projectState.id === undefined) {
+			console.error('something went wrong uploading the project');
+			return;
+		}
+		navigate(`/project/${projectState.id}`);
 	}, [createProject, navigate]);
 
 	return (

@@ -1,13 +1,16 @@
-import type { ReactElement } from 'react';
+import { type ProjectState } from '@/pages/project/models/ProjectState';
+import { type ReactElement } from 'react';
 
 export const MainView = ({
-	setCanvas,
+	projectState,
 }: {
-	setCanvas: (ref: HTMLCanvasElement | null) => void;
+	projectState: ProjectState | undefined;
 }): ReactElement => {
+	if (projectState === undefined) return <></>;
+
 	return (
 		<div className="relative grow overflow-hidden">
-			<canvas className="" ref={(canvas) => setCanvas(canvas)} />
+			<canvas ref={(canvas) => projectState.setCanvas(canvas)} />
 		</div>
 	);
 };

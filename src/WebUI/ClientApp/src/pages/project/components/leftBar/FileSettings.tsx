@@ -9,246 +9,183 @@ import {
 	COLOR_MAP_TRANSLATION,
 	ColorMap,
 } from '@/pages/project/models/ColorMap';
-import { ProjectState } from '@/pages/project/models/ProjectState';
-import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
-import { useCallback, type Dispatch, type ReactElement } from 'react';
+import { type ProjectState } from '@/pages/project/models/ProjectState';
+import { observer } from 'mobx-react-lite';
+import { type ReactElement } from 'react';
 
-export const FileSettings = ({
-	projectState,
-	setProjectState,
-}: {
-	projectState: ProjectState | undefined;
-	setProjectState: Dispatch<
-		(currentState: ProjectState | undefined) => ProjectState | undefined
-	>;
-}): ReactElement => {
-	const activeVolumes =
-		[
-			...(projectState?.files.volumes.cloud ?? []),
-			...(projectState?.files.volumes.local ?? []),
-		].filter((file) => file.isActive) ?? [];
+export const FileSettings = observer(
+	({
+		projectState,
+	}: {
+		projectState: ProjectState | undefined;
+	}): ReactElement => {
+		const activeVolumes =
+			projectState?.files?.volumes.all.filter((file) => file.isActive) ?? [];
+		const activeSurfaces =
+			projectState?.files?.surfaces.all.filter((file) => file.isActive) ?? [];
+		const activePointSets =
+			projectState?.files?.pointSets.all.filter((file) => file.isActive) ?? [];
 
-	const activeSurfaces =
-		[
-			...(projectState?.files.surfaces.cloud ?? []),
-			...(projectState?.files.surfaces.local ?? []),
-		].filter((file) => file.isActive) ?? [];
-
-	const activePointSets =
-		[
-			...(projectState?.files.pointSets.cloud ?? []),
-			...(projectState?.files.pointSets.local ?? []),
-			...(projectState?.files.pointSets.cache ?? []),
-		].filter((file) => file.isActive) ?? [];
-
-	const activeFiles = [...activeVolumes, ...activeSurfaces, ...activePointSets];
-
-	const updateFileOptions = useCallback(
-		<T_FILE_TYPE extends ProjectFile>(
-			file: T_FILE_TYPE,
-			options: Parameters<ProjectState['fromFileUpdate']>[1],
-			upload: boolean
-		) => {
-			setProjectState((currentProjectState) =>
-				currentProjectState?.fromFileUpdate(file, options, upload)
-			);
-		},
-		[setProjectState]
-	);
-
-	return (
-		<Collapse
-			className="border-b border-gray py-2 text-xs"
-			title={<span className="text-xs font-semibold">File Settings</span>}
-		>
-			{activeFiles.length === 0 ? (
-				<span className="ml-1 mr-1 mt-2 block text-left text-xs text-gray-500">
-					Select a file to use this section.
-				</span>
-			) : (
-				<>
-					{activeVolumes.map((volume) => {
-						if (volume === undefined) return <></>;
-						return (
-							<Collapse
-								key={volume?.name}
-								className="mt-2 pr-4"
-								title={
-									<span className="grow border-b border-gray text-xs">
-										{volume.name ?? 'No file selected'}
-									</span>
-								}
-							>
-								<div className="pl-1">
-									<DropDown
-										className="mt-2"
-										label="Color Map:"
-										value={
-											volume.colorMap.translation ?? COLOR_MAP_TRANSLATION.GRAY
-										}
-										onChange={(value) =>
-											updateFileOptions(
-												volume,
-												{ colorMap: ColorMap.fromTranslation(value) },
-												true
-											)
-										}
-										options={[
-											COLOR_MAP_TRANSLATION.GRAY,
-											COLOR_MAP_TRANSLATION.HEAT,
-											COLOR_MAP_TRANSLATION.LOOKUP_TABLE,
-										]}
-									/>
-									<Slider
-										className="mt-2"
-										label="Opacity:"
-										value={volume.opacity}
-										unit="%"
-										onChange={(value) =>
-											updateFileOptions(volume, { opacity: value }, false)
-										}
-										onEnd={(value) =>
-											updateFileOptions(volume, { opacity: value }, true)
-										}
-										min={0}
-										max={100}
-									></Slider>
-									{volume.colorMap.backend === COLOR_MAP_BACKEND.GRAY ? (
-										<>
-											<span className="font-semibold">
-												Contrast & Brightness
-											</span>
-											<Slider
-												className="mt-2"
-												label="Minimum:"
-												value={volume.contrastMin}
-												onChange={(value) =>
-													updateFileOptions(
-														volume,
-														{ contrastMin: value },
-														false
-													)
-												}
-												onEnd={(value) =>
-													updateFileOptions(
-														volume,
-														{ contrastMin: value },
-														true
-													)
-												}
-												min={volume.contrastMinThreshold}
-												max={volume.contrastMaxThreshold}
-											></Slider>
-											<Slider
-												className="mt-2"
-												label="Maximum:"
-												value={volume.contrastMax}
-												onChange={(value) =>
-													updateFileOptions(
-														volume,
-														{ contrastMax: value },
-														false
-													)
-												}
-												onEnd={(value) =>
-													updateFileOptions(
-														volume,
-														{ contrastMax: value },
-														true
-													)
-												}
-												min={volume.contrastMinThreshold}
-												max={volume.contrastMaxThreshold}
-											></Slider>
-										</>
-									) : (
-										<></>
-									)}
-								</div>
-							</Collapse>
-						);
-					})}
-					{activeSurfaces.map((surfaceFile) => {
-						if (surfaceFile === undefined) return <></>;
-						return (
-							<Collapse
-								key={surfaceFile?.name}
-								className="mt-1 pr-4"
-								title={
-									<span className="grow border-b border-gray text-xs">
-										{surfaceFile.name ?? 'No file selected'}
-									</span>
-								}
-							>
-								<div className="pl-1">
-									<ColorPicker
-										className="mt-2"
-										label="Edge-Color:"
-										value={surfaceFile.color}
-										onChange={(value) =>
-											updateFileOptions(surfaceFile, { color: value }, false)
-										}
-										onEnd={(value) =>
-											updateFileOptions(surfaceFile, { color: value }, true)
-										}
-									></ColorPicker>
-									<Slider
-										className="mt-2"
-										label="Edge-Thickness:"
-										value={(projectState?.meshThicknessOn2D ?? 0) * 10}
-										unit=""
-										min={0}
-										max={50}
-										onChange={(value) =>
-											setProjectState((projectState) => {
-												if (projectState === undefined) return undefined;
-												return new ProjectState(
-													{ projectState, meshThicknessOn2D: value * 0.1 },
-													false
-												);
-											})
-										}
-										onEnd={(value) =>
-											setProjectState((projectState) => {
-												if (projectState === undefined) return undefined;
-												return new ProjectState(
-													{ projectState, meshThicknessOn2D: value * 0.1 },
-													true
-												);
-											})
-										}
-									></Slider>
-									<FileSelection
-										title="Overlays:"
-										className="mt-4"
-										setProjectState={setProjectState}
-										surfaceFile={surfaceFile}
-									></FileSelection>
-								</div>
-							</Collapse>
-						);
-					})}
-					{activePointSets.map((pointSetFile) => {
-						if (pointSetFile === undefined) return <></>;
-						return (
-							<Collapse
-								key={pointSetFile?.name}
-								className="mt-1 pr-4"
-								title={
-									<span className="grow border-b border-gray text-xs">
-										{pointSetFile.name ?? 'No file selected'}
-									</span>
-								}
-							>
-								<FileSettingsWayPoints
-									pointSetFile={pointSetFile}
-									setProjectState={setProjectState}
-								></FileSettingsWayPoints>
-							</Collapse>
-						);
-					})}
-				</>
-			)}
-		</Collapse>
-	);
-};
+		return (
+			<Collapse
+				className="border-b border-gray py-2 text-xs"
+				title={<span className="text-xs font-semibold">File Settings</span>}
+			>
+				{[...activeVolumes, ...activeSurfaces, ...activePointSets].length ===
+				0 ? (
+					<span className="ml-1 mr-1 mt-2 block text-left text-xs text-gray-500">
+						Select a file to use this section.
+					</span>
+				) : (
+					<>
+						{activeVolumes.map((volume) => {
+							if (volume === undefined) return <></>;
+							return (
+								<Collapse
+									key={volume?.name}
+									className="mt-2 pr-4"
+									title={
+										<span className="grow border-b border-gray text-xs">
+											{volume.name ?? 'No file selected'}
+										</span>
+									}
+								>
+									<div className="pl-1">
+										<DropDown
+											className="mt-2"
+											label="Color Map:"
+											value={
+												volume.colorMap.translation ??
+												COLOR_MAP_TRANSLATION.GRAY
+											}
+											onChange={(value) =>
+												volume.setColorMap(ColorMap.fromTranslation(value))
+											}
+											options={[
+												COLOR_MAP_TRANSLATION.GRAY,
+												COLOR_MAP_TRANSLATION.HEAT,
+												COLOR_MAP_TRANSLATION.LOOKUP_TABLE,
+											]}
+										/>
+										<Slider
+											className="mt-2"
+											label="Opacity:"
+											value={volume.opacity}
+											unit="%"
+											onChange={(value) =>
+												volume.setBrightness({ opacity: value }, false)
+											}
+											onEnd={(value) =>
+												volume.setBrightness({ opacity: value }, true)
+											}
+											min={0}
+											max={100}
+										></Slider>
+										{volume.colorMap.backend === COLOR_MAP_BACKEND.GRAY ? (
+											<>
+												<span className="font-semibold">
+													Contrast & Brightness
+												</span>
+												<Slider
+													className="mt-2"
+													label="Minimum:"
+													value={volume.contrastMin}
+													onChange={(value) =>
+														volume.setBrightness({ contrastMin: value }, false)
+													}
+													onEnd={(value) =>
+														volume.setBrightness({ contrastMin: value }, true)
+													}
+													min={volume.contrastMinThreshold}
+													max={volume.contrastMaxThreshold}
+												></Slider>
+												<Slider
+													className="mt-2"
+													label="Maximum:"
+													value={volume.contrastMax}
+													onChange={(value) =>
+														volume.setBrightness({ contrastMax: value }, false)
+													}
+													onEnd={(value) =>
+														volume.setBrightness({ contrastMax: value }, true)
+													}
+													min={volume.contrastMinThreshold}
+													max={volume.contrastMaxThreshold}
+												></Slider>
+											</>
+										) : (
+											<></>
+										)}
+									</div>
+								</Collapse>
+							);
+						})}
+						{activeSurfaces.map((surfaceFile) => {
+							if (surfaceFile === undefined) return <></>;
+							return (
+								<Collapse
+									key={surfaceFile?.name}
+									className="mt-1 pr-4"
+									title={
+										<span className="grow border-b border-gray text-xs">
+											{surfaceFile.name ?? 'No file selected'}
+										</span>
+									}
+								>
+									<div className="pl-1">
+										<ColorPicker
+											className="mt-2"
+											grow={true}
+											label="Edge-Color:"
+											value={surfaceFile.color}
+											onChange={(value) => surfaceFile.setColor(value, false)}
+											onBlur={(value) => surfaceFile.setColor(value, true)}
+										></ColorPicker>
+										<Slider
+											className="mt-2"
+											label="Edge-Thickness:"
+											value={(projectState?.meshThicknessOn2D ?? 0) * 10}
+											unit=""
+											min={0}
+											max={50}
+											onChange={(value) =>
+												projectState?.setMeshThickness(value * 0.1, false)
+											}
+											onEnd={(value) =>
+												projectState?.setMeshThickness(value * 0.1)
+											}
+										></Slider>
+										<FileSelection
+											title="Overlays:"
+											className="mt-4"
+											surfaceFile={surfaceFile}
+										></FileSelection>
+									</div>
+								</Collapse>
+							);
+						})}
+						{activePointSets.map((pointSetFile) => {
+							if (pointSetFile === undefined) return <></>;
+							return (
+								<Collapse
+									key={pointSetFile?.name}
+									className="mt-1 pr-4"
+									title={
+										<span className="grow border-b border-gray text-xs">
+											{pointSetFile.name ?? 'No file selected'}
+										</span>
+									}
+								>
+									<FileSettingsWayPoints
+										projectState={projectState}
+										pointSetFile={pointSetFile}
+									></FileSettingsWayPoints>
+								</Collapse>
+							);
+						})}
+					</>
+				)}
+			</Collapse>
+		);
+	}
+);

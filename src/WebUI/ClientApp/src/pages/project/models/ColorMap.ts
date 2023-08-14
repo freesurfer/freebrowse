@@ -56,12 +56,9 @@ export class ColorMap {
 		}
 	}
 
-	static fromTranslation(
-		colorMapTranslation: string | undefined
-	): ColorMap | undefined {
+	static fromTranslation(colorMapTranslation: string | undefined): ColorMap {
 		switch (colorMapTranslation) {
 			case undefined:
-				return undefined;
 			case COLOR_MAP_TRANSLATION.GRAY:
 				return ColorMap.from(COLOR_MAP_BACKEND.GRAY);
 			case COLOR_MAP_TRANSLATION.LOOKUP_TABLE:
@@ -73,9 +70,7 @@ export class ColorMap {
 		}
 	}
 
-	static fromBackend(
-		colorMapBackend: string | undefined | null
-	): ColorMap | undefined {
+	static fromBackend(colorMapBackend: string | undefined | null): ColorMap {
 		switch (colorMapBackend) {
 			case undefined:
 			case null:

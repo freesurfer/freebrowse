@@ -36,14 +36,7 @@ export const ToolButtonRadio = <T_VALUE extends number>({
 						isActive={entry.value === value}
 						onClick={(value) => {
 							onChange(value);
-							/* timeout to debounce the animation a bit
-							 * otherwise it would glitch a bit
-							 * we should take a look on the project state change detection
-							 * we should be able to optimize there to get this faster
-							 */
-							window.setTimeout(() => {
-								useCollapseHook.setExpanded(false);
-							}, 250);
+							useCollapseHook.setExpanded(false);
 						}}
 					></ToolButtonRadioEntry>
 				)

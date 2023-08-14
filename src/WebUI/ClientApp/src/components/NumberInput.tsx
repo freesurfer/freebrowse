@@ -1,3 +1,4 @@
+import { EventHandler } from '@/pages/project/models/handlers/EventHandler';
 import { type ReactElement } from 'react';
 
 export const NumberInput = ({
@@ -19,6 +20,7 @@ export const NumberInput = ({
 			onChange={(event) =>
 				onChange(Math.min(Math.max(parseInt(event.target.value), min), max))
 			}
+			{...EventHandler.onKeyGate()}
 			min={min}
 			max={max}
 		></input>

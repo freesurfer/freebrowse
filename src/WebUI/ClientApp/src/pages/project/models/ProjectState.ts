@@ -1,15 +1,31 @@
-import { ColorMap } from '@/pages/project/models/ColorMap';
+import {
+	CreateProjectCommand,
+	CreateProjectSurfaceDto,
+	CreateProjectVolumeDto,
+	EditProjectCommand,
+	type FileResponse,
+	ProjectsClient,
+} from '@/generated/web-api-client';
+import { LOCAL_STORAGE_KEY, localStorageGet } from '@/model/localStorage';
+import {
+	DEFAULT_MESH_THICKNESS,
+	NiivueWrapper,
+} from '@/pages/project/NiivueWrapper';
 import { ProjectFiles } from '@/pages/project/models/ProjectFiles';
-import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
-import { CloudPointSetFile } from '@/pages/project/models/file/CloudPointSetFile';
-import { CloudSurfaceFile } from '@/pages/project/models/file/CloudSurfaceFile';
-import { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
-import { LocalSurfaceFile } from '@/pages/project/models/file/LocalSurfaceFile';
-import { LocalVolumeFile } from '@/pages/project/models/file/LocalVolumeFile';
-import type { ProjectFile } from '@/pages/project/models/file/ProjectFile';
-import type { PointSetFile } from '@/pages/project/models/file/type/PointSetFile';
-import type { SurfaceFile } from '@/pages/project/models/file/type/SurfaceFile';
-import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
+import { type IPointSetWaypoint } from '@/pages/project/models/file/type/PointSetFile';
+import {
+	DeepLinkHandler,
+	type IQueryParam,
+} from '@/pages/project/models/handlers/DeepLinkHandler';
+import { DownloadFilesHandler } from '@/pages/project/models/handlers/DownloadFilesHandler';
+import { EventHandler } from '@/pages/project/models/handlers/EventHandler';
+import { HistoryHandler } from '@/pages/project/models/handlers/HistoryHandler';
+import { getApiUrl } from '@/utils';
+import { type UIData, type LocationData } from '@niivue/niivue';
+import { makeAutoObservable } from 'mobx';
+import { Store } from 'react-notifications-component';
+
+const DEFAULT_PROJECT_NAME = 'Subject_1';
 
 /**
  * The mode the user is interacting with the UI right now
@@ -37,340 +53,394 @@ export interface ICrosshairPosition {
 	z: number;
 }
 
-export interface IUser {
-	name: string;
-}
-
 /**
  * class to uncouple backend dto from data used from ui
  * - keep the expected backend data state without fetching it again
  * - keep the ui state of the project in one place
  */
 export class ProjectState {
-	/**
-	 * project id defined by the backend
-	 */
-	public readonly id: number;
+	private readonly client = new ProjectsClient(getApiUrl());
+
+	private readonly niivueWrapper: NiivueWrapper = new NiivueWrapper(
+		this,
+		(location) => this.setLocation(location),
+		(uiData) => this.onNiivueMouseUp(uiData)
+	);
+
+	readonly deepLinkHandler = new DeepLinkHandler(this, this.niivueWrapper);
+
+	readonly downloadFilesHandler = new DownloadFilesHandler(
+		this,
+		this.niivueWrapper
+	);
+
+	readonly historyHandler = new HistoryHandler(this, this.niivueWrapper);
+
+	readonly eventHandler = new EventHandler(this, this.niivueWrapper);
+
 	/**
 	 * given name of the project
 	 */
-	public readonly name: string | undefined;
-	/**
-	 * the mode the user is interacting with the UI right now
-	 */
-	public readonly userMode: USER_MODE;
-	/**
-	 * the mode the user is interacting with the UI right now
-	 */
-	public readonly sliceType: number | undefined;
-	/**
-	 * the size of the brush when editing the voxel
-	 */
-	public readonly brushSize: number | undefined;
-	/**
-	 * the value of the brush when editing the voxel
-	 */
-	public readonly brushValue: number | undefined;
+	public name = DEFAULT_PROJECT_NAME;
 	/**
 	 * thickness of the mesh on the 2d plane
 	 */
-	public readonly meshThicknessOn2D: number | undefined;
+	public meshThicknessOn2D = DEFAULT_MESH_THICKNESS;
 	/**
 	 * user information
 	 */
-	public readonly user: IUser = { name: 'Anonymus User' };
+	public userName =
+		localStorageGet(LOCAL_STORAGE_KEY.LAST_USER_NAME) ?? 'Anonymus User';
+
+	/**
+	 * the value of the brush when editing the voxel
+	 */
+	public brushValue = 0;
+	/**
+	 * the mode the user is interacting with the UI right now
+	 */
+	public sliceType: SLICE_TYPE = SLICE_TYPE.MULTIPLANAR;
+	/**
+	 * the size of the brush when editing the voxel
+	 */
+	public brushSize = 1;
 	/**
 	 * all files related to the project
 	 */
-	public readonly files: ProjectFiles;
-
+	public files: ProjectFiles | undefined = undefined;
+	/**
+	 * the mode the user is interacting with the UI right now
+	 */
+	public userMode: USER_MODE = USER_MODE.NAVIGATE;
 	/**
 	 * the 3D point which is marked in the niivue canvas
 	 */
-	public readonly crosshairPosition: ICrosshairPosition | undefined = undefined;
+	public crosshairPosition: ICrosshairPosition | undefined = undefined;
+	public location: LocationData | undefined = undefined;
 
-	public count: number;
-
+	/**
+	 * pass a id to load the project from the backend
+	 * without id, you can adapt the project settings and should call post afterwards
+	 */
 	constructor(
-		args:
-			| {
-					id: number;
-					name: string;
-					meshThicknessOn2D?: number;
-					files: ProjectFiles;
-			  }
-			| {
-					projectState: ProjectState;
-					userMode?: USER_MODE;
-					sliceType?: SLICE_TYPE;
-					brushSize?: number;
-					brushValue?: number;
-					meshThicknessOn2D?: number;
-					files?: ProjectFiles;
-					crosshairPosition?: ICrosshairPosition;
-					user?: IUser;
-			  },
-		public readonly upload: boolean
+		/**
+		 * project id defined by the backend
+		 * if undefined, the project has not been created yet in the backend
+		 */
+		public id?: number,
+		private readonly query?: IQueryParam
 	) {
-		if ('id' in args) {
-			this.id = args.id;
-			this.name = args.name;
-			this.userMode = USER_MODE.NAVIGATE;
-			this.sliceType = SLICE_TYPE.MULTIPLANAR;
-			this.brushSize = 1;
-			this.brushValue = 0;
-			this.meshThicknessOn2D = args.meshThicknessOn2D ?? 0;
-			this.files = args.files;
-			this.count = 0;
-			return;
-		}
+		console.log('CREATE');
+		makeAutoObservable(this, {
+			deepLinkHandler: false,
+			downloadFilesHandler: false,
+			historyHandler: false,
+			eventHandler: false,
+		});
 
-		this.id = args.projectState.id;
-		this.name = args.projectState.name;
-
-		this.userMode = args.userMode ?? args.projectState.userMode;
-		this.sliceType = args.sliceType ?? args.projectState.sliceType;
-		this.brushSize = args.brushSize ?? args.projectState.brushSize;
-		this.brushValue = args.brushValue ?? args.projectState.brushValue;
-
-		this.crosshairPosition =
-			args.crosshairPosition ?? args.projectState.crosshairPosition;
-		this.meshThicknessOn2D =
-			args.meshThicknessOn2D ?? args.projectState.meshThicknessOn2D;
-		this.user = args.user ?? args.projectState.user;
-		this.files = args.files ?? args.projectState.files;
-		this.count = args.projectState.count + 1;
-	}
-
-	from(
-		options: {
-			userMode?: USER_MODE;
-			sliceType?: SLICE_TYPE;
-			brushSize?: number;
-			brushValue?: number;
-			meshThicknessOn2D?: number;
-			files?: ProjectFiles;
-			crosshairPosition?: ICrosshairPosition;
-			user?: IUser;
-		},
-		upload = true
-	): ProjectState {
-		return new ProjectState(
-			{
-				projectState: this,
-				userMode: options.userMode ?? this.userMode,
-				sliceType: options.sliceType ?? this.sliceType,
-				brushSize: options.brushSize ?? this.brushSize,
-				brushValue: options.brushValue ?? this.brushValue,
-				meshThicknessOn2D: options.meshThicknessOn2D ?? this.meshThicknessOn2D,
-				files: options.files ?? this.files,
-				crosshairPosition: options.crosshairPosition ?? this.crosshairPosition,
-				user: options.user ?? this.user,
-			},
-			upload
-		);
-	}
-
-	fromFiles(files: ProjectFiles, upload = true): ProjectState {
-		return new ProjectState({ projectState: this, files }, upload);
-	}
-
-	fromQuery(
-		volumes: (string | null)[],
-		volumeOpacity: (string | null)[],
-		volumeOrder: (string | null)[],
-		volumeSelected: (string | null)[],
-		volumeVisible: (string | null)[],
-		volumeContrastMin: (string | null)[],
-		volumeContrastMax: (string | null)[],
-		volumeColormap: (string | null)[],
-		surfaces: (string | null)[],
-		surfaceOpacity: (string | null)[],
-		surfaceOrder: (string | null)[],
-		surfaceVisible: (string | null)[],
-		surfaceSelected: (string | null)[],
-		pointSets: (string | null)[],
-		pointSetOpacity: (string | null)[],
-		pointSetOrder: (string | null)[],
-		pointSetVisible: (string | null)[],
-		pointSetSelected: (string | null)[],
-		upload = true
-	): ProjectState {
-		const mapVolumes = <T extends VolumeFile>(
-			sourceVolumes: readonly T[]
-		): T[] =>
-			sourceVolumes.map<T>((volume): T => {
-				const index = volumes.indexOf(volume.name);
-				if (index !== -1) {
-					return volume.from({
-						order: Number(volumeOrder[index]),
-						isActive: volumeSelected[index] === 'true',
-						isChecked: volumeVisible[index] === 'true',
-						opacity: Number(volumeOpacity[index]),
-						colorMap: ColorMap.fromBackend(volumeColormap[index]) ?? undefined,
-						contrastMin: Number(volumeContrastMin[index]),
-						contrastMax: Number(volumeContrastMax[index]),
-					}) as T;
-				}
-
-				return volume.from({ isChecked: false }) as T;
-			});
-
-		const mapSurfaces = <T extends SurfaceFile>(
-			sourceSurfaces: readonly T[]
-		): T[] =>
-			sourceSurfaces.map((surface) => {
-				const index = surfaces.indexOf(surface.name);
-				if (index !== -1) {
-					return surface.from({
-						order: Number(surfaceOrder[index]),
-						isActive: surfaceSelected[index] === 'true',
-						isChecked: surfaceVisible[index] === 'true',
-						opacity: Number(surfaceOpacity[index]),
-					}) as T;
-				}
-
-				return surface.from({ isChecked: false }) as T;
-			});
-
-		const mapPointSets = <T extends PointSetFile>(
-			sourcePointSet: readonly T[]
-		): T[] =>
-			sourcePointSet.map((pointSet) => {
-				const index = pointSets.indexOf(pointSet.name);
-				if (index !== -1) {
-					return pointSet.from({
-						order: Number(pointSetOrder[index]),
-						isActive: pointSetSelected[index] === 'true',
-						isChecked: pointSetVisible[index] === 'true',
-						opacity: Number(pointSetOpacity[index]),
-					}) as T;
-				}
-
-				return pointSet.from({ isChecked: false }) as T;
-			});
-
-		return this.fromFiles(
-			new ProjectFiles({
-				projectFiles: this.files,
-				volumes: {
-					local: mapVolumes(this.files.volumes.local),
-					cloud: mapVolumes(this.files.volumes.cloud),
-				},
-				surfaces: {
-					local: mapSurfaces(this.files.surfaces.local),
-					cloud: mapSurfaces(this.files.surfaces.cloud),
-				},
-				pointSets: {
-					local: mapPointSets(this.files.pointSets.local),
-					cache: mapPointSets(this.files.pointSets.cache),
-					cloud: mapPointSets(this.files.pointSets.cloud),
-				},
-			}),
-			upload
-		);
+		if (id === undefined)
+			this.files = new ProjectFiles(
+				this.niivueWrapper,
+				this.historyHandler.editPoints,
+				this
+			);
 	}
 
 	/**
-	 * to update a property of a file
-	 * @param file file to update the property on
-	 * @param options property value to update
-	 * @param upload flag, if the change should get pushed to the backend
-	 * @returns new instance of the project state
+	 * create the project in the backend, if it does not exist already
 	 */
-	fromFileUpdate<T_FILE_TYPE extends ProjectFile>(
-		file: T_FILE_TYPE,
-		options: Parameters<T_FILE_TYPE['from']>[0],
-		upload: boolean
-	): ProjectState {
-		if (file instanceof CloudVolumeFile || file instanceof LocalVolumeFile)
-			return new ProjectState(
-				{
-					projectState: this,
-					files: new ProjectFiles({
-						projectFiles: this.files,
-						volumes: {
-							cloud: this.files.volumes.cloud.map((tmpVolume) =>
-								tmpVolume.name === file.name &&
-								tmpVolume.location === file.location
-									? tmpVolume.from(options as Parameters<VolumeFile['from']>[0])
-									: tmpVolume
-							),
-							local: this.files.volumes.local.map((tmpVolume) =>
-								tmpVolume.name === file.name &&
-								tmpVolume.location === file.location
-									? tmpVolume.from(options as Parameters<VolumeFile['from']>[0])
-									: tmpVolume
-							),
-						},
-					}),
-				},
-				upload
+	async apiPost(): Promise<void> {
+		if (this.id !== undefined) {
+			return;
+		}
+
+		if (this.files === undefined) {
+			console.warn('the project files instance should be there already.');
+			return;
+		}
+
+		const createProjectResponse = await this.client.create(
+			new CreateProjectCommand({
+				name: this.name,
+				meshThicknessOn2D: this.meshThicknessOn2D,
+				volumes: await Promise.all(
+					this.files.volumes.local.map(
+						async (file) =>
+							new CreateProjectVolumeDto({
+								base64: await file.getBase64(),
+								fileName: file.name,
+								visible: file.isChecked,
+								order: file.order,
+								colorMap: undefined,
+								opacity: file.opacity,
+								contrastMin: file.contrastMin,
+								contrastMax: file.contrastMax,
+							})
+					)
+				),
+				surfaces: await Promise.all(
+					this.files.surfaces.local.map(
+						async (file) =>
+							new CreateProjectSurfaceDto({
+								base64: await file.getBase64(),
+								fileName: file.name,
+								visible: file.isChecked,
+								order: file.order,
+								color: file.color,
+							})
+					)
+				),
+			})
+		);
+
+		if (createProjectResponse.id === undefined)
+			throw new Error('no project id received from backend');
+
+		const newProjectId = createProjectResponse.id;
+		this.setId(newProjectId);
+		if (this.id === undefined) return;
+
+		await this.files.pointSets.apiPost(this.files.pointSets.local, this.id);
+	}
+
+	/**
+	 * sets the project id
+	 * should only get used after the creation of the project in the backend
+	 */
+	setId(id: number): void {
+		this.id = id;
+	}
+
+	private async apiGet(projectId: number): Promise<void> {
+		try {
+			const backendState = await this.client.getProject(projectId);
+
+			if (backendState.id === undefined)
+				throw new Error('no id given for project');
+			if (backendState.name === undefined)
+				throw new Error('no name given for project');
+
+			this.name = backendState.name;
+			if (backendState.meshThicknessOn2D !== undefined)
+				this.setMeshThickness(backendState.meshThicknessOn2D);
+
+			this.niivueWrapper.niivue.setSliceType(this.sliceType);
+
+			this.setFiles(
+				new ProjectFiles(
+					this.niivueWrapper,
+					this.historyHandler.editPoints,
+					this,
+					backendState
+				)
 			);
 
-		if (file instanceof CloudSurfaceFile || file instanceof LocalSurfaceFile)
-			return new ProjectState(
-				{
-					projectState: this,
-					files: new ProjectFiles({
-						projectFiles: this.files,
-						surfaces: {
-							cloud: this.files.surfaces.cloud.map((tmpSurface) =>
-								tmpSurface.name === file.name &&
-								tmpSurface.location === file.location
-									? tmpSurface.from(
-											options as Parameters<SurfaceFile['from']>[0]
-									  )
-									: tmpSurface
-							),
-							local: this.files.surfaces.local.map((tmpSurface) =>
-								tmpSurface.name === file.name &&
-								tmpSurface.location === file.location
-									? tmpSurface.from(
-											options as Parameters<SurfaceFile['from']>[0]
-									  )
-									: tmpSurface
-							),
-						},
-					}),
-				},
-				upload
+			await this.files?.initialize();
+			this.niivueWrapper.niivue.createOnLocationChange();
+
+			this.deepLinkHandler.processQuery(this.query);
+		} catch (error) {
+			console.warn('error fetching the project', error);
+		}
+	}
+
+	setFiles(files: ProjectFiles): void {
+		this.files = files;
+	}
+
+	setCanvas(canvas: HTMLCanvasElement | null): void {
+		if (canvas === null) return;
+		if (this.id === undefined) return;
+
+		this.niivueWrapper.setCanvas(canvas);
+		void this.apiGet(this.id);
+	}
+
+	setName(value: string): void {
+		if (this.id !== undefined)
+			throw new Error(
+				'can not change name, after a project has been uploaded already'
+			);
+		this.name = value;
+	}
+
+	setSliceType(sliceType: SLICE_TYPE): void {
+		this.sliceType = sliceType;
+		this.niivueWrapper.niivue.setSliceType(this.sliceType);
+	}
+
+	setUserMode(userMode: USER_MODE): void {
+		this.userMode = userMode;
+	}
+
+	setUserName(userName: string): void {
+		this.userName = userName;
+		localStorage.setItem(LOCAL_STORAGE_KEY.LAST_USER_NAME, this.userName);
+	}
+
+	setMeshThickness(meshThicknessOn2D: number, upload = true): void {
+		this.meshThicknessOn2D = meshThicknessOn2D;
+		if (upload) void this.apiPutMeshThickness();
+		this.niivueUpdateMeshThickness();
+	}
+
+	private async apiPutMeshThickness(): Promise<void> {
+		if (this.id === undefined) return;
+
+		await this.client.edit(
+			new EditProjectCommand({
+				id: Number(this.id),
+				name: this.name,
+				meshThicknessOn2D: this.meshThicknessOn2D,
+			})
+		);
+	}
+
+	private niivueUpdateMeshThickness(): void {
+		if (
+			this.meshThicknessOn2D ===
+			this.niivueWrapper.niivue.opts.meshThicknessOn2D
+		)
+			return;
+		this.niivueWrapper.niivue.opts.meshThicknessOn2D = this.meshThicknessOn2D;
+		this.niivueWrapper.niivue.updateGLVolume();
+	}
+
+	setBrushValue(brushValue: number): void {
+		this.brushValue = brushValue;
+	}
+
+	setBrushSize(brushSize: number): void {
+		this.brushSize = brushSize;
+	}
+
+	setCrosshairPosition(
+		crosshairPosition: ICrosshairPosition | undefined
+	): void {
+		if (crosshairPosition === undefined) return;
+		this.crosshairPosition = crosshairPosition;
+		this.niivueUpdateCrosshairPosition();
+	}
+
+	private niivueUpdateCrosshairPosition(): void {
+		const newPosition = this.niivueWrapper.niivue.mm2frac([
+			this.crosshairPosition?.x ?? 0,
+			this.crosshairPosition?.y ?? 0,
+			this.crosshairPosition?.z ?? 0,
+		]);
+		if (
+			newPosition[0] === this.niivueWrapper.niivue.scene.crosshairPos[0] &&
+			newPosition[1] === this.niivueWrapper.niivue.scene.crosshairPos[1] &&
+			newPosition[2] === this.niivueWrapper.niivue.scene.crosshairPos[2]
+		)
+			return;
+		this.niivueWrapper.niivue.scene.crosshairPos = newPosition;
+		this.niivueWrapper.niivue.updateGLVolume();
+	}
+
+	setLocation(location: LocationData): void {
+		this.location = location;
+
+		this.setCrosshairPosition({
+			x: location?.mm[0],
+			y: location?.mm[1],
+			z: location?.mm[2],
+		});
+
+		this.detectVolumeChanges(location);
+	}
+
+	private detectVolumeChanges(location: LocationData): void {
+		if (
+			this.userMode !== USER_MODE.EDIT_VOXEL ||
+			!this.niivueWrapper.niivue.uiData.mouseButtonLeftDown
+		)
+			return;
+
+		this.files?.volumes.cloud.forEach((volume) => {
+			if (!volume.isActive) return;
+
+			const index =
+				this.niivueWrapper.niivue.volumes.findIndex(
+					(niivueVolume) => niivueVolume === volume.niivueRef
+				) ?? -1;
+
+			if (index === -1) return;
+
+			this.niivueWrapper.niivue.setVoxelsWithBrushSize(
+				location.values[index]?.vox[0] ?? 0,
+				location.values[index]?.vox[1] ?? 0,
+				location.values[index]?.vox[2] ?? 0,
+				this.brushValue ?? 0,
+				index,
+				this.brushSize ?? 0,
+				0
 			);
 
-		if (file instanceof CloudPointSetFile || file instanceof CachePointSetFile)
-			return new ProjectState(
-				{
-					projectState: this,
-					files: new ProjectFiles({
-						projectFiles: this.files,
-						pointSets: {
-							local: this.files.pointSets.local.map((tmpPointSet) =>
-								tmpPointSet.name === file.name
-									? tmpPointSet.from(
-											options as Parameters<PointSetFile['from']>[0]
-									  )
-									: tmpPointSet
-							),
-							cloud: this.files.pointSets.cloud.map((tmpPointSet) =>
-								tmpPointSet.name === file.name
-									? tmpPointSet.from(
-											options as Parameters<PointSetFile['from']>[0]
-									  )
-									: tmpPointSet
-							),
-							cache: this.files.pointSets.cache.map((tmpPointSet) =>
-								tmpPointSet.name === file.name
-									? tmpPointSet.from(
-											options as Parameters<PointSetFile['from']>[0]
-									  )
-									: tmpPointSet
-							),
-						},
-					}),
-				},
-				upload
-			);
+			volume.setHasChanges(true);
+		});
+	}
 
-		throw new Error('file type unknown');
+	async apiGetDownload(): Promise<FileResponse> {
+		if (this.id === undefined)
+			throw new Error('can not download files, when there is no project id');
+		return await this.client.download(this.id);
+	}
+
+	private onNiivueMouseUp(uiData: UIData): void {
+		if (this.userMode !== USER_MODE.EDIT_POINTS) return;
+
+		const file = this.files?.pointSets.all.find((file) => file.isActive);
+
+		if (file === undefined) {
+			Store.addNotification({
+				message: 'you need to select a point set to add points',
+				type: 'warning',
+				insert: 'top',
+				container: 'top-right',
+				animationIn: ['animate__animated', 'animate__fadeIn'],
+				animationOut: ['animate__animated', 'animate__fadeOut'],
+				dismiss: {
+					duration: 1500,
+					onScreen: true,
+				},
+			});
+			return;
+		}
+
+		if (!file.isChecked) {
+			Store.addNotification({
+				message: 'the selected file needs to be visible to add points',
+				type: 'warning',
+				insert: 'top',
+				container: 'top-right',
+				animationIn: ['animate__animated', 'animate__fadeIn'],
+				animationOut: ['animate__animated', 'animate__fadeOut'],
+				dismiss: {
+					duration: 1500,
+					onScreen: true,
+				},
+			});
+			return;
+		}
+		if (!('data' in file) || file.data === undefined) return;
+
+		if (uiData.fracPos[0] < 0) return; // not on volume
+		if (uiData.mouseButtonCenterDown) return;
+
+		const position = this.niivueWrapper.coordinatesFromMouse(uiData.fracPos);
+
+		const newPoint: IPointSetWaypoint = {
+			coordinates: {
+				x: position[0],
+				y: position[1],
+				z: position[2],
+			},
+			legacy_stat: 1,
+		};
+
+		file.addWaypoint(newPoint);
+
+		file.setSelectedWayPoint(file.data.points.length);
 	}
 }

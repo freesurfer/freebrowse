@@ -16,8 +16,8 @@ export const EqualSplitViewIcon = ({
 					rx="4.5"
 					stroke="currentColor"
 				/>
-				<line x1="12" y1="2" x2="12" y2="22" stroke="#ffffff" />
-				<line x1="22" y1="12" x2="2" y2="12" stroke="#ffffff" />
+				<line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" />
+				<line x1="22" y1="12" x2="2" y2="12" stroke="currentColor" />
 			</svg>
 		</div>
 	);

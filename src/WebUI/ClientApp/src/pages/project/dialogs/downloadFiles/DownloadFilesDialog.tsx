@@ -1,11 +1,9 @@
 import { useDownloadFilesDialogState } from './hooks/useDownloadFilesDialogState';
 import type { FileResponse } from '@/generated/web-api-client';
-import { useApiProject } from '@/hooks/useApiProject';
-import { useApiVolume } from '@/hooks/useApiVolume';
+import { type ProjectState } from '@/pages/project/models/ProjectState';
 import type { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import { convertVolumeToBase64 } from '@/pages/project/models/file/ProjectFileHelper';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import type { NVImage } from '@niivue/niivue';
 import { createContext, useCallback } from 'react';
 import Modal from 'react-modal';
 import { Store } from 'react-notifications-component';
@@ -15,21 +13,15 @@ export interface IDownloadFilesDialog {
 	 * open the modal dialog
 	 */
 	readonly download: (
-		projectId: number,
-		changedVolumes: {
-			cloudVolume: CloudVolumeFile;
-			niivueVolume: NVImage | undefined;
-		}[]
+		projectState: ProjectState,
+		changedVolumes: CloudVolumeFile[]
 	) => Promise<FileResponse | 'canceled'>;
 }
 
 export const DownloadFilesDialogContext = createContext<IDownloadFilesDialog>({
 	download: async (
-		projectId: number,
-		changedVolumes: {
-			cloudVolume: CloudVolumeFile;
-			niivueVolume: NVImage | undefined;
-		}[]
+		projectState: ProjectState,
+		changedVolumes: CloudVolumeFile[]
 	) => {
 		throw new Error('not initialized yet');
 	},
@@ -57,34 +49,28 @@ export const DownloadFilesDialog = ({
 }: {
 	children: React.ReactElement;
 }): React.ReactElement => {
-	const { isOpen, context, resolve, reject, changedVolumes, projectId } =
+	const { isOpen, context, resolve, reject, changedVolumes, projectState } =
 		useDownloadFilesDialogState();
-	const apiVolume = useApiVolume();
-	const apiProject = useApiProject();
 
 	const onDownload = useCallback(
 		async (save: boolean) => {
-			if (resolve === undefined || reject === undefined) {
+			if (
+				resolve === undefined ||
+				reject === undefined ||
+				projectState === undefined
+			) {
 				console.error('modal state is not correct');
 				return;
 			}
 
 			if (save && changedVolumes.length > 0) {
-				const volumesWithBase64 = await Promise.all(
-					changedVolumes.map(async (v) =>
-						v.niivueVolume === undefined
-							? v.cloudVolume
-							: v.cloudVolume.from({
-									base64: await convertVolumeToBase64(v.niivueVolume),
-							  })
-					)
-				);
-
 				try {
-					await apiVolume.edit(
-						volumesWithBase64,
-						changedVolumes.map((v) => v.cloudVolume)
-					);
+					for (const volume of changedVolumes) {
+						if (volume.niivueRef === undefined) return;
+						await volume.setBase64(
+							await convertVolumeToBase64(volume.niivueRef)
+						);
+					}
 
 					Store.addNotification({
 						message: 'volume edits saved',
@@ -105,13 +91,13 @@ export const DownloadFilesDialog = ({
 			}
 
 			try {
-				resolve(await apiProject.download(projectId));
+				resolve(await projectState.apiGetDownload());
 			} catch (error) {
 				console.error('something went wrong', error);
 				reject('UNKNOWN_ERROR');
 			}
 		},
-		[apiVolume, apiProject, changedVolumes, projectId, resolve, reject]
+		[changedVolumes, projectState, resolve, reject]
 	);
 
 	return (

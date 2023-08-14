@@ -1,4 +1,5 @@
 import { NameIcon } from '@/pages/project/components/rightBar/NameIcon';
+import { EventHandler } from '@/pages/project/models/handlers/EventHandler';
 import { ArrowUpCircleIcon } from '@heroicons/react/24/outline';
 import { useState, type ReactElement, useCallback } from 'react';
 
@@ -30,7 +31,9 @@ export const AddComment = ({
 					className="grow pl-1 text-xs"
 					value={message}
 					onChange={(event) => setMessage(event.target.value)}
-					onKeyDown={(event) => event.code === 'Enter' && addComment(message)}
+					{...EventHandler.onKeyGate({
+						onKeyDown: (event) => event.code === 'Enter' && addComment(message),
+					})}
 				/>
 				<button onClick={() => addComment(message)}>
 					<ArrowUpCircleIcon className="h-5 w-5 px-1 py-1 text-gray-500" />

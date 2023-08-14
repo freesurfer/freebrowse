@@ -19,6 +19,8 @@
 		"@niivue/niivue": "file:./niivue-fork.tgz",
 		"fflate": "^0.7.4",
 		"file-saver": "^2.0.5",
+		"mobx": "^6.10.0",
+		"mobx-react-lite": "^4.0.3",
 		"react": "^18.2.0",
 		"react-collapsed": "^4.0.2",
 		"react-dom": "^18.2.0",

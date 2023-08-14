@@ -14,13 +14,16 @@ export enum LOCAL_STORAGE_KEY {
 /**
  * setter method to put a value to the local storage
  */
-export const set = (key: LOCAL_STORAGE_KEY, value: string): void => {
+export const localStorageSet = (
+	key: LOCAL_STORAGE_KEY,
+	value: string
+): void => {
 	localStorage.setItem(key, value);
 };
 
 /**
  * getter method to receive a written value from the local storage
  */
-export const get = (key: LOCAL_STORAGE_KEY): string | undefined => {
+export const localStorageGet = (key: LOCAL_STORAGE_KEY): string | undefined => {
 	return localStorage.getItem(key) ?? undefined;
 };

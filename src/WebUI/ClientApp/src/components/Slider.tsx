@@ -1,3 +1,4 @@
+import { EventHandler } from '@/pages/project/models/handlers/EventHandler';
 import { useCallback, useEffect, useState, createRef, useRef } from 'react';
 import type { ReactElement } from 'react';
 
@@ -183,6 +184,7 @@ export const Slider = ({
 			<div className="flex items-center">
 				<label className="grow">{label}</label>
 				<input
+					className="flex h-5 w-12 items-center justify-center rounded border border-gray px-1 py-3 text-center text-sm"
 					type="number"
 					onChange={(event) => updateValue(Number(event.target.value), false)}
 					onBlur={() => updateValue(value, true)}
@@ -190,7 +192,7 @@ export const Slider = ({
 					step={1}
 					min={min}
 					max={max}
-					className="flex h-5 w-12 items-center justify-center rounded border border-gray px-1 py-3 text-center text-sm"
+					{...EventHandler.onKeyGate()}
 				></input>
 				{unit !== undefined ? <span className="ml-1">{unit}</span> : <></>}
 			</div>

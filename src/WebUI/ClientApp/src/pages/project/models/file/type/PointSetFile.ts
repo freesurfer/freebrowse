@@ -26,7 +26,7 @@ export interface IPointSetStatistics {
 	'additional stat': number;
 }
 
-export interface IPointSetPoint {
+export interface IPointSetWaypoint {
 	comments?: IPointSetComment[];
 	coordinates: IPointSetCoordinates;
 	legacy_stat?: 1;
@@ -37,7 +37,7 @@ export interface IPointSetData {
 	color: [number, number, number];
 	data_type: 'fs_pointset';
 	overall_quality?: string;
-	points: IPointSetPoint[];
+	points: IPointSetWaypoint[];
 	qa_level?: number;
 	version: number;
 	vox2ras: 'scanner_ras';
@@ -64,5 +64,15 @@ export interface IPointSetFile {
 	/**
 	 * the from the user temporally selected way point
 	 */
-	readonly selectedWayPoint: number;
+	selectedWayPoint: number;
+
+	/**
+	 * object containing all the information needed for the ui and persisted in the backend
+	 */
+	data: IPointSetData | undefined;
+
+	setSelectedWayPoint: (selectedWayPoint: number) => void;
+	setData: (data: IPointSetData) => void;
+	addWaypoint: (waypoint: IPointSetWaypoint, logHistory?: boolean) => void;
+	removeWaypoint: (waypoint: IPointSetWaypoint, logHistory?: boolean) => void;
 }

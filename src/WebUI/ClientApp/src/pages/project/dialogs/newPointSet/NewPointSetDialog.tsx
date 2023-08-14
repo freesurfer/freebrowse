@@ -1,5 +1,6 @@
+import { ColorPicker } from '@/components/ColorPicker';
+import { isValidColor } from '@/pages/project/dialogs/ColorHelper';
 import { DialogFrame } from '@/pages/project/dialogs/DialogFrame';
-import { ColorPickerRow } from '@/pages/project/dialogs/components/ColorPickerRow';
 import { TextInputRow } from '@/pages/project/dialogs/components/TextInputRow';
 import { CachePointSetFile } from '@/pages/project/models/file/CachePointSetFile';
 import { CircleStackIcon } from '@heroicons/react/24/outline';
@@ -34,13 +35,14 @@ export const NewPointSetDialog = ({
 }: {
 	children: ReactElement;
 }): ReactElement => {
+	const [name, setName] = useState<string>(CachePointSetFile.DEFAULT_NAME);
+	const [color, setColor] = useState<string>(DEFAULT_COLOR);
+	const [isOpen, setIsOpen] = useState<boolean>(false);
+
 	const [handle, setHandle] = useState<{
-		isOpen: boolean;
-		done?: (color: string | undefined, name: string | undefined) => void;
+		done?: (color: string | undefined, name: string) => void;
 		canceled?: () => void;
-		color?: string;
-		name?: string;
-	}>({ isOpen: false });
+	}>({});
 
 	const openDialog = useCallback(
 		async (
@@ -48,27 +50,34 @@ export const NewPointSetDialog = ({
 		): Promise<INewPointSetDialogOpenResult | 'canceled'> => {
 			return await new Promise<INewPointSetDialogOpenResult | 'canceled'>(
 				(resolve) => {
+					setIsOpen(true);
 					setHandle({
-						isOpen: true,
-						done: (color: string | undefined, name: string | undefined) => {
-							setHandle({ isOpen: false });
+						done: (color: string | undefined, name: string) => {
+							setIsOpen(false);
+							setColor(DEFAULT_COLOR);
+							setName(CachePointSetFile.DEFAULT_NAME);
 							resolve({
-								color: color ?? DEFAULT_COLOR,
+								color:
+									color !== undefined && isValidColor(color)
+										? color
+										: DEFAULT_COLOR,
 								name:
-									name !== undefined
+									name !== CachePointSetFile.DEFAULT_NAME
 										? `${name}.json`
 										: `${CachePointSetFile.DEFAULT_NAME} ${nextCount}.json`,
 							});
 						},
 						canceled: () => {
-							setHandle({ isOpen: false });
+							setIsOpen(false);
+							setColor(DEFAULT_COLOR);
+							setName(CachePointSetFile.DEFAULT_NAME);
 							resolve('canceled');
 						},
 					});
 				}
 			);
 		},
-		[]
+		[setIsOpen, setHandle]
 	);
 
 	return (
@@ -81,8 +90,8 @@ export const NewPointSetDialog = ({
 				{children}
 			</NewPointSetDialogContext.Provider>
 			<DialogFrame
-				isOpen={handle.isOpen}
-				onDone={() => handle.done?.(handle.color, handle.name)}
+				isOpen={isOpen}
+				onDone={() => handle.done?.(color, name)}
 				onCancel={() => handle.canceled?.()}
 				title="New Point Set"
 				doneButtonLabel="Create"
@@ -93,13 +102,14 @@ export const NewPointSetDialog = ({
 				<div className="px-5">
 					<TextInputRow
 						label="Enter the name of the new point set:"
-						onChange={(name) => setHandle((handle) => ({ ...handle, name }))}
-						defaultValue={CachePointSetFile.DEFAULT_NAME}
+						onChange={(name) => setName(name)}
+						value={name}
 					/>
-					<ColorPickerRow
-						className="mt-4"
+					<ColorPicker
+						className="mt-4 text-gray-500"
 						label="Color:"
-						onChange={(color) => setHandle((handle) => ({ ...handle, color }))}
+						value={color}
+						onChange={(color) => setColor(color)}
 					/>
 				</div>
 			</DialogFrame>

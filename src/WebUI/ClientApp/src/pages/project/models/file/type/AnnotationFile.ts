@@ -6,5 +6,4 @@ export type AnnotationFile = LocalAnnotationFile | CloudAnnotationFile;
 
 export interface IAnnotationFile {
 	type: FileType.ANNOTATION;
-	fromIsActive: (isActive: boolean) => IAnnotationFile;
 }

@@ -115,6 +115,7 @@ declare module '@niivue/niivue' {
 		fiberDecimationStride: any;
 		fiberMask: any;
 		colormap: any;
+		nodeColormap: string;
 		dpg: any;
 		dps: any;
 		dpv: any;

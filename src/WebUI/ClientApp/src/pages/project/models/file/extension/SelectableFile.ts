@@ -2,5 +2,7 @@ export interface ISelectableFile {
 	/**
 	 * the file is selected
 	 */
-	readonly isActive: boolean;
+	isActive: boolean;
+
+	setIsActive: (isActive: boolean) => void;
 }

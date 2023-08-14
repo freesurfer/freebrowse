@@ -2,6 +2,7 @@ import { DropDownMenu } from '@/components/DropDownMenu';
 import { humanizeTimeSpan } from '@/model/humanizeTimeSpan';
 import { EditComment } from '@/pages/project/components/rightBar/EditComment';
 import { NameIcon } from '@/pages/project/components/rightBar/NameIcon';
+import { EventHandler } from '@/pages/project/models/handlers/EventHandler';
 import {
 	EllipsisHorizontalIcon,
 	PencilIcon,
@@ -55,6 +56,7 @@ export const CommentEntry = ({
 						className="grow"
 						defaultValue={userName}
 						onBlur={(event) => setUserName(event.target.value)}
+						{...EventHandler.onKeyGate()}
 					></input>
 				)}
 				{timestamp !== undefined ? (

@@ -1,17 +1,16 @@
 import LookUpTable from '@/pages/project/colorMaps/LookUpTable.json';
-import { NiivueEventHandlers } from '@/pages/project/eventHandlers/NiivueEventHandlers';
 import { COLOR_MAP_NIIVUE } from '@/pages/project/models/ColorMap';
 import { type ProjectState } from '@/pages/project/models/ProjectState';
-import type { ViewSettings } from '@/pages/project/models/ViewSettings';
-import type { VolumeFile } from '@/pages/project/models/file/type/VolumeFile';
-import { niivueHandleProjectUpdate } from '@/pages/project/models/niivueUpdate/NiivueHandleProjectUpdate';
 import {
 	type LocationData,
 	type UIData,
 	Niivue,
 	type NVImage,
 	type NVMesh,
+	type ColormapLut,
 } from '@niivue/niivue';
+
+export const DEFAULT_MESH_THICKNESS = 1;
 
 export interface INiivueCache {
 	volumes: Map<string, NVImage>;
@@ -41,7 +40,7 @@ export class NiivueWrapper {
 		},
 		dragAndDropEnabled: false,
 		dragMode: 3,
-		meshThicknessOn2D: 10,
+		meshThicknessOn2D: DEFAULT_MESH_THICKNESS,
 		isHighResolutionCapable: false,
 		isOrientCube: false,
 		enableBorderHighlight: true,
@@ -49,128 +48,37 @@ export class NiivueWrapper {
 		multiplanarForceRender: true,
 	});
 
-	private onLocationChange:
-		| ((value: LocationData | undefined) => void)
-		| undefined;
+	static rgbToCmap(
+		rgb: [number, number, number] | undefined
+	): ColormapLut | undefined {
+		if (rgb === undefined) return undefined;
+		if (rgb.length !== 3) throw new Error('Invalid RGB input');
+		return {
+			R: [rgb[0], rgb[0]],
+			G: [rgb[1], rgb[1]],
+			B: [rgb[2], rgb[2]],
+			A: [0, 128],
+			I: [0, 255],
+		};
+	}
 
-	// no this, since its only the empty initialization state
-	// eslint-disable-next-line class-methods-use-this
-	private onUpdateMinMax: (
-		update: { volume: VolumeFile; min: number; max: number }[]
-	) => void = (update) => {
-		/* do nothing */
-	};
+	constructor(
+		private readonly projectState: ProjectState,
+		private readonly onLocationChange: (value: LocationData) => void,
+		onMouseUp: (uiData: UIData) => void
+	) {
+		this.niivue.onMouseUp = onMouseUp;
+	}
 
-	/**
-	 * the cache is used to map the file state instances to the niivue image/mesh objects
-	 * also necessary to preserver hidden files to add them fast again
-	 */
-	private readonly cache: INiivueCache = {
-		volumes: new Map<string, NVImage>([]),
-		surfaces: new Map<string, NVMesh>([]),
-		pointSets: new Map<string, NVMesh>([]),
-	};
-
-	private projectState: ProjectState | undefined;
-
-	constructor(canvasRef: HTMLCanvasElement) {
+	public setCanvas(canvasRef: HTMLCanvasElement): void {
 		this.niivue.addColormap(COLOR_MAP_NIIVUE.LOOKUP_TABLE, LookUpTable);
 		void this.niivue.attachToCanvas(canvasRef);
-		this.niivueEventHandlers = new NiivueEventHandlers(
-			this.niivue,
-			() => this.projectState
-		);
-		document.addEventListener('keydown', this.handleKeyDown.bind(this));
-		document.addEventListener('keyup', this.handleKeyUp.bind(this));
-		document.addEventListener('mousemove', this.handleMouseMove.bind(this));
-	}
-
-	public setOnLocationChange(
-		callback: ((value: LocationData | undefined) => void) | undefined
-	): void {
-		this.onLocationChange = callback;
-	}
-
-	public setOnMouseUp(callback: (uiData: UIData) => void): void {
-		this.niivue.onMouseUp = (uiData) => callback(uiData);
-	}
-
-	public setOnMinMaxUpdate(
-		callback: (
-			update: { volume: VolumeFile; min: number; max: number }[]
-		) => void
-	): void {
-		this.onUpdateMinMax = callback;
-	}
-
-	public getCachedVolume(key: string): NVImage | undefined {
-		return this.cache.volumes.get(key);
 	}
 
 	coordinatesFromMouse(
 		fracPos: [number]
 	): ReturnType<typeof this.niivue.frac2mm> {
 		return this.niivue.frac2mm(fracPos);
-	}
-
-	/**
-	 * notify on project state update
-	 */
-	public async next(
-		previousState: ProjectState | undefined,
-		nextState: ProjectState,
-		viewSettings: ViewSettings | undefined
-	): Promise<void> {
-		await niivueHandleProjectUpdate(
-			previousState,
-			nextState,
-			this.niivue,
-			this.cache,
-			this.onUpdateMinMax
-		);
-
-		this.projectState = nextState;
-		this.niivueEventHandlers.updateProjectState(this.projectState);
-		if (previousState === undefined) {
-			await this.setViewState(viewSettings);
-		}
-	}
-
-	private async setViewState(
-		viewSettings: ViewSettings | undefined
-	): Promise<void> {
-		if (
-			viewSettings?.zoom2dX !== undefined &&
-			viewSettings?.zoom2dY !== undefined &&
-			viewSettings?.zoom2dZ !== undefined &&
-			viewSettings?.zoom2d !== undefined &&
-			viewSettings?.zoom3d !== undefined &&
-			viewSettings?.renderAzimuth !== undefined &&
-			viewSettings?.renderElevation !== undefined
-		) {
-			this.niivue.uiData.pan2Dxyzmm = [
-				viewSettings.zoom2dX,
-				viewSettings.zoom2dY,
-				viewSettings.zoom2dZ,
-				viewSettings.zoom2d,
-			];
-			this.niivue.scene.volScaleMultiplier = viewSettings.zoom3d;
-			this.niivue.scene.renderAzimuth = viewSettings.renderAzimuth;
-			this.niivue.scene.renderElevation = viewSettings.renderElevation;
-			this.navigateToSlice(
-				viewSettings.sliceX,
-				viewSettings.sliceY,
-				viewSettings.sliceZ
-			);
-		}
-
-		try {
-			this.niivue.createOnLocationChange();
-		} catch (error) {
-			// something seems to fail here, but it should not stop the execution
-			console.warn('ignore?!', error);
-		}
-		this.niivue.updateGLVolume();
 	}
 
 	static hexToRGBA(hex: string): [number, number, number, number] {
@@ -193,7 +101,7 @@ export class NiivueWrapper {
 		);
 	}
 
-	private navigateToSlice(
+	navigateToSlice(
 		x: number | undefined,
 		y: number | undefined,
 		z: number | undefined
@@ -234,78 +142,24 @@ export class NiivueWrapper {
 
 		if (volume?.colormapLabel?.labels === undefined) return undefined;
 
-		const value = Math.round(
-			volume.getRawValue(...volumeLocationData.vox, volume.frame4D)
-		);
-
-		if (value < 0 || value >= volume.colormapLabel.labels.length)
-			return undefined;
-
-		const label = volume.colormapLabel.labels[value];
-		return label;
-	}
-
-	private readonly niivueEventHandlers: NiivueEventHandlers;
-
-	public handleKeyDown(event: KeyboardEvent): void {
-		this.niivueEventHandlers.handleKeyDown(event);
-	}
-
-	public handleKeyUp(event: KeyboardEvent): void {
-		this.niivueEventHandlers.handleKeyUp(event);
-	}
-
-	public handleMouseMove(event: MouseEvent): void {
-		this.niivueEventHandlers.handleMouseMove(event);
-	}
-
-	/*
-	private deleteNode(XYZmm: [number, number, number]): void {
-		const nodes = this.niivue.meshes[0].nodes;
-		if (nodes.X.length < 1) return;
-
-		let minDx = Number.POSITIVE_INFINITY;
-		let minIdx = 0;
-		// check distance of each node from clicked location
-		for (let i = 0; i < nodes.X.length; i++) {
-			const dx = Math.sqrt(
-				Math.pow(XYZmm[0] - nodes.X[i], 2) +
-					Math.pow(XYZmm[1] - nodes.Y[i], 2) +
-					Math.pow(XYZmm[2] - nodes.Z[i], 2)
+		try {
+			const value = Math.round(
+				volume.getRawValue(
+					volumeLocationData.vox[0],
+					volumeLocationData.vox[1],
+					volumeLocationData.vox[2],
+					volume.frame4D
+				)
 			);
-			if (dx < minDx) {
-				minDx = dx;
-				minIdx = i;
-			}
+
+			if (value < 0 || value >= volume.colormapLabel.labels.length)
+				return undefined;
+
+			const label = volume.colormapLabel.labels[value];
+			return label;
+		} catch (error) {
+			console.warn(error);
+			return undefined;
 		}
-		const tolerance = 15.0; // e.g. only 15mm from clicked location
-		if (minDx > tolerance) return;
-		nodes.names.splice(minIdx, 1);
-		nodes.prefilled.splice(minIdx, 1);
-		nodes.X.splice(minIdx, 1);
-		nodes.Y.splice(minIdx, 1);
-		nodes.Z.splice(minIdx, 1);
-		nodes.Color.splice(minIdx, 1);
-		nodes.Size.splice(minIdx, 1);
-		this.niivue.meshes[0].updateMesh(this.niivue.gl);
-		this.niivue.updateGLVolume();
 	}
-
-	private addNode(XYZmm: [number, number, number]): void {
-		const nodes = this.niivue.meshes[0].nodes;
-		console.log('Adding ', XYZmm);
-		nodes.names.push('');
-		nodes.prefilled.push('');
-		nodes.X.push(XYZmm[0]);
-		nodes.Y.push(XYZmm[1]);
-		nodes.Z.push(XYZmm[2]);
-		nodes.Color.push(1);
-		nodes.Size.push(1);
-		this.niivue.meshes[0].updateMesh(this.niivue.gl);
-		this.niivue.updateGLVolume();
-	}
-
-	if (uiData.mouseButtonRightDown) this.deleteNode(XYZmm);
-	else this.addNode(XYZmm);
-	*/
 }

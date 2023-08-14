@@ -11,7 +11,7 @@ declare module '@niivue/niivue' {
 		B: number[];
 		A: number[];
 		I: number[];
-		labels: string[];
+		labels?: string[];
 	}
 
 	export class Scene {
@@ -898,7 +898,7 @@ declare module '@niivue/niivue' {
 		 * niivue.setVolume(someVolume, 1) // move it to the second position in the array of loaded volumes (0 is the first position)
 		 */
 		setVolume(volume: NVImage, toIndex?: number): void;
-		setMesh(mesh: any, toIndex?: number): void;
+		setMesh(mesh: NVMesh, toIndex?: number): void;
 		/**
 		 * Remove a volume
 		 * @param {NVImage} volume volume to delete

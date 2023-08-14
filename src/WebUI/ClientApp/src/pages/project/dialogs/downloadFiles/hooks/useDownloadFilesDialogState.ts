@@ -1,17 +1,14 @@
-import type { FileResponse } from '@/generated/web-api-client';
-import type { IDownloadFilesDialog } from '@/pages/project/dialogs/downloadFiles/DownloadFilesDialog';
-import type { CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
-import type { NVImage } from '@niivue/niivue';
+import { type FileResponse } from '@/generated/web-api-client';
+import { type IDownloadFilesDialog } from '@/pages/project/dialogs/downloadFiles/DownloadFilesDialog';
+import { type ProjectState } from '@/pages/project/models/ProjectState';
+import { type CloudVolumeFile } from '@/pages/project/models/file/CloudVolumeFile';
 import { useState } from 'react';
 
 interface IModalHandle {
 	resolve: ((value: FileResponse | 'canceled') => void) | undefined;
 	reject: ((error: string) => void) | undefined;
-	changedVolumes: {
-		cloudVolume: CloudVolumeFile;
-		niivueVolume: NVImage | undefined;
-	}[];
-	projectId: number;
+	changedVolumes: CloudVolumeFile[];
+	projectState: ProjectState | undefined;
 }
 
 export const useDownloadFilesDialogState = (): {
@@ -21,11 +18,8 @@ export const useDownloadFilesDialogState = (): {
 	const [state, setState] = useState<IModalHandle | undefined>(undefined);
 
 	const download = async (
-		projectId: number,
-		changedVolumes: {
-			cloudVolume: CloudVolumeFile;
-			niivueVolume: NVImage | undefined;
-		}[]
+		projectState: ProjectState,
+		changedVolumes: CloudVolumeFile[]
 	): Promise<FileResponse | 'canceled'> => {
 		if (state !== undefined) throw new Error('DIALOG_OPENED_ALREADY');
 
@@ -42,7 +36,7 @@ export const useDownloadFilesDialogState = (): {
 					},
 					reject,
 					changedVolumes,
-					projectId,
+					projectState,
 				});
 			}
 		);
@@ -58,6 +52,6 @@ export const useDownloadFilesDialogState = (): {
 		reject: state?.reject,
 		context: { download },
 		changedVolumes: state?.changedVolumes ?? [],
-		projectId: state?.projectId ?? 0,
+		projectState: state?.projectState ?? undefined,
 	};
 };
