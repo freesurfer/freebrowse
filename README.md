@@ -21,3 +21,7 @@ For detailed information about the packages used in the development and their li
 ## Feedback
 
 Your feedback is invaluable to us as we continue to refine and develop FreeBrowse. If you encounter any issues, have feature requests, or want to share your thoughts on the project, please don't hesitate to reach out. You can submit bug reports, feature requests, or any other feedback to pwighton@mgh.harvard.edu.
+
+## Acknowledgments
+
+This proof-of-concept was developed by [Zühlke](www.zuehlke.com) through funding provided by Gates Ventures.
