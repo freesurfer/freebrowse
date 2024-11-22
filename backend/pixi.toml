@@ -1,0 +1,13 @@
+[project]
+authors = ["Taylor Hanayik <hanayik@gmail.com>"]
+channels = ["conda-forge"]
+description = "Demo fastAPI server that could work with niivue"
+name = "backend"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+dev = { cmd = "cd ../frontend && npm run build && cd ../backend && fastapi dev src/server.py", env = { NIIVUE_BUILD_DIR = "../frontend/dist" } }
+
+[dependencies]
+fastapi = ">=0.115.5,<0.116"
