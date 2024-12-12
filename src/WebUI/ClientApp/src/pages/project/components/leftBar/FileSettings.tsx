@@ -65,6 +65,7 @@ export const FileSettings = observer(
 												COLOR_MAP_TRANSLATION.GRAY,
 												COLOR_MAP_TRANSLATION.HEAT,
 												COLOR_MAP_TRANSLATION.LOOKUP_TABLE,
+												COLOR_MAP_TRANSLATION.OPEN_MAP,
 											]}
 										/>
 										<Slider
