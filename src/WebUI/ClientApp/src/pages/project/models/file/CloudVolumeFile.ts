@@ -69,6 +69,7 @@ export class CloudVolumeFile
 			dto.colorMap !== COLOR_MAP_BACKEND.HEAT &&
 			dto.colorMap !== COLOR_MAP_BACKEND.LOOKUP_TABLE &&
 			dto.colorMap !== COLOR_MAP_BACKEND.OPEN_MAP &&
+			dto.colorMap !== COLOR_MAP_BACKEND.VTAU &&
 			dto.colorMap !== null
 		)
 			throw new Error(
