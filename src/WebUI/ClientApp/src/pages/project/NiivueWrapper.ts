@@ -1,5 +1,6 @@
 import LookUpTable from '@/pages/project/colorMaps/LookUpTable.json';
 import OpenMapTable from '@/pages/project/colorMaps/LookUpTableOpenMap.json';
+import VTAUTable from '@/pages/project/colorMaps/LookUpTableVTAU.json';
 import { COLOR_MAP_NIIVUE } from '@/pages/project/models/ColorMap';
 import { type ProjectState } from '@/pages/project/models/ProjectState';
 import {
@@ -77,6 +78,7 @@ export class NiivueWrapper {
 	public setCanvas(canvasRef: HTMLCanvasElement): void {
 		this.niivue.addColormap(COLOR_MAP_NIIVUE.LOOKUP_TABLE, LookUpTable);
 		this.niivue.addColormap(COLOR_MAP_NIIVUE.OPEN_MAP, OpenMapTable);
+		this.niivue.addColormap(COLOR_MAP_NIIVUE.VTAU, VTAUTable);
 		void this.niivue.attachToCanvas(canvasRef);
 	}
 

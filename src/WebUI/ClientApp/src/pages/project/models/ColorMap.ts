@@ -7,6 +7,7 @@ export enum COLOR_MAP_BACKEND {
 	HEAT = 'Heat',
 	LOOKUP_TABLE = 'LookupTable',
 	OPEN_MAP = 'OpenMap',
+	VTAU = 'Vtau',
 }
 
 /**
@@ -17,6 +18,7 @@ export enum COLOR_MAP_NIIVUE {
 	HEAT = 'Hot',
 	LOOKUP_TABLE = 'LookupTable',
 	OPEN_MAP = 'OpenMap',
+	VTAU = 'Vtau',
 }
 
 /**
@@ -27,6 +29,7 @@ export enum COLOR_MAP_TRANSLATION {
 	HEAT = 'Heat',
 	LOOKUP_TABLE = 'LookupTable',
 	OPEN_MAP = 'OpenMap',
+	VTAU = 'Vtau',
 }
 
 export class ColorMap {
@@ -62,6 +65,12 @@ export class ColorMap {
 					COLOR_MAP_NIIVUE.OPEN_MAP,
 					COLOR_MAP_TRANSLATION.OPEN_MAP
 				);
+			case COLOR_MAP_BACKEND.VTAU:
+				return new ColorMap(
+					colorMap,
+					COLOR_MAP_NIIVUE.VTAU,
+					COLOR_MAP_TRANSLATION.VTAU
+				);
 		}
 	}
 
@@ -76,6 +85,8 @@ export class ColorMap {
 				return ColorMap.from(COLOR_MAP_BACKEND.HEAT);
 			case COLOR_MAP_TRANSLATION.OPEN_MAP:
 				return ColorMap.from(COLOR_MAP_BACKEND.OPEN_MAP);
+			case COLOR_MAP_BACKEND.VTAU:
+				return ColorMap.from(COLOR_MAP_BACKEND.VTAU);
 			default:
 				throw new Error(`there is no color map for ${colorMapTranslation}`);
 		}
@@ -93,6 +104,8 @@ export class ColorMap {
 				return ColorMap.from(COLOR_MAP_BACKEND.HEAT);
 			case COLOR_MAP_BACKEND.OPEN_MAP:
 				return ColorMap.from(COLOR_MAP_BACKEND.OPEN_MAP);
+			case COLOR_MAP_BACKEND.VTAU:
+				return ColorMap.from(COLOR_MAP_BACKEND.VTAU);
 			default:
 				throw new Error(`there is no color map for ${colorMapBackend}`);
 		}
