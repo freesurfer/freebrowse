@@ -9,7 +9,7 @@
 		"lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
 		"test": "jest",
 		"server": "dotnet build ../../../FreeBrowse.sln && dotnet run --environment \"Development\" ../../../FreeBrowse.sln --project ..",
-		"start": "vite --mode development --host",
+		"start": "vite --mode development",
 		"build": "tsc && vite build --mode production",
 		"lint-staged": "lint-staged --config lint-staged.cjs"
 	},
