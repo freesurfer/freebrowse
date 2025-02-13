@@ -282,7 +282,9 @@ const mghHeaderToArray = (hdr: INVImageHeader): Uint8Array => {
 	return byteArray;
 };
 
-const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+const arrayBufferToBase64 = (
+	buffer: ArrayBuffer | SharedArrayBuffer
+): string => {
 	let binary = '';
 	const bytes = new Uint8Array(buffer);
 	const len = bytes.byteLength;
