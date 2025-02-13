@@ -1,8 +1,10 @@
 import { Checkbox } from '@/components/Checkbox';
 import { ColorPicker } from '@/components/ColorPicker';
+import { DropDown } from '@/components/DropDown';
 import { Slider } from '@/components/Slider';
 import { useProjectSettingsDialogState } from '@/pages/project/dialogs/projectSettings/hooks/useProjectSettingsDialogState';
 import { type ProjectState } from '@/pages/project/models/ProjectState';
+import { KEYBOARD_SCROLL_TYPE } from '@/pages/project/models/ProjectState';
 import {
 	rgbToHex,
 	hexToRgb,
@@ -66,10 +68,16 @@ export const ProjectSettingsDialog = ({
 			  ])
 			: '#ff0000'
 	);
+	const [keyboardScrollType, setKeyboardScrollType] = useState(
+		projectState?.keyboardScrollType ?? KEYBOARD_SCROLL_TYPE.FREEBROWSE
+	);
 
 	useEffect(() => {
 		setCrosshairWidth((projectState?.crosshairWidth ?? 0) * 10);
 		setShowCrosshair(projectState?.showCrosshair ?? true);
+		setKeyboardScrollType(
+			projectState?.keyboardScrollType ?? KEYBOARD_SCROLL_TYPE.FREEVIEW
+		);
 		setCrosshairColor(
 			projectState?.crosshairColor !== undefined &&
 				projectState?.crosshairColor.length === 3
@@ -136,6 +144,24 @@ export const ProjectSettingsDialog = ({
 									setShowCrosshair(value); // Update the local state
 								}}
 							></Checkbox>
+						</div>
+						<div className="mt-2 pl-1">
+							<h1 className="text-l font-semibold">Navigation:</h1>
+							<DropDown
+								className="mt-2"
+								label="Keyboard Scroll Type:"
+								value={keyboardScrollType}
+								options={[
+									KEYBOARD_SCROLL_TYPE.FREEVIEW,
+									KEYBOARD_SCROLL_TYPE.FREEBROWSE,
+								]}
+								onChange={(value) => {
+									projectState?.setKeyboardScrollType(
+										value as KEYBOARD_SCROLL_TYPE
+									);
+									setKeyboardScrollType(value as KEYBOARD_SCROLL_TYPE);
+								}}
+							/>
 						</div>
 					</div>
 				</div>

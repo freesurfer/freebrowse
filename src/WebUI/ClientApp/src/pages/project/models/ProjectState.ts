@@ -48,6 +48,11 @@ export enum SLICE_TYPE {
 	RENDER,
 }
 
+export enum KEYBOARD_SCROLL_TYPE {
+	FREEVIEW = 'Freeview',
+	FREEBROWSE = 'Freebrowse',
+}
+
 export interface ICrosshairPosition {
 	x: number;
 	y: number;
@@ -113,6 +118,15 @@ export class ProjectState {
 	 * the mode the user is interacting with the UI right now
 	 */
 	public sliceType: SLICE_TYPE = SLICE_TYPE.MULTIPLANAR;
+
+	/**
+	 * the scrolling behaviour
+	 * - FREEVIEW: up/down in active windows
+	 # - FREEBROWSE: up/down left/right pgup/pgdown
+	 */
+	public keyboardScrollType: KEYBOARD_SCROLL_TYPE =
+		KEYBOARD_SCROLL_TYPE.FREEBROWSE;
+
 	/**
 	 * the size of the brush when editing the voxel
 	 */
@@ -280,6 +294,10 @@ export class ProjectState {
 	setSliceType(sliceType: SLICE_TYPE): void {
 		this.sliceType = sliceType;
 		this.niivueWrapper.niivue.setSliceType(this.sliceType);
+	}
+
+	setKeyboardScrollType(type: KEYBOARD_SCROLL_TYPE): void {
+		this.keyboardScrollType = type;
 	}
 
 	setUserMode(userMode: USER_MODE): void {
