@@ -89,9 +89,9 @@ cd src/WebUI
 dotnet run
 ```
 
-The backend server will run on `http://localhost:5001`
-The client-side app will run on `http://localhost:44444`
-Open your browser and go to `http://localhost:44444` to view the application.
+- The backend server will run on `http://localhost:5001`
+- The client-side app will run on `http://localhost:44444`
+- Open your browser and go to `http://localhost:44444` to view the application.
 
 ---
 
