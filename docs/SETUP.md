@@ -79,7 +79,7 @@ sudo /opt/mssql/bin/mssql-conf setup
 ```
 - Select #2, Developer edition
 - Enter the SQL Server system administrator password
-- Update [`appsettings.json`](src/WebUI/appsettings.json) accordingly.  It defaults to local development settings with a SQL Server system administrator password of `paul!!!12345`
+- Update [`appsettings.json`](../src/WebUI/appsettings.json) accordingly.  It defaults to local development settings with a SQL Server system administrator password of `paul!!!12345`
 
 ### 5. **Run the Application**:
 Navigate back to the top level of the application and run:
@@ -127,9 +127,10 @@ Ensure to choose the appropriate storage method depending on your application's 
 ## Managing Services
 
 ### To Start Services
-\`\`\`bash
+```
+cd src/WebUI
 dotnet run
-\`\`\`
+```
 
 ### To Stop Services
 Press `Ctrl + C` in the terminal where the service is running.
@@ -149,27 +150,27 @@ Use the debugging tools in the IDE, setting breakpoints and watching variables a
 Note: You don't have to build the frontend project every time you make changes to it. Simply refresh your browser to see the updates.
 
 1. Frontend:
-   \`\`\`bash
-   cd src/WebUI/ClientApp
-   npm run build
-   \`\`\`
+```
+cd src/WebUI/ClientApp
+npm run build
+```
 
 2. Backend:
-   \`\`\`bash
-   cd src/WebUI
-   dotnet build
-   \`\`\`
+```
+cd src/WebUI
+dotnet build
+```
 
 3. Typescript (v5.x.x)
-   \`\`\`bash
-   src/WebUI/ClientApp
-   npx tsc
-   \`\`\`
+```
+src/WebUI/ClientApp
+npx tsc
+```
 
 4. Prettier (to fix linting errors)
-   \`\`\`bash
-   npx prettier --write src/to/file/ThrowingLintingErrors.ts
-   \`\`\`
+```
+npx prettier --write src/to/file/ThrowingLintingErrors.ts
+```
 
 ---
 
