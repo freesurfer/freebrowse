@@ -5,29 +5,89 @@ This document will guide you through the steps to install FreeBrowse locally and
 ## Installing Locally:
 
 ### 1. **Prerequisites**:
-   - [Node.js](https://nodejs.org/en/download/)
-   - [.NET Core SDK](https://dotnet.microsoft.com/download/dotnet-core)
-   - [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
+   - [Node.js](https://nodejs.org/en/download/) v20.x
+   - [.NET Core SDK](https://dotnet.microsoft.com/download/dotnet-core) v7.0.x; do not use dotnet v8!
+   - [Microsoft SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) 2022; v16.0.x
+   - [Microsoft SQL Server Command line tools](https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-utility) (optional)
+   
+#### Ubuntu 20.04 dev quickstart:
 
+Setup for node v20.x
+```
+sudo apt-get update
+sudo apt-get install -y curl
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+```
+
+Setup for Microsoft SQL Server:
+```
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/mssql-server-2022.list)"
+sudo apt-get install -y mssql-server
+```
+
+Setup for .NET Core SDK 7.0.x (do not use v8!)
+```
+wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+sudo dpkg -i packages-microsoft-prod.deb
+```
+
+Install:
+  - node v20.x
+  - .NET Core SDK 7.0.x
+  - Microsoft SQL Serverv 2022 (16.0.x)
+```
+sudo apt-get install -y nodejs dotnet-sdk-7.0 mssql-server
+```
+
+Setup and install Microsoft SQL Server Command line tools (optional):
+```
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+sudo apt-get update
+sudo apt-get install mssql-tools18 unixodbc-dev
+```
+
+References:
+  - [Install .NET SDK or .NET Runtime on Ubuntu](https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-install?pivots=os-linux-ubuntu-2004&tabs=dotnet8)
+  - [Quickstart: Install SQL Server and create a database on Ubuntu](https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-ubuntu?view=sql-server-ver16&tabs=ubuntu2004)
+  - [Install the SQL Server command-line tools](https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-ubuntu?view=sql-server-ver16&tabs=ubuntu2004#tools)
+  
 ### 2. **Clone the Repository**:
-git clone https://gv-grip@dev.azure.com/gv-grip/FreeBrowse/_git/FreeBrowse
-cd .\FreeBrowse
+
+```
+git clone git@github.com:freesurfer/freebrowse.git
+cd freebrowse
+```
 
 ### 3. **Install Node Dependencies**:
 Navigate to the client-side directory, which is called `ClientApp`:
-cd ClientApp
+
+```
+cd src/WebUI/ClientApp/
 npm install
+```
 
 ### 4. **Set Up the Database**:
 - Open SQL Server Management Studio (SSMS).
 - Connect to your SQL Server instance.
+- Set the SQL server admin password
 
-### 5. **Update Connection Strings**:
-In the ASP.NET solution, find the `appsettings.json` file and update the SQL connection string with your local database details.
+#### Ubuntu 20.04 dev quickstart:
+```
+sudo /opt/mssql/bin/mssql-conf setup
+```
+- Select #2, Developer edition
+- Enter the SQL Server system administrator password
+- Update [`appsettings.json`](../src/WebUI/appsettings.json) accordingly.  It defaults to local development settings with a SQL Server system administrator password of `paul!!!12345`
 
-### 6. **Run the Application**:
-Navigate back to the root directory of the application and run:
+### 5. **Run the Application**:
+Navigate back to the top level of the application and run:
+
+```
+cd src/WebUI
 dotnet run
+```
 
 The backend server will run on `http://localhost:5001`
 The client-side app will run on `http://localhost:44444`
@@ -67,9 +127,10 @@ Ensure to choose the appropriate storage method depending on your application's 
 ## Managing Services
 
 ### To Start Services
-\`\`\`bash
+```
+cd src/WebUI
 dotnet run
-\`\`\`
+```
 
 ### To Stop Services
 Press `Ctrl + C` in the terminal where the service is running.
@@ -85,18 +146,31 @@ Use the debugging tools in the IDE, setting breakpoints and watching variables a
 - Niivue.Fork: Contains the our version of the niivue package
 
 ## Compilation
-1. Frontend:
-   \`\`\`bash
-   cd ClientApp
-   npm run build
-   \`\`\`
-
-2. Backend:
-   \`\`\`bash
-   dotnet build
-   \`\`\`
 
 Note: You don't have to build the frontend project every time you make changes to it. Simply refresh your browser to see the updates.
+
+1. Frontend:
+```
+cd src/WebUI/ClientApp
+npm run build
+```
+
+2. Backend:
+```
+cd src/WebUI
+dotnet build
+```
+
+3. Typescript (v5.x.x)
+```
+src/WebUI/ClientApp
+npx tsc
+```
+
+4. Prettier (to fix linting errors)
+```
+npx prettier --write src/to/file/ThrowingLintingErrors.ts
+```
 
 ---
 
