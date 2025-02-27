@@ -122,7 +122,7 @@ export class ProjectState {
 	/**
 	 * the scrolling behaviour
 	 * - FREEVIEW: up/down in active windows
-	 # - FREEBROWSE: up/down left/right pgup/pgdown
+	 * - FREEBROWSE: up/down left/right pgup/pgdown
 	 */
 	public keyboardScrollType: KEYBOARD_SCROLL_TYPE =
 		KEYBOARD_SCROLL_TYPE.FREEBROWSE;
