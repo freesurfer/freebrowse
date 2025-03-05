@@ -70,7 +70,6 @@ export class EventHandler {
 			if (
 				this.projectState.keyboardScrollType === KEYBOARD_SCROLL_TYPE.FREEVIEW
 			) {
-				console.log(this.projectState.keyboardScrollType);
 				switch (event.key) {
 					case 'ArrowUp':
 						this.moveSlices(1);
@@ -81,34 +80,26 @@ export class EventHandler {
 				}
 			} else {
 				// KEYBOARD_SCROLL_TYPE.FREEBROWSE
-				console.log(this.projectState.keyboardScrollType);
 				switch (event.key) {
 					// Y-axis scrolling
 					case 'ArrowUp':
-						console.log('Before ArrowUp:', this.projectState.crosshairPosition);
 						this.niivueWrapper.niivue.moveCrosshairInVox(0, 1, 0);
-						console.log('After ArrowUp:', this.projectState.crosshairPosition);
 						break;
 					case 'ArrowDown':
-						console.log('ArrowDown');
 						this.niivueWrapper.niivue.moveCrosshairInVox(0, -1, 0);
 						break;
 					// X-axis scrolling
 					case 'ArrowLeft':
-						console.log('ArrowLeft');
 						this.niivueWrapper.niivue.moveCrosshairInVox(-1, 0, 0);
 						break;
 					case 'ArrowRight':
-						console.log('ArrowRight');
 						this.niivueWrapper.niivue.moveCrosshairInVox(1, 0, 0);
 						break;
 					// Z-axis scrolling
 					case 'PageUp':
-						console.log('PageUp');
 						this.niivueWrapper.niivue.moveCrosshairInVox(0, 0, 1);
 						break;
 					case 'PageDown':
-						console.log('PageDown');
 						this.niivueWrapper.niivue.moveCrosshairInVox(0, 0, -1);
 						break;
 				}
