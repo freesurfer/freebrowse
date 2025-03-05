@@ -76,7 +76,7 @@ export const ProjectSettingsDialog = ({
 		setCrosshairWidth((projectState?.crosshairWidth ?? 0) * 10);
 		setShowCrosshair(projectState?.showCrosshair ?? true);
 		setKeyboardScrollType(
-			projectState?.keyboardScrollType ?? KEYBOARD_SCROLL_TYPE.FREEVIEW
+			projectState?.keyboardScrollType ?? KEYBOARD_SCROLL_TYPE.FREEBROWSE
 		);
 		setCrosshairColor(
 			projectState?.crosshairColor !== undefined &&
