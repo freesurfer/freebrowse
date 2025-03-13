@@ -1040,7 +1040,6 @@
       },
       "Unit": {
         "type": "object",
-        "description": "Represents a void type, since Void is not a valid return type in C#.",
         "additionalProperties": false
       },
       "DeleteAnnotationCommand": {

@@ -3,6 +3,7 @@ import {
 	USER_MODE,
 	type ProjectState,
 	SLICE_TYPE,
+	KEYBOARD_SCROLL_TYPE,
 } from '@/pages/project/models/ProjectState';
 
 export class EventHandler {
@@ -65,14 +66,45 @@ export class EventHandler {
 			}
 		}
 
-		if (!EventHandler.controlPressed(event))
+		if (!EventHandler.controlPressed(event)) {
+			if (
+				this.projectState.keyboardScrollType === KEYBOARD_SCROLL_TYPE.FREEVIEW
+			) {
+				switch (event.key) {
+					case 'ArrowUp':
+						this.moveSlices(1);
+						break;
+					case 'ArrowDown':
+						this.moveSlices(-1);
+						break;
+				}
+			} else {
+				// KEYBOARD_SCROLL_TYPE.FREEBROWSE
+				switch (event.key) {
+					// Y-axis scrolling
+					case 'ArrowUp':
+						this.niivueWrapper.niivue.moveCrosshairInVox(0, 1, 0);
+						break;
+					case 'ArrowDown':
+						this.niivueWrapper.niivue.moveCrosshairInVox(0, -1, 0);
+						break;
+					// X-axis scrolling
+					case 'ArrowLeft':
+						this.niivueWrapper.niivue.moveCrosshairInVox(-1, 0, 0);
+						break;
+					case 'ArrowRight':
+						this.niivueWrapper.niivue.moveCrosshairInVox(1, 0, 0);
+						break;
+					// Z-axis scrolling
+					case 'PageUp':
+						this.niivueWrapper.niivue.moveCrosshairInVox(0, 0, 1);
+						break;
+					case 'PageDown':
+						this.niivueWrapper.niivue.moveCrosshairInVox(0, 0, -1);
+						break;
+				}
+			}
 			switch (event.key) {
-				case 'ArrowUp':
-					this.moveSlices(1);
-					break;
-				case 'ArrowDown':
-					this.moveSlices(-1);
-					break;
 				case 'm':
 					this.projectState.setUserMode(USER_MODE.NAVIGATE);
 					break;
@@ -103,6 +135,7 @@ export class EventHandler {
 				default:
 					break;
 			}
+		}
 	};
 
 	public handleKeyUp = (event: KeyboardEvent): void => {
