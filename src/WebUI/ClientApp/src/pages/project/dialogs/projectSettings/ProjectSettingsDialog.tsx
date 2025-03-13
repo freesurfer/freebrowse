@@ -68,16 +68,13 @@ export const ProjectSettingsDialog = ({
 			  ])
 			: '#ff0000'
 	);
-	const [keyboardScrollType, setKeyboardScrollType] = useState(
-		projectState?.keyboardScrollType ?? KEYBOARD_SCROLL_TYPE.FREEBROWSE
-	);
 
+	console.log(projectState);
+
+	// todo: separate these use effects
 	useEffect(() => {
 		setCrosshairWidth((projectState?.crosshairWidth ?? 0) * 10);
 		setShowCrosshair(projectState?.showCrosshair ?? true);
-		setKeyboardScrollType(
-			projectState?.keyboardScrollType ?? KEYBOARD_SCROLL_TYPE.FREEBROWSE
-		);
 		setCrosshairColor(
 			projectState?.crosshairColor !== undefined &&
 				projectState?.crosshairColor.length === 3
@@ -150,7 +147,7 @@ export const ProjectSettingsDialog = ({
 							<DropDown
 								className="mt-2"
 								label="Keyboard Scroll Type:"
-								value={keyboardScrollType}
+								value={projectState?.keyboardScrollType}
 								options={[
 									KEYBOARD_SCROLL_TYPE.FREEVIEW,
 									KEYBOARD_SCROLL_TYPE.FREEBROWSE,
@@ -159,7 +156,6 @@ export const ProjectSettingsDialog = ({
 									projectState?.setKeyboardScrollType(
 										value as KEYBOARD_SCROLL_TYPE
 									);
-									setKeyboardScrollType(value as KEYBOARD_SCROLL_TYPE);
 								}}
 							/>
 						</div>
