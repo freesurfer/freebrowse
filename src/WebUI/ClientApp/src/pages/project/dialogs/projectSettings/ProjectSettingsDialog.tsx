@@ -69,8 +69,6 @@ export const ProjectSettingsDialog = ({
 			: '#ff0000'
 	);
 
-	console.log(projectState);
-
 	// todo: separate these use effects
 	useEffect(() => {
 		setCrosshairWidth((projectState?.crosshairWidth ?? 0) * 10);
