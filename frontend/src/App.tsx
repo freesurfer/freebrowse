@@ -11,7 +11,24 @@ function App() {
     const nv = nvRef.current
     if (!canvas) return
     if (!nv) return
-    nv.attachToCanvas(canvas)    
+    nv.attachToCanvas(canvas)
+    
+    // Define the volume list
+    var volumeList = [
+      {
+        // this doesn't work
+        //url: 'images/mni152.nii.gz',
+        // this works
+        //url: 'https://niivue.github.io/niivue/images/mni152.nii.gz',
+        colormap: 'gray',
+        visible: true,
+        opacity: 1
+      }
+    ]
+    
+    // Load the volumes
+    nv.loadVolumes(volumeList)
+    
   }, [])
 
   return (
