@@ -45,5 +45,4 @@ def list_scenes():
       scene_files_dict = [{"filename": f} for f in scene_files]
     except Exception as e:
         return {"error": str(e)}
-    print("json_files:", json_files)
     return scene_files_dict
