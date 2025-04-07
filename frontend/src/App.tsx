@@ -17,9 +17,9 @@ function App() {
     var volumeList = [
       {
         // this doesn't work
-        //url: 'images/mni152.nii.gz',
+        //url: 'data/mni152.nii.gz',
         // this works
-        //url: 'https://niivue.github.io/niivue/images/mni152.nii.gz',
+        url: 'public/mni152.nii.gz',
         colormap: 'gray',
         visible: true,
         opacity: 1
