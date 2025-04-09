@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import SceneList from './Scenes';
-//import { SceneProvider } from './SceneContext';
+import { SceneProvider } from './SceneContext';
 
 createRoot(document.getElementById('root')!).render(
   // disable strict mode for for better niivue development experience
@@ -17,12 +17,12 @@ createRoot(document.getElementById('root')!).render(
 
   // disable strict mode for for better niivue development experience
   // <StrictMode>
-  //<SceneProvider>
+  <SceneProvider>
     <div>
       <App />
       <SceneList />
     </div>
-  //</SceneProvider>
+  </SceneProvider>
   // </StrictMode>,
 
 )
