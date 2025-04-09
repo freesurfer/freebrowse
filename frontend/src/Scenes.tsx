@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
+import { SceneContext } from './SceneContext';
 
-interface Scene {
-  filename: string
-7}
+export interface Scene {
+  filename: string;
+  // Include other scene properties if needed
+}
 
 const SceneList: React.FC = () => {
   const [scenes, setScenes] = useState<Scene[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
+  const { setSelectedScene } = useContext(SceneContext);
 
   useEffect(() => {
     // Define an async function to fetch scene data
@@ -21,6 +24,7 @@ const SceneList: React.FC = () => {
         }
         // Assume the backend returns an array of scenes.
         const data: Scene[] = await response.json()
+        console.log(data)
         setScenes(data)
       } catch (err: any) {
         console.error('Error fetching scenes:', err)
@@ -41,7 +45,13 @@ const SceneList: React.FC = () => {
       {!loading && !error && (scenes.length > 0 ? (
         <ul>
           {scenes.map((scene, index) => (
-            <li key={index}>{scene.name}</li>
+            <li
+              key={index}
+              style={{ cursor: 'pointer' }}
+              onClick={() => setSelectedScene(scene)}
+            >
+              {scene.filename}
+            </li>
           ))}
         </ul>
       ) : (

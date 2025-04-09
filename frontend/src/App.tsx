@@ -1,10 +1,12 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useContext } from 'react'
 import { Niivue } from '@niivue/niivue'
 import './App.css'
+import { SceneContext } from './SceneContext';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const nvRef = useRef<Niivue | null>(new Niivue())
+  const { selectedScene } = useContext(SceneContext);
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -31,6 +33,14 @@ function App() {
     
   }, [])
 
+  useEffect(() => {
+    if (!selectedScene || !nvRef.current) return;
+
+    // Here you update the volume when a new scene is selected.
+    // Customize this object to use the appropriate data from selectedScene.
+    console.log("HERE!!!")
+  }, [selectedScene]);
+  
   return (
     <div>
       <canvas ref={canvasRef}></canvas>
