@@ -14,31 +14,33 @@ function App() {
     if (!canvas) return
     if (!nv) return
     nv.attachToCanvas(canvas)
-    
-    // Define the volume list
-    var volumeList = [
-      {
-        // this doesn't work
-        //url: 'data/mni152.nii.gz',
-        // this works
-        url: 'public/mni152.nii.gz',
-        colormap: 'gray',
-        visible: true,
-        opacity: 1
-      }
-    ]
-    
-    // Load the volumes
-    nv.loadVolumes(volumeList)
-    
   }, [])
 
   useEffect(() => {
-    if (!selectedScene || !nvRef.current) return;
+    async function loadSceneVolumes() {
+      if (!selectedScene || !nvRef.current) return;
+      const nv = nvRef.current
+      
+      console.log(selectedScene.url)
+      try {
+        const response = await fetch(selectedScene.url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const jsonData = await response.json();
+        console.log(jsonData.entries.volumeList)
+        // Extract volumeList from the JSON data (assuming JSON structure is { entries: { volumeList: [...] } })
+        const volumeList = jsonData.entries.volumeList;
 
-    // Here you update the volume when a new scene is selected.
-    // Customize this object to use the appropriate data from selectedScene.
-    console.log("HERE!!!")
+        // Pass the volume list to Niivue
+        nv.loadVolumes(volumeList);
+      } catch (error) {
+        console.error("Failed to load the scene volume list:", error);
+      }
+    }
+
+    loadSceneVolumes();
   }, [selectedScene]);
   
   return (

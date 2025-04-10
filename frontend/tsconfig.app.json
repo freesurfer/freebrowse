@@ -17,7 +17,9 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
+    /* PW: to supress "variable is declared but its value is never read" errors while developing */
+    /* "noUnusedLocals": true, */
+    "noUnusedLocals": false,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
