@@ -9,18 +9,14 @@ import { SceneProvider } from './SceneContext';
 createRoot(document.getElementById('root')!).render(
   // disable strict mode for for better niivue development experience
   // <StrictMode>
-  //<div>
-  //  <App />
-  //  <Scenes />
-  //</div>
-  // </StrictMode>,
-
-  // disable strict mode for for better niivue development experience
-  // <StrictMode>
   <SceneProvider>
-    <div>
-      <App />
-      <SceneList />
+    <div className="app-container">
+      <div className="sidebar">
+        <SceneList />
+      </div>
+      <div className="main-content">
+        <App />
+      </div>
     </div>
   </SceneProvider>
   // </StrictMode>,

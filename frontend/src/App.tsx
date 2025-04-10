@@ -44,7 +44,7 @@ function App() {
   }, [selectedScene]);
   
   return (
-    <div>
+    <div className="niivue-canvas">
       <canvas ref={canvasRef}></canvas>
     </div>
   )
