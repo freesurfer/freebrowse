@@ -3,7 +3,7 @@ import { SceneContext } from './SceneContext';
 
 export interface Scene {
   filename: string;
-  // Include other scene properties if needed
+  url: string;
 }
 
 const SceneList: React.FC = () => {

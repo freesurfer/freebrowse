@@ -2,7 +2,7 @@ import React, { createContext, useState, ReactNode } from 'react'
 
 export interface Scene {
   filename: string;
-  // Add other properties from your JSON scene here if needed
+  url: string;
 }
 
 interface SceneContextProps {
