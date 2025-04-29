@@ -1,10 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react'
 import { SceneContext } from './SceneContext';
-
-export interface Scene {
-  filename: string;
-  url: string;
-}
+import { Scene } from './SceneContext';
 
 const SceneList: React.FC = () => {
   const [scenes, setScenes] = useState<Scene[]>([])
