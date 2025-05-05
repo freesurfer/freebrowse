@@ -8,8 +8,13 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, 
+# Configure logging.  Possible logging levels are:
+#   - logging.DEBUG
+#   - logging.INFO
+#   - logging.WARNING
+#   - logging.ERROR
+#   - logging.CRITICAL
+logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -39,6 +44,7 @@ def list_scenes():
     scene_files = []
     try:
       for filepath in Path(scenes_dir).rglob('*.json'):
+        logger.debug(f"Considering {filepath}")
         try:
           with open(filepath, 'r') as file:
             content = json.load(file)
@@ -50,6 +56,7 @@ def list_scenes():
               }
               scene_files.append(scene_file)
         except json.JSONDecodeError:
+          logger.debug(f".. JSONDecodeError")
           # Skip files that aren't valid JSON or don't have the proper schemaId
           pass
     except Exception as e:
