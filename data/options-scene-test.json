@@ -1,0 +1,32 @@
+{
+  "schemaId": "niivue-fullstack-demo",
+  "schemaUrl": "todo",
+  "version": "0.0.1",
+  "metadata": {
+    "createdAt": "2025-04-07T12:00:00Z",
+    "creator": "niivue-fullstack-demo"
+  },
+  "niivueParameters": {
+    "volumeList": [
+      {
+        "url": "https://niivue.github.io/niivue/images/mni152.nii.gz",
+        "colormap": "gray",
+        "visible": true,
+        "opacity": 1
+      },
+      {
+        "url": "https://niivue.github.io/niivue/images/hippo.nii.gz",
+        "colormap": "red",
+        "visible": true,
+        "opacity": 1
+      }
+    ],
+    "options": {
+      "crosshairWidth": 0,
+      "show3Dcrosshair": false,
+      "isColorbar": true,
+      "backColor": [0.8, 0.8, 1, 1],
+      "logLevel": "debug"
+    }
+  }
+}
