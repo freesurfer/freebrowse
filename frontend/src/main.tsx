@@ -3,8 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import SceneList from './Scenes';
-import { SceneProvider } from './SceneContext';
+import { SceneList, SceneProvider } from './Scenes';
 
 createRoot(document.getElementById('root')!).render(
   // disable strict mode for for better niivue development experience

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useContext } from 'react'
 import { Niivue } from '@niivue/niivue'
 import './App.css'
-import { SceneContext } from './SceneContext';
+import { SceneContext } from './Scenes';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)

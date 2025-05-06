@@ -1,8 +1,31 @@
-import React, { useEffect, useState, useContext } from 'react'
-import { SceneContext } from './SceneContext';
-import { Scene } from './SceneContext';
+import React, { createContext, useEffect, useState, useContext, ReactNode } from 'react'
 
-const SceneList: React.FC = () => {
+export interface Scene {
+  filename: string;
+  url: string;
+}
+
+interface SceneContextProps {
+  selectedScene: Scene | null;
+  setSelectedScene: (scene: Scene) => void;
+}
+
+export const SceneContext = createContext<SceneContextProps>({
+  selectedScene: null,
+  setSelectedScene: () => {},
+});
+
+export const SceneProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [selectedScene, setSelectedScene] = useState<Scene | null>(null);
+
+  return (
+    <SceneContext.Provider value={{ selectedScene, setSelectedScene }}>
+      {children}
+    </SceneContext.Provider>
+  );
+};
+
+export const SceneList: React.FC = () => {
   const [scenes, setScenes] = useState<Scene[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
