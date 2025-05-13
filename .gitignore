@@ -1,0 +1,4 @@
+# Ignore any files anywhere under the data directory that aren't json
+/data/**/*
+!/data/**/*.json
+!/data/**/

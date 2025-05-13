@@ -1,0 +1,17 @@
+{
+  "schemaId": "niivue-fullstack-demo",
+  "schemaUrl": "todo",
+  "version": "0.0.1",
+  "metadata": {
+    "createdAt": "2025-04-07T12:00:00Z",
+    "creator": "niivue-fullstack-demo"
+  },
+  "niivueParameters": {
+    "meshList": [
+      {
+        "url": "https://niivue.github.io/niivue/images/lh.pial",
+        "rgba255": [0, 0, 255, 255]
+      }
+    ]
+  }
+}
