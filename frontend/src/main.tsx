@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { SceneList, SceneProvider } from './Scenes';
+import MedicalImageProcessor from './ImageProcessor.tsx';
 
 createRoot(document.getElementById('root')!).render(
   // disable strict mode for for better niivue development experience
@@ -14,7 +15,7 @@ createRoot(document.getElementById('root')!).render(
         <SceneList />
       </div>
       <div className="main-content">
-        <App />
+        <MedicalImageProcessor />
       </div>
     </div>
   </SceneProvider>
