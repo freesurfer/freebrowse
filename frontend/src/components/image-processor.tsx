@@ -9,14 +9,16 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-// import ViewSelector from "@/components/view-selector"
-// import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
+import ViewSelector from "@/components/view-selector"
+import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
 import { useRef, useEffect, useContext } from 'react'
-import { Niivue } from '@niivue/niivue'
-import './App.css'
-import { SceneContext } from './Scenes';
+import { Niivue, NVImage } from '@niivue/niivue'
+import '../App.css'
 import ImageUploader from "./image-uploader"
+import ImageCanvas from "./image-canvas"
+import { sliceTypeMap } from "./image-canvas"
+import { ViewMode } from "./view-selector"
 
 type ImageFile = {
   id: string
@@ -31,25 +33,45 @@ type ProcessingTool = {
   description: string
 }
 
+const nv = new Niivue({
+  loadingText: "Drag-drop images or Click File then Upload File",
+  dragAndDropEnabled: true,
+  textHeight: 0.02,
+  backColor: [0, 0, 0, 1],
+  crosshairColor: [244, 243, 238, 0.5],
+  multiplanarForceRender: false
+});
+
 export default function MedicalImageProcessor() {
   const [images, setImages] = useState<ImageFile[]>([])
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [zoom, setZoom] = useState(100)
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
-//   const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
-  const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "multi">("axial")
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const nvRef = useRef<Niivue | null>(new Niivue())
-  const { selectedScene } = useContext(SceneContext);
+  const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
+  const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "multi" | "render">("axial")
+  // const canvasRef = useRef<HTMLCanvasElement>(null)
+  // const containerRef = useRef<HTMLDivElement>(null)
+  const nvRef = useRef<Niivue | null>(nv)
 
   const processingTools: ProcessingTool[] = [
     { id: "segmentation", name: "Segmentation", description: "Segment different regions in the image" },
     { id: "registration", name: "Image Registration", description: "Align multiple images" },
   ]
 
-  const handleFileUpload = (files: File[]) => {
+  let handleFileUpload = async (files: File[]) => {
+    if (!nvRef.current) return;
+    const nv = nvRef.current
+    console.log("nv", nv)
+    files.forEach(async (file) => {
+      const nvimage = await NVImage.loadFromFile({
+        file: file,
+      });
+      console.log(`file imported ${nvimage}`);
+
+      nv.addVolume(nvimage);
+    })
+
     const newImages = files.map((file) => ({
       id: Math.random().toString(36).substring(2, 9),
       name: file.name,
@@ -79,101 +101,53 @@ export default function MedicalImageProcessor() {
     const tool = processingTools.find((t) => t.id === selectedTool)
 
     // // Create a new history item
-    // const historyItem: ProcessingHistoryItem = {
-    //   id: Math.random().toString(36).substring(2, 9),
-    //   timestamp: new Date(),
-    //   imageNames: selectedImages.map((img) => img.name),
-    //   toolName: tool?.name || selectedTool,
-    //   status: "pending",
-    // }
+    const historyItem: ProcessingHistoryItem = {
+      id: Math.random().toString(36).substring(2, 9),
+      timestamp: new Date(),
+      imageNames: selectedImages.map((img) => img.name),
+      toolName: tool?.name || selectedTool,
+      status: "pending",
+    }
 
     // // Add to history
-    // setProcessingHistory((prev) => [historyItem, ...prev])
+    setProcessingHistory((prev) => [historyItem, ...prev])
 
     console.log("Processing images:", selectedImages, "with tool:", selectedTool)
 
     // Simulate processing with a timeout
-    // setTimeout(() => {
-    //   setProcessingHistory((prev) =>
-    //     prev.map((item) =>
-    //       item.id === historyItem.id ? { ...item, status: "completed", result: "Result data URL or path" } : item,
-    //     ),
-    //   )
-    // }, 3000)
+    setTimeout(() => {
+      setProcessingHistory((prev) =>
+        prev.map((item) =>
+          item.id === historyItem.id ? { ...item, status: "completed", result: "Result data URL or path" } : item,
+        ),
+      )
+    }, 3000)
   }
 
-//   const handleViewResult = (item: ProcessingHistoryItem) => {
-//     console.log("Viewing result for", item)
-//     // Implement viewing the result
-//     alert(`Viewing result for ${item.toolName} processed on ${item.timestamp.toLocaleString()}`)
-//   }
+  const handleViewResult = (item: ProcessingHistoryItem) => {
+    console.log("Viewing result for", item)
+    // Implement viewing the result
+    alert(`Viewing result for ${item.toolName} processed on ${item.timestamp.toLocaleString()}`)
+  }
 
-//   const handleDeleteHistoryItem = (id: string) => {
-//     setProcessingHistory((prev) => prev.filter((item) => item.id !== id))
-//   }
+  const handleDeleteHistoryItem = (id: string) => {
+    setProcessingHistory((prev) => prev.filter((item) => item.id !== id))
+  }
 
-//   const handleClearHistory = () => {
-//     if (confirm("Are you sure you want to clear all processing history?")) {
-//       setProcessingHistory([])
-//     }
-//   }
+  const handleClearHistory = () => {
+    if (confirm("Are you sure you want to clear all processing history?")) {
+      setProcessingHistory([])
+    }
+  }
+
+  const handleViewMode = (mode: ViewMode) => {
+    setViewMode(mode)
+    if (nvRef.current) {
+      nvRef.current.setSliceType(sliceTypeMap[mode] || 0) // Default to axial if mode is invalid
+    }
+  }
 
   const currentImage = currentImageIndex !== null ? images[currentImageIndex] : null
-
-    useEffect(() => {
-    const canvas = canvasRef.current
-    const nv = nvRef.current
-    if (!canvas) return
-    if (!nv) return
-    nv.attachToCanvas(canvas)
-  }, [])
-
-  useEffect(() => {
-    async function loadScene() {
-      if (!selectedScene || !nvRef.current) return;
-      const nv = nvRef.current
-
-      console.log(selectedScene.url)
-      try {
-        const response = await fetch(selectedScene.url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const jsonData = await response.json();
-        console.log(jsonData.niivueParameters.volumeList)
-
-        const niiVueVolumeList = jsonData.niivueParameters.volumeList;
-        //console.log(volumeList)
-
-        const niiVueMeshList = jsonData.niivueParameters.meshList;
-        //console.log(meshList)
-
-        const niiVueOptions = jsonData.niivueParameters.options;
-        //console.log(options)
-
-        // let niiVueSliceType = sliceTypeMap[jsonData.niivueParameters.sliceType]
-        // //console.log(niiVueSliceType)
-        // if (niiVueSliceType < 0 || niiVueSliceType > 4) {
-        //   console.log("warning: invalid niiVueSliceType")
-        //   console.log(niiVueSliceType)
-        //   niiVueSliceType = 0
-        // }
-
-
-        niiVueVolumeList ? nv.loadVolumes(niiVueVolumeList) : nv.loadVolumes([])
-        niiVueMeshList ? nv.loadMeshes(niiVueMeshList) : nv.loadMeshes([])
-        //available options: https://niivue.github.io/niivue/devdocs/types/NVConfigOptions.html
-        niiVueOptions ? nv.setDefaults(niiVueOptions) : nv.setDefaults({})
-        // niiVueSliceType ? nv.setSliceType(niiVueSliceType) : nv.setSliceType(-1)
-
-      } catch (error) {
-        console.error("Failed to load the scene:", error);
-      }
-    }
-
-    loadScene();
-  }, [selectedScene]);
 
   return (
     <div className="flex h-screen flex-col">
@@ -201,11 +175,7 @@ export default function MedicalImageProcessor() {
             ) : (
               <div className="relative flex h-full flex-col">
                 <div className="flex-1 overflow-hidden">
-                  {currentImage &&
-                    <div ref={containerRef} className="w-full h-full relative bg-[#111]">
-                        <canvas ref={canvasRef}></canvas>
-                    </div>
-                  }
+                  {currentImage && <ImageCanvas imageUrl={currentImage.url} zoom={zoom} viewMode={viewMode} nvRef={nv}/>}
                 </div>
                 <div className="border-t bg-background p-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -237,7 +207,7 @@ export default function MedicalImageProcessor() {
                       <span className="text-sm text-muted-foreground">{zoom}%</span>
                     </div>
 
-                    {/* <ViewSelector currentView={viewMode} onViewChange={setViewMode} /> */}
+                    <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
 
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="icon" onClick={() => setZoom(100)}>
@@ -264,14 +234,14 @@ export default function MedicalImageProcessor() {
                 <TabsTrigger value="tools" className="data-[state=active]:bg-muted">
                   Processing Tools
                 </TabsTrigger>
-                {/* <TabsTrigger value="history" className="data-[state=active]:bg-muted">
+                <TabsTrigger value="history" className="data-[state=active]:bg-muted">
                   History
                   {processingHistory.length > 0 && (
                     <span className="ml-1 rounded-full bg-primary w-5 h-5 text-[10px] flex items-center justify-center text-primary-foreground">
                       {processingHistory.length}
                     </span>
                   )}
-                </TabsTrigger> */}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="images" className="flex-1 p-0">
@@ -340,14 +310,14 @@ export default function MedicalImageProcessor() {
                 </ScrollArea>
               </TabsContent>
 
-              {/* <TabsContent value="history" className="flex-1 p-0">
+              <TabsContent value="history" className="flex-1 p-0">
                 <ProcessingHistory
                   history={processingHistory}
                   onViewResult={handleViewResult}
                   onDeleteItem={handleDeleteHistoryItem}
                   onClearHistory={handleClearHistory}
                 />
-              </TabsContent> */}
+              </TabsContent>
             </Tabs>
 
             <div className="border-t p-4 bg-background">

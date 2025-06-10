@@ -2,16 +2,27 @@
 
 import type React from "react"
 
-import { useRef, useEffect, useState } from "react"
+import { useRef, useEffect, useState, useContext } from "react"
 import { cn } from "@/lib/utils"
+import { SceneContext } from '../Scenes';
+import { Niivue, NVImage } from '@niivue/niivue'
 
 interface ImageCanvasProps {
   imageUrl: string
   zoom: number
-  viewMode: "axial" | "coronal" | "sagittal" | "multi"
+  viewMode: "axial" | "coronal" | "sagittal" | "multi" | "render"
+  nvRef: Niivue
 }
 
-export default function ImageCanvas({ imageUrl, zoom, viewMode }: ImageCanvasProps) {
+export const sliceTypeMap: {[type: string]: number} = {
+  "axial": 0,
+  "coronal": 1,
+  "sagittal": 2,
+  "multi": 3,
+  "render": 4
+};
+
+export default function ImageCanvas({ imageUrl, zoom, viewMode, nvRef }: ImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -19,26 +30,86 @@ export default function ImageCanvas({ imageUrl, zoom, viewMode }: ImageCanvasPro
   const [startPosition, setStartPosition] = useState({ x: 0, y: 0 })
   const [imageLoaded, setImageLoaded] = useState(false)
   const imageRef = useRef<HTMLImageElement | null>(null)
+  // const nvRef = useRef<Niivue | null>(new Niivue())
+  const { selectedScene } = useContext(SceneContext);
 
-  // Load the image
   useEffect(() => {
-    const image = new Image()
-    image.crossOrigin = "anonymous"
-    image.src = imageUrl
+    const canvas = canvasRef.current
+    const nv = nvRef
+    console.log("Niivue attached to canvas", nv)
+    if (!canvas) return
+    if (!nv) return
+    nv.attachToCanvas(canvas)
+    nv.setSliceType(sliceTypeMap[viewMode] || 0) // Default to axial if viewMode is invalid;
+    setImageLoaded(true)
+  }, [])
 
-    image.onload = () => {
-      imageRef.current = image
-      setImageLoaded(true)
-      setPosition({ x: 0, y: 0 }) // Reset position when new image is loaded
-      drawImage()
-    }
+  useEffect(() => {
+    async function loadScene() {
+      if (!selectedScene || !nvRef) return;
+      const nv = nvRef
 
-    return () => {
-      if (imageRef.current) {
-        imageRef.current.onload = null
+      console.log(selectedScene.url)
+      try {
+        const response = await fetch(selectedScene.url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const jsonData = await response.json();
+        console.log(jsonData.niivueParameters.volumeList)
+
+        const niiVueVolumeList = jsonData.niivueParameters.volumeList;
+        //console.log(volumeList)
+
+        const niiVueMeshList = jsonData.niivueParameters.meshList;
+        //console.log(meshList)
+
+        const niiVueOptions = jsonData.niivueParameters.options;
+        //console.log(options)
+
+        // let niiVueSliceType = sliceTypeMap[jsonData.niivueParameters.sliceType]
+        // //console.log(niiVueSliceType)
+        // if (niiVueSliceType < 0 || niiVueSliceType > 4) {
+        //   console.log("warning: invalid niiVueSliceType")
+        //   console.log(niiVueSliceType)
+        //   niiVueSliceType = 0
+        // }
+
+
+        niiVueVolumeList ? nv.loadVolumes(niiVueVolumeList) : nv.loadVolumes([])
+        niiVueMeshList ? nv.loadMeshes(niiVueMeshList) : nv.loadMeshes([])
+        //available options: https://niivue.github.io/niivue/devdocs/types/NVConfigOptions.html
+        niiVueOptions ? nv.setDefaults(niiVueOptions) : nv.setDefaults({})
+        // niiVueSliceType ? nv.setSliceType(niiVueSliceType) : nv.setSliceType(-1)
+
+      } catch (error) {
+        console.error("Failed to load the scene:", error);
       }
     }
-  }, [imageUrl])
+
+    loadScene();
+  }, [selectedScene]);
+
+  // Load the image
+  // useEffect(() => {
+  //   const image = new Image()
+  //   image.crossOrigin = "anonymous"
+  //   image.src = imageUrl
+
+  //   image.onload = () => {
+  //     imageRef.current = image
+  //     setImageLoaded(true)
+  //     setPosition({ x: 0, y: 0 }) // Reset position when new image is loaded
+  //     drawImage()
+  //   }
+
+  //   return () => {
+  //     if (imageRef.current) {
+  //       imageRef.current.onload = null
+  //     }
+  //   }
+  // }, [imageUrl])
 
   // Redraw when zoom or position changes
   useEffect(() => {
@@ -151,15 +222,8 @@ export default function ImageCanvas({ imageUrl, zoom, viewMode }: ImageCanvasPro
   }
 
   return (
-    <div ref={containerRef} className="w-full h-full relative bg-[#111]">
-      <canvas
-        ref={canvasRef}
-        className={cn("w-full h-full", isDragging ? "cursor-grabbing" : "cursor-grab")}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-      />
+    <div ref={containerRef} className="niivue-canvas w-full h-full relative bg-[#111]">
+        <canvas ref={canvasRef}></canvas>
       {getViewLabel()}
       {renderMultiView()}
       {!imageLoaded && (

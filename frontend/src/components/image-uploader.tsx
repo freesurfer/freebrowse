@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface ImageUploaderProps {
-  onUpload: (files: File[]) => void
+  onUpload: (files: File[]) => Promise<void>
   compact?: boolean
 }
 
@@ -30,14 +30,15 @@ export default function ImageUploader({ onUpload, compact = false }: ImageUpload
     setIsDragging(false)
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const files = Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith("image/"))
+      const files = Array.from(e.dataTransfer.files)
       onUpload(files)
     }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files).filter((file) => file.type.startsWith("image/"))
+      console.log("Files selected:", e.target.files)
+      const files = Array.from(e.target.files)
       onUpload(files)
     }
   }
@@ -83,7 +84,7 @@ export default function ImageUploader({ onUpload, compact = false }: ImageUpload
         <div className="grid gap-1 text-center">
           <h3 className="text-lg font-semibold">Upload Medical Images</h3>
           <p className="text-sm text-muted-foreground">Drag and drop your medical images here or click to browse</p>
-          <p className="text-xs text-muted-foreground mt-2">Supported formats: DICOM, JPEG, PNG, TIFF</p>
+          <p className="text-xs text-muted-foreground mt-2">Supported formats: NIfTI, GIfTI</p>
         </div>
         <Button onClick={handleButtonClick}>
           <Upload className="mr-2 h-4 w-4" />
@@ -93,7 +94,6 @@ export default function ImageUploader({ onUpload, compact = false }: ImageUpload
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept="image/*"
           multiple
           className="hidden"
         />
