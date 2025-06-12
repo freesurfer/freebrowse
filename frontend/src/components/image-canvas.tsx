@@ -1,15 +1,8 @@
-"use client"
-
-import type React from "react"
-
 import { useRef, useEffect, useState, useContext } from "react"
-import { cn } from "@/lib/utils"
 import { SceneContext } from '../Scenes';
 import { Niivue, NVImage } from '@niivue/niivue'
 
 interface ImageCanvasProps {
-  imageUrl: string
-  zoom: number
   viewMode: "axial" | "coronal" | "sagittal" | "multi" | "render"
   nvRef: Niivue
 }
@@ -22,14 +15,10 @@ export const sliceTypeMap: {[type: string]: number} = {
   "render": 4
 };
 
-export default function ImageCanvas({ imageUrl, zoom, viewMode, nvRef }: ImageCanvasProps) {
+export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [position, setPosition] = useState({ x: 0, y: 0 })
-  const [startPosition, setStartPosition] = useState({ x: 0, y: 0 })
   const [imageLoaded, setImageLoaded] = useState(false)
-  const imageRef = useRef<HTMLImageElement | null>(null)
   // const nvRef = useRef<Niivue | null>(new Niivue())
   const { selectedScene } = useContext(SceneContext);
 
@@ -68,15 +57,6 @@ export default function ImageCanvas({ imageUrl, zoom, viewMode, nvRef }: ImageCa
         const niiVueOptions = jsonData.niivueParameters.options;
         //console.log(options)
 
-        // let niiVueSliceType = sliceTypeMap[jsonData.niivueParameters.sliceType]
-        // //console.log(niiVueSliceType)
-        // if (niiVueSliceType < 0 || niiVueSliceType > 4) {
-        //   console.log("warning: invalid niiVueSliceType")
-        //   console.log(niiVueSliceType)
-        //   niiVueSliceType = 0
-        // }
-
-
         niiVueVolumeList ? nv.loadVolumes(niiVueVolumeList) : nv.loadVolumes([])
         niiVueMeshList ? nv.loadMeshes(niiVueMeshList) : nv.loadMeshes([])
         //available options: https://niivue.github.io/niivue/devdocs/types/NVConfigOptions.html
@@ -90,106 +70,6 @@ export default function ImageCanvas({ imageUrl, zoom, viewMode, nvRef }: ImageCa
 
     loadScene();
   }, [selectedScene]);
-
-  // Load the image
-  // useEffect(() => {
-  //   const image = new Image()
-  //   image.crossOrigin = "anonymous"
-  //   image.src = imageUrl
-
-  //   image.onload = () => {
-  //     imageRef.current = image
-  //     setImageLoaded(true)
-  //     setPosition({ x: 0, y: 0 }) // Reset position when new image is loaded
-  //     drawImage()
-  //   }
-
-  //   return () => {
-  //     if (imageRef.current) {
-  //       imageRef.current.onload = null
-  //     }
-  //   }
-  // }, [imageUrl])
-
-  // Redraw when zoom or position changes
-  useEffect(() => {
-    if (imageLoaded) {
-      drawImage()
-    }
-  }, [zoom, position, imageLoaded])
-
-  const drawImage = () => {
-    const canvas = canvasRef.current
-    const ctx = canvas?.getContext("2d")
-    const image = imageRef.current
-
-    if (!canvas || !ctx || !image) return
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    // Calculate scaled dimensions
-    const scale = zoom / 100
-    const scaledWidth = image.width * scale
-    const scaledHeight = image.height * scale
-
-    // Center the image initially
-    const centerX = (canvas.width - scaledWidth) / 2
-    const centerY = (canvas.height - scaledHeight) / 2
-
-    // Draw with position offset
-    ctx.drawImage(image, centerX + position.x, centerY + position.y, scaledWidth, scaledHeight)
-  }
-
-  // Handle canvas resize
-  useEffect(() => {
-    const resizeCanvas = () => {
-      const canvas = canvasRef.current
-      const container = containerRef.current
-
-      if (canvas && container) {
-        canvas.width = container.clientWidth
-        canvas.height = container.clientHeight
-
-        if (imageLoaded) {
-          drawImage()
-        }
-      }
-    }
-
-    resizeCanvas()
-    window.addEventListener("resize", resizeCanvas)
-
-    return () => {
-      window.removeEventListener("resize", resizeCanvas)
-    }
-  }, [imageLoaded])
-
-  // Mouse events for panning
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true)
-    setStartPosition({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    })
-  }
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return
-
-    setPosition({
-      x: e.clientX - startPosition.x,
-      y: e.clientY - startPosition.y,
-    })
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  const handleMouseLeave = () => {
-    setIsDragging(false)
-  }
 
   const renderMultiView = () => {
     if (viewMode !== "multi") return null

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ZoomIn, ZoomOut, Maximize, Minimize, PanelLeft, PanelRight, Send, ImageIcon } from "lucide-react"
+import { PanelLeft, PanelRight, Send, ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import ViewSelector from "@/components/view-selector"
 import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
-import { useRef, useEffect, useContext } from 'react'
+import { useRef } from 'react'
 import { Niivue, NVImage } from '@niivue/niivue'
 import '../App.css'
 import ImageUploader from "./image-uploader"
@@ -23,7 +23,6 @@ import { ViewMode } from "./view-selector"
 type ImageFile = {
   id: string
   name: string
-  url: string
   selected: boolean
 }
 
@@ -34,7 +33,7 @@ type ProcessingTool = {
 }
 
 const nv = new Niivue({
-  loadingText: "Drag-drop images or Click File then Upload File",
+  loadingText: "Drag-drop images",
   dragAndDropEnabled: true,
   textHeight: 0.02,
   backColor: [0, 0, 0, 1],
@@ -46,12 +45,10 @@ export default function MedicalImageProcessor() {
   const [images, setImages] = useState<ImageFile[]>([])
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [zoom, setZoom] = useState(100)
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
   const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
   const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "multi" | "render">("axial")
-  // const canvasRef = useRef<HTMLCanvasElement>(null)
-  // const containerRef = useRef<HTMLDivElement>(null)
+  const [visibility, setVisibility] = useState(true);
   const nvRef = useRef<Niivue | null>(nv)
 
   const processingTools: ProcessingTool[] = [
@@ -62,26 +59,25 @@ export default function MedicalImageProcessor() {
   let handleFileUpload = async (files: File[]) => {
     if (!nvRef.current) return;
     const nv = nvRef.current
-    console.log("nv", nv)
     files.forEach(async (file) => {
       const nvimage = await NVImage.loadFromFile({
         file: file,
       });
       console.log(`file imported ${nvimage}`);
+      console.log("nv", nv)
 
       nv.addVolume(nvimage);
+
+      const newImage = {
+        id: nvimage.id,
+        name: nvimage.name,
+        selected: false,
+      }
+      setImages((prev) => [...prev, ...[newImage]])
     })
 
-    const newImages = files.map((file) => ({
-      id: Math.random().toString(36).substring(2, 9),
-      name: file.name,
-      url: URL.createObjectURL(file),
-      selected: false,
-    }))
 
-    setImages((prev) => [...prev, ...newImages])
-
-    if (currentImageIndex === null && newImages.length > 0) {
+    if (currentImageIndex === null && files.length > 0) {
       setCurrentImageIndex(images.length)
     }
   }
@@ -147,6 +143,19 @@ export default function MedicalImageProcessor() {
     }
   }
 
+  const handleVisibility = (id: number) => {
+    setCurrentImageIndex(id)
+    images.map((img, index) => {
+      console.log("img", img, "index", index, "id", id)
+      if (index === id) {
+        nv.setOpacity(nv.getVolumeIndexByID(img.id), 1);
+      } else {
+        nv.setOpacity(nv.getVolumeIndexByID(img.id), 0);
+      }
+    })
+    nv.updateGLVolume();
+  }
+
   const currentImage = currentImageIndex !== null ? images[currentImageIndex] : null
 
   return (
@@ -168,18 +177,18 @@ export default function MedicalImageProcessor() {
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 overflow-hidden">
           <div className="flex h-full flex-col">
-            {images.length === 0 ? (
+            {currentImageIndex === null ? (
               <div className="flex h-full items-center justify-center">
                 <ImageUploader onUpload={handleFileUpload} />
               </div>
             ) : (
               <div className="relative flex h-full flex-col">
                 <div className="flex-1 overflow-hidden">
-                  {currentImage && <ImageCanvas imageUrl={currentImage.url} zoom={zoom} viewMode={viewMode} nvRef={nv}/>}
+                  {<ImageCanvas viewMode={viewMode} nvRef={nv}/>}
                 </div>
                 <div className="border-t bg-background p-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
+                    {/* <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="icon"
@@ -205,18 +214,10 @@ export default function MedicalImageProcessor() {
                         <ZoomIn className="h-4 w-4" />
                       </Button>
                       <span className="text-sm text-muted-foreground">{zoom}%</span>
-                    </div>
+                    </div> */}
 
                     <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
 
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="icon" onClick={() => setZoom(100)}>
-                        <Maximize className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => setZoom(50)}>
-                        <Minimize className="h-4 w-4" />
-                      </Button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -257,7 +258,7 @@ export default function MedicalImageProcessor() {
                               "flex items-center gap-2 p-2 rounded-md cursor-pointer",
                               currentImageIndex === index ? "bg-muted" : "hover:bg-muted/50",
                             )}
-                            onClick={() => setCurrentImageIndex(index)}
+                            onClick={() => handleVisibility(index)}
                           >
                             <div className="flex-shrink-0">
                               <Checkbox
@@ -265,13 +266,6 @@ export default function MedicalImageProcessor() {
                                 checked={image.selected}
                                 onCheckedChange={() => toggleImageSelection(image.id)}
                                 onClick={(e) => e.stopPropagation()}
-                              />
-                            </div>
-                            <div className="flex-shrink-0 h-12 w-12 rounded-md overflow-hidden border bg-muted">
-                              <img
-                                src={image.url || "/placeholder.svg"}
-                                alt={image.name}
-                                className="h-full w-full object-cover"
                               />
                             </div>
                             <div className="flex-1 min-w-0">
