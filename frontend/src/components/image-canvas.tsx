@@ -1,3 +1,5 @@
+"use client"
+
 import { useRef, useEffect, useState, useContext } from "react"
 import { SceneContext } from '../Scenes';
 import { Niivue, NVImage } from '@niivue/niivue'

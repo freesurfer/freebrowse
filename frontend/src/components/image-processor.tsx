@@ -4,7 +4,6 @@ import { useState } from "react"
 import { PanelLeft, PanelRight, Send, ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Slider } from "@/components/ui/slider"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -46,9 +45,9 @@ export default function MedicalImageProcessor() {
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
+  const [selectedImages, setSelectedImages] = useState<ImageFile[]>([])
   const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
   const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "multi" | "render">("axial")
-  const [visibility, setVisibility] = useState(true);
   const nvRef = useRef<Niivue | null>(nv)
 
   const processingTools: ProcessingTool[] = [
@@ -56,6 +55,7 @@ export default function MedicalImageProcessor() {
     { id: "registration", name: "Image Registration", description: "Align multiple images" },
   ]
 
+  // Add uploaded files to Niivue
   let handleFileUpload = async (files: File[]) => {
     if (!nvRef.current) return;
     const nv = nvRef.current
@@ -76,7 +76,6 @@ export default function MedicalImageProcessor() {
       setImages((prev) => [...prev, ...[newImage]])
     })
 
-
     if (currentImageIndex === null && files.length > 0) {
       setCurrentImageIndex(images.length)
     }
@@ -96,7 +95,7 @@ export default function MedicalImageProcessor() {
     // Get the tool name from the processing tools array
     const tool = processingTools.find((t) => t.id === selectedTool)
 
-    // // Create a new history item
+    // Create a new history item
     const historyItem: ProcessingHistoryItem = {
       id: Math.random().toString(36).substring(2, 9),
       timestamp: new Date(),
@@ -105,7 +104,7 @@ export default function MedicalImageProcessor() {
       status: "pending",
     }
 
-    // // Add to history
+    // Add to history
     setProcessingHistory((prev) => [historyItem, ...prev])
 
     console.log("Processing images:", selectedImages, "with tool:", selectedTool)
@@ -118,6 +117,23 @@ export default function MedicalImageProcessor() {
         ),
       )
     }, 3000)
+
+    // Make a copy of the Niivue instance to avoid issues with state updates
+    const nvCopy = nvRef.current
+    if (!nvCopy) return;
+
+    // Remove unselected volumes from Niivue (in reverse order to avoid index shift)
+    images
+      .map((img, idx) => ({ img, idx }))
+      .filter(({ img }) => !img.selected)
+      .reverse()
+      .forEach(({ idx }) => {
+        nvCopy.removeVolumeByIndex(idx);
+      });
+
+    // Create NVDocument for selected images
+    let nvd = nvCopy.json()
+    console.log("Selected images:", nvd)
   }
 
   const handleViewResult = (item: ProcessingHistoryItem) => {
