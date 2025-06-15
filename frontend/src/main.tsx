@@ -11,9 +11,6 @@ createRoot(document.getElementById('root')!).render(
   // <StrictMode>
   <SceneProvider>
     <div className="app-container">
-      <div className="sidebar">
-        <SceneList />
-      </div>
       <div className="main-content">
         <MedicalImageProcessor />
       </div>

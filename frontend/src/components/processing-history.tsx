@@ -3,16 +3,18 @@ import { Clock, CheckCircle, XCircle, Hourglass, Eye, Download, Trash2 } from "l
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import { NVDocument, ExportDocumentData } from "@niivue/niivue"
 
 export type ProcessingStatus = "pending" | "completed" | "failed"
 
 export interface ProcessingHistoryItem {
   id: string
   timestamp: Date
-  imageNames: string[]
+  nvDocument: ExportDocumentData
   toolName: string
   status: ProcessingStatus
-  result?: string
+  result?: NVDocument
+  error?: string
 }
 
 interface ProcessingHistoryProps {
@@ -113,11 +115,9 @@ export default function ProcessingHistory({
                 </div>
 
                 <div className="text-xs mb-3">
-                  <span className="text-muted-foreground">Images: </span>
+                  <span className="text-muted-foreground">Scene: </span>
                   <span>
-                    {item.imageNames.length === 1
-                      ? item.imageNames[0]
-                      : `${item.imageNames[0]} and ${item.imageNames.length - 1} more`}
+                    {item.id}
                   </span>
                 </div>
 

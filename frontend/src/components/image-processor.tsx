@@ -12,7 +12,7 @@ import ViewSelector from "@/components/view-selector"
 import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
 import { useRef } from 'react'
-import { Niivue, NVImage } from '@niivue/niivue'
+import { DocumentData, Niivue, NVDocument, NVImage } from '@niivue/niivue'
 import '../App.css'
 import ImageUploader from "./image-uploader"
 import ImageCanvas from "./image-canvas"
@@ -45,7 +45,6 @@ export default function MedicalImageProcessor() {
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
-  const [selectedImages, setSelectedImages] = useState<ImageFile[]>([])
   const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
   const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "multi" | "render">("axial")
   const nvRef = useRef<Niivue | null>(nv)
@@ -63,7 +62,6 @@ export default function MedicalImageProcessor() {
       const nvimage = await NVImage.loadFromFile({
         file: file,
       });
-      console.log(`file imported ${nvimage}`);
       console.log("nv", nv)
 
       nv.addVolume(nvimage);
@@ -85,38 +83,26 @@ export default function MedicalImageProcessor() {
     setImages(images.map((img) => (img.id === id ? { ...img, selected: !img.selected } : img)))
   }
 
+  // Define an async function to fetch scene data
+  const fetchScene = async (): Promise<Partial<DocumentData>> => {
+    // Adjust the URL to match the backend endpoint you've set up.
+    const response = await fetch('/scene')
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`)
+    }
+    console.log("Response from /scene:", response)
+    // Assume the backend returns an array of scenes.
+    const nvdFile = await response.json()
+    console.log(nvdFile)
+    return nvdFile
+  }
+
   const handleProcessImages = () => {
     const selectedImages = images.filter((img) => img.selected)
     if (selectedImages.length === 0 || !selectedTool) {
       alert("Please select at least one image and a processing tool")
       return
     }
-
-    // Get the tool name from the processing tools array
-    const tool = processingTools.find((t) => t.id === selectedTool)
-
-    // Create a new history item
-    const historyItem: ProcessingHistoryItem = {
-      id: Math.random().toString(36).substring(2, 9),
-      timestamp: new Date(),
-      imageNames: selectedImages.map((img) => img.name),
-      toolName: tool?.name || selectedTool,
-      status: "pending",
-    }
-
-    // Add to history
-    setProcessingHistory((prev) => [historyItem, ...prev])
-
-    console.log("Processing images:", selectedImages, "with tool:", selectedTool)
-
-    // Simulate processing with a timeout
-    setTimeout(() => {
-      setProcessingHistory((prev) =>
-        prev.map((item) =>
-          item.id === historyItem.id ? { ...item, status: "completed", result: "Result data URL or path" } : item,
-        ),
-      )
-    }, 3000)
 
     // Make a copy of the Niivue instance to avoid issues with state updates
     const nvCopy = nvRef.current
@@ -131,15 +117,81 @@ export default function MedicalImageProcessor() {
         nvCopy.removeVolumeByIndex(idx);
       });
 
-    // Create NVDocument for selected images
-    let nvd = nvCopy.json()
-    console.log("Selected images:", nvd)
+    // Create Partial DocumentData for selected images for processing request
+    const nvd = nvCopy.json()
+    console.log("NVDocument for processing:", nvd)
+    // Get the tool name from the processing tools array
+    const tool = processingTools.find((t) => t.id === selectedTool)
+
+    // Create a new history item
+    const historyItem: ProcessingHistoryItem = {
+      id: Math.random().toString(36).substring(2, 9),
+      timestamp: new Date(),
+      nvDocument: nvd,
+      toolName: tool?.name || selectedTool,
+      status: "pending",
+    }
+
+    // Add to history
+    setProcessingHistory((prev) => [historyItem, ...prev])
+
+    console.log("Processing images:", selectedImages, "with tool:", selectedTool)
+
+    // Simulate processing with a timeout
+    setTimeout(async () => {
+      try {
+        const doc = await fetchScene();
+        console.log("Processing scene URL:", doc);
+        const resultDocument = await NVDocument.loadFromJSON(doc);
+        await resultDocument.fetchLinkedData();
+
+        setProcessingHistory((prev) =>
+          prev.map((item) =>
+            item.id === historyItem.id
+              ? { ...item, status: "completed", result: resultDocument }
+              : item,
+          ),
+        );
+      } catch (error) {
+        console.error("Processing failed:", error);
+        setProcessingHistory((prev) =>
+          prev.map((item) =>
+            item.id === historyItem.id
+              ? {
+                  ...item,
+                  status: "failed",
+                  error:
+                    error && typeof error === "object" && "message" in error
+                      ? (error as { message: string }).message
+                      : String(error),
+                }
+              : item,
+          ),
+        );
+      }
+    }, 9000);
   }
 
-  const handleViewResult = (item: ProcessingHistoryItem) => {
-    console.log("Viewing result for", item)
     // Implement viewing the result
-    alert(`Viewing result for ${item.toolName} processed on ${item.timestamp.toLocaleString()}`)
+  const handleViewResult = async (item: ProcessingHistoryItem) => {
+    console.log("Viewing result for", item)
+    if (!item.result) {
+      alert("No result available for this item")
+      return
+    }
+    console.log("Loading volumes for result", item.result)
+    if (!nvRef.current) {
+      alert("Niivue instance is not available")
+      return
+    }
+    if (item.error) {
+      alert(`Process returned error message ${item.error}`)
+    }
+    if (item.result.data.imageOptionsArray!.length === 0) {
+      alert("No image options available in the result")
+      return
+    }
+    await nvRef.current?.loadVolumes(item.result.data.imageOptionsArray!)
   }
 
   const handleDeleteHistoryItem = (id: string) => {
@@ -172,8 +224,6 @@ export default function MedicalImageProcessor() {
     nv.updateGLVolume();
   }
 
-  const currentImage = currentImageIndex !== null ? images[currentImageIndex] : null
-
   return (
     <div className="flex h-screen flex-col">
       <header className="border-b bg-background px-6 py-3">
@@ -204,36 +254,7 @@ export default function MedicalImageProcessor() {
                 </div>
                 <div className="border-t bg-background p-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    {/* <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setZoom(Math.max(50, zoom - 10))}
-                        disabled={zoom <= 50}
-                      >
-                        <ZoomOut className="h-4 w-4" />
-                      </Button>
-                      <Slider
-                        className="w-32"
-                        value={[zoom]}
-                        min={50}
-                        max={200}
-                        step={10}
-                        onValueChange={(value) => setZoom(value[0])}
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setZoom(Math.min(200, zoom + 10))}
-                        disabled={zoom >= 200}
-                      >
-                        <ZoomIn className="h-4 w-4" />
-                      </Button>
-                      <span className="text-sm text-muted-foreground">{zoom}%</span>
-                    </div> */}
-
                     <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
-
                   </div>
                 </div>
               </div>
