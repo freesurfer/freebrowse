@@ -58,7 +58,7 @@ export const SceneList: React.FC = () => {
 
   return (
     <div>
-      <h2>Niivue Scenes</h2>
+      <h2 >Niivue Scenes</h2>
       {loading && <p>Loading scenes...</p>}
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       {!loading && !error && (scenes.length > 0 ? (

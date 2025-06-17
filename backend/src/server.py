@@ -2,7 +2,7 @@ import os
 import json
 import mimetypes
 import logging
-
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -34,31 +34,30 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")
 app.mount("/data", StaticFiles(directory=data_dir, html=False), name="data")
 
-# Endpoint to list scene files.  Files must:
-#  - end with `.json`
-#  - Have a top-level entry "schemaId" set to `scene_schema_id`
-@app.get("/scenes")
+# Endpoint to get scene file for processing result.  Files must:
+#  - end with `.nvd`
+@app.get("/scene")
 def list_scenes():
     scenes_dir = os.path.join(data_dir)
     logger.debug(f"Looking for scene .json files recursivly in {scenes_dir}")
-    scene_files = []
+    # scene_files = []
+    document = {
+      "title": str(uuid.uuid4()),
+      "imageOptionsArray": [],
+    }
     try:
-      for filepath in Path(scenes_dir).rglob('*.json'):
-        logger.debug(f"Considering {filepath}")
-        try:
-          with open(filepath, 'r') as file:
-            content = json.load(file)
-            if content.get("schemaId") == scene_schema_id:
-              rel_filepath = str(filepath.relative_to(scenes_dir))
-              scene_file = {
-                "filename": rel_filepath,
-                "url": "data/" + rel_filepath
-              }
-              scene_files.append(scene_file)
-        except json.JSONDecodeError:
-          logger.debug(f".. JSONDecodeError")
-          # Skip files that aren't valid JSON or don't have the proper schemaId
-          pass
+      url = 'https://niivue.github.io/niivue-demo-images/pcasl.nii.gz'
+      filename = url.split('/')[-1]
+      print(f"Checking url {url}, filename {filename}")
+      image = {
+        "url": url,
+        "name": filename,
+        "colormap": "gray",
+        "opacity": 1.0,
+      }
+
+      document["imageOptionsArray"].append(image)
     except Exception as e:
         return {"error": str(e)}
-    return scene_files
+    print("document", document)
+    return document

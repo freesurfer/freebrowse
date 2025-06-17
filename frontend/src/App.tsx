@@ -4,7 +4,7 @@ import './App.css'
 import { SceneContext } from './Scenes';
 
 // This should probably live somewhere else
-const sliceTypeMap = {
+const sliceTypeMap: {[type: string]: number} = {
   "Axial": 0,
   "Coronal": 1,
   "Sagittal": 2,
@@ -49,12 +49,12 @@ function App() {
         const niiVueOptions = jsonData.niivueParameters.options;
         //console.log(options)
 
-        const niiVueSliceType = sliceTypeMap[jsonData.niivueParameters.sliceType]
+        let niiVueSliceType = sliceTypeMap[jsonData.niivueParameters.sliceType]
         //console.log(niiVueSliceType)
         if (niiVueSliceType < 0 || niiVueSliceType > 4) {
           console.log("warning: invalid niiVueSliceType")
           console.log(niiVueSliceType)
-          niiVueSliceType = undefined
+          niiVueSliceType = 0
         }
 
 
@@ -62,7 +62,7 @@ function App() {
         niiVueMeshList ? nv.loadMeshes(niiVueMeshList) : nv.loadMeshes([])
         //available options: https://niivue.github.io/niivue/devdocs/types/NVConfigOptions.html
         niiVueOptions ? nv.setDefaults(niiVueOptions) : nv.setDefaults({})
-        niiVueSliceType ? nv.setSliceType(niiVueSliceType) : nv.setSliceType(-1)
+        // niiVueSliceType ? nv.setSliceType(niiVueSliceType) : nv.setSliceType(-1)
 
       } catch (error) {
         console.error("Failed to load the scene:", error);
