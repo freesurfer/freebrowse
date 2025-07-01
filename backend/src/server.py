@@ -61,3 +61,20 @@ def list_scenes():
         return {"error": str(e)}
     print("document", document)
     return document
+
+@app.get("/nvd")
+def list_niivue_documents():
+    nvd_dir = os.path.join(data_dir)
+    logger.debug(f"Looking for niivue documents (.nvd) files recursivly in {nvd_dir}")
+    nvd_files = []
+    try:
+      for filepath in Path(nvd_dir).rglob('*.nvd'):
+        rel_filepath = str(filepath.relative_to(nvd_dir))
+        nvd_file = {
+            "filename": rel_filepath,
+            "url": "data/" + rel_filepath
+        }
+        nvd_files.append(nvd_file)
+    except Exception as e:
+        return {"error": str(e)}
+    return nvd_files

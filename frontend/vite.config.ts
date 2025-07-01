@@ -14,7 +14,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/scene': 'http://127.0.0.1:8000',
-      '/data': 'http://127.0.0.1:8000'
+      '/data': 'http://127.0.0.1:8000',
+      '/nvd': 'http://127.0.0.1:8000'
     }
   }
 })
