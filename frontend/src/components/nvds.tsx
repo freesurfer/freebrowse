@@ -19,9 +19,9 @@ export const NvdProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [selectedNvd, setSelectedNvd] = useState<Nvd | null>(null);
 
   return (
-    <SceneContext.Provider value={{ selectedScene, setSelectedScene }}>
+    <NvdContext.Provider value={{ selectedNvd, setSelectedNvd }}>
       {children}
-    </SceneContext.Provider>
+    </NvdContext.Provider>
   );
 };
 
@@ -32,7 +32,7 @@ export const NvdList: React.FC = () => {
   const { setSelectedNvd } = useContext(NvdContext);
 
   useEffect(() => {
-    // Define an async function to fetch scene data
+    // Define an async function to fetch niivue document list
     const fetchNvds = async () => {
       setLoading(true)
       try {
@@ -47,7 +47,7 @@ export const NvdList: React.FC = () => {
         console.log(data)
         setNvds(data)
       } catch (err: any) {
-        console.error('Error fetching scenes:', err)
+        console.error('Error fetching niivue documents:', err)
         setError(err.message)
       } finally {
         setLoading(false)
@@ -59,7 +59,6 @@ export const NvdList: React.FC = () => {
 
   return (
     <div>
-      <h2 >Niivue Documents</h2>
       {loading && <p>Loading List...</p>}
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       {!loading && !error && (nvds.length > 0 ? (

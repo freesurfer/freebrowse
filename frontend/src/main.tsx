@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { SceneList, SceneProvider } from './Scenes';
+import { NvdList, NvdProvider } from './components/nvds';
 import MedicalImageProcessor from './components/image-processor.tsx';
 import NvdViewer from './components/nvd-viewer.tsx';
 
@@ -23,13 +24,13 @@ createRoot(document.getElementById('root')!).render(
         </SceneProvider>
       } />
       <Route path="/ui" element={
-         <SceneProvider>
+         <NvdProvider>
            <div className="app-container">
              <div className="main-content">
                <NvdViewer />
              </div>
            </div>
-         </SceneProvider>
+         </NvdProvider>
       } />
     </Routes>
   </BrowserRouter>

@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { PanelLeft, PanelRight, Send, ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,14 +9,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import ViewSelector from "@/components/view-selector"
 import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
-import { useRef } from 'react'
+import { useRef, useContext, useEffect } from 'react'
 import { DocumentData, Niivue, NVDocument, NVImage } from '@niivue/niivue'
 import '../App.css'
 import ImageUploader from "./image-uploader"
 import ImageCanvas from "./image-canvas"
 import { sliceTypeMap } from "./image-canvas"
 import { ViewMode } from "./view-selector"
-import { NvdList } from "./nvds"
+import { NvdList, NvdContext } from "./nvds"
 
 type ImageFile = {
   id: string
@@ -43,12 +41,64 @@ const nv = new Niivue({
 
 export default function NvdViewer() {
   const [images, setImages] = useState<ImageFile[]>([])
+  const [showUploader, setShowUploader] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
   const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
   const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "multi" | "render">("axial")
   const nvRef = useRef<Niivue | null>(nv)
+  const { selectedNvd } = useContext(NvdContext)
+
+  // Load NVD document when selected
+  useEffect(() => {
+    async function loadNvd() {
+      if (!selectedNvd || !nvRef.current) return;
+      const nv = nvRef.current;
+
+      try {
+        // Fetch the document from the server
+        const response = await fetch(selectedNvd.url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const jsonData = await response.json();
+        console.log(jsonData)
+
+        const blob = new Blob([jsonData], { type: 'application/json' })
+
+        // Load as NVDocument
+        const document = await NVDocument.loadFromJSON(jsonData);
+
+        await document.fetchLinkedData()
+
+        // Set the canvas to be visible first, instead of the uploader box
+        setShowUploader(false);
+
+        // Wait a bit for canvas to be ready
+        //await new Promise(resolve => setTimeout(resolve, 100));
+
+        try {
+          await nv.loadDocument(document);
+        } catch (error) {
+          console.error("nv.loadDocument failed:", error);
+          // Log more details about the state when it fails
+          console.log("Current nv.volumes:", nv.volumes);
+          console.log("Current nv.meshes:", nv.meshes);
+          console.log("Current nv.drawBitmap:", nv.drawBitmap);
+          throw error;
+        }
+
+        console.log("niivue volumes immediately after loadDocument:")
+        console.log(nv.volumes)
+
+      } catch (error) {
+        console.error('Error loading NVD:', error);
+      }
+    }
+
+    loadNvd();
+  }, [selectedNvd])
 
   // Add uploaded files to Niivue
   let handleFileUpload = async (files: File[]) => {
@@ -118,7 +168,7 @@ export default function NvdViewer() {
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 overflow-hidden">
           <div className="flex h-full flex-col">
-            {currentImageIndex === null ? (
+            {showUploader ? (
               <div className="flex h-full items-center justify-center">
                 <ImageUploader onUpload={handleFileUpload} />
               </div>
@@ -142,7 +192,7 @@ export default function NvdViewer() {
             <Tabs defaultValue="images">
               <TabsList className="w-full justify-start border-b rounded-none px-2 h-12">
                 <TabsTrigger value="scenes" className="data-[state=active]:bg-muted">
-                  Scenes
+                  NiiVue Documents
                 </TabsTrigger>
                 <TabsTrigger value="sceneDetails" className="data-[state=active]:bg-muted">
                   Scene Details
@@ -152,7 +202,7 @@ export default function NvdViewer() {
               <TabsContent value="scenes" className="flex-1 p-0">
                 <ScrollArea className="h-full">
                   <div className="p-4">
-                    {NvdList()}
+                    <NvdList />
                   </div>
                 </ScrollArea>
               </TabsContent>
