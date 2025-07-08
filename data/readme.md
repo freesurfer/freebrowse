@@ -8,4 +8,4 @@ Files added to this directory, can be accessed from the frontend under the
 
 While it will be possible (in the future) to push data to this directory, do not
 commit binary files to the repository.  This directory should only hold example 
-.json scene files
+niivue document (.nvd) files

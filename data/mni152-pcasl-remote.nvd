@@ -1,0 +1,17 @@
+{
+  "title": "2 volumes example -- remote",
+  "imageOptionsArray": [
+    {
+      "url": "https://niivue.github.io/niivue-demo-images/mni152.nii.gz",
+      "colormap": "gray",
+      "visible": false,
+      "opacity": 1
+    },
+    {
+      "url": "https://niivue.github.io/niivue-demo-images/pcasl.nii.gz",
+      "name": "pcasl.nii.gz",
+      "colormap": "gray",
+      "opacity": 1.0
+    }
+  ]
+}

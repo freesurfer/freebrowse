@@ -1,0 +1,17 @@
+{
+  "title": "2 volumes example -- local",
+  "imageOptionsArray": [
+    {
+      "url": "data/volumes/mni152.nii.gz",
+      "colormap": "gray",
+      "visible": false,
+      "opacity": 1
+    },
+    {
+      "url": "data/volumes/pcasl.nii.gz",
+      "name": "pcasl.nii.gz",
+      "colormap": "gray",
+      "opacity": 1.0
+    }
+  ]
+}

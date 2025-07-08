@@ -1,0 +1,11 @@
+{
+  "title": "pcasl remote example",
+  "imageOptionsArray": [
+    {
+      "url": "https://niivue.github.io/niivue-demo-images/pcasl.nii.gz",
+      "name": "pcasl.nii.gz",
+      "colormap": "gray",
+      "opacity": 1.0
+    }
+  ]
+}

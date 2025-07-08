@@ -1,0 +1,11 @@
+{
+  "title": "pcasl remote example",
+  "imageOptionsArray": [
+    {
+      "url": "data/volumes/pcasl.nii.gz",
+      "name": "pcasl.nii.gz",
+      "colormap": "gray",
+      "opacity": 1.0
+    }
+  ]
+}

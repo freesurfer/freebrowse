@@ -1,0 +1,11 @@
+{
+  "title": "MNI152 remote",
+  "imageOptionsArray": [
+    {
+      "url": "https://niivue.github.io/niivue-demo-images/mni152.nii.gz",
+      "colormap": "gray",
+      "visible": true,
+      "opacity": 1
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "title": "hippo local",
+  "imageOptionsArray": [
+    {
+      "url": "data/volumes/hippo.nii.gz",
+      "colormap": "gray",
+      "visible": true,
+      "opacity": 1
+    }
+  ]
+}
