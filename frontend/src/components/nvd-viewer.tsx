@@ -118,9 +118,10 @@ export default function NvdViewer() {
           }
 
           // Clear overlays if any
-          if (nv.overlays && nv.overlays.length > 0) {
-            nv.removeOverlay();
-          }
+          // removeOverlay() not in v0.60.0?
+          //if (nv.overlays && nv.overlays.length > 0) {
+          //  nv.removeOverlay();
+          //}
 
           // Reset drawing state
           nv.drawBitmap = null;
@@ -139,6 +140,8 @@ export default function NvdViewer() {
           }
 
           // Apply scene options if present
+          // first, revert the options to the defaults
+          nv.setDefaults();
           if (jsonData.opts) {
             console.log("Applying options:", jsonData.opts);
             nv.setDefaults(jsonData.opts);
