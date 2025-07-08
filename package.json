@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@niivue/niivue": "^0.60.0",
     "react-router-dom": "^7.6.2"
   }
 }
