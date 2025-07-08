@@ -47,7 +47,7 @@ export default function NvdViewer() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
   const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
-  const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "multi" | "render">("axial")
+  const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render">("ACS")
   const nvRef = useRef<Niivue | null>(nv)
   const { selectedNvd } = useContext(NvdContext)
 
@@ -77,7 +77,7 @@ export default function NvdViewer() {
           await new Promise(resolve => setTimeout(resolve, 100));
           retries++;
         }
-        
+
         if (!nv.canvas) {
           throw new Error("Canvas failed to initialize after 2 seconds");
         }
@@ -150,6 +150,9 @@ export default function NvdViewer() {
           console.log("Volumes after direct load:", nv.volumes);
         }
 
+        // Set the selected view mode
+        handleViewMode(viewMode);
+
         // Update the images state for the UI
         const loadedImages = nv.volumes.map((vol, index) => ({
           id: vol.id,
@@ -203,7 +206,15 @@ export default function NvdViewer() {
   const handleViewMode = (mode: ViewMode) => {
     setViewMode(mode)
     if (nvRef.current) {
-      nvRef.current.setSliceType(sliceTypeMap[mode] || 0) // Default to axial if mode is invalid
+      const viewConfig = sliceTypeMap[mode]
+      console.log("viewConfig")
+      console.log(viewConfig)
+      if (viewConfig) {
+        nvRef.current.opts.multiplanarShowRender = viewConfig.showRender
+        nvRef.current.setSliceType(viewConfig.sliceType)
+      } else {
+        nvRef.current.setSliceType(0) // Default to axial if mode is invalid
+      }
     }
   }
 

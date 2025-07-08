@@ -2,19 +2,20 @@
 
 import { useRef, useEffect, useState, useContext } from "react"
 import { SceneContext } from '../Scenes';
-import { Niivue, NVImage } from '@niivue/niivue'
+import { Niivue, NVImage, SHOW_RENDER } from '@niivue/niivue'
 
 interface ImageCanvasProps {
-  viewMode: "axial" | "coronal" | "sagittal" | "multi" | "render"
+  viewMode: "axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render"
   nvRef: Niivue
 }
 
-export const sliceTypeMap: {[type: string]: number} = {
-  "axial": 0,
-  "coronal": 1,
-  "sagittal": 2,
-  "multi": 3,
-  "render": 4
+export const sliceTypeMap: {[type: string]: {sliceType: number, showRender: number}} = {
+  "axial": { sliceType: 0, showRender: SHOW_RENDER.NEVER },
+  "coronal": { sliceType: 1, showRender: SHOW_RENDER.NEVER },
+  "sagittal": { sliceType: 2, showRender: SHOW_RENDER.NEVER },
+  "ACS": { sliceType: 3, showRender: SHOW_RENDER.NEVER },
+  "ACSR": { sliceType: 3, showRender: SHOW_RENDER.ALWAYS },
+  "render": { sliceType: 4, showRender: SHOW_RENDER.ALWAYS }
 };
 
 export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
@@ -31,7 +32,7 @@ export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
     if (!canvas) return
     if (!nv) return
     nv.attachToCanvas(canvas)
-    nv.setSliceType(sliceTypeMap[viewMode] || 0) // Default to axial if viewMode is invalid;
+    nv.setSliceType(sliceTypeMap[viewMode]?.sliceType || 0) // Default to axial if viewMode is invalid;
     setImageLoaded(true)
   }, [])
 

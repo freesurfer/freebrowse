@@ -2,7 +2,7 @@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Layers, Layers3, SplitSquareVertical, Grid3X3 } from "lucide-react"
 
-export type ViewMode = "axial" | "coronal" | "sagittal" | "multi" | "render"
+export type ViewMode = "axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render"
 
 interface ViewSelectorProps {
   currentView: ViewMode
@@ -29,9 +29,13 @@ export default function ViewSelector({ currentView, onViewChange }: ViewSelector
           <Layers3 className="h-4 w-4 mr-1" />
           <span className="sr-only sm:not-sr-only sm:inline-block text-xs">Sagittal</span>
         </ToggleGroupItem>
-        <ToggleGroupItem value="multi" aria-label="Multi view" title="Multi view">
+        <ToggleGroupItem value="ACS" aria-label="Multi view" title="Multi view">
           <Grid3X3 className="h-4 w-4 mr-1" />
-          <span className="sr-only sm:not-sr-only sm:inline-block text-xs">Multi</span>
+          <span className="sr-only sm:not-sr-only sm:inline-block text-xs">ACS</span>
+        </ToggleGroupItem>
+        <ToggleGroupItem value="ACSR" aria-label="Multi+Render" title="Multi+Render">
+          <Grid3X3 className="h-4 w-4 mr-1" />
+          <span className="sr-only sm:not-sr-only sm:inline-block text-xs">ACSR</span>
         </ToggleGroupItem>
         <ToggleGroupItem value="render" aria-label="Render view" title="Render view">
           <Grid3X3 className="h-4 w-4 mr-1" />
