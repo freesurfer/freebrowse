@@ -42,6 +42,7 @@ const nv = new Niivue({
 export default function NvdViewer() {
   const [images, setImages] = useState<ImageFile[]>([])
   const [showUploader, setShowUploader] = useState(true)
+  const [loadViaNvd, setLoadViaNvd] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
@@ -65,32 +66,98 @@ export default function NvdViewer() {
         const jsonData = await response.json();
         console.log(jsonData)
 
-        const blob = new Blob([jsonData], { type: 'application/json' })
-
-        // Load as NVDocument
-        const document = await NVDocument.loadFromJSON(jsonData);
-
-        await document.fetchLinkedData()
-
-        // Set the canvas to be visible first, instead of the uploader box
+        // Set the canvas to be visible, instead of the uploader box
         setShowUploader(false);
 
-        // Wait a bit for canvas to be ready
-        //await new Promise(resolve => setTimeout(resolve, 100));
-
-        try {
-          await nv.loadDocument(document);
-        } catch (error) {
-          console.error("nv.loadDocument failed:", error);
-          // Log more details about the state when it fails
-          console.log("Current nv.volumes:", nv.volumes);
-          console.log("Current nv.meshes:", nv.meshes);
-          console.log("Current nv.drawBitmap:", nv.drawBitmap);
-          throw error;
+        // Wait for the canvas to be rendered and attached
+        // This is necessary when loading the first document
+        let retries = 0;
+        while (!nv.canvas && retries < 20) {
+          console.log(`Waiting for canvas to be ready... attempt ${retries + 1}`);
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+        
+        if (!nv.canvas) {
+          throw new Error("Canvas failed to initialize after 2 seconds");
         }
 
-        console.log("niivue volumes immediately after loadDocument:")
-        console.log(nv.volumes)
+        if (loadViaNvd) {
+          const blob = new Blob([jsonData], { type: 'application/json' })
+
+          // Load as NVDocument
+          const document = await NVDocument.loadFromJSON(jsonData);
+          await document.fetchLinkedData()
+
+          try {
+            await nv.loadDocument(document);
+          } catch (error) {
+            console.error("nv.loadDocument failed:", error);
+            // Log more details about the state when it fails
+            console.log("Current nv.volumes:", nv.volumes);
+            console.log("Current nv.meshes:", nv.meshes);
+            console.log("Current nv.drawBitmap:", nv.drawBitmap);
+            throw error;
+          }
+
+          console.log("niivue volumes immediately after loadDocument:")
+          console.log(nv.volumes)
+        } else {
+          // Direct loading without NVDocument
+          console.log("Loading directly without NVDocument");
+
+          // Clear existing state
+          // Remove all volumes
+          while (nv.volumes.length > 0) {
+            nv.removeVolumeByIndex(0);
+          }
+
+          // Remove all meshes
+          while (nv.meshes && nv.meshes.length > 0) {
+            nv.removeMesh(nv.meshes[0]);
+          }
+
+          // Clear overlays if any
+          if (nv.overlays && nv.overlays.length > 0) {
+            nv.removeOverlay();
+          }
+
+          // Reset drawing state
+          nv.drawBitmap = null;
+          nv.setDrawingEnabled(false);
+
+          // Load volumes directly from the JSON data
+          if (jsonData.imageOptionsArray && jsonData.imageOptionsArray.length > 0) {
+            console.log("Loading volumes directly:", jsonData.imageOptionsArray);
+            await nv.loadVolumes(jsonData.imageOptionsArray);
+          }
+
+          // Load meshes if present
+          if (jsonData.meshOptionsArray && jsonData.meshOptionsArray.length > 0) {
+            console.log("Loading meshes:", jsonData.meshOptionsArray);
+            await nv.loadMeshes(jsonData.meshOptionsArray);
+          }
+
+          // Apply scene options if present
+          if (jsonData.opts) {
+            console.log("Applying options:", jsonData.opts);
+            nv.setDefaults(jsonData.opts);
+          }
+
+          console.log("Volumes after direct load:", nv.volumes);
+        }
+
+        // Update the images state for the UI
+        const loadedImages = nv.volumes.map((vol, index) => ({
+          id: vol.id,
+          name: vol.name || `Volume ${index + 1}`,
+          selected: false
+        }));
+        setImages(loadedImages);
+
+        if (loadedImages.length > 0) {
+          setCurrentImageIndex(0);
+        }
 
       } catch (error) {
         console.error('Error loading NVD:', error);
@@ -121,6 +188,7 @@ export default function NvdViewer() {
     })
 
     if (currentImageIndex === null && files.length > 0) {
+      setShowUploader(false);
       setCurrentImageIndex(images.length)
     }
   }
@@ -155,6 +223,11 @@ export default function NvdViewer() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Medical Image Processing</h1>
           <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setLoadViaNvd(!loadViaNvd)}>
+            <span className="ml-2 sr-only md:not-sr-only md:inline-block">
+              {loadViaNvd ? "Load without loadDocument()" : "Load via loadDocument()"}
+            </span>
+          </Button>
             <Button variant="outline" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)}>
               {sidebarOpen ? <PanelRight className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
               <span className="ml-2 sr-only md:not-sr-only md:inline-block">
