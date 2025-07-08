@@ -1,4 +1,7 @@
-# Ignore any files anywhere under the data directory that aren't json
+# Ignore any files anywhere under the data directory that aren't nvd
 /data/**/*
-!/data/**/*.json
+!/data/**/*.nvd
 !/data/**/
+
+# Ignore the node_modules directory
+/node_modules
