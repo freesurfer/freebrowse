@@ -276,9 +276,9 @@ export default function NvdViewer() {
 
         {sidebarOpen && (
           <aside className={cn("border-l bg-background w-80 overflow-hidden flex flex-col")}>
-            <Tabs defaultValue="images">
+            <Tabs defaultValue="nvds">
               <TabsList className="w-full justify-start border-b rounded-none px-2 h-12">
-                <TabsTrigger value="scenes" className="data-[state=active]:bg-muted">
+                <TabsTrigger value="nvds" className="data-[state=active]:bg-muted">
                   NiiVue Documents
                 </TabsTrigger>
                 <TabsTrigger value="sceneDetails" className="data-[state=active]:bg-muted">
@@ -286,7 +286,7 @@ export default function NvdViewer() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="scenes" className="flex-1 p-0">
+              <TabsContent value="nvds" className="flex-1 p-0">
                 <ScrollArea className="h-full">
                   <div className="p-4">
                     <NvdList />
