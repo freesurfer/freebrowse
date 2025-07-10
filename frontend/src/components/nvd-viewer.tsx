@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react"
-import { PanelLeft, PanelRight, Send, ImageIcon, Upload } from "lucide-react"
+import { PanelLeft, PanelRight, Send, ImageIcon, Upload, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input"
 import { Select } from "@/components/ui/select"
@@ -53,6 +54,10 @@ export default function NvdViewer() {
   const { selectedNvd } = useContext(NvdContext)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
+  const [volumeToRemove, setVolumeToRemove] = useState<number | null>(null)
+  const [dontAskAgain, setDontAskAgain] = useState(false)
+  const [skipRemoveConfirmation, setSkipRemoveConfirmation] = useState(false)
 
   // Debounced GL update to prevent excessive calls
   const debouncedGLUpdate = useCallback(() => {
@@ -85,7 +90,7 @@ export default function NvdViewer() {
         await new Promise(resolve => requestAnimationFrame(resolve));
         updateImageDetails();
       };
-      
+
       // Set up onImageLoaded to handle drag-and-drop files
       nvRef.current.onImageLoaded = () => {
         updateImageDetails();
@@ -218,12 +223,12 @@ export default function NvdViewer() {
   let handleFileUpload = async (files: File[]) => {
     if (!nvRef.current) return;
     const nv = nvRef.current
-    
+
     // Set the canvas to be visible first, if it's not already
     if (showUploader) {
       setShowUploader(false);
     }
-    
+
     // Wait for the canvas to be rendered and attached
     let retries = 0;
     while (!nv.canvas && retries < 20) {
@@ -235,7 +240,7 @@ export default function NvdViewer() {
     if (!nv.canvas) {
       throw new Error("Canvas failed to initialize after 2 seconds");
     }
-    
+
     // Process all files
     const promises = files.map(async (file) => {
       const nvimage = await NVImage.loadFromFile({
@@ -245,10 +250,10 @@ export default function NvdViewer() {
       nv.addVolume(nvimage);
       return nvimage;
     });
-    
+
     // Wait for all files to be loaded
     await Promise.all(promises);
-    
+
     // Update image details to get complete volume information
     updateImageDetails();
 
@@ -373,20 +378,20 @@ export default function NvdViewer() {
       const volumeIndex = nvRef.current.getVolumeIndexByID(images[currentImageIndex].id);
       if (volumeIndex >= 0 && nvRef.current.volumes[volumeIndex]) {
         const currentVolume = nvRef.current.volumes[volumeIndex];
-        
+
         // Skip if colormap hasn't actually changed
         if (currentVolume.colormap === newColormap) {
           return;
         }
-        
+
         // Set colormap on the volume (this is the expensive part)
         currentVolume.colormap = newColormap;
-        
+
         // Update only the specific image in React state
         setImages(prevImages => prevImages.map((img, index) =>
           index === currentImageIndex ? { ...img, colormap: newColormap } : img
         ));
-        
+
         // Use debounced GL update
         debouncedGLUpdate();
       }
@@ -402,7 +407,72 @@ export default function NvdViewer() {
       const files = Array.from(e.target.files)
       handleFileUpload(files)
     }
+    // Clear the input value so the same file can be selected again
+    e.target.value = ''
   }, [handleFileUpload])
+
+  const removeVolume = useCallback((imageIndex: number) => {
+    if (nvRef.current && images[imageIndex]) {
+      const imageId = images[imageIndex].id;
+      const volumeIndex = nvRef.current.getVolumeIndexByID(imageId);
+
+      if (volumeIndex >= 0) {
+        // Remove the volume from NiiVue
+        nvRef.current.removeVolumeByIndex(volumeIndex);
+
+        // Update React state
+        updateImageDetails();
+
+        // Adjust current selection if needed
+        if (currentImageIndex === imageIndex) {
+          // If we removed the selected volume, select the previous one or null
+          if (imageIndex > 0) {
+            setCurrentImageIndex(imageIndex - 1);
+          } else if (images.length > 1) {
+            setCurrentImageIndex(0);
+          } else {
+            setCurrentImageIndex(null);
+          }
+        } else if (currentImageIndex !== null && currentImageIndex > imageIndex) {
+          // Shift selection index down if a volume before it was removed
+          setCurrentImageIndex(currentImageIndex - 1);
+        }
+      }
+    }
+  }, [images, currentImageIndex]);
+
+  const handleRemoveVolumeClick = useCallback((imageIndex: number) => {
+    if (skipRemoveConfirmation) {
+      // Remove immediately without confirmation
+      removeVolume(imageIndex);
+    } else {
+      // Show confirmation dialog
+      setVolumeToRemove(imageIndex);
+      setRemoveDialogOpen(true);
+    }
+  }, [skipRemoveConfirmation, removeVolume]);
+
+  const handleConfirmRemove = useCallback(() => {
+    if (volumeToRemove !== null) {
+      removeVolume(volumeToRemove);
+
+      // Update "don't ask again" preference if checked
+      if (dontAskAgain) {
+        setSkipRemoveConfirmation(true);
+      }
+    }
+
+    // Close dialog and reset state
+    setRemoveDialogOpen(false);
+    setVolumeToRemove(null);
+    setDontAskAgain(false);
+  }, [volumeToRemove, dontAskAgain, removeVolume]);
+
+  const handleCancelRemove = useCallback(() => {
+    setRemoveDialogOpen(false);
+    setVolumeToRemove(null);
+    setDontAskAgain(false);
+  }, []);
 
   return (
     <div className="flex h-screen flex-col">
@@ -493,12 +563,25 @@ export default function NvdViewer() {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{image.name}</p>
                             </div>
+                            <div className="flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveVolumeClick(index);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                         <div className="p-2 border-t">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="w-full"
                             onClick={handleAddMoreFiles}
                           >
@@ -579,6 +662,38 @@ export default function NvdViewer() {
         multiple
         className="hidden"
       />
+
+      {/* Remove Volume Confirmation Dialog */}
+      <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
+        <DialogContent onClose={handleCancelRemove}>
+          <DialogHeader>
+            <DialogTitle>Remove Volume</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove this volume?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center space-x-2 mt-4">
+            <Checkbox
+              id="dont-ask-again"
+              checked={dontAskAgain}
+              onCheckedChange={(checked) => setDontAskAgain(checked === true)}
+            />
+            <Label htmlFor="dont-ask-again" className="text-sm">
+              Don't ask me again
+            </Label>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelRemove}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmRemove}>
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
