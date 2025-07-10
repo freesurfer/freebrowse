@@ -44,6 +44,7 @@ export default function NvdViewer() {
   const [loadViaNvd, setLoadViaNvd] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeTab, setActiveTab] = useState("nvds")
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
   const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
   const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render">("ACS")
@@ -373,7 +374,7 @@ export default function NvdViewer() {
 
         {sidebarOpen && (
           <aside className={cn("border-l bg-background w-80 overflow-hidden flex flex-col")}>
-            <Tabs defaultValue="nvds">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="w-full justify-start border-b rounded-none px-2 h-12">
                 <TabsTrigger value="nvds" className="data-[state=active]:bg-muted">
                   NiiVue Documents
