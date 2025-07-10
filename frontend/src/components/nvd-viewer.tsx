@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef, useContext } from "react"
 import { PanelLeft, PanelRight, Send, ImageIcon, Upload, Trash2, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -12,7 +12,6 @@ import { Select } from "@/components/ui/select"
 import ViewSelector from "@/components/view-selector"
 import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
-import { useRef, useContext, useEffect } from 'react'
 import { DocumentData, Niivue, NVDocument, NVImage } from '@niivue/niivue'
 import '../App.css'
 import ImageUploader from "./image-uploader"
@@ -51,7 +50,7 @@ export default function NvdViewer() {
   const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
   const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render">("ACS")
   const nvRef = useRef<Niivue | null>(nv)
-  const { selectedNvd } = useContext(NvdContext)
+  const { selectedNvd, setSelectedNvd } = useContext(NvdContext)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
@@ -108,7 +107,7 @@ export default function NvdViewer() {
 
   // Load NVD document when selected
   useEffect(() => {
-    async function loadNvd() {
+      async function loadNvd() {
       if (!selectedNvd || !nvRef.current) return;
       const nv = nvRef.current;
 
@@ -218,6 +217,29 @@ export default function NvdViewer() {
 
     loadNvd();
   }, [selectedNvd])
+
+  // Load NVD from URL parameter on initial load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const nvdParam = urlParams.get('nvd');
+
+    if (nvdParam && !selectedNvd) {
+      console.log('Loading NVD from URL parameter:', nvdParam);
+
+      // Create an Nvd object from the URL parameter
+      const nvdFromUrl = {
+        filename: nvdParam.split('/').pop() || nvdParam, // Extract filename from path
+        url: nvdParam
+      };
+
+      // Set selectedNvd which will trigger the existing loadNvd() useEffect
+      setSelectedNvd(nvdFromUrl);
+
+      // Since a niivue document is already loaded, set the active tab to
+      // "sceneDetails"
+      setActiveTab("sceneDetails")
+    }
+  }, [selectedNvd, setSelectedNvd]);
 
   // Add uploaded files to Niivue
   let handleFileUpload = async (files: File[]) => {
