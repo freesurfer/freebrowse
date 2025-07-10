@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input"
 import ViewSelector from "@/components/view-selector"
 import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
@@ -18,16 +19,14 @@ import { sliceTypeMap } from "./image-canvas"
 import { ViewMode } from "./view-selector"
 import { NvdList, NvdContext } from "./nvds"
 
-type ImageFile = {
+type ImageDetails = {
   id: string
   name: string
-  selected: boolean
-}
-
-type ProcessingTool = {
-  id: string
-  name: string
-  description: string
+  visible: boolean
+  colormap: string
+  opacity: number
+  contrastMin: number
+  contrastMax: number
 }
 
 const nv = new Niivue({
@@ -40,7 +39,7 @@ const nv = new Niivue({
 });
 
 export default function NvdViewer() {
-  const [images, setImages] = useState<ImageFile[]>([])
+  const [images, setImages] = useState<ImageDetails[]>([])
   const [showUploader, setShowUploader] = useState(true)
   const [loadViaNvd, setLoadViaNvd] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null)
@@ -50,6 +49,19 @@ export default function NvdViewer() {
   const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render">("ACS")
   const nvRef = useRef<Niivue | null>(nv)
   const { selectedNvd } = useContext(NvdContext)
+
+  // Set up the drag release callback
+  // This can change the contrast of a volume, so update the image details accordingly
+  useEffect(() => {
+    if (nvRef.current) {
+      nvRef.current.onDragRelease = async () => {
+        // Use requestAnimationFrame to wait for the next render frame
+        // otherwise values will 'lag' by one drag operation
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        updateImageDetails();
+      };
+    }
+  }, []); // Re-create callback when currentImageIndex changes
 
   // Load NVD document when selected
   useEffect(() => {
@@ -154,16 +166,7 @@ export default function NvdViewer() {
         handleViewMode(viewMode);
 
         // Update the images state for the UI
-        const loadedImages = nv.volumes.map((vol, index) => ({
-          id: vol.id,
-          name: vol.name || `Volume ${index + 1}`,
-          selected: false
-        }));
-        setImages(loadedImages);
-
-        if (loadedImages.length > 0) {
-          setCurrentImageIndex(0);
-        }
+        updateImageDetails();
 
       } catch (error) {
         console.error('Error loading NVD:', error);
@@ -188,27 +191,68 @@ export default function NvdViewer() {
       const newImage = {
         id: nvimage.id,
         name: nvimage.name,
-        selected: false,
+        visible: true,
       }
       setImages((prev) => [...prev, ...[newImage]])
     })
 
     if (currentImageIndex === null && files.length > 0) {
       setShowUploader(false);
-      setCurrentImageIndex(images.length)
+      setCurrentImageIndex(0);
     }
   }
 
-  const toggleImageSelection = (id: string) => {
-    setImages(images.map((img) => (img.id === id ? { ...img, selected: !img.selected } : img)))
+  const updateImageDetails = () => {
+    const nv = nvRef.current
+    if (nvRef.current) {
+      const loadedImages = nv.volumes.map((vol, index) => ({
+        id: vol.id,
+        name: vol.name || `Volume ${index + 1}`,
+        visible: true,
+        colormap: vol.colormap,
+        opacity: vol.opacity,
+        contrastMin: vol.cal_min,
+        contrastMax: vol.cal_max
+      }));
+      setImages(loadedImages);
+      console.log("updateImageDetails() loadedImages:", loadedImages)
+      if (loadedImages.length > 0) {
+        setCurrentImageIndex(0);
+      }
+    } else {
+      console.log("updateImageDetails(): nvRef is ", nvref)
+    }
+  }
+
+  const toggleImageVisibility = (id: string) => {
+    setImages(images.map((img) => {
+      if (img.id === id) {
+        const newVisible = !img.visible;
+
+        // Update the Niivue volume opacity
+        if (nvRef.current) {
+          const volumeIndex = nvRef.current.getVolumeIndexByID(id);
+          if (volumeIndex >= 0) {
+            nvRef.current.setOpacity(volumeIndex, newVisible ? img.opacity : 0);
+          }
+        }
+
+        return { ...img, visible: newVisible };
+      }
+      return img;
+    }));
+
+    // Trigger Niivue to update the canvas
+    if (nvRef.current) {
+      nvRef.current.updateGLVolume();
+    }
   }
 
   const handleViewMode = (mode: ViewMode) => {
     setViewMode(mode)
     if (nvRef.current) {
       const viewConfig = sliceTypeMap[mode]
-      console.log("viewConfig")
-      console.log(viewConfig)
+      console.log("handleViewMode() -- viewConfig: ", viewConfig)
       if (viewConfig) {
         nvRef.current.opts.multiplanarShowRender = viewConfig.showRender
         nvRef.current.setSliceType(viewConfig.sliceType)
@@ -218,24 +262,82 @@ export default function NvdViewer() {
     }
   }
 
-  const handleVisibility = (id: number) => {
-    setCurrentImageIndex(id)
-    images.map((img, index) => {
-      console.log("img", img, "index", index, "id", id)
-      if (index === id) {
-        nv.setOpacity(nv.getVolumeIndexByID(img.id), 1);
-      } else {
-        nv.setOpacity(nv.getVolumeIndexByID(img.id), 0);
+  const handleOpacityChange = (newOpacity: number) => {
+    if (currentImageIndex !== null && nvRef.current) {
+      const volumeIndex = nvRef.current.getVolumeIndexByID(images[currentImageIndex].id);
+      if (volumeIndex >= 0) {
+        nvRef.current.setOpacity(volumeIndex, newOpacity);
+        nvRef.current.updateGLVolume();
+
+        // Update the images state to reflect the new opacity
+        setImages(images.map((img, index) =>
+          index === currentImageIndex ? { ...img, opacity: newOpacity } : img
+        ));
       }
-    })
-    nv.updateGLVolume();
+    }
   }
+
+  const handleContrastMinChange = (newContrastMin: number) => {
+    if (currentImageIndex !== null && nvRef.current) {
+      const volumeIndex = nvRef.current.getVolumeIndexByID(images[currentImageIndex].id);
+      if (volumeIndex >= 0) {
+        const volume = nvRef.current.volumes[volumeIndex];
+        volume.cal_min = newContrastMin;
+        nvRef.current.updateGLVolume();
+
+        // Update the images state to reflect the new contrast min
+        setImages(images.map((img, index) =>
+          index === currentImageIndex ? { ...img, contrastMin: newContrastMin } : img
+        ));
+      }
+    }
+  }
+
+  const handleContrastMaxChange = (newContrastMax: number) => {
+    if (currentImageIndex !== null && nvRef.current) {
+      const volumeIndex = nvRef.current.getVolumeIndexByID(images[currentImageIndex].id);
+      if (volumeIndex >= 0) {
+        const volume = nvRef.current.volumes[volumeIndex];
+        volume.cal_max = newContrastMax;
+        nvRef.current.updateGLVolume();
+
+        // Update the images state to reflect the new contrast max
+        setImages(images.map((img, index) =>
+          index === currentImageIndex ? { ...img, contrastMax: newContrastMax } : img
+        ));
+      }
+    }
+  }
+
+  //const updateCurrentImageDetails = (index?: number) => {
+  //  const imageIndex = index !== undefined ? index : currentImageIndex;
+  //  if (imageIndex !== null && nvRef.current && nvRef.current.volumes[imageIndex]) {
+  //    const currentImageDetails: ImageDetails = {
+  //      colormap: nvRef.current.volumes[imageIndex].colormap,
+  //      opacity: nvRef.current.volumes[imageIndex].opacity,
+  //      contrastMin: nvRef.current.volumes[imageIndex].cal_min,
+  //      contrastMax: nvRef.current.volumes[imageIndex].cal_max
+  //    };
+  //    console.log("updateCurrentImageDetails() -- ", currentImageDetails)
+  //  }
+  //}
+
+  //const updateCurrentImageIndex = (id: number) => {
+//
+//    setCurrentImageIndex(id);
+    //updateCurrentImageDetails(id); // Pass the new index directly
+//  }
 
   return (
     <div className="flex h-screen flex-col">
       <header className="border-b bg-background px-6 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Medical Image Processing</h1>
+          <h1 className="text-xl font-semibold">FreeBrowse 2.0</h1>
+          <div className="bg-background p-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
+            </div>
+          </div>
           <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setLoadViaNvd(!loadViaNvd)}>
             <span className="ml-2 sr-only md:not-sr-only md:inline-block">
@@ -263,11 +365,6 @@ export default function NvdViewer() {
               <div className="relative flex h-full flex-col">
                 <div className="flex-1 overflow-hidden">
                   {<ImageCanvas viewMode={viewMode} nvRef={nv}/>}
-                </div>
-                <div className="border-t bg-background p-2">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
-                  </div>
                 </div>
               </div>
             )}
@@ -307,13 +404,13 @@ export default function NvdViewer() {
                               "flex items-center gap-2 p-2 rounded-md cursor-pointer",
                               currentImageIndex === index ? "bg-muted" : "hover:bg-muted/50",
                             )}
-                            onClick={() => handleVisibility(index)}
+                            onClick={() => setCurrentImageIndex(index)}
                           >
                             <div className="flex-shrink-0">
                               <Checkbox
                                 id={`select-${image.id}`}
-                                checked={image.selected}
-                                onCheckedChange={() => toggleImageSelection(image.id)}
+                                checked={image.visible}
+                                onCheckedChange={() => toggleImageVisibility(image.id)}
                                 onClick={(e) => e.stopPropagation()}
                               />
                             </div>
@@ -326,9 +423,46 @@ export default function NvdViewer() {
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
                         <ImageIcon className="h-8 w-8 mb-2" />
-                        <p>No images uploaded yet</p>
+                        <p>No images</p>
                       </div>
                     )}
+                  </ScrollArea>
+                  <ScrollArea className="flex-1">
+                  {currentImageIndex != null ? (
+                    <div className="grid gap-4 p-4">
+                      <LabeledSliderWithInput
+                        label="Opacity"
+                        value={images[currentImageIndex]?.opacity || 1}
+                        onValueChange={handleOpacityChange}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                      />
+                      <LabeledSliderWithInput
+                        label="Contrast Min"
+                        value={images[currentImageIndex]?.contrastMin || 0}
+                        onValueChange={handleContrastMinChange}
+                        min={0}
+                        max={255}
+                        step={0.1}
+                        decimalPlaces={1}
+                      />
+                      <LabeledSliderWithInput
+                        label="Contrast Max"
+                        value={images[currentImageIndex]?.contrastMax || 100}
+                        onValueChange={handleContrastMaxChange}
+                        min={0}
+                        max={255}
+                        step={0.1}
+                        decimalPlaces={1}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
+
+                    </div>
+                  )}
+
                   </ScrollArea>
                 </div>
               </TabsContent>
