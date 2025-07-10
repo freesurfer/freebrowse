@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { PanelLeft, PanelRight, Send, ImageIcon } from "lucide-react"
+import { useState, useCallback } from "react"
+import { PanelLeft, PanelRight, Send, ImageIcon, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -51,6 +51,29 @@ export default function NvdViewer() {
   const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render">("ACS")
   const nvRef = useRef<Niivue | null>(nv)
   const { selectedNvd } = useContext(NvdContext)
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Debounced GL update to prevent excessive calls
+  const debouncedGLUpdate = useCallback(() => {
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current)
+    }
+    updateTimeoutRef.current = setTimeout(() => {
+      if (nvRef.current) {
+        nvRef.current.updateGLVolume()
+      }
+    }, 100) // 100ms debounce
+  }, [])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Set up the drag release callback
   // This can change the contrast of a volume, so update the image details accordingly
@@ -62,8 +85,21 @@ export default function NvdViewer() {
         await new Promise(resolve => requestAnimationFrame(resolve));
         updateImageDetails();
       };
+      
+      // Set up onImageLoaded to handle drag-and-drop files
+      nvRef.current.onImageLoaded = () => {
+        updateImageDetails();
+        setShowUploader(false); // Hide uploader when images are loaded via drag-drop
+      };
     }
   }, []); // Re-create callback when currentImageIndex changes
+
+  // Enable/disable drag-and-drop based on whether images are loaded
+  useEffect(() => {
+    if (nvRef.current) {
+      nvRef.current.opts.dragAndDropEnabled = images.length === 0;
+    }
+  }, [images.length]);
 
   // Load NVD document when selected
   useEffect(() => {
@@ -182,24 +218,41 @@ export default function NvdViewer() {
   let handleFileUpload = async (files: File[]) => {
     if (!nvRef.current) return;
     const nv = nvRef.current
-    files.forEach(async (file) => {
+    
+    // Set the canvas to be visible first, if it's not already
+    if (showUploader) {
+      setShowUploader(false);
+    }
+    
+    // Wait for the canvas to be rendered and attached
+    let retries = 0;
+    while (!nv.canvas && retries < 20) {
+      console.log(`Waiting for canvas to be ready for file upload... attempt ${retries + 1}`);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      retries++;
+    }
+
+    if (!nv.canvas) {
+      throw new Error("Canvas failed to initialize after 2 seconds");
+    }
+    
+    // Process all files
+    const promises = files.map(async (file) => {
       const nvimage = await NVImage.loadFromFile({
         file: file,
       });
       console.log("nv", nv)
-
       nv.addVolume(nvimage);
-
-      const newImage = {
-        id: nvimage.id,
-        name: nvimage.name,
-        visible: true,
-      }
-      setImages((prev) => [...prev, ...[newImage]])
-    })
+      return nvimage;
+    });
+    
+    // Wait for all files to be loaded
+    await Promise.all(promises);
+    
+    // Update image details to get complete volume information
+    updateImageDetails();
 
     if (currentImageIndex === null && files.length > 0) {
-      setShowUploader(false);
       setCurrentImageIndex(0);
     }
   }
@@ -264,88 +317,92 @@ export default function NvdViewer() {
     }
   }
 
-  const handleOpacityChange = (newOpacity: number) => {
-    if (currentImageIndex !== null && nvRef.current) {
-      const volumeIndex = nvRef.current.getVolumeIndexByID(images[currentImageIndex].id);
+  const handleOpacityChange = useCallback((newOpacity: number) => {
+    if (currentImageIndex !== null && nvRef.current && images[currentImageIndex]) {
+      const currentImageId = images[currentImageIndex].id;
+      const volumeIndex = nvRef.current.getVolumeIndexByID(currentImageId);
       if (volumeIndex >= 0) {
         nvRef.current.setOpacity(volumeIndex, newOpacity);
-        nvRef.current.updateGLVolume();
+        debouncedGLUpdate();
 
         // Update the images state to reflect the new opacity
-        setImages(images.map((img, index) =>
+        setImages(prevImages => prevImages.map((img, index) =>
           index === currentImageIndex ? { ...img, opacity: newOpacity } : img
         ));
       }
     }
-  }
+  }, [currentImageIndex, debouncedGLUpdate])
 
-  const handleContrastMinChange = (newContrastMin: number) => {
-    if (currentImageIndex !== null && nvRef.current) {
-      const volumeIndex = nvRef.current.getVolumeIndexByID(images[currentImageIndex].id);
+  const handleContrastMinChange = useCallback((newContrastMin: number) => {
+    if (currentImageIndex !== null && nvRef.current && images[currentImageIndex]) {
+      const currentImageId = images[currentImageIndex].id;
+      const volumeIndex = nvRef.current.getVolumeIndexByID(currentImageId);
       if (volumeIndex >= 0) {
         const volume = nvRef.current.volumes[volumeIndex];
         volume.cal_min = newContrastMin;
-        nvRef.current.updateGLVolume();
+        debouncedGLUpdate();
 
         // Update the images state to reflect the new contrast min
-        setImages(images.map((img, index) =>
+        setImages(prevImages => prevImages.map((img, index) =>
           index === currentImageIndex ? { ...img, contrastMin: newContrastMin } : img
         ));
       }
     }
-  }
+  }, [currentImageIndex, debouncedGLUpdate])
 
-  const handleContrastMaxChange = (newContrastMax: number) => {
-    if (currentImageIndex !== null && nvRef.current) {
-      const volumeIndex = nvRef.current.getVolumeIndexByID(images[currentImageIndex].id);
+  const handleContrastMaxChange = useCallback((newContrastMax: number) => {
+    if (currentImageIndex !== null && nvRef.current && images[currentImageIndex]) {
+      const currentImageId = images[currentImageIndex].id;
+      const volumeIndex = nvRef.current.getVolumeIndexByID(currentImageId);
       if (volumeIndex >= 0) {
         const volume = nvRef.current.volumes[volumeIndex];
         volume.cal_max = newContrastMax;
-        nvRef.current.updateGLVolume();
+        debouncedGLUpdate();
 
         // Update the images state to reflect the new contrast max
-        setImages(images.map((img, index) =>
+        setImages(prevImages => prevImages.map((img, index) =>
           index === currentImageIndex ? { ...img, contrastMax: newContrastMax } : img
         ));
       }
     }
-  }
+  }, [currentImageIndex, debouncedGLUpdate])
 
-  const handleColormapChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleColormapChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
     const newColormap = event.target.value;
-    if (currentImageIndex !== null && nvRef.current) {
+    if (currentImageIndex !== null && nvRef.current && images[currentImageIndex]) {
       const volumeIndex = nvRef.current.getVolumeIndexByID(images[currentImageIndex].id);
       if (volumeIndex >= 0 && nvRef.current.volumes[volumeIndex]) {
-        // Set colormap directly on the volume object
-        nvRef.current.volumes[volumeIndex].colormap = newColormap;
-        nvRef.current.updateGLVolume();
-
-        // Update the images state to reflect the new colormap
-        setImages(images.map((img, index) =>
+        const currentVolume = nvRef.current.volumes[volumeIndex];
+        
+        // Skip if colormap hasn't actually changed
+        if (currentVolume.colormap === newColormap) {
+          return;
+        }
+        
+        // Set colormap on the volume (this is the expensive part)
+        currentVolume.colormap = newColormap;
+        
+        // Update only the specific image in React state
+        setImages(prevImages => prevImages.map((img, index) =>
           index === currentImageIndex ? { ...img, colormap: newColormap } : img
         ));
+        
+        // Use debounced GL update
+        debouncedGLUpdate();
       }
     }
-  }
+  }, [currentImageIndex, debouncedGLUpdate])
 
-  //const updateCurrentImageDetails = (index?: number) => {
-  //  const imageIndex = index !== undefined ? index : currentImageIndex;
-  //  if (imageIndex !== null && nvRef.current && nvRef.current.volumes[imageIndex]) {
-  //    const currentImageDetails: ImageDetails = {
-  //      colormap: nvRef.current.volumes[imageIndex].colormap,
-  //      opacity: nvRef.current.volumes[imageIndex].opacity,
-  //      contrastMin: nvRef.current.volumes[imageIndex].cal_min,
-  //      contrastMax: nvRef.current.volumes[imageIndex].cal_max
-  //    };
-  //    console.log("updateCurrentImageDetails() -- ", currentImageDetails)
-  //  }
-  //}
+  const handleAddMoreFiles = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
 
-  //const updateCurrentImageIndex = (id: number) => {
-//
-//    setCurrentImageIndex(id);
-    //updateCurrentImageDetails(id); // Pass the new index directly
-//  }
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files)
+      handleFileUpload(files)
+    }
+  }, [handleFileUpload])
 
   return (
     <div className="flex h-screen flex-col">
@@ -438,6 +495,17 @@ export default function NvdViewer() {
                             </div>
                           </div>
                         ))}
+                        <div className="p-2 border-t">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={handleAddMoreFiles}
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Add more files
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
@@ -504,6 +572,13 @@ export default function NvdViewer() {
           </aside>
         )}
       </div>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        multiple
+        className="hidden"
+      />
     </div>
   )
 }
