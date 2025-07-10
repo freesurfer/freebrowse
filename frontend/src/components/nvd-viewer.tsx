@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react"
-import { PanelLeft, PanelRight, Send, ImageIcon, Upload, Trash2 } from "lucide-react"
+import { PanelLeft, PanelRight, Send, ImageIcon, Upload, Trash2, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -553,12 +553,21 @@ export default function NvdViewer() {
                             onClick={() => setCurrentImageIndex(index)}
                           >
                             <div className="flex-shrink-0">
-                              <Checkbox
-                                id={`select-${image.id}`}
-                                checked={image.visible}
-                                onCheckedChange={() => toggleImageVisibility(image.id)}
-                                onClick={(e) => e.stopPropagation()}
-                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleImageVisibility(image.id);
+                                }}
+                              >
+                                {image.visible ? (
+                                  <Eye className="h-3 w-3" />
+                                ) : (
+                                  <EyeOff className="h-3 w-3 opacity-50" />
+                                )}
+                              </Button>
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{image.name}</p>
