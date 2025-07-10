@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input"
+import { Select } from "@/components/ui/select"
 import ViewSelector from "@/components/view-selector"
 import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
@@ -310,6 +311,23 @@ export default function NvdViewer() {
     }
   }
 
+  const handleColormapChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newColormap = event.target.value;
+    if (currentImageIndex !== null && nvRef.current) {
+      const volumeIndex = nvRef.current.getVolumeIndexByID(images[currentImageIndex].id);
+      if (volumeIndex >= 0 && nvRef.current.volumes[volumeIndex]) {
+        // Set colormap directly on the volume object
+        nvRef.current.volumes[volumeIndex].colormap = newColormap;
+        nvRef.current.updateGLVolume();
+
+        // Update the images state to reflect the new colormap
+        setImages(images.map((img, index) =>
+          index === currentImageIndex ? { ...img, colormap: newColormap } : img
+        ));
+      }
+    }
+  }
+
   //const updateCurrentImageDetails = (index?: number) => {
   //  const imageIndex = index !== undefined ? index : currentImageIndex;
   //  if (imageIndex !== null && nvRef.current && nvRef.current.volumes[imageIndex]) {
@@ -457,6 +475,19 @@ export default function NvdViewer() {
                         step={0.1}
                         decimalPlaces={1}
                       />
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Colormap</Label>
+                        <Select
+                          value={images[currentImageIndex]?.colormap || "gray"}
+                          onChange={handleColormapChange}
+                        >
+                          {nvRef.current?.colormaps().map((colormap) => (
+                            <option key={colormap} value={colormap}>
+                              {colormap}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
