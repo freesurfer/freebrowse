@@ -101,9 +101,11 @@ export default function NvdViewer() {
   // Enable/disable drag-and-drop based on whether images are loaded
   useEffect(() => {
     if (nvRef.current) {
-      nvRef.current.opts.dragAndDropEnabled = images.length === 0;
+      // Only enable drag-and-drop if we're showing the uploader
+      // This prevents re-enabling it after images have been loaded
+      nvRef.current.opts.dragAndDropEnabled = showUploader && images.length === 0;
     }
-  }, [images.length]);
+  }, [images.length, showUploader]);
 
   // Load NVD document when selected
   useEffect(() => {
