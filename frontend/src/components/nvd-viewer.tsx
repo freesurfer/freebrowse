@@ -293,8 +293,8 @@ export default function NvdViewer() {
         visible: true,
         colormap: vol.colormap,
         opacity: vol.opacity,
-        contrastMin: vol.cal_min,
-        contrastMax: vol.cal_max
+        contrastMin: vol.cal_min ?? 0,
+        contrastMax: vol.cal_max ?? 100
       }));
       setImages(loadedImages);
       console.log("updateImageDetails() loadedImages:", loadedImages)
@@ -302,7 +302,7 @@ export default function NvdViewer() {
         setCurrentImageIndex(0);
       }
     } else {
-      console.log("updateImageDetails(): nvRef is ", nvref)
+      console.log("updateImageDetails(): nvRef is ", nvRef)
     }
   }
 

@@ -46,7 +46,7 @@ export default function MedicalImageProcessor() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
   const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
-  const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "multi" | "render">("axial")
+  const [viewMode, setViewMode] = useState<ViewMode>("axial")
   const nvRef = useRef<Niivue | null>(nv)
 
   const processingTools: ProcessingTool[] = [
@@ -207,7 +207,13 @@ export default function MedicalImageProcessor() {
   const handleViewMode = (mode: ViewMode) => {
     setViewMode(mode)
     if (nvRef.current) {
-      nvRef.current.setSliceType(sliceTypeMap[mode] || 0) // Default to axial if mode is invalid
+      const viewConfig = sliceTypeMap[mode]
+      if (viewConfig) {
+        nvRef.current.opts.multiplanarShowRender = viewConfig.showRender
+        nvRef.current.setSliceType(viewConfig.sliceType)
+      } else {
+        nvRef.current.setSliceType(0) // Default to axial if mode is invalid
+      }
     }
   }
 
