@@ -75,7 +75,10 @@ export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
   }, [selectedScene]);
 
   const renderMultiView = () => {
-    if (viewMode !== "multi") return null
+    // PW: disable for now
+    return null
+
+    if (viewMode !== "ACSR" && viewMode !== "ACS") return null
 
     return (
       <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-1 absolute top-0 left-0 pointer-events-none">
@@ -96,7 +99,7 @@ export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
   }
 
   const getViewLabel = () => {
-    if (viewMode === "multi") return null
+    if (viewMode === "ACSR" || viewMode === "ACS") return null
     return (
       <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs font-medium">
         {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)} View

@@ -286,7 +286,7 @@ export default function NvdViewer() {
 
   const updateImageDetails = () => {
     const nv = nvRef.current
-    if (nvRef.current) {
+    if (nv) {
       const loadedImages = nv.volumes.map((vol, index) => ({
         id: vol.id,
         name: vol.name || `Volume ${index + 1}`,
