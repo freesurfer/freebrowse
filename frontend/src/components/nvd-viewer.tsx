@@ -611,17 +611,6 @@ export default function NvdViewer() {
                             </div>
                           </div>
                         ))}
-                        <div className="p-2 border-t">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={handleAddMoreFiles}
-                          >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Add more files
-                          </Button>
-                        </div>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
@@ -629,6 +618,17 @@ export default function NvdViewer() {
                         <p>No images</p>
                       </div>
                     )}
+                    <div className="p-2 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={handleAddMoreFiles}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Add more files
+                      </Button>
+                    </div>
                   </ScrollArea>
                   <ScrollArea className="flex-1">
                   {currentImageIndex != null ? (
