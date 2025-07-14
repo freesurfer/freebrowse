@@ -46,8 +46,6 @@ export default function NvdViewer() {
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState("nvds")
-  const [selectedTool, setSelectedTool] = useState<string | null>(null)
-  const [processingHistory, setProcessingHistory] = useState<ProcessingHistoryItem[]>([])
   const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render">("ACS")
   const nvRef = useRef<Niivue | null>(nv)
   const { selectedNvd, setSelectedNvd } = useContext(NvdContext)
@@ -55,7 +53,6 @@ export default function NvdViewer() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
   const [volumeToRemove, setVolumeToRemove] = useState<number | null>(null)
-  const [dontAskAgain, setDontAskAgain] = useState(false)
   const [skipRemoveConfirmation, setSkipRemoveConfirmation] = useState(false)
 
   // Debounced GL update to prevent excessive calls
@@ -479,23 +476,16 @@ export default function NvdViewer() {
   const handleConfirmRemove = useCallback(() => {
     if (volumeToRemove !== null) {
       removeVolume(volumeToRemove);
-
-      // Update "don't ask again" preference if checked
-      if (dontAskAgain) {
-        setSkipRemoveConfirmation(true);
-      }
     }
 
     // Close dialog and reset state
     setRemoveDialogOpen(false);
     setVolumeToRemove(null);
-    setDontAskAgain(false);
-  }, [volumeToRemove, dontAskAgain, removeVolume]);
+  }, [volumeToRemove, removeVolume]);
 
   const handleCancelRemove = useCallback(() => {
     setRemoveDialogOpen(false);
     setVolumeToRemove(null);
-    setDontAskAgain(false);
   }, []);
 
   return (
@@ -709,8 +699,8 @@ export default function NvdViewer() {
           <div className="flex items-center space-x-2 mt-4">
             <Checkbox
               id="dont-ask-again"
-              checked={dontAskAgain}
-              onCheckedChange={(checked) => setDontAskAgain(checked === true)}
+              checked={skipRemoveConfirmation}
+              onCheckedChange={(checked) => setSkipRemoveConfirmation(checked === true)}
             />
             <Label htmlFor="dont-ask-again" className="text-sm">
               Don't ask me again
