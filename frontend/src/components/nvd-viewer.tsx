@@ -10,9 +10,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input"
 import { Select } from "@/components/ui/select"
 import ViewSelector from "@/components/view-selector"
+import DragModeSelector, { type DragMode } from "@/components/drag-mode-selector"
 import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
-import { DocumentData, Niivue, NVDocument, NVImage } from '@niivue/niivue'
+import { DocumentData, Niivue, NVDocument, NVImage, DRAG_MODE_SECONDARY } from '@niivue/niivue'
 import '../App.css'
 import ImageUploader from "./image-uploader"
 import ImageCanvas from "./image-canvas"
@@ -47,6 +48,7 @@ export default function NvdViewer() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState("nvds")
   const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render">("ACS")
+  const [dragMode, setDragMode] = useState<DragMode>("contrast")
   const nvRef = useRef<Niivue | null>(nv)
   const { selectedNvd, setSelectedNvd } = useContext(NvdContext)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -343,6 +345,13 @@ export default function NvdViewer() {
     }
   }
 
+  const handleDragMode = (mode: DragMode) => {
+    setDragMode(mode)
+    if (nvRef.current) {
+      nvRef.current.opts.dragMode = DRAG_MODE_SECONDARY[mode]
+    }
+  }
+
   const handleOpacityChange = useCallback((newOpacity: number) => {
     if (currentImageIndex !== null && nvRef.current && images[currentImageIndex]) {
       const currentImageId = images[currentImageIndex].id;
@@ -496,6 +505,11 @@ export default function NvdViewer() {
           <div className="bg-background p-2">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
+              <DragModeSelector 
+                currentMode={dragMode} 
+                onModeChange={handleDragMode}
+                availableModes={["contrast", "pan"]}
+              />
             </div>
           </div>
           <div className="flex items-center gap-2">
