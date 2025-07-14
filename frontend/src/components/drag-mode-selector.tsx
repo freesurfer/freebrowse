@@ -18,7 +18,8 @@ const dragModeConfig: Record<DragMode, { icon: React.FC<{ className?: string }>,
   pan: { icon: Move, label: "Pan/Zoom", displayName: "pan/zoom" },
   slicer3D: { icon: Maximize2, label: "Slicer 3D", displayName: "slicer3D" },
   callbackOnly: { icon: CircleDot, label: "Callback Only", displayName: "callbackOnly" },
-  roiSelection: { icon: Square, label: "ROI Selection", displayName: "roiSelection" }
+  roiSelection: { icon: Square, label: "ROI Selection", displayName: "roiSelection" },
+  angle: { icon: Crosshair, label: "Angle", displayName: "angle" }
 }
 
 const defaultAvailableModes: DragMode[] = Object.keys(DRAG_MODE_SECONDARY).filter(

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useContext } from "react"
-import { PanelLeft, PanelRight, Send, ImageIcon, Upload, Trash2, Eye, EyeOff } from "lucide-react"
+import { PanelLeft, PanelRight, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -432,6 +432,16 @@ export default function NvdViewer() {
     fileInputRef.current?.click()
   }, [])
 
+  const handleSaveScene = useCallback(async () => {
+    console.log("Save scene functionality will be implemented here")
+    if (nvRef.current) {
+      await nvRef.current.saveDocument('test.nvd', false, {
+        embedImages: false,
+        embedPreview: false
+      })
+    }
+  }, [])
+
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files)
@@ -505,8 +515,8 @@ export default function NvdViewer() {
           <div className="bg-background p-2">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
-              <DragModeSelector 
-                currentMode={dragMode} 
+              <DragModeSelector
+                currentMode={dragMode}
                 onModeChange={handleDragMode}
                 availableModes={["contrast", "pan"]}
               />
@@ -622,7 +632,7 @@ export default function NvdViewer() {
                         <p>No images</p>
                       </div>
                     )}
-                    <div className="p-2 border-t">
+                    <div className="p-2 border-t space-y-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -631,6 +641,15 @@ export default function NvdViewer() {
                       >
                         <Upload className="mr-2 h-4 w-4" />
                         Add more files
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={handleSaveScene}
+                      >
+                        <Save className="mr-2 h-4 w-4" />
+                        Save scene
                       </Button>
                     </div>
                   </ScrollArea>
