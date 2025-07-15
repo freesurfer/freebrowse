@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input"
@@ -56,6 +57,8 @@ export default function NvdViewer() {
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
   const [volumeToRemove, setVolumeToRemove] = useState<number | null>(null)
   const [skipRemoveConfirmation, setSkipRemoveConfirmation] = useState(false)
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [saveLocation, setSaveLocation] = useState("")
 
   // Debounced GL update to prevent excessive calls
   const debouncedGLUpdate = useCallback(() => {
@@ -432,14 +435,38 @@ export default function NvdViewer() {
     fileInputRef.current?.click()
   }, [])
 
-  const handleSaveScene = useCallback(async () => {
-    console.log("Save scene functionality will be implemented here")
-    if (nvRef.current) {
-      await nvRef.current.saveDocument('test.nvd', false, {
-        embedImages: false,
-        embedPreview: false
-      })
+  const handleSaveScene = useCallback(() => {
+    setSaveDialogOpen(true)
+  }, [])
+
+  const handleConfirmSave = useCallback(async () => {
+    console.log("Saving scene to:", saveLocation)
+    if (nvRef.current && saveLocation.trim()) {
+      // Temporarily store and clear drawBitmap to exclude it from JSON
+      const originalDrawBitmap = nvRef.current.document.drawBitmap
+      nvRef.current.document.drawBitmap = null
+      
+      const jsonData = nvRef.current.document.json(false) // embedImages = false
+      const jsonString = JSON.stringify(jsonData)
+      console.log("Scene JSON object:", jsonData)
+      console.log("Scene JSON string:", jsonString)
+      
+      // Restore the original drawBitmap
+      nvRef.current.document.drawBitmap = originalDrawBitmap
+      
+      // TODO: Actually save to the specified location
+      // For now, just log the save location
+      console.log("Would save scene to:", saveLocation)
     }
+    
+    // Close dialog and reset
+    setSaveDialogOpen(false)
+    setSaveLocation("")
+  }, [saveLocation])
+
+  const handleCancelSave = useCallback(() => {
+    setSaveDialogOpen(false)
+    setSaveLocation("")
   }, [])
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -746,6 +773,41 @@ export default function NvdViewer() {
             </Button>
             <Button variant="destructive" onClick={handleConfirmRemove}>
               Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Scene Dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent onClose={handleCancelSave}>
+          <DialogHeader>
+            <DialogTitle>Save Scene</DialogTitle>
+            <DialogDescription>
+              Enter the location where you want to save the scene.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4">
+            <Label htmlFor="save-location" className="text-sm font-medium">
+              Save Location
+            </Label>
+            <Input
+              id="save-location"
+              type="text"
+              placeholder="Enter file path or URL..."
+              value={saveLocation}
+              onChange={(e) => setSaveLocation(e.target.value)}
+              className="mt-2"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelSave}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmSave} disabled={!saveLocation.trim()}>
+              OK
             </Button>
           </DialogFooter>
         </DialogContent>
