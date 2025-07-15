@@ -140,6 +140,10 @@ export default function NvdViewer() {
           throw new Error("Canvas failed to initialize after 2 seconds");
         }
 
+        // Clear React state before loading new document
+        setImages([]);
+        setCurrentImageIndex(null);
+        
         if (loadViaNvd) {
           const blob = new Blob([jsonData], { type: 'application/json' })
 
@@ -158,6 +162,17 @@ export default function NvdViewer() {
             throw error;
           }
 
+          // Update niivue volumes with URL information from imageOptionsArray
+          // This should be done by nv.loadDocument()?
+          if (jsonData.imageOptionsArray && nv.volumes) {
+            for (let i = 0; i < nv.volumes.length && i < jsonData.imageOptionsArray.length; i++) {
+              const imageOption = jsonData.imageOptionsArray[i];
+              if (imageOption.url) {
+                nv.volumes[i].url = imageOption.url;
+              }
+            }
+          }
+
           console.log("niivue volumes immediately after loadDocument:")
           console.log(nv.volumes)
         } else {
@@ -174,12 +189,6 @@ export default function NvdViewer() {
           while (nv.meshes && nv.meshes.length > 0) {
             nv.removeMesh(nv.meshes[0]);
           }
-
-          // Clear overlays if any
-          // removeOverlay() not in v0.60.0?
-          //if (nv.overlays && nv.overlays.length > 0) {
-          //  nv.removeOverlay();
-          //}
 
           // Reset drawing state
           nv.drawBitmap = null;
@@ -442,23 +451,59 @@ export default function NvdViewer() {
   const handleConfirmSave = useCallback(async () => {
     console.log("Saving scene to:", saveLocation)
     if (nvRef.current && saveLocation.trim()) {
-      // Temporarily store and clear drawBitmap to exclude it from JSON
-      const originalDrawBitmap = nvRef.current.document.drawBitmap
-      nvRef.current.document.drawBitmap = null
-      
-      const jsonData = nvRef.current.document.json(false) // embedImages = false
-      const jsonString = JSON.stringify(jsonData)
-      console.log("Scene JSON object:", jsonData)
-      console.log("Scene JSON string:", jsonString)
-      
-      // Restore the original drawBitmap
-      nvRef.current.document.drawBitmap = originalDrawBitmap
-      
-      // TODO: Actually save to the specified location
-      // For now, just log the save location
-      console.log("Would save scene to:", saveLocation)
+      try {
+        // Temporarily store and clear drawBitmap to exclude it from JSON
+        const originalDrawBitmap = nvRef.current.document.drawBitmap
+        nvRef.current.document.drawBitmap = null
+
+        const jsonData = nvRef.current.document.json(false) // embedImages = false
+
+        // Patch name and URL from niivue volumes into imageOptionsArray
+        // nv.document.json() should do this?
+        if (jsonData.imageOptionsArray && nvRef.current.volumes) {
+          for (let i = 0; i < jsonData.imageOptionsArray.length && i < nvRef.current.volumes.length; i++) {
+            const volume = nvRef.current.volumes[i]
+            if (volume.name) {
+              jsonData.imageOptionsArray[i].name = volume.name
+            }
+            if (volume.url) {
+              jsonData.imageOptionsArray[i].url = volume.url
+            }
+          }
+        }
+
+        console.log("Scene JSON object:", jsonData)
+
+        // Restore the original drawBitmap
+        nvRef.current.document.drawBitmap = originalDrawBitmap
+
+        // Save to backend
+        const response = await fetch('/nvd', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filename: saveLocation,
+            data: jsonData
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error(`Failed to save scene: ${response.statusText}`)
+        }
+
+        const result = await response.json()
+        console.log("Scene saved successfully:", result)
+
+        // TODO: Show success message to user
+
+      } catch (error) {
+        console.error("Error saving scene:", error)
+        // TODO: Show error message to user
+      }
     }
-    
+
     // Close dialog and reset
     setSaveDialogOpen(false)
     setSaveLocation("")
