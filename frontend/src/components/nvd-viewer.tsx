@@ -59,6 +59,12 @@ export default function NvdViewer() {
   const [skipRemoveConfirmation, setSkipRemoveConfirmation] = useState(false)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [saveLocation, setSaveLocation] = useState("")
+  const [sceneJsonData, setSceneJsonData] = useState<any>(null)
+  const [volumeSaveStates, setVolumeSaveStates] = useState<Array<{
+    enabled: boolean
+    isExternal: boolean
+    url: string
+  }>>([]);
 
   // Debounced GL update to prevent excessive calls
   const debouncedGLUpdate = useCallback(() => {
@@ -445,39 +451,65 @@ export default function NvdViewer() {
   }, [])
 
   const handleSaveScene = useCallback(() => {
+    if (nvRef.current) {
+      // Temporarily store and clear drawBitmap to exclude it from JSON
+      const originalDrawBitmap = nvRef.current.document.drawBitmap
+      nvRef.current.document.drawBitmap = null
+
+      const jsonData = nvRef.current.document.json(false) // embedImages = false
+
+      // Patch name and URL from niivue volumes into imageOptionsArray
+      // nv.document.json() should do this?
+      if (jsonData.imageOptionsArray && nvRef.current.volumes) {
+        for (let i = 0; i < jsonData.imageOptionsArray.length && i < nvRef.current.volumes.length; i++) {
+          const volume = nvRef.current.volumes[i]
+          if (volume.name) {
+            jsonData.imageOptionsArray[i].name = volume.name
+          }
+          if (volume.url) {
+            jsonData.imageOptionsArray[i].url = volume.url
+          }
+        }
+      }
+
+      console.log("Scene JSON object:", jsonData)
+
+      // Restore the original drawBitmap
+      nvRef.current.document.drawBitmap = originalDrawBitmap
+
+      // Store the JSON data
+      setSceneJsonData(jsonData)
+
+      // Create volume save states
+      const volumeStates = jsonData.imageOptionsArray.map((imageOption) => {
+        const isExternal = imageOption.url && imageOption.url.startsWith('http')
+        return {
+          enabled: !isExternal, // Enable by default if not external
+          isExternal,
+          url: imageOption.url || ''
+        }
+      })
+      setVolumeSaveStates(volumeStates)
+    }
+
     setSaveDialogOpen(true)
   }, [])
 
   const handleConfirmSave = useCallback(async () => {
     console.log("Saving scene to:", saveLocation)
-    if (nvRef.current && saveLocation.trim()) {
+    if (sceneJsonData && saveLocation.trim()) {
       try {
-        // Temporarily store and clear drawBitmap to exclude it from JSON
-        const originalDrawBitmap = nvRef.current.document.drawBitmap
-        nvRef.current.document.drawBitmap = null
-
-        const jsonData = nvRef.current.document.json(false) // embedImages = false
-
-        // Patch name and URL from niivue volumes into imageOptionsArray
-        // nv.document.json() should do this?
-        if (jsonData.imageOptionsArray && nvRef.current.volumes) {
-          for (let i = 0; i < jsonData.imageOptionsArray.length && i < nvRef.current.volumes.length; i++) {
-            const volume = nvRef.current.volumes[i]
-            if (volume.name) {
-              jsonData.imageOptionsArray[i].name = volume.name
-            }
-            if (volume.url) {
-              jsonData.imageOptionsArray[i].url = volume.url
-            }
+        // Update JSON with final URLs only for enabled volumes, otherwise keep original
+        const finalJsonData = { ...sceneJsonData }
+        finalJsonData.imageOptionsArray = finalJsonData.imageOptionsArray.map((imageOption, index) => {
+          const saveState = volumeSaveStates[index]
+          if (saveState?.enabled && saveState.url.trim() !== '') {
+            return { ...imageOption, url: saveState.url }
           }
-        }
+          return imageOption // Keep original URL if not enabled or no custom URL
+        })
 
-        console.log("Scene JSON object:", jsonData)
-
-        // Restore the original drawBitmap
-        nvRef.current.document.drawBitmap = originalDrawBitmap
-
-        // Save to backend
+        // Save scene JSON to backend
         const response = await fetch('/nvd', {
           method: 'POST',
           headers: {
@@ -485,7 +517,7 @@ export default function NvdViewer() {
           },
           body: JSON.stringify({
             filename: saveLocation,
-            data: jsonData
+            data: finalJsonData
           })
         })
 
@@ -495,6 +527,52 @@ export default function NvdViewer() {
 
         const result = await response.json()
         console.log("Scene saved successfully:", result)
+
+        // Save enabled volumes to backend
+        const volumeSavePromises = volumeSaveStates.map(async (saveState, index) => {
+          if (saveState.enabled && nvRef.current && nvRef.current.volumes[index]) {
+            const volume = nvRef.current.volumes[index]
+            
+            // Skip if no URL specified
+            if (!saveState.url || saveState.url.trim() === '') {
+              console.log(`Skipping volume ${index}: no URL specified`)
+              return
+            }
+            
+            try {
+              // Convert volume to base64 with compression if filename ends with .gz
+              const shouldCompress = saveState.url.toLowerCase().endsWith('.gz')
+              const filename = shouldCompress ? saveState.url : saveState.url + '.gz'
+              const uint8Array = await volume.saveToUint8Array(filename)
+              const base64Data = uint8ArrayToBase64(uint8Array)
+              
+              // Save volume to backend
+              const volumeResponse = await fetch('/nii', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  filename: saveState.url,
+                  data: base64Data
+                })
+              })
+
+              if (!volumeResponse.ok) {
+                throw new Error(`Failed to save volume ${index}: ${volumeResponse.statusText}`)
+              }
+
+              const volumeResult = await volumeResponse.json()
+              console.log(`Volume ${index} saved successfully:`, volumeResult)
+            } catch (error) {
+              console.error(`Error saving volume ${index}:`, error)
+              // TODO: Show error message to user
+            }
+          }
+        })
+
+        // Wait for all volume saves to complete
+        await Promise.all(volumeSavePromises)
 
         // TODO: Show success message to user
 
@@ -507,11 +585,48 @@ export default function NvdViewer() {
     // Close dialog and reset
     setSaveDialogOpen(false)
     setSaveLocation("")
-  }, [saveLocation])
+    setSceneJsonData(null)
+  }, [saveLocation, sceneJsonData, volumeSaveStates])
 
   const handleCancelSave = useCallback(() => {
     setSaveDialogOpen(false)
     setSaveLocation("")
+    setSceneJsonData(null)
+    setVolumeSaveStates([])
+  }, [])
+
+  const uint8ArrayToBase64 = useCallback((uint8Array: Uint8Array): string => {
+    // Convert Uint8Array to base64 efficiently for large arrays
+    let binaryString = ''
+    const chunkSize = 8192
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, i + chunkSize)
+      binaryString += String.fromCharCode(...chunk)
+    }
+    return btoa(binaryString)
+  }, [])
+
+  const handleVolumeUrlChange = useCallback((index: number, url: string) => {
+    setVolumeSaveStates(prev =>
+      prev.map((state, i) =>
+        i === index ? { ...state, url } : state
+      )
+    )
+  }, [])
+
+  const handleVolumeCheckboxChange = useCallback((index: number, enabled: boolean) => {
+    setVolumeSaveStates(prev =>
+      prev.map((state, i) => {
+        if (i === index) {
+          // Clear URL when checkbox is checked for external URLs
+          if (enabled && state.isExternal) {
+            return { ...state, enabled, url: '' }
+          }
+          return { ...state, enabled }
+        }
+        return state
+      })
+    )
   }, [])
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -649,8 +764,7 @@ export default function NvdViewer() {
 
               <TabsContent value="sceneDetails" className="flex-1 min-h-0 p-0">
                 <div className="flex flex-col h-full">
-
-                  <ScrollArea className="max-h-[50%] flex-shrink-0">
+                  <ScrollArea className="max-h-[50%] min-h-0">
                     {images.length > 0 ? (
                       <div className="grid gap-2 p-4">
                         {images.map((image, index) => (
@@ -719,6 +833,7 @@ export default function NvdViewer() {
                         size="sm"
                         className="w-full"
                         onClick={handleSaveScene}
+                        disabled={images.length === 0}
                       >
                         <Save className="mr-2 h-4 w-4" />
                         Save scene
@@ -840,12 +955,51 @@ export default function NvdViewer() {
             <Input
               id="save-location"
               type="text"
-              placeholder="Enter file path or URL..."
+              placeholder="Enter file path..."
               value={saveLocation}
               onChange={(e) => setSaveLocation(e.target.value)}
               className="mt-2"
             />
           </div>
+
+          {sceneJsonData?.imageOptionsArray?.length > 0 && (
+            <div className="mt-4">
+              <Label className="text-sm font-medium">Volumes to Save</Label>
+              <div className="mt-2 space-y-4 max-h-48 overflow-y-auto">
+                {sceneJsonData.imageOptionsArray.map((imageOption, index) => {
+                  const saveState = volumeSaveStates[index]
+                  if (!saveState) return null
+
+                  return (
+                    <div key={index} className="flex items-center gap-3 p-3 border rounded-md">
+                      <Checkbox
+                        id={`volume-${index}`}
+                        checked={saveState.enabled}
+                        onCheckedChange={(checked) => handleVolumeCheckboxChange(index, checked === true)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <Label htmlFor={`volume-${index}`} className="text-sm font-medium">
+                          {imageOption.name || `Volume ${index + 1}`}
+                        </Label>
+                        <Input
+                          type="text"
+                          placeholder="Enter path..."
+                          value={saveState.url || ''}
+                          onChange={(e) => handleVolumeUrlChange(index, e.target.value)}
+                          className="mt-1 text-xs"
+                        />
+                        {saveState.isExternal && !saveState.enabled && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            External URL - check to save with custom path
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           <DialogFooter>
             <Button variant="outline" onClick={handleCancelSave}>

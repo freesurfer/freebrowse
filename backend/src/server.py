@@ -3,6 +3,7 @@ import json
 import mimetypes
 import logging
 import uuid
+import base64
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -33,6 +34,10 @@ mimetypes.add_type("application/gzip", ".nii.gz", strict=True)
 class SaveSceneRequest(BaseModel):
     filename: str
     data: dict
+
+class SaveVolumeRequest(BaseModel):
+    filename: str
+    data: str  # base64 encoded NIfTI data
 
 app = FastAPI()
 
@@ -127,3 +132,56 @@ def save_scene(request: SaveSceneRequest):
     except Exception as e:
         logger.error(f"Error saving scene: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save scene: {str(e)}")
+
+@app.post("/nii")
+def save_volume(request: SaveVolumeRequest):
+    """
+    Save volume data to a file in the DATA_DIR directory.
+    
+    Args:
+        request: Contains filename and base64 encoded NIfTI data
+    
+    Returns:
+        Success message or error
+    """
+    try:
+        # Validate filename
+        if not request.filename:
+            raise HTTPException(status_code=400, detail="Filename is required")
+        
+        # Remove 'data/' prefix if present (frontend URLs vs backend paths)
+        filename = request.filename
+        if filename.startswith('data/'):
+            filename = filename[5:]  # Remove 'data/' prefix
+        
+        # Ensure filename has .nii or .nii.gz extension
+        if not filename.endswith('.nii') and not filename.endswith('.nii.gz'):
+            filename = filename + '.nii.gz'  # Default to compressed
+        
+        # Decode base64 data
+        try:
+            volume_data = base64.b64decode(request.data)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid base64 data: {str(e)}")
+        
+        # Create full file path
+        file_path = Path(data_dir) / filename
+        
+        # Create directory if it doesn't exist
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Write the binary data to file
+        with open(file_path, 'wb') as f:
+            f.write(volume_data)
+        
+        logger.info(f"Volume saved successfully to {file_path}")
+        
+        return {
+            "success": True,
+            "message": f"Volume saved successfully to {filename}",
+            "file_path": str(file_path.relative_to(data_dir))
+        }
+        
+    except Exception as e:
+        logger.error(f"Error saving volume: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save volume: {str(e)}")
