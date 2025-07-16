@@ -143,7 +143,7 @@ export default function NvdViewer() {
         // Clear React state before loading new document
         setImages([]);
         setCurrentImageIndex(null);
-        
+
         if (loadViaNvd) {
           const blob = new Blob([jsonData], { type: 'application/json' })
 
@@ -629,8 +629,8 @@ export default function NvdViewer() {
 
         {sidebarOpen && (
           <aside className={cn("border-l bg-background w-80 overflow-hidden flex flex-col")}>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full justify-start border-b rounded-none px-2 h-12">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
+              <TabsList className="w-full justify-start border-b rounded-none px-2 h-12 flex-shrink-0">
                 <TabsTrigger value="nvds" className="data-[state=active]:bg-muted">
                   NiiVue Documents
                 </TabsTrigger>
@@ -639,7 +639,7 @@ export default function NvdViewer() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="nvds" className="flex-1 p-0">
+              <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
                 <ScrollArea className="h-full">
                   <div className="p-4">
                     <NvdList />
@@ -647,10 +647,10 @@ export default function NvdViewer() {
                 </ScrollArea>
               </TabsContent>
 
-              <TabsContent value="sceneDetails" className="flex-1 p-0">
+              <TabsContent value="sceneDetails" className="flex-1 min-h-0 p-0">
                 <div className="flex flex-col h-full">
 
-                  <ScrollArea className="flex-1">
+                  <ScrollArea className="max-h-[50%] flex-shrink-0">
                     {images.length > 0 ? (
                       <div className="grid gap-2 p-4">
                         {images.map((image, index) => (
@@ -725,7 +725,7 @@ export default function NvdViewer() {
                       </Button>
                     </div>
                   </ScrollArea>
-                  <ScrollArea className="flex-1">
+                  <ScrollArea className="flex-1 min-h-0">
                   {currentImageIndex != null ? (
                     <div className="grid gap-4 p-4">
                       <LabeledSliderWithInput
