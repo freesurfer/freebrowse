@@ -120,6 +120,13 @@ export default function NvdViewer() {
     }
   }, [images.length, showUploader]);
 
+  const applyViewerSettings = useCallback(() => {
+    if (nvRef.current) {
+      nvRef.current.opts.crosshairWidth = viewerSettings.crosshairWidth
+      nvRef.current.setInterpolation(!viewerSettings.interpolateVoxels)
+    }
+  }, [viewerSettings])
+
   // Load NVD document when selected
   useEffect(() => {
       async function loadNvd() {
@@ -232,10 +239,7 @@ export default function NvdViewer() {
         handleViewMode(viewMode);
 
         // Apply viewer settings
-        if (nvRef.current) {
-          nvRef.current.opts.crosshairWidth = viewerSettings.crosshairWidth;
-          nvRef.current.setInterpolation(!viewerSettings.interpolateVoxels);
-        }
+        applyViewerSettings();
 
         // Update the images state for the UI
         updateImageDetails();
@@ -246,7 +250,7 @@ export default function NvdViewer() {
     }
 
     loadNvd();
-  }, [selectedNvd])
+  }, [selectedNvd, viewMode, applyViewerSettings])
 
   // Load NVD from URL parameter on initial load
   useEffect(() => {
@@ -305,6 +309,9 @@ export default function NvdViewer() {
 
     // Wait for all files to be loaded
     await Promise.all(promises);
+
+    // Apply viewer settings
+    applyViewerSettings();
 
     // Update image details to get complete volume information
     updateImageDetails();
