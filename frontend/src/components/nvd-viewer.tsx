@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useContext } from "react"
-import { PanelLeft, PanelRight, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save } from "lucide-react"
+import { PanelLeft, PanelRight, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -65,6 +65,11 @@ export default function NvdViewer() {
     isExternal: boolean
     url: string
   }>>([]);
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+  const [viewerSettings, setViewerSettings] = useState({
+    crosshairWidth: 1,
+    interpolateVoxels: false
+  })
 
   // Debounced GL update to prevent excessive calls
   const debouncedGLUpdate = useCallback(() => {
@@ -225,6 +230,12 @@ export default function NvdViewer() {
 
         // Set the selected view mode
         handleViewMode(viewMode);
+
+        // Apply viewer settings
+        if (nvRef.current) {
+          nvRef.current.opts.crosshairWidth = viewerSettings.crosshairWidth;
+          nvRef.current.setInterpolation(!viewerSettings.interpolateVoxels);
+        }
 
         // Update the images state for the UI
         updateImageDetails();
@@ -481,8 +492,8 @@ export default function NvdViewer() {
       setSceneJsonData(jsonData)
 
       // Create volume save states
-      const volumeStates = jsonData.imageOptionsArray.map((imageOption) => {
-        const isExternal = imageOption.url && imageOption.url.startsWith('http')
+      const volumeStates = jsonData.imageOptionsArray.map((imageOption: any) => {
+        const isExternal = !!(imageOption.url && imageOption.url.startsWith('http'))
         return {
           enabled: !isExternal, // Enable by default if not external
           isExternal,
@@ -501,7 +512,7 @@ export default function NvdViewer() {
       try {
         // Update JSON with final URLs only for enabled volumes, otherwise keep original
         const finalJsonData = { ...sceneJsonData }
-        finalJsonData.imageOptionsArray = finalJsonData.imageOptionsArray.map((imageOption, index) => {
+        finalJsonData.imageOptionsArray = finalJsonData.imageOptionsArray.map((imageOption: any, index: number) => {
           const saveState = volumeSaveStates[index]
           if (saveState?.enabled && saveState.url.trim() !== '') {
             return { ...imageOption, url: saveState.url }
@@ -694,19 +705,50 @@ export default function NvdViewer() {
     setVolumeToRemove(null);
   }, []);
 
+  const handleCrosshairWidthChange = useCallback((value: number) => {
+    setViewerSettings(prev => ({ ...prev, crosshairWidth: value }))
+    if (nvRef.current) {
+      nvRef.current.opts.crosshairWidth = value
+      debouncedGLUpdate()
+    }
+  }, [debouncedGLUpdate])
+
+  const handleInterpolateVoxelsChange = useCallback((checked: boolean) => {
+    setViewerSettings(prev => ({ ...prev, interpolateVoxels: checked }))
+    if (nvRef.current) {
+      nvRef.current.setInterpolation(!checked)
+    }
+  }, [])
+
   return (
     <div className="flex h-screen flex-col">
       <header className="border-b bg-background px-6 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">FreeBrowse 2.0</h1>
           <div className="bg-background p-2">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
-              <DragModeSelector
-                currentMode={dragMode}
-                onModeChange={handleDragMode}
-                availableModes={["contrast", "pan"]}
-              />
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-2 border border-border rounded-md px-3 py-1">
+                <span className="text-sm font-medium">View mode:</span>
+                <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 border border-border rounded-md px-3 py-1">
+                  <span className="text-sm font-medium">Left drag mode:</span>
+                  <DragModeSelector
+                    currentMode={dragMode}
+                    onModeChange={handleDragMode}
+                    availableModes={["contrast", "pan"]}
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setSettingsDialogOpen(true)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -966,7 +1008,7 @@ export default function NvdViewer() {
             <div className="mt-4">
               <Label className="text-sm font-medium">Volumes to Save</Label>
               <div className="mt-2 space-y-4 max-h-48 overflow-y-auto">
-                {sceneJsonData.imageOptionsArray.map((imageOption, index) => {
+                {sceneJsonData.imageOptionsArray.map((imageOption: any, index: number) => {
                   const saveState = volumeSaveStates[index]
                   if (!saveState) return null
 
@@ -1007,6 +1049,47 @@ export default function NvdViewer() {
             </Button>
             <Button onClick={handleConfirmSave} disabled={!saveLocation.trim()}>
               OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Dialog */}
+      <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
+        <DialogContent onClose={() => setSettingsDialogOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Viewer Settings</DialogTitle>
+            <DialogDescription>
+              Configure the NiiVue viewer settings
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <LabeledSliderWithInput
+              label="Crosshair Width"
+              value={viewerSettings.crosshairWidth}
+              onValueChange={handleCrosshairWidthChange}
+              min={0.0}
+              max={10}
+              step={0.1}
+              decimalPlaces={1}
+            />
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="interpolate-voxels"
+                checked={viewerSettings.interpolateVoxels}
+                onCheckedChange={(checked) => handleInterpolateVoxelsChange(checked as boolean)}
+              />
+              <Label htmlFor="interpolate-voxels" className="text-sm font-medium">
+                Interpolate Voxels
+              </Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setSettingsDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
