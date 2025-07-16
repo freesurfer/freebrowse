@@ -550,20 +550,20 @@ export default function NvdViewer() {
         const volumeSavePromises = volumeSaveStates.map(async (saveState, index) => {
           if (saveState.enabled && nvRef.current && nvRef.current.volumes[index]) {
             const volume = nvRef.current.volumes[index]
-            
+
             // Skip if no URL specified
             if (!saveState.url || saveState.url.trim() === '') {
               console.log(`Skipping volume ${index}: no URL specified`)
               return
             }
-            
+
             try {
               // Convert volume to base64 with compression if filename ends with .gz
               const shouldCompress = saveState.url.toLowerCase().endsWith('.gz')
               const filename = shouldCompress ? saveState.url : saveState.url + '.gz'
               const uint8Array = await volume.saveToUint8Array(filename)
               const base64Data = uint8ArrayToBase64(uint8Array)
-              
+
               // Save volume to backend
               const volumeResponse = await fetch('/nii', {
                 method: 'POST',
@@ -738,37 +738,35 @@ export default function NvdViewer() {
                 <span className="text-sm font-medium">View mode:</span>
                 <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 border border-border rounded-md px-3 py-1">
-                  <span className="text-sm font-medium">Left drag mode:</span>
-                  <DragModeSelector
+              <div className="flex items-center gap-2 border border-border rounded-md px-3 py-1">
+                <span className="text-sm font-medium">Left drag mode:</span>
+                <DragModeSelector
                     currentMode={dragMode}
                     onModeChange={handleDragMode}
                     availableModes={["contrast", "pan"]}
                   />
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setSettingsDialogOpen(true)}
-                  className="h-8 w-8 p-0"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setLoadViaNvd(!loadViaNvd)}>
-            <span className="ml-2 sr-only md:not-sr-only md:inline-block">
-              {loadViaNvd ? "Load without loadDocument()" : "Load via loadDocument()"}
-            </span>
-          </Button>
+            <Button variant="outline" size="sm" onClick={() => setLoadViaNvd(!loadViaNvd)}>
+              <span className="ml-2 sr-only md:not-sr-only md:inline-block">
+                {loadViaNvd ? "Load without loadDocument()" : "Load via loadDocument()"}
+              </span>
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)}>
               {sidebarOpen ? <PanelRight className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
               <span className="ml-2 sr-only md:not-sr-only md:inline-block">
-                {sidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
+                {/*sidebarOpen ? "Hide Sidebar" : "Show Sidebar"*/}
               </span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSettingsDialogOpen(true)}
+              className="h-8 w-8 p-0"
+            >
+              <Settings className="h-4 w-4" />
             </Button>
           </div>
         </div>
