@@ -150,6 +150,38 @@ export default function NvdViewer() {
     }
   }, [viewerOptions])
 
+  // Update viewerOptions state from current niivue state
+  const syncViewerOptionsFromNiivue = useCallback(() => {
+    if (nvRef.current) {
+      const nv = nvRef.current
+
+      // Find the view mode from slice type
+      let viewMode: typeof viewerOptions.viewMode = "ACS"
+      for (const [mode, config] of Object.entries(sliceTypeMap)) {
+        if (config.sliceType === nv.opts.sliceType) {
+          viewMode = mode as typeof viewerOptions.viewMode
+          break
+        }
+      }
+
+      // Find drag mode from DRAG_MODE_SECONDARY
+      let dragMode: DragMode = "contrast"
+      for (const [mode, value] of Object.entries(DRAG_MODE_SECONDARY)) {
+        if (value === nv.opts.dragMode) {
+          dragMode = mode as DragMode
+          break
+        }
+      }
+
+      setViewerOptions({
+        viewMode,
+        crosshairWidth: nv.opts.crosshairWidth,
+        interpolateVoxels: !nv.opts.isRenderNewInterpolation,
+        dragMode
+      })
+    }
+  }, [])
+
   // Set up the drag release callback
   // This can change the contrast of a volume, so update the image details accordingly
   useEffect(() => {
@@ -231,6 +263,7 @@ export default function NvdViewer() {
             // LoadDocument may override some viewer options, so set them again
             // immediatly after.  this still causes some flashing
             await nv.loadDocument(document);
+            syncViewerOptionsFromNiivue();
             applyViewerOptions();
           } catch (error) {
             console.error("nv.loadDocument failed:", error);
@@ -292,6 +325,7 @@ export default function NvdViewer() {
             console.log("Applying options:", jsonData.opts);
             nv.setDefaults(jsonData.opts);
           }
+          syncViewerOptionsFromNiivue();
           applyViewerOptions();
 
           console.log("Volumes after direct load:", nv.volumes);
@@ -756,6 +790,7 @@ export default function NvdViewer() {
 
   const handleCrosshairWidthChange = useCallback((value: number) => {
     setViewerOptions(prev => ({ ...prev, crosshairWidth: value }))
+    debouncedGLUpdate() // Add this line
   }, [])
 
   const handleInterpolateVoxelsChange = useCallback((checked: boolean) => {
@@ -1147,7 +1182,7 @@ export default function NvdViewer() {
               value={viewerOptions.crosshairWidth}
               onValueChange={handleCrosshairWidthChange}
               min={0.0}
-              max={10}
+              max={5}
               step={0.1}
               decimalPlaces={1}
             />
