@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useContext } from "react"
-import { PanelLeft, PanelRight, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings } from "lucide-react"
+import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -48,8 +48,7 @@ export default function NvdViewer() {
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState("nvds")
-  const [viewMode, setViewMode] = useState<"axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render">("ACS")
-  const [dragMode, setDragMode] = useState<DragMode>("contrast")
+  const [footerOpen, setFooterOpen] = useState(true)
   const nvRef = useRef<Niivue | null>(nv)
   const { selectedNvd, setSelectedNvd } = useContext(NvdContext)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -66,10 +65,20 @@ export default function NvdViewer() {
     url: string
   }>>([]);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
-  const [viewerSettings, setViewerSettings] = useState({
+  const [viewerOptions, setViewerOptions] = useState({
+    viewMode: "ACS" as "axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render",
     crosshairWidth: 1,
-    interpolateVoxels: false
+    interpolateVoxels: false,
+    dragMode: "contrast" as DragMode
   })
+  const [locationData, setLocationData] = useState<{
+    mm: [number, number, number],
+    voxels: Array<{
+      name: string,
+      voxel: [number, number, number],
+      value: number
+    }>
+  } | null>(null)
 
   // Debounced GL update to prevent excessive calls
   const debouncedGLUpdate = useCallback(() => {
@@ -92,6 +101,55 @@ export default function NvdViewer() {
     };
   }, []);
 
+  // Update voxelData for the footer
+  const handleLocationChange = useCallback((locationObject: any) => {
+    if (locationObject && nvRef.current && nvRef.current.volumes.length > 0) {
+      const voxelData = nvRef.current.volumes.map((volume, index) => {
+        // Convert mm to voxel coordinates directly on the volume
+        const voxel = volume.mm2vox(locationObject.mm)
+
+        // Round once for getting the value
+        const i = Math.round(voxel[0])
+        const j = Math.round(voxel[1])
+        const k = Math.round(voxel[2])
+
+        // Get the value at this voxel
+        const value = volume.getValue(i, j, k)
+
+        return {
+          name: volume.name || `Volume ${index + 1}`,
+          voxel: [i, j, k] as [number, number, number],
+          value: value
+        }
+      })
+
+      setLocationData({
+        mm: locationObject.mm,
+        voxels: voxelData
+      })
+    }
+  }, [])
+
+  // all calls that change nv.opts should go here,
+  const applyViewerOptions = useCallback(() => {
+    if (nvRef.current) {
+      const viewConfig = sliceTypeMap[viewerOptions.viewMode]
+      console.log("applyViewerOptions() -- viewConfig: ", viewConfig)
+
+      // Apply all options together
+      nvRef.current.opts.crosshairWidth = viewerOptions.crosshairWidth
+      nvRef.current.setInterpolation(!viewerOptions.interpolateVoxels)
+      nvRef.current.opts.dragMode = DRAG_MODE_SECONDARY[viewerOptions.dragMode]
+
+      if (viewConfig) {
+        nvRef.current.opts.multiplanarShowRender = viewConfig.showRender
+        nvRef.current.setSliceType(viewConfig.sliceType)
+      } else {
+        nvRef.current.setSliceType(0) // Default to axial if mode is invalid
+      }
+    }
+  }, [viewerOptions])
+
   // Set up the drag release callback
   // This can change the contrast of a volume, so update the image details accordingly
   useEffect(() => {
@@ -108,8 +166,14 @@ export default function NvdViewer() {
         updateImageDetails();
         setShowUploader(false); // Hide uploader when images are loaded via drag-drop
       };
+
+      // Set up onLocationChange to track pointer location
+      nvRef.current.onLocationChange = handleLocationChange;
+
+      // Set up onOptsChange to consolidate all viewer option updates
+      nvRef.current.onOptsChange = applyViewerOptions;
     }
-  }, []); // Re-create callback when currentImageIndex changes
+  }, [handleLocationChange, applyViewerOptions]); // Re-create callback when callbacks change
 
   // Enable/disable drag-and-drop based on whether images are loaded
   useEffect(() => {
@@ -119,13 +183,6 @@ export default function NvdViewer() {
       nvRef.current.opts.dragAndDropEnabled = showUploader && images.length === 0;
     }
   }, [images.length, showUploader]);
-
-  const applyViewerSettings = useCallback(() => {
-    if (nvRef.current) {
-      nvRef.current.opts.crosshairWidth = viewerSettings.crosshairWidth
-      nvRef.current.setInterpolation(!viewerSettings.interpolateVoxels)
-    }
-  }, [viewerSettings])
 
   // Load NVD document when selected
   useEffect(() => {
@@ -193,6 +250,7 @@ export default function NvdViewer() {
 
           console.log("niivue volumes immediately after loadDocument:")
           console.log(nv.volumes)
+          console.log(nv)
         } else {
           // Direct loading without NVDocument
           console.log("Loading directly without NVDocument");
@@ -235,14 +293,14 @@ export default function NvdViewer() {
           console.log("Volumes after direct load:", nv.volumes);
         }
 
-        // Set the selected view mode
-        handleViewMode(viewMode);
+        // Batch all the updates together to reduce jitter
+        requestAnimationFrame(() => {
+          // Apply viewer options
+          applyViewerOptions();
 
-        // Apply viewer settings
-        applyViewerSettings();
-
-        // Update the images state for the UI
-        updateImageDetails();
+          // Update the images state for the UI
+          updateImageDetails();
+        });
 
       } catch (error) {
         console.error('Error loading NVD:', error);
@@ -250,7 +308,7 @@ export default function NvdViewer() {
     }
 
     loadNvd();
-  }, [selectedNvd, viewMode, applyViewerSettings])
+  }, [selectedNvd])
 
   // Load NVD from URL parameter on initial load
   useEffect(() => {
@@ -310,8 +368,8 @@ export default function NvdViewer() {
     // Wait for all files to be loaded
     await Promise.all(promises);
 
-    // Apply viewer settings
-    applyViewerSettings();
+    // Apply viewer options
+    applyViewerOptions();
 
     // Update image details to get complete volume information
     updateImageDetails();
@@ -337,6 +395,11 @@ export default function NvdViewer() {
       console.log("updateImageDetails() loadedImages:", loadedImages)
       if (loadedImages.length > 0) {
         setCurrentImageIndex(0);
+
+        // Update footer with current crosshair position
+        if (nv.scene && nv.scene.crosshairPos) {
+          handleLocationChange({ mm: nv.scene.crosshairPos });
+        }
       }
     } else {
       console.log("updateImageDetails(): nvRef is ", nvRef)
@@ -368,24 +431,7 @@ export default function NvdViewer() {
   }
 
   const handleViewMode = (mode: ViewMode) => {
-    setViewMode(mode)
-    if (nvRef.current) {
-      const viewConfig = sliceTypeMap[mode]
-      console.log("handleViewMode() -- viewConfig: ", viewConfig)
-      if (viewConfig) {
-        nvRef.current.opts.multiplanarShowRender = viewConfig.showRender
-        nvRef.current.setSliceType(viewConfig.sliceType)
-      } else {
-        nvRef.current.setSliceType(0) // Default to axial if mode is invalid
-      }
-    }
-  }
-
-  const handleDragMode = (mode: DragMode) => {
-    setDragMode(mode)
-    if (nvRef.current) {
-      nvRef.current.opts.dragMode = DRAG_MODE_SECONDARY[mode]
-    }
+    setViewerOptions(prev => ({ ...prev, viewMode: mode }))
   }
 
   const handleOpacityChange = useCallback((newOpacity: number) => {
@@ -713,19 +759,17 @@ export default function NvdViewer() {
   }, []);
 
   const handleCrosshairWidthChange = useCallback((value: number) => {
-    setViewerSettings(prev => ({ ...prev, crosshairWidth: value }))
-    if (nvRef.current) {
-      nvRef.current.opts.crosshairWidth = value
-      debouncedGLUpdate()
-    }
-  }, [debouncedGLUpdate])
+    setViewerOptions(prev => ({ ...prev, crosshairWidth: value }))
+  }, [])
 
   const handleInterpolateVoxelsChange = useCallback((checked: boolean) => {
-    setViewerSettings(prev => ({ ...prev, interpolateVoxels: checked }))
-    if (nvRef.current) {
-      nvRef.current.setInterpolation(!checked)
-    }
+    setViewerOptions(prev => ({ ...prev, interpolateVoxels: checked }))
   }, [])
+
+  // Apply viewer options when they change
+  useEffect(() => {
+    applyViewerOptions()
+  }, [applyViewerOptions])
 
   return (
     <div className="flex h-screen flex-col">
@@ -736,13 +780,13 @@ export default function NvdViewer() {
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-2 border border-border rounded-md px-3 py-1">
                 <span className="text-sm font-medium">View mode:</span>
-                <ViewSelector currentView={viewMode} onViewChange={handleViewMode} />
+                <ViewSelector currentView={viewerOptions.viewMode} onViewChange={handleViewMode} />
               </div>
               <div className="flex items-center gap-2 border border-border rounded-md px-3 py-1">
                 <span className="text-sm font-medium">Left drag mode:</span>
                 <DragModeSelector
-                    currentMode={dragMode}
-                    onModeChange={handleDragMode}
+                    currentMode={viewerOptions.dragMode}
+                    onModeChange={(mode) => setViewerOptions(prev => ({ ...prev, dragMode: mode }))}
                     availableModes={["contrast", "pan"]}
                   />
               </div>
@@ -760,6 +804,12 @@ export default function NvdViewer() {
                 {/*sidebarOpen ? "Hide Sidebar" : "Show Sidebar"*/}
               </span>
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setFooterOpen(!footerOpen)}>
+              <PanelBottom className={cn("h-4 w-4", !footerOpen && "rotate-180")} />
+              <span className="ml-2 sr-only md:not-sr-only md:inline-block">
+                {/*footerOpen ? "Hide Footer" : "Show Footer"*/}
+              </span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -773,21 +823,47 @@ export default function NvdViewer() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <main className="flex-1 overflow-hidden">
-          <div className="flex h-full flex-col">
+        <div className="flex flex-1 flex-col min-h-0">
+          <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {showUploader ? (
-              <div className="flex h-full items-center justify-center">
+              <div className="flex flex-1 items-center justify-center">
                 <ImageUploader onUpload={handleFileUpload} />
               </div>
             ) : (
-              <div className="relative flex h-full flex-col">
-                <div className="flex-1 overflow-hidden">
-                  {<ImageCanvas viewMode={viewMode} nvRef={nv}/>}
-                </div>
+              <div className="flex flex-1">
+                <ImageCanvas viewMode={viewerOptions.viewMode} nvRef={nv}/>
               </div>
             )}
-          </div>
-        </main>
+          </main>
+
+          {footerOpen && (
+            <footer className="border-t bg-background px-4 py-4 flex-shrink-0">
+              {locationData ? (
+                <div className="space-y-2">
+                  <div className="flex items-center text-sm">
+                    <span className="min-w-[120px]"></span>
+                    <span className="text-muted-foreground font-mono min-w-[200px]">
+                      <span className="inline-block w-12">RAS</span>[{locationData.mm[0].toFixed(1)}, {locationData.mm[1].toFixed(1)}, {locationData.mm[2].toFixed(1)}]
+                    </span>
+                  </div>
+                  {locationData.voxels.map((vol, index) => (
+                    <div key={index} className="flex items-center text-sm">
+                      <span className="font-medium min-w-[120px]">{vol.name}:</span>
+                      <span className="text-muted-foreground font-mono min-w-[200px]">
+                        <span className="inline-block w-12">Voxel</span>[{vol.voxel[0]}, {vol.voxel[1]}, {vol.voxel[2]}]
+                      </span>
+                      <span className="text-muted-foreground">
+                        Value: {vol.value.toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Load images to see coordinates</p>
+              )}
+            </footer>
+          )}
+        </div>
 
         {sidebarOpen && (
           <aside className={cn("border-l bg-background w-80 overflow-hidden flex flex-col")}>
@@ -1072,7 +1148,7 @@ export default function NvdViewer() {
           <div className="space-y-6 py-4">
             <LabeledSliderWithInput
               label="Crosshair Width"
-              value={viewerSettings.crosshairWidth}
+              value={viewerOptions.crosshairWidth}
               onValueChange={handleCrosshairWidthChange}
               min={0.0}
               max={10}
@@ -1083,7 +1159,7 @@ export default function NvdViewer() {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="interpolate-voxels"
-                checked={viewerSettings.interpolateVoxels}
+                checked={viewerOptions.interpolateVoxels}
                 onCheckedChange={(checked) => handleInterpolateVoxelsChange(checked as boolean)}
               />
               <Label htmlFor="interpolate-voxels" className="text-sm font-medium">
