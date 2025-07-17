@@ -37,7 +37,7 @@ const nv = new Niivue({
   dragAndDropEnabled: true,
   textHeight: 0.02,
   backColor: [0, 0, 0, 1],
-  crosshairColor: [244, 243, 238, 0.5],
+  crosshairColor: [1.0, 0.0, 0.0, 0.5],
   multiplanarForceRender: false
 });
 
@@ -68,6 +68,8 @@ export default function NvdViewer() {
   const [viewerOptions, setViewerOptions] = useState({
     viewMode: "ACS" as "axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render",
     crosshairWidth: 1,
+    crosshairVisible: true,
+    crosshairColor: [1.0, 0.0, 0.0, 0.5] as [number, number, number, number],
     interpolateVoxels: false,
     dragMode: "contrast" as DragMode
   })
@@ -137,7 +139,8 @@ export default function NvdViewer() {
       console.log("applyViewerOptions() -- viewConfig: ", viewConfig)
 
       // Apply all options together
-      nvRef.current.opts.crosshairWidth = viewerOptions.crosshairWidth
+      nvRef.current.opts.crosshairWidth = viewerOptions.crosshairVisible ? viewerOptions.crosshairWidth : 0
+      nvRef.current.setCrosshairColor(viewerOptions.crosshairColor)
       nvRef.current.setInterpolation(!viewerOptions.interpolateVoxels)
       nvRef.current.opts.dragMode = DRAG_MODE_SECONDARY[viewerOptions.dragMode]
 
@@ -176,6 +179,8 @@ export default function NvdViewer() {
       setViewerOptions({
         viewMode,
         crosshairWidth: nv.opts.crosshairWidth,
+        crosshairVisible: nv.opts.crosshairWidth > 0,
+        crosshairColor: nv.opts.crosshairColor ? [...nv.opts.crosshairColor] as [number, number, number, number] : [1.0, 0.0, 0.0, 0.5],
         interpolateVoxels: !nv.opts.isRenderNewInterpolation,
         dragMode
       })
@@ -333,6 +338,7 @@ export default function NvdViewer() {
 
         setCurrentImageIndex(0);
         updateImageDetails();
+        nv.setCrosshairColor([0, 1, 0, 0.1]);
 
       } catch (error) {
         console.error('Error loading NVD:', error);
@@ -797,6 +803,20 @@ export default function NvdViewer() {
     setViewerOptions(prev => ({ ...prev, interpolateVoxels: checked }))
   }, [])
 
+  const handleCrosshairVisibleChange = useCallback((visible: boolean) => {
+    setViewerOptions(prev => ({ ...prev, crosshairVisible: visible }))
+  }, [])
+
+  const handleCrosshairColorChange = useCallback((color: string) => {
+    // Convert hex color to RGBA array (0-1 range)
+    const hex = color.replace('#', '')
+    const r = parseInt(hex.substr(0, 2), 16) / 255
+    const g = parseInt(hex.substr(2, 2), 16) / 255
+    const b = parseInt(hex.substr(4, 2), 16) / 255
+    const a = viewerOptions.crosshairColor[3] // Keep existing alpha
+    setViewerOptions(prev => ({ ...prev, crosshairColor: [r, g, b, a] as [number, number, number, number] }))
+  }, [viewerOptions.crosshairColor])
+
   // Apply viewer options when they change
   useEffect(() => {
     applyViewerOptions()
@@ -1177,15 +1197,43 @@ export default function NvdViewer() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            <LabeledSliderWithInput
-              label="Crosshair Width"
-              value={viewerOptions.crosshairWidth}
-              onValueChange={handleCrosshairWidthChange}
-              min={0.0}
-              max={5}
-              step={0.1}
-              decimalPlaces={1}
-            />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Crosshair Width</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => handleCrosshairVisibleChange(!viewerOptions.crosshairVisible)}
+                >
+                  {viewerOptions.crosshairVisible ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 opacity-50" />
+                  )}
+                </Button>
+              </div>
+              <LabeledSliderWithInput
+                label=""
+                value={viewerOptions.crosshairWidth}
+                onValueChange={handleCrosshairWidthChange}
+                min={0.0}
+                max={5}
+                step={0.1}
+                decimalPlaces={1}
+                disabled={!viewerOptions.crosshairVisible}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Crosshair Color</Label>
+              <Input
+                type="color"
+                value={`#${Math.round(viewerOptions.crosshairColor[0] * 255).toString(16).padStart(2, '0')}${Math.round(viewerOptions.crosshairColor[1] * 255).toString(16).padStart(2, '0')}${Math.round(viewerOptions.crosshairColor[2] * 255).toString(16).padStart(2, '0')}`}
+                onChange={(e) => handleCrosshairColorChange(e.target.value)}
+                className="w-full h-10"
+              />
+            </div>
 
             <div className="flex items-center space-x-2">
               <Checkbox
