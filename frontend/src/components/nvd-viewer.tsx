@@ -162,16 +162,16 @@ export default function NvdViewer() {
       };
 
       // Set up onImageLoaded to handle drag-and-drop files
-      nvRef.current.onImageLoaded = () => {
-        updateImageDetails();
-        setShowUploader(false); // Hide uploader when images are loaded via drag-drop
-      };
+      //nvRef.current.onImageLoaded = () => {
+      //  updateImageDetails();
+      //  setShowUploader(false); // Hide uploader when images are loaded via drag-drop
+      //};
 
       // Set up onLocationChange to track pointer location
       nvRef.current.onLocationChange = handleLocationChange;
 
       // Set up onOptsChange to consolidate all viewer option updates
-      nvRef.current.onOptsChange = applyViewerOptions;
+      //nvRef.current.onOptsChange = applyViewerOptions;
     }
   }, [handleLocationChange, applyViewerOptions]); // Re-create callback when callbacks change
 
@@ -197,6 +197,7 @@ export default function NvdViewer() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const jsonData = await response.json();
+        console.log("json data returned from server:")
         console.log(jsonData)
 
         // Set the canvas to be visible, instead of the uploader box
@@ -227,10 +228,14 @@ export default function NvdViewer() {
           await document.fetchLinkedData()
 
           try {
-            await nv.loadDocument(document);
+            // Batch load document and application of viewer options
+            // to prevent a change view flash
+            requestAnimationFrame(() => {
+              nv.loadDocument(document);
+              applyViewerOptions();
+            });
           } catch (error) {
             console.error("nv.loadDocument failed:", error);
-            // Log more details about the state when it fails
             console.log("Current nv.volumes:", nv.volumes);
             console.log("Current nv.meshes:", nv.meshes);
             console.log("Current nv.drawBitmap:", nv.drawBitmap);
@@ -250,7 +255,6 @@ export default function NvdViewer() {
 
           console.log("niivue volumes immediately after loadDocument:")
           console.log(nv.volumes)
-          console.log(nv)
         } else {
           // Direct loading without NVDocument
           console.log("Loading directly without NVDocument");
@@ -284,23 +288,20 @@ export default function NvdViewer() {
 
           // Apply scene options if present
           // first, revert the options to the defaults
-          nv.setDefaults();
-          if (jsonData.opts) {
-            console.log("Applying options:", jsonData.opts);
-            nv.setDefaults(jsonData.opts);
-          }
+          // then apply viewer options
+          requestAnimationFrame(() => {
+            nv.setDefaults();
+            if (jsonData.opts) {
+              console.log("Applying options:", jsonData.opts);
+              nv.setDefaults(jsonData.opts);
+            }
+            applyViewerOptions();
+          });
 
           console.log("Volumes after direct load:", nv.volumes);
         }
 
-        // Batch all the updates together to reduce jitter
-        requestAnimationFrame(() => {
-          // Apply viewer options
-          applyViewerOptions();
-
-          // Update the images state for the UI
-          updateImageDetails();
-        });
+        updateImageDetails();
 
       } catch (error) {
         console.error('Error loading NVD:', error);
