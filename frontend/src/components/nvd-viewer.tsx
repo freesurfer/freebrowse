@@ -1190,9 +1190,9 @@ export default function NvdViewer() {
       <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
         <DialogContent onClose={() => setSettingsDialogOpen(false)}>
           <DialogHeader>
-            <DialogTitle>Viewer Settings</DialogTitle>
+            <DialogTitle>FreeBrowse Settings</DialogTitle>
             <DialogDescription>
-              Configure the NiiVue viewer settings
+              Configure the FreeBrowse viewer settings
             </DialogDescription>
           </DialogHeader>
 
@@ -1243,6 +1243,17 @@ export default function NvdViewer() {
               />
               <Label htmlFor="interpolate-voxels" className="text-sm font-medium">
                 Interpolate Voxels
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="skip-remove-confirmation"
+                checked={skipRemoveConfirmation}
+                onCheckedChange={(checked) => setSkipRemoveConfirmation(checked as boolean)}
+              />
+              <Label htmlFor="skip-remove-confirmation" className="text-sm font-medium">
+                Don't ask me to confirm removals
               </Label>
             </div>
           </div>
