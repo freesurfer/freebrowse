@@ -228,12 +228,10 @@ export default function NvdViewer() {
           await document.fetchLinkedData()
 
           try {
-            // Batch load document and application of viewer options
-            // to prevent a change view flash
-            requestAnimationFrame(() => {
-              nv.loadDocument(document);
-              applyViewerOptions();
-            });
+            // LoadDocument may override some viewer options, so set them again
+            // immediatly after.  this still causes some flashing
+            await nv.loadDocument(document);
+            applyViewerOptions();
           } catch (error) {
             console.error("nv.loadDocument failed:", error);
             console.log("Current nv.volumes:", nv.volumes);
@@ -289,18 +287,17 @@ export default function NvdViewer() {
           // Apply scene options if present
           // first, revert the options to the defaults
           // then apply viewer options
-          requestAnimationFrame(() => {
-            nv.setDefaults();
-            if (jsonData.opts) {
-              console.log("Applying options:", jsonData.opts);
-              nv.setDefaults(jsonData.opts);
-            }
-            applyViewerOptions();
-          });
+          nv.setDefaults();
+          if (jsonData.opts) {
+            console.log("Applying options:", jsonData.opts);
+            nv.setDefaults(jsonData.opts);
+          }
+          applyViewerOptions();
 
           console.log("Volumes after direct load:", nv.volumes);
         }
 
+        setCurrentImageIndex(0);
         updateImageDetails();
 
       } catch (error) {
@@ -393,14 +390,12 @@ export default function NvdViewer() {
         contrastMax: vol.cal_max ?? 100
       }));
       setImages(loadedImages);
-      console.log("updateImageDetails() loadedImages:", loadedImages)
-      if (loadedImages.length > 0) {
-        setCurrentImageIndex(0);
 
-        // Update footer with current crosshair position
-        if (nv.scene && nv.scene.crosshairPos) {
-          handleLocationChange({ mm: nv.scene.crosshairPos });
-        }
+      console.log("updateImageDetails() loadedImages:", loadedImages)
+
+      // Update footer with current crosshair position
+      if (nv.scene && nv.scene.crosshairPos) {
+        handleLocationChange({ mm: nv.scene.crosshairPos });
       }
     } else {
       console.log("updateImageDetails(): nvRef is ", nvRef)
