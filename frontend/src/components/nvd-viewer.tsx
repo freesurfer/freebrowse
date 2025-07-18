@@ -91,7 +91,8 @@ export default function NvdViewer() {
     penValue: 1,
     penFill: true,
     penErases: false,
-    colormap: "gray"
+    colormap: "gray",
+    filename: "drawing.nii.gz"
   })
 
   // Debounced GL update to prevent excessive calls
@@ -320,19 +321,12 @@ export default function NvdViewer() {
         throw new Error("Canvas failed to initialize after 2 seconds");
       }
 
-      // Clear existing images
-      //setImages([]);
-      //setCurrentImageIndex(null);
-
-      // Remove all existing volumes
-      //while (nv.volumes.length > 0) {
-      //  nv.removeVolumeByIndex(0);
-      //}
-
       // Create volume object
+      // Strip directory path from filename
+      const basename = file.filename.split('/').pop() || file.filename;
       const volume = {
         url: file.url,
-        name: file.filename
+        name: basename
       };
 
       console.log("Adding imaging file to scene:", volume);
@@ -352,7 +346,7 @@ export default function NvdViewer() {
       }
 
       // Switch to scene details tab to show controls
-      setActiveTab("sceneDetails");
+      //setActiveTab("sceneDetails");
 
       console.log("Imaging file loaded successfully");
     } catch (error) {
@@ -478,7 +472,7 @@ export default function NvdViewer() {
       nv.setCrosshairColor([0, 1, 0, 0.1]);
 
       // Switch to scene details tab to show controls
-      setActiveTab("sceneDetails");
+      //setActiveTab("sceneDetails");
 
     } catch (error) {
       console.error('Error loading NVD:', error);
@@ -973,8 +967,8 @@ export default function NvdViewer() {
           volumeByIndex: 0 // Default to first volume
         }) as Uint8Array
 
-        // Create a File from the binary data
-        const drawingFile = new File([drawingData], "drawing.nii", {
+        // Create a File from the binary data using the filename from state
+        const drawingFile = new File([drawingData], drawingOptions.filename, {
           type: "application/octet-stream"
         })
 
@@ -988,7 +982,7 @@ export default function NvdViewer() {
         // Load the drawing as a regular volume
         const nvimage = await NVImage.loadFromFile({
           file: drawingFile,
-          name: "Drawing Layer"
+          name: drawingOptions.filename
         })
 
         // Apply the drawing colormap
@@ -1011,7 +1005,7 @@ export default function NvdViewer() {
         console.error("Error saving drawing:", error)
       }
     }
-  }, [])
+  }, [drawingOptions])
 
   // Apply viewer options when they change
   useEffect(() => {
@@ -1326,6 +1320,17 @@ export default function NvdViewer() {
                   <div className="p-4 space-y-4">
                     {drawingOptions.enabled ? (
                       <>
+                        {/* Drawing Filename Input */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Filename</Label>
+                          <Input
+                            type="text"
+                            value={drawingOptions.filename}
+                            onChange={(e) => setDrawingOptions(prev => ({ ...prev, filename: e.target.value }))}
+                            placeholder="Enter filename..."
+                          />
+                        </div>
+
                         {/* Drawing Colormap Selector */}
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Drawing Colormap</Label>
