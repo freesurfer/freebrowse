@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useContext } from "react"
-import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil, FileText, Info } from "lucide-react"
+import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil, FileText, Info, Brain } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -967,7 +967,10 @@ export default function NvdViewer() {
     <div className="flex h-screen flex-col">
       <header className="border-b bg-background px-6 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">FreeBrowse 2.0</h1>
+          <h1 className="text-xl font-semibold flex items-center">
+            <Brain className="h-6 w-6 mr-2" />
+            FreeBrowse 2.0
+          </h1>
           <div className="bg-background p-2">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-2 border border-border rounded-md px-3 py-1">
@@ -1161,7 +1164,7 @@ export default function NvdViewer() {
                         size="sm"
                         className="w-full"
                         onClick={handleCreateDrawingLayer}
-                        disabled={drawingOptions.enabled}
+                        disabled={drawingOptions.enabled || images.length === 0}
                       >
                         <Pencil className="mr-2 h-4 w-4" />
                         Create empty drawing layer
@@ -1171,10 +1174,10 @@ export default function NvdViewer() {
                         size="sm"
                         className="w-full"
                         onClick={handleSaveScene}
-                        disabled={images.length === 0}
+                        disabled={images.length === 0 || drawingOptions.enabled}
                       >
                         <Save className="mr-2 h-4 w-4" />
-                        Save scene
+                        {(drawingOptions.enabled) ? ("Save Drawing First") : ("Save scene")}
                       </Button>
                     </div>
                   </ScrollArea>
