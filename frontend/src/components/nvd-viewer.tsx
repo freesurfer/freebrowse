@@ -191,7 +191,7 @@ export default function NvdViewer() {
         crosshairWidth: nv.opts.crosshairWidth,
         crosshairVisible: nv.opts.crosshairWidth > 0,
         crosshairColor: nv.opts.crosshairColor ? [...nv.opts.crosshairColor] as [number, number, number, number] : [1.0, 0.0, 0.0, 0.5],
-        interpolateVoxels: !nv.opts.isRenderNewInterpolation,
+        interpolateVoxels: !nv.opts.isNearestInterpolation,
         dragMode
       })
     }
@@ -906,7 +906,9 @@ export default function NvdViewer() {
 
         // Save the drawing as binary data without triggering download
         const drawingData = await nvRef.current.saveImage({
-          isSaveDrawing: true
+          filename: "", // Empty filename returns binary data instead of downloading
+          isSaveDrawing: true,
+          volumeByIndex: 0 // Default to first volume
         }) as Uint8Array
 
         // Create a File from the binary data
