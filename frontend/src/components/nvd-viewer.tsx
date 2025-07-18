@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useContext } from "react"
-import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil } from "lucide-react"
+import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil, FileText, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -1062,9 +1062,11 @@ export default function NvdViewer() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
               <TabsList className="w-full justify-start border-b rounded-none px-2 h-12 flex-shrink-0">
                 <TabsTrigger value="nvds" className="data-[state=active]:bg-muted">
-                  Documents
+                  <FileText className="h-4 w-4 mr-2" />
+                  Docs
                 </TabsTrigger>
                 <TabsTrigger value="sceneDetails" className="data-[state=active]:bg-muted">
+                  <Info className="h-4 w-4 mr-2" />
                   Details
                 </TabsTrigger>
                 <TabsTrigger
@@ -1075,6 +1077,7 @@ export default function NvdViewer() {
                   )}
                   disabled={!drawingOptions.enabled}
                 >
+                  <Pencil className="h-4 w-4 mr-2" />
                   Draw
                 </TabsTrigger>
               </TabsList>
