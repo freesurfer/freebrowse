@@ -494,7 +494,7 @@ export default function NvdViewer() {
         ));
       }
     }
-  }, [currentImageIndex, debouncedGLUpdate])
+  }, [currentImageIndex])
 
   const handleContrastMinChange = useCallback((newContrastMin: number) => {
     if (currentImageIndex !== null && nvRef.current && images[currentImageIndex]) {
@@ -511,7 +511,7 @@ export default function NvdViewer() {
         ));
       }
     }
-  }, [currentImageIndex, debouncedGLUpdate])
+  }, [currentImageIndex])
 
   const handleContrastMaxChange = useCallback((newContrastMax: number) => {
     if (currentImageIndex !== null && nvRef.current && images[currentImageIndex]) {
@@ -528,7 +528,7 @@ export default function NvdViewer() {
         ));
       }
     }
-  }, [currentImageIndex, debouncedGLUpdate])
+  }, [currentImageIndex])
 
   const handleColormapChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
     const newColormap = event.target.value;
@@ -554,7 +554,7 @@ export default function NvdViewer() {
         debouncedGLUpdate();
       }
     }
-  }, [currentImageIndex, debouncedGLUpdate])
+  }, [currentImageIndex])
 
   const handleAddMoreFiles = useCallback(() => {
     fileInputRef.current?.click()
@@ -746,7 +746,7 @@ export default function NvdViewer() {
     }
     // Clear the input value so the same file can be selected again
     e.target.value = ''
-  }, [handleFileUpload])
+  }, [])
 
   const removeVolume = useCallback((imageIndex: number) => {
     if (nvRef.current && images[imageIndex]) {
@@ -825,7 +825,7 @@ export default function NvdViewer() {
     const b = parseInt(hex.substr(4, 2), 16) / 255
     const a = viewerOptions.crosshairColor[3] // Keep existing alpha
     setViewerOptions(prev => ({ ...prev, crosshairColor: [r, g, b, a] as [number, number, number, number] }))
-  }, [viewerOptions.crosshairColor])
+  }, [])
 
   // Drawing event handlers
   const handleCreateDrawingLayer = useCallback(() => {
