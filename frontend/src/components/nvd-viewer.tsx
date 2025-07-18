@@ -1121,15 +1121,12 @@ export default function NvdViewer() {
               <TabsList className="w-full justify-start border-b rounded-none px-2 h-12 flex-shrink-0">
                 <TabsTrigger value="nvds" className="data-[state=active]:bg-muted">
                   <FileText className="h-4 w-4 mr-2" />
-                  Docs
                 </TabsTrigger>
                 <TabsTrigger value="data" className="data-[state=active]:bg-muted">
                   <Database className="h-4 w-4 mr-2" />
-                  Data
                 </TabsTrigger>
                 <TabsTrigger value="sceneDetails" className="data-[state=active]:bg-muted">
                   <Info className="h-4 w-4 mr-2" />
-                  Details
                 </TabsTrigger>
                 <TabsTrigger
                   value="drawing"
@@ -1140,11 +1137,14 @@ export default function NvdViewer() {
                   disabled={!drawingOptions.enabled}
                 >
                   <Pencil className="h-4 w-4 mr-2" />
-                  Draw
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
+                <div className="border-b px-4 py-3">
+                  <h2 className="text-lg font-semibold">NiiVue Documents</h2>
+                  <p className="text-sm text-muted-foreground">Load complete scenes and visualizations</p>
+                </div>
                 <ScrollArea className="h-full">
                   <div className="p-4">
                     <FileList
@@ -1157,6 +1157,10 @@ export default function NvdViewer() {
               </TabsContent>
 
               <TabsContent value="data" className="flex-1 min-h-0 p-0">
+                <div className="border-b px-4 py-3">
+                  <h2 className="text-lg font-semibold">Imaging Data</h2>
+                  <p className="text-sm text-muted-foreground">Add individual volumes to the current scene</p>
+                </div>
                 <ScrollArea className="h-full">
                   <div className="p-4">
                     <FileList
@@ -1169,6 +1173,10 @@ export default function NvdViewer() {
               </TabsContent>
 
               <TabsContent value="sceneDetails" className="flex-1 min-h-0 p-0">
+                <div className="border-b px-4 py-3">
+                  <h2 className="text-lg font-semibold">Scene Details</h2>
+                  <p className="text-sm text-muted-foreground">Manage volumes and adjust properties</p>
+                </div>
                 <div className="flex flex-col h-full">
                   <ScrollArea className="max-h-[50%] min-h-0">
                     {images.length > 0 ? (
@@ -1310,6 +1318,10 @@ export default function NvdViewer() {
               </TabsContent>
 
               <TabsContent value="drawing" className="flex-1 min-h-0 p-0">
+                <div className="border-b px-4 py-3">
+                  <h2 className="text-lg font-semibold">Drawing Tools</h2>
+                  <p className="text-sm text-muted-foreground">Edit annotations</p>
+                </div>
                 <ScrollArea className="h-full">
                   <div className="p-4 space-y-4">
                     {drawingOptions.enabled ? (
