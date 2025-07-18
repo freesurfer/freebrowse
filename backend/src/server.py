@@ -23,10 +23,13 @@ logger = logging.getLogger(__name__)
 static_dir = os.getenv('NIIVUE_BUILD_DIR')
 data_dir = os.getenv('DATA_DIR')
 scene_schema_id = os.getenv('SCENE_SCHEMA_ID')
+imaging_extensions_str = os.getenv('IMAGING_EXTENSIONS', '["*.nii", "*.nii.gz"]')
+imaging_extensions = json.loads(imaging_extensions_str)
 
 logger.info(f"NIIVUE_BUILD_DIR: {static_dir}")
 logger.info(f"DATA_DIR: {data_dir}")
 logger.info(f"SCENE_SCHEMA_ID: {scene_schema_id}")
+logger.info(f"IMAGING_EXTENSIONS: {imaging_extensions}")
 
 # Register the MIME type so that .gz files (or .nii.gz files) are served correctly.
 mimetypes.add_type("application/gzip", ".nii.gz", strict=True)
@@ -88,6 +91,24 @@ def list_niivue_documents():
     except Exception as e:
         return {"error": str(e)}
     return nvd_files
+
+@app.get("/imaging")
+def list_imaging_files():
+    imaging_dir = os.path.join(data_dir)
+    logger.debug(f"Looking for imaging files {imaging_extensions} recursively in {imaging_dir}")
+    imaging_files = []
+    try:
+        for pattern in imaging_extensions:
+            for filepath in Path(imaging_dir).rglob(pattern):
+                rel_filepath = str(filepath.relative_to(imaging_dir))
+                imaging_file = {
+                    "filename": rel_filepath,
+                    "url": "data/" + rel_filepath
+                }
+                imaging_files.append(imaging_file)
+    except Exception as e:
+        return {"error": str(e)}
+    return imaging_files
 
 @app.post("/nvd")
 def save_scene(request: SaveSceneRequest):

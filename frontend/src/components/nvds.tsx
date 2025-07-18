@@ -1,4 +1,5 @@
-import React, { createContext, useEffect, useState, useContext, ReactNode } from 'react'
+import React, { createContext, useState, useContext, ReactNode } from 'react'
+import { FileList, type FileItem } from './file-list'
 
 export interface Nvd {
   filename: string;
@@ -26,57 +27,14 @@ export const NvdProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 };
 
 export const NvdList: React.FC = () => {
-  const [nvds, setNvds] = useState<Nvd[]>([])
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string>('')
   const { setSelectedNvd } = useContext(NvdContext);
 
-  useEffect(() => {
-    // Define an async function to fetch niivue document list
-    const fetchNvds = async () => {
-      setLoading(true)
-      try {
-        // Adjust the URL to match the backend endpoint you've set up.
-        const response = await fetch('/nvd')
-        console.log(response)
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`)
-        }
-        // Assume the backend returns an array of niivue documents.
-        const data: Nvd[] = await response.json()
-        console.log(data)
-        setNvds(data)
-      } catch (err: any) {
-        console.error('Error fetching niivue documents:', err)
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchNvds()
-  }, [])
-
   return (
-    <div>
-      {loading && <p>Loading List...</p>}
-      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-      {!loading && !error && (nvds.length > 0 ? (
-        <ul>
-          {nvds.map((nvd, index) => (
-            <li
-              key={index}
-              style={{ cursor: 'pointer' }}
-              onClick={() => setSelectedNvd(nvd)}
-            >
-              {nvd.filename}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No niivue documents available.</p>
-      ))}
-    </div>
+    <FileList
+      endpoint="/nvd"
+      onFileSelect={(file: FileItem) => setSelectedNvd(file)}
+      emptyMessage="No niivue documents available."
+    />
   )
 }
 

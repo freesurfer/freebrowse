@@ -18,6 +18,7 @@ cmd = """
 NIIVUE_BUILD_DIR = "../frontend/dist"
 DATA_DIR = "../data"
 SCENE_SCHEMA_ID = "niivue-fullstack-demo"
+IMAGING_EXTENSIONS = '["*.nii", "*.nii.gz"]'
 
 [dependencies]
 fastapi = ">=0.115.5,<0.116"

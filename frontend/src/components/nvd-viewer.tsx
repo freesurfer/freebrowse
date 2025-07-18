@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useContext } from "react"
-import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil, FileText, Info, Brain } from "lucide-react"
+import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil, FileText, Info, Brain, Database } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -21,6 +21,7 @@ import ImageCanvas from "./image-canvas"
 import { sliceTypeMap } from "./image-canvas"
 import { ViewMode } from "./view-selector"
 import { NvdList, NvdContext } from "./nvds"
+import { FileList, type FileItem } from "./file-list"
 
 type ImageDetails = {
   id: string
@@ -42,7 +43,7 @@ const nv = new Niivue({
 });
 
 // for interactive debugging
-window.nv = nv;
+//window.nv = nv;
 
 export default function NvdViewer() {
   const [images, setImages] = useState<ImageDetails[]>([])
@@ -427,6 +428,68 @@ export default function NvdViewer() {
 
     if (currentImageIndex === null && files.length > 0) {
       setCurrentImageIndex(0);
+    }
+  }
+
+  const handleImagingFileSelect = async (file: FileItem) => {
+    if (!nvRef.current) return;
+    const nv = nvRef.current;
+
+    try {
+      // Set the canvas to be visible first, if it's not already
+      if (showUploader) {
+        setShowUploader(false);
+      }
+
+      // Wait for the canvas to be rendered and attached
+      let retries = 0;
+      while (!nv.canvas && retries < 20) {
+        console.log(`Waiting for canvas to be ready for imaging file... attempt ${retries + 1}`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries++;
+      }
+
+      if (!nv.canvas) {
+        throw new Error("Canvas failed to initialize after 2 seconds");
+      }
+
+      // Clear existing images
+      //setImages([]);
+      //setCurrentImageIndex(null);
+
+      // Remove all existing volumes
+      //while (nv.volumes.length > 0) {
+      //  nv.removeVolumeByIndex(0);
+      //}
+
+      // Create volume object
+      const volume = {
+        url: file.url,
+        name: file.filename
+      };
+
+      console.log("Adding imaging file to scene:", volume);
+
+      // Add the volume to existing volumes instead of replacing
+      await nv.addVolumeFromUrl(volume);
+
+      // Apply viewer options
+      applyViewerOptions();
+
+      // Update image details
+      updateImageDetails();
+
+      // Set the newly added volume as current (it will be the last one)
+      if (nv.volumes.length > 0) {
+        setCurrentImageIndex(nv.volumes.length - 1);
+      }
+
+      // Switch to scene details tab to show controls
+      setActiveTab("sceneDetails");
+
+      console.log("Imaging file loaded successfully");
+    } catch (error) {
+      console.error('Error loading imaging file:', error);
     }
   }
 
@@ -1068,6 +1131,10 @@ export default function NvdViewer() {
                   <FileText className="h-4 w-4 mr-2" />
                   Docs
                 </TabsTrigger>
+                <TabsTrigger value="data" className="data-[state=active]:bg-muted">
+                  <Database className="h-4 w-4 mr-2" />
+                  Data
+                </TabsTrigger>
                 <TabsTrigger value="sceneDetails" className="data-[state=active]:bg-muted">
                   <Info className="h-4 w-4 mr-2" />
                   Details
@@ -1088,7 +1155,23 @@ export default function NvdViewer() {
               <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
                 <ScrollArea className="h-full">
                   <div className="p-4">
-                    <NvdList />
+                    <FileList
+                      endpoint="/nvd"
+                      onFileSelect={(file: FileItem) => setSelectedNvd(file)}
+                      emptyMessage="No niivue documents available."
+                    />
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="data" className="flex-1 min-h-0 p-0">
+                <ScrollArea className="h-full">
+                  <div className="p-4">
+                    <FileList
+                      endpoint="/imaging"
+                      onFileSelect={handleImagingFileSelect}
+                      emptyMessage="No imaging files available."
+                    />
                   </div>
                 </ScrollArea>
               </TabsContent>
@@ -1157,7 +1240,7 @@ export default function NvdViewer() {
                         onClick={handleAddMoreFiles}
                       >
                         <Upload className="mr-2 h-4 w-4" />
-                        Add more files
+                        Upload files
                       </Button>
                       <Button
                         variant="outline"
