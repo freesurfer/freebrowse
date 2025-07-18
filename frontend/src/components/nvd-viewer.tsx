@@ -41,6 +41,9 @@ const nv = new Niivue({
   multiplanarForceRender: false
 });
 
+// for interactive debugging
+window.nv = nv;
+
 export default function NvdViewer() {
   const [images, setImages] = useState<ImageDetails[]>([])
   const [showUploader, setShowUploader] = useState(true)
@@ -433,7 +436,7 @@ export default function NvdViewer() {
       const loadedImages = nv.volumes.map((vol, index) => ({
         id: vol.id,
         name: vol.name || `Volume ${index + 1}`,
-        visible: true,
+        visible: vol.opacity > 0,
         colormap: vol.colormap,
         opacity: vol.opacity,
         contrastMin: vol.cal_min ?? 0,
@@ -456,12 +459,16 @@ export default function NvdViewer() {
     setImages(images.map((img) => {
       if (img.id === id) {
         const newVisible = !img.visible;
-
+        // handle edge case where right drag occurs while vol is invisible
+        const newOpacity = img.opacity === 0? 1.0 : img.opacity
         // Update the Niivue volume opacity
         if (nvRef.current) {
           const volumeIndex = nvRef.current.getVolumeIndexByID(id);
           if (volumeIndex >= 0) {
-            nvRef.current.setOpacity(volumeIndex, newVisible ? img.opacity : 0);
+            console.log("toggleImageVisibility(): ", volumeIndex)
+            console.log("toggleImageVisibility(): ", newVisible)
+            console.log("toggleImageVisibility(): ",  img.opacity)
+            nvRef.current.setOpacity(volumeIndex, newVisible ? newOpacity : 0);
           }
         }
 
@@ -964,11 +971,11 @@ export default function NvdViewer() {
           <div className="bg-background p-2">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-2 border border-border rounded-md px-3 py-1">
-                <span className="text-sm font-medium">View mode:</span>
+                <span className="text-sm font-medium">View:</span>
                 <ViewSelector currentView={viewerOptions.viewMode} onViewChange={handleViewMode} />
               </div>
               <div className="flex items-center gap-2 border border-border rounded-md px-3 py-1">
-                <span className="text-sm font-medium">Left drag mode:</span>
+                <span className="text-sm font-medium">Right drag:</span>
                 <DragModeSelector
                     currentMode={viewerOptions.dragMode}
                     onModeChange={(mode) => setViewerOptions(prev => ({ ...prev, dragMode: mode }))}
@@ -1055,10 +1062,10 @@ export default function NvdViewer() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
               <TabsList className="w-full justify-start border-b rounded-none px-2 h-12 flex-shrink-0">
                 <TabsTrigger value="nvds" className="data-[state=active]:bg-muted">
-                  NiiVue Documents
+                  Documents
                 </TabsTrigger>
                 <TabsTrigger value="sceneDetails" className="data-[state=active]:bg-muted">
-                  Scene Details
+                  Details
                 </TabsTrigger>
                 <TabsTrigger
                   value="drawing"
@@ -1068,7 +1075,7 @@ export default function NvdViewer() {
                   )}
                   disabled={!drawingOptions.enabled}
                 >
-                  Drawing
+                  Draw
                 </TabsTrigger>
               </TabsList>
 
