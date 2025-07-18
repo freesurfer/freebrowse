@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useContext } from "react"
-import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings } from "lucide-react"
+import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -81,6 +81,16 @@ export default function NvdViewer() {
       value: number
     }>
   } | null>(null)
+
+  // Drawing-related state
+  const [drawingOptions, setDrawingOptions] = useState({
+    enabled: false,
+    mode: "none" as "none" | "pen",
+    penValue: 1,
+    penFill: true,
+    penErases: false,
+    colormap: "gray"
+  })
 
   // Debounced GL update to prevent excessive calls
   const debouncedGLUpdate = useCallback(() => {
@@ -817,6 +827,128 @@ export default function NvdViewer() {
     setViewerOptions(prev => ({ ...prev, crosshairColor: [r, g, b, a] as [number, number, number, number] }))
   }, [viewerOptions.crosshairColor])
 
+  // Drawing event handlers
+  const handleCreateDrawingLayer = useCallback(() => {
+    if (nvRef.current) {
+      nvRef.current.setDrawingEnabled(true)
+
+      // Set initial drawing properties
+      nvRef.current.drawFillOverwrites = drawingOptions.penFill
+      nvRef.current.setPenValue(drawingOptions.penValue, drawingOptions.penFill)
+
+      setDrawingOptions(prev => ({ ...prev, enabled: true, mode: "pen" }))
+      setActiveTab("drawing") // Switch to drawing tab when drawing is enabled
+    }
+  }, [])
+
+  const handleDrawingColormapChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newColormap = event.target.value
+    setDrawingOptions(prev => ({ ...prev, colormap: newColormap }))
+    // Apply the colormap to the drawing layer if one exists
+    if (nvRef.current && nvRef.current.drawBitmap) {
+      // Set drawing colormap on niivue
+      nvRef.current.setDrawColormap(newColormap)
+      nvRef.current.updateGLVolume()
+    }
+  }, [])
+
+  const handleDrawModeChange = useCallback((mode: "none" | "pen") => {
+    setDrawingOptions(prev => ({ ...prev, mode }))
+    if (nvRef.current) {
+      if (mode === "pen") {
+        const penValue = drawingOptions.penErases ? -0 : drawingOptions.penValue
+        nvRef.current.setPenValue(penValue, drawingOptions.penFill)
+      } else {
+        // Set pen value to 0 for "none" mode (disables drawing)
+        nvRef.current.setPenValue(0, false)
+      }
+    }
+  }, [])
+
+  const handlePenFillChange = useCallback((checked: boolean) => {
+    setDrawingOptions(prev => ({ ...prev, penFill: checked }))
+    if (nvRef.current) {
+      nvRef.current.drawFillOverwrites = checked
+      // Update current pen value with new fill setting
+      if (drawingOptions.mode === "pen") {
+        const penValue = drawingOptions.penErases ? -0 : drawingOptions.penValue
+        nvRef.current.setPenValue(penValue, checked)
+      }
+    }
+  }, [])
+
+  const handlePenErasesChange = useCallback((checked: boolean) => {
+    setDrawingOptions(prev => ({ ...prev, penErases: checked }))
+    if (nvRef.current && drawingOptions.mode === "pen") {
+      if (checked) {
+        nvRef.current.setPenValue(-0, drawingOptions.penFill)
+      } else {
+        nvRef.current.setPenValue(drawingOptions.penValue, drawingOptions.penFill)
+      }
+    }
+  }, [])
+
+  const handlePenValueChange = useCallback((value: number) => {
+    setDrawingOptions(prev => ({ ...prev, penValue: value }))
+    if (nvRef.current && drawingOptions.mode === "pen" && !drawingOptions.penErases) {
+      nvRef.current.setPenValue(value, drawingOptions.penFill)
+    }
+  }, [])
+
+  const handleSaveDrawing = useCallback(async () => {
+    if (nvRef.current && nvRef.current.drawBitmap) {
+      try {
+        // Check if there are any volumes loaded - drawing needs a reference volume
+        if (nvRef.current.volumes.length === 0) {
+          console.error("No reference volume loaded - cannot save drawing")
+          return
+        }
+
+        // Save the drawing as binary data without triggering download
+        const drawingData = await nvRef.current.saveImage({
+          isSaveDrawing: true
+        }) as Uint8Array
+
+        // Create a File from the binary data
+        const drawingFile = new File([drawingData], "drawing.nii", {
+          type: "application/octet-stream"
+        })
+
+        // Close the drawing layer (this clears the drawing bitmap)
+        nvRef.current.closeDrawing()
+
+        // Explicitly disable drawing mode in NiiVue
+        nvRef.current.setDrawingEnabled(false)
+        nvRef.current.setPenValue(0, false) // Ensure pen is set to 0 (no drawing)
+
+        // Load the drawing as a regular volume
+        const nvimage = await NVImage.loadFromFile({
+          file: drawingFile,
+          name: "Drawing Layer"
+        })
+
+        // Apply the drawing colormap
+        nvimage.colormap = drawingOptions.colormap
+        nvimage.opacity = 0.7 // Semi-transparent by default
+
+        // Add the drawing as a regular volume
+        nvRef.current.addVolume(nvimage)
+
+        // Disable drawing mode in our state
+        setDrawingOptions(prev => ({ ...prev, enabled: false, mode: "none" }))
+
+        // Switch back to scene details tab
+        setActiveTab("sceneDetails")
+
+        // Update image details to reflect the new volume
+        updateImageDetails()
+
+      } catch (error) {
+        console.error("Error saving drawing:", error)
+      }
+    }
+  }, [])
+
   // Apply viewer options when they change
   useEffect(() => {
     applyViewerOptions()
@@ -926,6 +1058,16 @@ export default function NvdViewer() {
                 <TabsTrigger value="sceneDetails" className="data-[state=active]:bg-muted">
                   Scene Details
                 </TabsTrigger>
+                <TabsTrigger
+                  value="drawing"
+                  className={cn(
+                    "data-[state=active]:bg-muted",
+                    !drawingOptions.enabled && "text-muted-foreground"
+                  )}
+                  disabled={!drawingOptions.enabled}
+                >
+                  Drawing
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
@@ -1006,6 +1148,16 @@ export default function NvdViewer() {
                         variant="outline"
                         size="sm"
                         className="w-full"
+                        onClick={handleCreateDrawingLayer}
+                        disabled={drawingOptions.enabled}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Create empty drawing layer
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
                         onClick={handleSaveScene}
                         disabled={images.length === 0}
                       >
@@ -1065,6 +1217,101 @@ export default function NvdViewer() {
 
                   </ScrollArea>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="drawing" className="flex-1 min-h-0 p-0">
+                <ScrollArea className="h-full">
+                  <div className="p-4 space-y-4">
+                    {drawingOptions.enabled ? (
+                      <>
+                        {/* Drawing Colormap Selector */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Drawing Colormap</Label>
+                          <Select
+                            value={drawingOptions.colormap}
+                            onChange={handleDrawingColormapChange}
+                          >
+                            {nvRef.current?.colormaps().map((colormap) => (
+                              <option key={colormap} value={colormap}>
+                                {colormap}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+
+                        {/* Draw Mode Selector */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Draw Mode</Label>
+                          <RadioGroup
+                            value={drawingOptions.mode}
+                            onValueChange={handleDrawModeChange}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="none" id="mode-none" />
+                              <Label htmlFor="mode-none">None</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="pen" id="mode-pen" />
+                              <Label htmlFor="mode-pen">Pen</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+
+                        {/* Pen Fill Checkbox */}
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="pen-fill"
+                            checked={drawingOptions.penFill}
+                            onCheckedChange={handlePenFillChange}
+                          />
+                          <Label htmlFor="pen-fill" className="text-sm font-medium">
+                            Pen Fill
+                          </Label>
+                        </div>
+
+                        {/* Pen Erases Checkbox */}
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="pen-erases"
+                            checked={drawingOptions.penErases}
+                            onCheckedChange={handlePenErasesChange}
+                          />
+                          <Label htmlFor="pen-erases" className="text-sm font-medium">
+                            Pen Erases
+                          </Label>
+                        </div>
+
+                        {/* Pen Value Slider */}
+                        <LabeledSliderWithInput
+                          label="Pen Value"
+                          value={drawingOptions.penValue}
+                          onValueChange={handlePenValueChange}
+                          min={0}
+                          max={255}
+                          step={1}
+                          disabled={drawingOptions.penErases}
+                        />
+
+                        {/* Save Drawing Button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={handleSaveDrawing}
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          Save Drawing
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
+                        <Pencil className="h-8 w-8 mb-2" />
+                        <p>No drawing layer active</p>
+                        <p className="text-xs">Create a drawing layer to access drawing tools</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
               </TabsContent>
 
             </Tabs>
