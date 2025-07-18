@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useContext } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil, FileText, Info, Brain, Database } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -20,7 +20,6 @@ import ImageUploader from "./image-uploader"
 import ImageCanvas from "./image-canvas"
 import { sliceTypeMap } from "./image-canvas"
 import { ViewMode } from "./view-selector"
-import { NvdList, NvdContext } from "./nvds"
 import { FileList, type FileItem } from "./file-list"
 
 type ImageDetails = {
@@ -54,7 +53,7 @@ export default function NvdViewer() {
   const [activeTab, setActiveTab] = useState("nvds")
   const [footerOpen, setFooterOpen] = useState(true)
   const nvRef = useRef<Niivue | null>(nv)
-  const { selectedNvd, setSelectedNvd } = useContext(NvdContext)
+  const [selectedNvd, setSelectedNvd] = useState<FileItem | null>(null)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
@@ -370,8 +369,8 @@ export default function NvdViewer() {
     if (nvdParam && !selectedNvd) {
       console.log('Loading NVD from URL parameter:', nvdParam);
 
-      // Create an Nvd object from the URL parameter
-      const nvdFromUrl = {
+      // Create a FileItem object from the URL parameter
+      const nvdFromUrl: FileItem = {
         filename: nvdParam.split('/').pop() || nvdParam, // Extract filename from path
         url: nvdParam
       };
@@ -383,7 +382,7 @@ export default function NvdViewer() {
       // "sceneDetails"
       setActiveTab("sceneDetails")
     }
-  }, [selectedNvd, setSelectedNvd]);
+  }, [selectedNvd]);
 
   // Add uploaded files to Niivue
   let handleFileUpload = async (files: File[]) => {
