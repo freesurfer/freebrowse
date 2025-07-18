@@ -895,7 +895,7 @@ export default function NvdViewer() {
       setDrawingOptions(prev => ({ ...prev, enabled: true, mode: "pen" }))
       setActiveTab("drawing") // Switch to drawing tab when drawing is enabled
     }
-  }, [])
+  }, [drawingOptions])
 
   const handleDrawingColormapChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
     const newColormap = event.target.value
@@ -949,7 +949,7 @@ export default function NvdViewer() {
     if (nvRef.current && drawingOptions.mode === "pen" && !drawingOptions.penErases) {
       nvRef.current.setPenValue(value, drawingOptions.penFill)
     }
-  }, [])
+  }, [drawingOptions])
 
   const handleSaveDrawing = useCallback(async () => {
     if (nvRef.current && nvRef.current.drawBitmap) {
