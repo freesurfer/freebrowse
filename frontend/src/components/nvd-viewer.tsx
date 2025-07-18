@@ -845,6 +845,112 @@ export default function NvdViewer() {
     }
   }, [skipRemoveConfirmation, removeVolume]);
 
+  const handleEditVolume = useCallback(async (imageIndex: number) => {
+    if (!nvRef.current || !images[imageIndex]) return;
+
+    const nv = nvRef.current;
+    const imageId = images[imageIndex].id;
+    const volumeIndex = nv.getVolumeIndexByID(imageId);
+
+    if (volumeIndex < 0) return;
+
+    try {
+      // Save the current volume as drawing-compatible NIfTI data
+      const volumeData = await nv.saveImage({
+        filename: "", // Empty filename returns binary data
+        isSaveDrawing: false,
+        volumeByIndex: volumeIndex
+      }) as Uint8Array;
+
+      // Debug: Check what values are in the original volume data
+      const originalVolume = nv.volumes[volumeIndex];
+      console.log("Original volume stats:", {
+        name: originalVolume.name,
+        colormap: originalVolume.colormap,
+        cal_min: originalVolume.cal_min,
+        cal_max: originalVolume.cal_max,
+        opacity: originalVolume.opacity
+      });
+
+      // Check some non-zero values in the saved data
+      const nonZeroValues = Array.from(volumeData).filter(v => v > 0);
+      console.log("Non-zero values in exported volume:", [...new Set(nonZeroValues)].slice(0, 10));
+
+      // Get the volume name and colormap for the drawing
+      const volumeName = images[imageIndex].name;
+      const volumeColormap = nv.volumes[volumeIndex].colormap;
+
+      // Remove the volume from NiiVue
+      nv.removeVolumeByIndex(volumeIndex);
+
+      // Update React state to remove the volume
+      updateImageDetails();
+
+      // Adjust current selection if needed
+      if (currentImageIndex === imageIndex) {
+        if (imageIndex > 0) {
+          setCurrentImageIndex(imageIndex - 1);
+        } else if (images.length > 1) {
+          setCurrentImageIndex(0);
+        } else {
+          setCurrentImageIndex(null);
+        }
+      } else if (currentImageIndex !== null && currentImageIndex > imageIndex) {
+        setCurrentImageIndex(currentImageIndex - 1);
+      }
+
+      // Create a blob from the volume data
+      const volumeBlob = new Blob([volumeData], { type: 'application/octet-stream' });
+      const volumeUrl = URL.createObjectURL(volumeBlob);
+
+      // Enable drawing mode
+      nv.setDrawingEnabled(true);
+
+      // Load the volume data as a drawing
+      await nv.loadDrawingFromUrl(volumeUrl);
+
+      // Debug: Check if the drawing bitmap has the correct values after loading
+      if (nv.drawBitmap) {
+        console.log("Drawing bitmap loaded successfully");
+        console.log("Drawing bitmap object:", nv.drawBitmap);
+        console.log("Drawing bitmap properties:", Object.keys(nv.drawBitmap));
+
+        // Try to find the actual data array in the bitmap
+        if (nv.drawBitmap.img && nv.drawBitmap.img.length > 0) {
+          const drawingValues = Array.from(nv.drawBitmap.img).filter(v => v > 0);
+          console.log("Non-zero values in drawing bitmap:", [...new Set(drawingValues)].slice(0, 10));
+        } else {
+          console.log("Drawing bitmap img array is missing or empty");
+        }
+      } else {
+        console.log("No drawing bitmap created!");
+      }
+
+      // Set up drawing options
+      nv.drawFillOverwrites = drawingOptions.penFill;
+      nv.setPenValue(drawingOptions.penValue, drawingOptions.penFill);
+      nv.setDrawColormap(volumeColormap);
+
+      // Update drawing state
+      setDrawingOptions(prev => ({
+        ...prev,
+        enabled: true,
+        mode: "pen",
+        colormap: volumeColormap,
+        filename: volumeName.endsWith('.nii.gz') ? volumeName : `${volumeName}.nii.gz`
+      }));
+
+      // Switch to drawing tab
+      setActiveTab("drawing");
+
+      // Clean up the blob URL
+      URL.revokeObjectURL(volumeUrl);
+
+    } catch (error) {
+      console.error('Error converting volume to drawing:', error);
+    }
+  }, [images, currentImageIndex, drawingOptions]);
+
   const handleConfirmRemove = useCallback(() => {
     if (volumeToRemove !== null) {
       removeVolume(volumeToRemove);
@@ -1204,7 +1310,19 @@ export default function NvdViewer() {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{image.name}</p>
                             </div>
-                            <div className="flex-shrink-0">
+                            <div className="flex-shrink-0 flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 hover:bg-blue-100 hover:text-blue-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditVolume(index);
+                                }}
+                                title="Edit as drawing"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -1213,6 +1331,7 @@ export default function NvdViewer() {
                                   e.stopPropagation();
                                   handleRemoveVolumeClick(index);
                                 }}
+                                title="Delete volume"
                               >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
