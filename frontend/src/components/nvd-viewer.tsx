@@ -7,7 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input"
 import { Select } from "@/components/ui/select"
 import ViewSelector from "@/components/view-selector"
@@ -1508,55 +1507,54 @@ export default function NvdViewer() {
                         {/* Draw Mode Selector */}
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Draw Mode</Label>
-                          <RadioGroup
+                          <Select
                             value={drawingOptions.mode}
-                            onValueChange={handleDrawModeChange}
+                            onChange={(e) => handleDrawModeChange(e.target.value as "none" | "pen")}
                           >
+                            <option value="none">None</option>
+                            <option value="pen">Pen</option>
+                          </Select>
+                        </div>
+
+                        {/* Pen-related controls - only show when pen mode is selected */}
+                        {drawingOptions.mode === "pen" && (
+                          <>
+                            {/* Pen Fill Checkbox */}
                             <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="none" id="mode-none" />
-                              <Label htmlFor="mode-none">None</Label>
+                              <Checkbox
+                                id="pen-fill"
+                                checked={drawingOptions.penFill}
+                                onCheckedChange={handlePenFillChange}
+                              />
+                              <Label htmlFor="pen-fill" className="text-sm font-medium">
+                                Pen Fill
+                              </Label>
                             </div>
+
+                            {/* Pen Erases Checkbox */}
                             <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="pen" id="mode-pen" />
-                              <Label htmlFor="mode-pen">Pen</Label>
+                              <Checkbox
+                                id="pen-erases"
+                                checked={drawingOptions.penErases}
+                                onCheckedChange={handlePenErasesChange}
+                              />
+                              <Label htmlFor="pen-erases" className="text-sm font-medium">
+                                Pen Erases
+                              </Label>
                             </div>
-                          </RadioGroup>
-                        </div>
 
-                        {/* Pen Fill Checkbox */}
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="pen-fill"
-                            checked={drawingOptions.penFill}
-                            onCheckedChange={handlePenFillChange}
-                          />
-                          <Label htmlFor="pen-fill" className="text-sm font-medium">
-                            Pen Fill
-                          </Label>
-                        </div>
-
-                        {/* Pen Erases Checkbox */}
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="pen-erases"
-                            checked={drawingOptions.penErases}
-                            onCheckedChange={handlePenErasesChange}
-                          />
-                          <Label htmlFor="pen-erases" className="text-sm font-medium">
-                            Pen Erases
-                          </Label>
-                        </div>
-
-                        {/* Pen Value Slider */}
-                        <LabeledSliderWithInput
-                          label="Pen Value"
-                          value={drawingOptions.penValue}
-                          onValueChange={handlePenValueChange}
-                          min={1}
-                          max={255}
-                          step={1}
-                          disabled={drawingOptions.penErases}
-                        />
+                            {/* Pen Value Slider */}
+                            <LabeledSliderWithInput
+                              label="Pen Value"
+                              value={drawingOptions.penValue}
+                              onValueChange={handlePenValueChange}
+                              min={1}
+                              max={255}
+                              step={1}
+                              disabled={drawingOptions.penErases}
+                            />
+                          </>
+                        )}
 
                         {/* Save Drawing Button */}
                         <Button
