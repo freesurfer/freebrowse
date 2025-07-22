@@ -1050,13 +1050,16 @@ export default function NvdViewer() {
   }, [])
 
   const handleDrawModeChange = useCallback((mode: "none" | "pen") => {
+    console.log("handleDrawModeChange() ", mode)
     setDrawingOptions(prev => ({ ...prev, mode }))
     if (nvRef.current) {
       if (mode === "pen") {
+        console.log("mode is pen")
         const penValue = drawingOptions.penErases ? 0 : drawingOptions.penValue
         nvRef.current.setPenValue(penValue, drawingOptions.penFill)
         nvRef.current.setDrawingEnabled(true)
-      } else if (drawingOptions.mode === "none") {
+      } else if (mode === "none") {
+        console.log("mode is none")
         nvRef.current.setDrawingEnabled(false)
       }
     }
