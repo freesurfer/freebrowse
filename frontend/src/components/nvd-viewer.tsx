@@ -1043,8 +1043,8 @@ export default function NvdViewer() {
 
   const handleDrawModeChange = useCallback((mode: "none" | "pen" | "wand") => {
     console.log("handleDrawModeChange() ", mode)
-    setDrawingOptions(prev => ({ 
-      ...prev, 
+    setDrawingOptions(prev => ({
+      ...prev,
       mode,
       // Set pen erases to false when magic wand is selected
       penErases: mode === "wand" ? false : prev.penErases
@@ -1058,7 +1058,6 @@ export default function NvdViewer() {
         // Disable click-to-segment for pen mode
         nvRef.current.opts.clickToSegment = false
       } else if (mode === "wand") {
-        console.log("mode is wand")
         nvRef.current.setDrawingEnabled(true)
         // Enable click-to-segment for magic wand
         nvRef.current.opts.clickToSegment = true
@@ -1101,7 +1100,7 @@ export default function NvdViewer() {
   const handlePenValueChange = useCallback((value: number) => {
     setDrawingOptions(prev => ({ ...prev, penValue: value }))
     console.log("handlePenValueChange: ", value)
-    if (nvRef.current && drawingOptions.mode === "pen" && !drawingOptions.penErases) {
+    if (nvRef.current && (drawingOptions.mode === "pen" || drawingOptions.mode === "wand") && !drawingOptions.penErases) {
       nvRef.current.setPenValue(value, drawingOptions.penFill)
     }
   }, [drawingOptions])
