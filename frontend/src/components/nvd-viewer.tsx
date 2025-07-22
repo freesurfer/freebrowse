@@ -90,6 +90,7 @@ export default function NvdViewer() {
     penValue: 1,
     penFill: true,
     penErases: false,
+    opacity: 1.0,
     //colormap: "gray",
     filename: "drawing.nii.gz"
   })
@@ -1020,17 +1021,10 @@ export default function NvdViewer() {
       // draw mode to be "none"
       nvRef.current.setDrawingEnabled(false)
 
-      // !!!! experimental
-      //const freesurferColormap = cmapper.colormapFromKey('freesurfer')
-      //console.log("freesurferColormap", freesurferColormap)
-      // //const freesurferLut = cmapper.makeLabelLut('freesurfer')
-      // //const drawLut = cmapper.makeDrawLut(freesurferColormap)
-      //nvRef.current.setDrawColormap(freesurferColormap)
-      // !!!!
-
       // Set initial drawing properties
       const penValue = drawingOptions.penErases ? 0 : drawingOptions.penValue
-      nvRef.current.setPenValue(penValue, drawingOptions.penFill)
+      nvRef.current.setPenValue(penValue, drawingOptions.penFill)    
+      nvRef.current.setDrawOpacity(drawingOptions.opacity)
 
       setDrawingOptions(prev => ({ ...prev, enabled: true, mode: "none" }))
       setActiveTab("drawing") // Switch to drawing tab when drawing is enabled
@@ -1095,6 +1089,14 @@ export default function NvdViewer() {
       nvRef.current.setPenValue(value, drawingOptions.penFill)
     }
   }, [drawingOptions])
+
+  const handleDrawingOpacityChange = useCallback((opacity: number) => {
+    setDrawingOptions(prev => ({ ...prev, opacity }))
+    if (nvRef.current) {
+      nvRef.current.setDrawOpacity(opacity)
+      debouncedGLUpdate()
+    }
+  }, [])
 
   const handleSaveDrawing = useCallback(async () => {
     if (nvRef.current && nvRef.current.drawBitmap) {
@@ -1489,6 +1491,16 @@ export default function NvdViewer() {
                             placeholder="Enter filename..."
                           />
                         </div>
+
+                        {/* Drawing Opacity Slider */}
+                        <LabeledSliderWithInput
+                          label="Drawing Opacity"
+                          value={drawingOptions.opacity}
+                          onValueChange={handleDrawingOpacityChange}
+                          min={0}
+                          max={1}
+                          step={0.01}
+                        />
 
                         {/* Drawing Colormap Selector */}
                         {
