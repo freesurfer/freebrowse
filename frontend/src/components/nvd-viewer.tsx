@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react"
-import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil, FileText, Info, Brain, Database, Undo } from "lucide-react"
+import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil, FileText, Info, Brain, Database, Undo, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -614,13 +614,13 @@ export default function NvdViewer() {
     fileInputRef.current?.click()
   }, [])
 
-  const handleSaveScene = useCallback(() => {
+  const handleSaveScene = useCallback((saveLocally: boolean = false) => {
     if (nvRef.current) {
       // Temporarily store and clear drawBitmap to exclude it from JSON
       const originalDrawBitmap = nvRef.current.document.drawBitmap
       nvRef.current.document.drawBitmap = null
 
-      const jsonData = nvRef.current.document.json(false) // embedImages = false
+      const jsonData = nvRef.current.document.json(saveLocally) // embedImages when saving locally
 
       // Patch name and URL from niivue volumes into imageOptionsArray
       // nv.document.json() should do this?
@@ -630,7 +630,8 @@ export default function NvdViewer() {
           if (volume.name) {
             jsonData.imageOptionsArray[i].name = volume.name
           }
-          if (volume.url) {
+          // Only patch URL when not saving locally
+          if (!saveLocally && volume.url) {
             jsonData.imageOptionsArray[i].url = volume.url
           }
         }
@@ -641,22 +642,35 @@ export default function NvdViewer() {
       // Restore the original drawBitmap
       nvRef.current.document.drawBitmap = originalDrawBitmap
 
-      // Store the JSON data
-      setSceneJsonData(jsonData)
+      if (saveLocally) {
+        // Download the JSON directly to user's computer
+        const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = 'scene.nvd'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      } else {
+        // Store the JSON data and show save dialog
+        setSceneJsonData(jsonData)
 
-      // Create volume save states
-      const volumeStates = jsonData.imageOptionsArray.map((imageOption: any) => {
-        const isExternal = !!(imageOption.url && imageOption.url.startsWith('http'))
-        return {
-          enabled: !isExternal, // Enable by default if not external
-          isExternal,
-          url: imageOption.url || ''
-        }
-      })
-      setVolumeSaveStates(volumeStates)
+        // Create volume save states
+        const volumeStates = jsonData.imageOptionsArray.map((imageOption: any) => {
+          const isExternal = !!(imageOption.url && imageOption.url.startsWith('http'))
+          return {
+            enabled: !isExternal, // Enable by default if not external
+            isExternal,
+            url: imageOption.url || ''
+          }
+        })
+        setVolumeSaveStates(volumeStates)
+
+        setSaveDialogOpen(true)
+      }
     }
-
-    setSaveDialogOpen(true)
   }, [])
 
   const handleConfirmSave = useCallback(async () => {
@@ -1433,16 +1447,28 @@ export default function NvdViewer() {
                         <Pencil className="mr-2 h-4 w-4" />
                         Create empty drawing layer
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={handleSaveScene}
-                        disabled={images.length === 0 || drawingOptions.enabled}
-                      >
-                        <Save className="mr-2 h-4 w-4" />
-                        {(drawingOptions.enabled) ? ("Save Drawing First") : ("Save scene")}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleSaveScene(false)}
+                          disabled={images.length === 0 || drawingOptions.enabled}
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          Save Scene
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleSaveScene(true)}
+                          disabled={images.length === 0 || drawingOptions.enabled}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Download Scene
+                        </Button>
+                      </div>
                     </div>
                   </ScrollArea>
                   <ScrollArea className="flex-1 min-h-0">
