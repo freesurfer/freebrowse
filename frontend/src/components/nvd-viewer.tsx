@@ -91,7 +91,7 @@ export default function NvdViewer() {
     penValue: 1,
     penFill: true,
     penErases: false,
-    colormap: "gray",
+    //colormap: "gray",
     filename: "drawing.nii.gz"
   })
 
@@ -862,19 +862,9 @@ export default function NvdViewer() {
         volumeByIndex: volumeIndex
       }) as Uint8Array;
 
-      // Debug: Check what values are in the original volume data
-      const originalVolume = nv.volumes[volumeIndex];
-      console.log("Original volume stats:", {
-        name: originalVolume.name,
-        colormap: originalVolume.colormap,
-        cal_min: originalVolume.cal_min,
-        cal_max: originalVolume.cal_max,
-        opacity: originalVolume.opacity
-      });
-
       // Get the volume name and colormap for the drawing
       const volumeName = images[imageIndex].name;
-      const volumeColormap = nv.volumes[volumeIndex].colormap;
+      //const volumeColormap = nv.volumes[volumeIndex].colormap;
 
       // Convert the volume data to an NVImage
       const drawingImage = await nv.niftiArray2NVImage(volumeData);
@@ -905,28 +895,28 @@ export default function NvdViewer() {
         setCurrentImageIndex(currentImageIndex - 1);
       }
 
-      // Enable drawing mode
-      nv.setDrawingEnabled(true);
-
       // Load the volume data as a drawing
       const loadSuccess = nv.loadDrawing(drawingImage);
       if (!loadSuccess) {
         console.error("Failed to load drawing - dimensions may be incompatible");
       }
 
-      // Set up drawing options
-      nv.drawFillOverwrites = drawingOptions.penFill;
-      nv.setPenValue(drawingOptions.penValue, drawingOptions.penFill);
-      nv.setDrawColormap(volumeColormap);
-
       // Update drawing state
       setDrawingOptions(prev => ({
         ...prev,
         enabled: true,
-        mode: "pen",
-        colormap: volumeColormap,
+        mode: "none",
+        //colormap: volumeColormap,
         filename: volumeName.endsWith('.nii.gz') ? volumeName : `${volumeName}.nii.gz`
       }));
+
+
+      // We keep drawingEnabled set to false, because we want the default
+      // draw mode to be "none"
+      nv.setDrawingEnabled(false);
+      nv.setPenValue(drawingOptions.penValue, drawingOptions.penFill);
+      nv.drawFillOverwrites = drawingOptions.penFill;
+      //nv.setDrawColormap(volumeColormap);
 
       // Switch to drawing tab
       setActiveTab("drawing");
@@ -1025,17 +1015,21 @@ export default function NvdViewer() {
   // Drawing event handlers
   const handleCreateDrawingLayer = useCallback(() => {
     if (nvRef.current) {
-      nvRef.current.setDrawingEnabled(true)
+      // We keep setDrawingEnabled set to false, because we want the default
+      // draw mode to be "none"
+      nvRef.current.setDrawingEnabled(false)
 
       // Set initial drawing properties
-      nvRef.current.drawFillOverwrites = drawingOptions.penFill
-      nvRef.current.setPenValue(drawingOptions.penValue, drawingOptions.penFill)
+      //nvRef.current.drawFillOverwrites = drawingOptions.penFill
+      const penValue = drawingOptions.penErases ? 0 : drawingOptions.penValue
+      nvRef.current.setPenValue(penValue, drawingOptions.penFill)
 
-      setDrawingOptions(prev => ({ ...prev, enabled: true, mode: "pen" }))
+      setDrawingOptions(prev => ({ ...prev, enabled: true, mode: "none" }))
       setActiveTab("drawing") // Switch to drawing tab when drawing is enabled
     }
   }, [drawingOptions])
 
+  // Not actually used right now..
   const handleDrawingColormapChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
     const newColormap = event.target.value
     setDrawingOptions(prev => ({ ...prev, colormap: newColormap }))
@@ -1051,37 +1045,38 @@ export default function NvdViewer() {
     setDrawingOptions(prev => ({ ...prev, mode }))
     if (nvRef.current) {
       if (mode === "pen") {
-        const penValue = drawingOptions.penErases ? -0 : drawingOptions.penValue
+        const penValue = drawingOptions.penErases ? 0 : drawingOptions.penValue
         nvRef.current.setPenValue(penValue, drawingOptions.penFill)
-      } else {
-        // Set pen value to 0 for "none" mode (disables drawing)
-        nvRef.current.setPenValue(0, false)
+        nvRef.current.setDrawingEnabled(true)
+      } else if (drawingOptions.mode === "none") {
+        nvRef.current.setDrawingEnabled(false)
       }
     }
-  }, [])
+  }, [drawingOptions])
 
   const handlePenFillChange = useCallback((checked: boolean) => {
     setDrawingOptions(prev => ({ ...prev, penFill: checked }))
     if (nvRef.current) {
       nvRef.current.drawFillOverwrites = checked
-      // Update current pen value with new fill setting
+      console.log(drawingOptions.mode)
       if (drawingOptions.mode === "pen") {
-        const penValue = drawingOptions.penErases ? -0 : drawingOptions.penValue
+        const penValue = drawingOptions.penErases ? 0 : drawingOptions.penValue
         nvRef.current.setPenValue(penValue, checked)
       }
     }
-  }, [])
+  }, [drawingOptions])
 
   const handlePenErasesChange = useCallback((checked: boolean) => {
     setDrawingOptions(prev => ({ ...prev, penErases: checked }))
-    if (nvRef.current && drawingOptions.mode === "pen") {
-      if (checked) {
-        nvRef.current.setPenValue(-0, drawingOptions.penFill)
-      } else {
-        nvRef.current.setPenValue(drawingOptions.penValue, drawingOptions.penFill)
+    if (nvRef.current) {
+      if (drawingOptions.mode === "pen") {
+        const penValue = checked ? 0 : drawingOptions.penValue
+        nvRef.current.setPenValue(penValue, drawingOptions.penFill)
+      } else if (drawingOptions.mode === "none") {
+        nvRef.current.setDrawingEnabled(false)
       }
     }
-  }, [])
+  }, [drawingOptions])
 
   const handlePenValueChange = useCallback((value: number) => {
     setDrawingOptions(prev => ({ ...prev, penValue: value }))
@@ -1125,8 +1120,8 @@ export default function NvdViewer() {
         })
 
         // Apply the drawing colormap
-        nvimage.colormap = drawingOptions.colormap
-        nvimage.opacity = 0.7 // Semi-transparent by default
+        //nvimage.colormap = "red"
+        nvimage.opacity = 0.7
 
         // Add the drawing as a regular volume
         nvRef.current.addVolume(nvimage)
@@ -1485,6 +1480,9 @@ export default function NvdViewer() {
                         </div>
 
                         {/* Drawing Colormap Selector */}
+                        {
+                        /* Commented out for now.  Need to rethink this /*
+                        /*
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Drawing Colormap</Label>
                           <Select
@@ -1498,7 +1496,8 @@ export default function NvdViewer() {
                             ))}
                           </Select>
                         </div>
-
+                        */
+                        }
                         {/* Draw Mode Selector */}
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Draw Mode</Label>
