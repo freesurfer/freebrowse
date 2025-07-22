@@ -14,7 +14,7 @@ import ViewSelector from "@/components/view-selector"
 import DragModeSelector, { type DragMode } from "@/components/drag-mode-selector"
 import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
-import { DocumentData, Niivue, NVDocument, NVImage, DRAG_MODE_SECONDARY } from '@niivue/niivue'
+import { DocumentData, Niivue, NVDocument, NVImage, DRAG_MODE_SECONDARY, cmapper } from '@niivue/niivue'
 import '../App.css'
 import ImageUploader from "./image-uploader"
 import ImageCanvas from "./image-canvas"
@@ -1019,8 +1019,15 @@ export default function NvdViewer() {
       // draw mode to be "none"
       nvRef.current.setDrawingEnabled(false)
 
+      // !!!! experimental
+      //const freesurferColormap = cmapper.colormapFromKey('freesurfer')
+      //console.log("freesurferColormap", freesurferColormap)
+      // //const freesurferLut = cmapper.makeLabelLut('freesurfer')
+      // //const drawLut = cmapper.makeDrawLut(freesurferColormap)
+      //nvRef.current.setDrawColormap(freesurferColormap)
+      // !!!!
+
       // Set initial drawing properties
-      //nvRef.current.drawFillOverwrites = drawingOptions.penFill
       const penValue = drawingOptions.penErases ? 0 : drawingOptions.penValue
       nvRef.current.setPenValue(penValue, drawingOptions.penFill)
 
@@ -1545,7 +1552,7 @@ export default function NvdViewer() {
                           label="Pen Value"
                           value={drawingOptions.penValue}
                           onValueChange={handlePenValueChange}
-                          min={0}
+                          min={1}
                           max={255}
                           step={1}
                           disabled={drawingOptions.penErases}
