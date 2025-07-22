@@ -86,11 +86,12 @@ export default function NvdViewer() {
   // Drawing-related state
   const [drawingOptions, setDrawingOptions] = useState({
     enabled: false,
-    mode: "none" as "none" | "pen",
+    mode: "none" as "none" | "pen" | "wand",
     penValue: 1,
     penFill: true,
     penErases: false,
     opacity: 1.0,
+    magicWand2dOnly: true,
     //colormap: "gray",
     filename: "drawing.nii.gz"
   })
@@ -514,9 +515,6 @@ export default function NvdViewer() {
         if (nvRef.current) {
           const volumeIndex = nvRef.current.getVolumeIndexByID(id);
           if (volumeIndex >= 0) {
-            console.log("toggleImageVisibility(): ", volumeIndex)
-            console.log("toggleImageVisibility(): ", newVisible)
-            console.log("toggleImageVisibility(): ",  img.opacity)
             nvRef.current.setOpacity(volumeIndex, newVisible ? newOpacity : 0);
           }
         }
@@ -1023,7 +1021,7 @@ export default function NvdViewer() {
 
       // Set initial drawing properties
       const penValue = drawingOptions.penErases ? 0 : drawingOptions.penValue
-      nvRef.current.setPenValue(penValue, drawingOptions.penFill)    
+      nvRef.current.setPenValue(penValue, drawingOptions.penFill)
       nvRef.current.setDrawOpacity(drawingOptions.opacity)
 
       setDrawingOptions(prev => ({ ...prev, enabled: true, mode: "none" }))
@@ -1043,18 +1041,35 @@ export default function NvdViewer() {
     }
   }, [])
 
-  const handleDrawModeChange = useCallback((mode: "none" | "pen") => {
+  const handleDrawModeChange = useCallback((mode: "none" | "pen" | "wand") => {
     console.log("handleDrawModeChange() ", mode)
-    setDrawingOptions(prev => ({ ...prev, mode }))
+    setDrawingOptions(prev => ({ 
+      ...prev, 
+      mode,
+      // Set pen erases to false when magic wand is selected
+      penErases: mode === "wand" ? false : prev.penErases
+    }))
     if (nvRef.current) {
       if (mode === "pen") {
         console.log("mode is pen")
         const penValue = drawingOptions.penErases ? 0 : drawingOptions.penValue
         nvRef.current.setPenValue(penValue, drawingOptions.penFill)
         nvRef.current.setDrawingEnabled(true)
+        // Disable click-to-segment for pen mode
+        nvRef.current.opts.clickToSegment = false
+      } else if (mode === "wand") {
+        console.log("mode is wand")
+        nvRef.current.setDrawingEnabled(true)
+        // Enable click-to-segment for magic wand
+        nvRef.current.opts.clickToSegment = true
+        nvRef.current.opts.clickToSegmentIs2D = drawingOptions.magicWand2dOnly
+        nvRef.current.opts.clickToSegmentAutoIntensity = true
+        const penValue = drawingOptions.penValue // Force pen erases to false for wand
+        nvRef.current.setPenValue(penValue, false) // Magic wand doesn't use fill
       } else if (mode === "none") {
         console.log("mode is none")
         nvRef.current.setDrawingEnabled(false)
+        nvRef.current.opts.clickToSegment = false
       }
     }
   }, [drawingOptions])
@@ -1085,6 +1100,7 @@ export default function NvdViewer() {
 
   const handlePenValueChange = useCallback((value: number) => {
     setDrawingOptions(prev => ({ ...prev, penValue: value }))
+    console.log("handlePenValueChange: ", value)
     if (nvRef.current && drawingOptions.mode === "pen" && !drawingOptions.penErases) {
       nvRef.current.setPenValue(value, drawingOptions.penFill)
     }
@@ -1097,6 +1113,13 @@ export default function NvdViewer() {
       debouncedGLUpdate()
     }
   }, [])
+
+  const handleMagicWand2dOnlyChange = useCallback((checked: boolean) => {
+    setDrawingOptions(prev => ({ ...prev, magicWand2dOnly: checked }))
+    if (nvRef.current && drawingOptions.mode === "wand") {
+      nvRef.current.opts.clickToSegmentIs2D = checked
+    }
+  }, [drawingOptions.mode])
 
   const handleSaveDrawing = useCallback(async () => {
     if (nvRef.current && nvRef.current.drawBitmap) {
@@ -1526,39 +1549,58 @@ export default function NvdViewer() {
                           <Label className="text-sm font-medium">Draw Mode</Label>
                           <Select
                             value={drawingOptions.mode}
-                            onChange={(e) => handleDrawModeChange(e.target.value as "none" | "pen")}
+                            onChange={(e) => handleDrawModeChange(e.target.value as "none" | "pen" | "wand")}
                           >
                             <option value="none">None</option>
                             <option value="pen">Pen</option>
+                            <option value="wand">Magic Wand</option>
                           </Select>
                         </div>
 
-                        {/* Pen-related controls - only show when pen mode is selected */}
-                        {drawingOptions.mode === "pen" && (
+                        {/* Pen-related controls - show when pen or wand mode is selected */}
+                        {(drawingOptions.mode === "pen" || drawingOptions.mode === "wand") && (
                           <>
-                            {/* Pen Fill Checkbox */}
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id="pen-fill"
-                                checked={drawingOptions.penFill}
-                                onCheckedChange={handlePenFillChange}
-                              />
-                              <Label htmlFor="pen-fill" className="text-sm font-medium">
-                                Pen Fill
-                              </Label>
-                            </div>
+                            {/* Pen Fill Checkbox - only show for pen mode */}
+                            {drawingOptions.mode === "pen" && (
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="pen-fill"
+                                  checked={drawingOptions.penFill}
+                                  onCheckedChange={handlePenFillChange}
+                                />
+                                <Label htmlFor="pen-fill" className="text-sm font-medium">
+                                  Pen Fill
+                                </Label>
+                              </div>
+                            )}
 
-                            {/* Pen Erases Checkbox */}
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id="pen-erases"
-                                checked={drawingOptions.penErases}
-                                onCheckedChange={handlePenErasesChange}
-                              />
-                              <Label htmlFor="pen-erases" className="text-sm font-medium">
-                                Pen Erases
-                              </Label>
-                            </div>
+                            {/* Pen Erases Checkbox - only show for pen mode */}
+                            {drawingOptions.mode === "pen" && (
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="pen-erases"
+                                  checked={drawingOptions.penErases}
+                                  onCheckedChange={handlePenErasesChange}
+                                />
+                                <Label htmlFor="pen-erases" className="text-sm font-medium">
+                                  Pen Erases
+                                </Label>
+                              </div>
+                            )}
+
+                            {/* 2D Only Checkbox - only show for wand mode */}
+                            {drawingOptions.mode === "wand" && (
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="magic-wand-2d-only"
+                                  checked={drawingOptions.magicWand2dOnly}
+                                  onCheckedChange={handleMagicWand2dOnlyChange}
+                                />
+                                <Label htmlFor="magic-wand-2d-only" className="text-sm font-medium">
+                                  2D Only
+                                </Label>
+                              </div>
+                            )}
 
                             {/* Pen Value Slider */}
                             <LabeledSliderWithInput
