@@ -872,19 +872,25 @@ export default function NvdViewer() {
         opacity: originalVolume.opacity
       });
 
-      // Check some non-zero values in the saved data
-      const nonZeroValues = Array.from(volumeData).filter(v => v > 0);
-      console.log("Non-zero values in exported volume:", [...new Set(nonZeroValues)].slice(0, 10));
-
       // Get the volume name and colormap for the drawing
       const volumeName = images[imageIndex].name;
       const volumeColormap = nv.volumes[volumeIndex].colormap;
+
+      // Convert the volume data to an NVImage
+      const drawingImage = await nv.niftiArray2NVImage(volumeData);
+      //console.log(drawingImage);
 
       // Remove the volume from NiiVue
       nv.removeVolumeByIndex(volumeIndex);
 
       // Update React state to remove the volume
       updateImageDetails();
+
+      // Ensure we have a background volume after removal
+      if (nv.volumes.length > 0 && !nv.back) {
+        console.log("Setting background to first remaining volume");
+        nv.setVolume(nv.volumes[0], 0);
+      }
 
       // Adjust current selection if needed
       if (currentImageIndex === imageIndex) {
@@ -899,31 +905,13 @@ export default function NvdViewer() {
         setCurrentImageIndex(currentImageIndex - 1);
       }
 
-      // Create a blob from the volume data
-      const volumeBlob = new Blob([volumeData], { type: 'application/octet-stream' });
-      const volumeUrl = URL.createObjectURL(volumeBlob);
-
       // Enable drawing mode
       nv.setDrawingEnabled(true);
 
       // Load the volume data as a drawing
-      await nv.loadDrawingFromUrl(volumeUrl);
-
-      // Debug: Check if the drawing bitmap has the correct values after loading
-      if (nv.drawBitmap) {
-        console.log("Drawing bitmap loaded successfully");
-        console.log("Drawing bitmap object:", nv.drawBitmap);
-        console.log("Drawing bitmap properties:", Object.keys(nv.drawBitmap));
-
-        // Try to find the actual data array in the bitmap
-        if (nv.drawBitmap.img && nv.drawBitmap.img.length > 0) {
-          const drawingValues = Array.from(nv.drawBitmap.img).filter(v => v > 0);
-          console.log("Non-zero values in drawing bitmap:", [...new Set(drawingValues)].slice(0, 10));
-        } else {
-          console.log("Drawing bitmap img array is missing or empty");
-        }
-      } else {
-        console.log("No drawing bitmap created!");
+      const loadSuccess = nv.loadDrawing(drawingImage);
+      if (!loadSuccess) {
+        console.error("Failed to load drawing - dimensions may be incompatible");
       }
 
       // Set up drawing options
@@ -943,13 +931,58 @@ export default function NvdViewer() {
       // Switch to drawing tab
       setActiveTab("drawing");
 
-      // Clean up the blob URL
-      URL.revokeObjectURL(volumeUrl);
-
     } catch (error) {
       console.error('Error converting volume to drawing:', error);
     }
   }, [images, currentImageIndex, drawingOptions]);
+
+  // Helper function to check if a volume can be edited
+  const canEditVolume = useCallback((imageIndex: number): boolean => {
+    if (!nvRef.current || !images[imageIndex]) return false;
+
+    const nv = nvRef.current;
+    const imageId = images[imageIndex].id;
+    const volumeIndex = nv.getVolumeIndexByID(imageId);
+
+    if (volumeIndex < 0) return false;
+
+    const volume = nv.volumes[volumeIndex];
+    const background = nv.back;
+
+    // Can't edit if there's no background
+    if (!background) return false;
+
+    // Can't edit the background itself
+    if (volume === background) return false;
+
+    // Check if dimensions match
+    if (!volume.hdr || !background.hdr) return false;
+
+    const volDims = volume.hdr.dims;
+    const backDims = background.hdr.dims;
+
+    if (volDims[1] !== backDims[1] || volDims[2] !== backDims[2] || volDims[3] !== backDims[3]) {
+      return false;
+    }
+
+    // Check if affine matrices match
+    if (!volume.hdr.affine || !background.hdr.affine) return false;
+
+    const volAffine = volume.hdr.affine;
+    const backAffine = background.hdr.affine;
+
+    // Compare affine matrices (4x4)
+    for (let i = 0; i < 4; i++) {
+      for (let j = 0; j < 4; j++) {
+        const idx = i * 4 + j;
+        if (Math.abs(volAffine[idx] - backAffine[idx]) > 0.0001) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }, [images]);
 
   const handleConfirmRemove = useCallback(() => {
     if (volumeToRemove !== null) {
@@ -1314,12 +1347,13 @@ export default function NvdViewer() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 hover:bg-blue-100 hover:text-blue-600"
+                                className="h-6 w-6 p-0 hover:bg-blue-100 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleEditVolume(index);
                                 }}
-                                title="Edit as drawing"
+                                disabled={!canEditVolume(index)}
+                                title={canEditVolume(index) ? "Edit as drawing" : "Cannot edit - must match background dimensions and affine"}
                               >
                                 <Edit className="h-3 w-3" />
                               </Button>
