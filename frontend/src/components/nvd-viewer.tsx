@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react"
-import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil, FileText, Info, Brain, Database } from "lucide-react"
+import { PanelLeft, PanelRight, PanelBottom, Send, ImageIcon, Upload, Trash2, Eye, EyeOff, Save, Settings, Edit, Pencil, FileText, Info, Brain, Database, Undo } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -1051,7 +1051,6 @@ export default function NvdViewer() {
     }))
     if (nvRef.current) {
       if (mode === "pen") {
-        console.log("mode is pen")
         const penValue = drawingOptions.penErases ? 0 : drawingOptions.penValue
         nvRef.current.setPenValue(penValue, drawingOptions.penFill)
         nvRef.current.setDrawingEnabled(true)
@@ -1066,7 +1065,6 @@ export default function NvdViewer() {
         const penValue = drawingOptions.penValue // Force pen erases to false for wand
         nvRef.current.setPenValue(penValue, false) // Magic wand doesn't use fill
       } else if (mode === "none") {
-        console.log("mode is none")
         nvRef.current.setDrawingEnabled(false)
         nvRef.current.opts.clickToSegment = false
       }
@@ -1100,7 +1098,7 @@ export default function NvdViewer() {
   const handlePenValueChange = useCallback((value: number) => {
     setDrawingOptions(prev => ({ ...prev, penValue: value }))
     console.log("handlePenValueChange: ", value)
-    if (nvRef.current && (drawingOptions.mode === "pen" || drawingOptions.mode === "wand") && !drawingOptions.penErases) {
+    if (nvRef.current && drawingOptions.mode === "pen" && !drawingOptions.penErases) {
       nvRef.current.setPenValue(value, drawingOptions.penFill)
     }
   }, [drawingOptions])
@@ -1119,6 +1117,12 @@ export default function NvdViewer() {
       nvRef.current.opts.clickToSegmentIs2D = checked
     }
   }, [drawingOptions.mode])
+
+  const handleDrawUndo = useCallback(() => {
+    if (nvRef.current) {
+      nvRef.current.drawUndo()
+    }
+  }, [])
 
   const handleSaveDrawing = useCallback(async () => {
     if (nvRef.current && nvRef.current.drawBitmap) {
@@ -1555,6 +1559,19 @@ export default function NvdViewer() {
                             <option value="wand">Magic Wand</option>
                           </Select>
                         </div>
+
+                        {/* Undo Button - show when pen or wand mode is selected */}
+                        {(drawingOptions.mode === "pen" || drawingOptions.mode === "wand") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={handleDrawUndo}
+                          >
+                            <Undo className="mr-2 h-4 w-4" />
+                            Undo
+                          </Button>
+                        )}
 
                         {/* Pen-related controls - show when pen or wand mode is selected */}
                         {(drawingOptions.mode === "pen" || drawingOptions.mode === "wand") && (
