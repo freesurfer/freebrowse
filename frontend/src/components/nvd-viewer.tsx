@@ -964,7 +964,9 @@ export default function NvdViewer() {
     for (let i = 0; i < 4; i++) {
       for (let j = 0; j < 4; j++) {
         const idx = i * 4 + j;
-        if (Math.abs(volAffine[idx] - backAffine[idx]) > 0.0001) {
+        const volValue = Number(volAffine[idx]);
+        const backValue = Number(backAffine[idx]);
+        if (Math.abs(volValue - backValue) > 0.0001) {
           return false;
         }
       }
