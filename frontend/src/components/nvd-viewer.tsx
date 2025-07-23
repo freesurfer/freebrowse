@@ -72,7 +72,8 @@ export default function NvdViewer() {
     crosshairVisible: true,
     crosshairColor: [1.0, 0.0, 0.0, 0.5] as [number, number, number, number],
     interpolateVoxels: false,
-    dragMode: "contrast" as DragMode
+    dragMode: "contrast" as DragMode,
+    overlayOutlineWidth: 0.0
   })
   const [locationData, setLocationData] = useState<{
     mm: [number, number, number],
@@ -157,6 +158,7 @@ export default function NvdViewer() {
       nvRef.current.setCrosshairColor(viewerOptions.crosshairColor)
       nvRef.current.setInterpolation(!viewerOptions.interpolateVoxels)
       nvRef.current.opts.dragMode = DRAG_MODE_SECONDARY[viewerOptions.dragMode]
+      nvRef.current.overlayOutlineWidth = viewerOptions.overlayOutlineWidth
 
       if (viewConfig) {
         nvRef.current.opts.multiplanarShowRender = viewConfig.showRender
@@ -196,7 +198,8 @@ export default function NvdViewer() {
         crosshairVisible: nv.opts.crosshairWidth > 0,
         crosshairColor: nv.opts.crosshairColor ? [...nv.opts.crosshairColor] as [number, number, number, number] : [1.0, 0.0, 0.0, 0.5],
         interpolateVoxels: !nv.opts.isNearestInterpolation,
-        dragMode
+        dragMode,
+        overlayOutlineWidth: nv.overlayOutlineWidth
       })
     }
   }, [])
@@ -1041,6 +1044,14 @@ export default function NvdViewer() {
     setViewerOptions(prev => ({ ...prev, crosshairColor: [r, g, b, a] as [number, number, number, number] }))
   }, [])
 
+  const handleOverlayOutlineWidthChange = useCallback((value: number) => {
+    setViewerOptions(prev => ({ ...prev, overlayOutlineWidth: value }))
+    if (nvRef.current) {
+      nvRef.current.overlayOutlineWidth = value
+      debouncedGLUpdate()
+    }
+  }, [debouncedGLUpdate])
+
   // Drawing event handlers
   const handleCreateDrawingLayer = useCallback(() => {
     if (nvRef.current) {
@@ -1859,6 +1870,18 @@ export default function NvdViewer() {
                 value={`#${Math.round(viewerOptions.crosshairColor[0] * 255).toString(16).padStart(2, '0')}${Math.round(viewerOptions.crosshairColor[1] * 255).toString(16).padStart(2, '0')}${Math.round(viewerOptions.crosshairColor[2] * 255).toString(16).padStart(2, '0')}`}
                 onChange={(e) => handleCrosshairColorChange(e.target.value)}
                 className="w-full h-10"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <LabeledSliderWithInput
+                label="Overlay Outline Width"
+                value={viewerOptions.overlayOutlineWidth}
+                onValueChange={handleOverlayOutlineWidthChange}
+                min={0.0}
+                max={2.0}
+                step={0.1}
+                decimalPlaces={1}
               />
             </div>
 
