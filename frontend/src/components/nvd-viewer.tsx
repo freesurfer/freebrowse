@@ -254,6 +254,85 @@ export default function NvdViewer() {
     }
   }, []); // Empty dependency array since this should only run once on mount
 
+  // Helper function to load NVD data (extracted from handleNvdFileSelect)
+  const loadNvdData = async (jsonData: any) => {
+    if (!nvRef.current) return;
+    const nv = nvRef.current;
+
+    // Clear React state before loading new document
+    setImages([]);
+    setCurrentImageIndex(null);
+
+    console.log("loadNvdData() -- jsonData: ", jsonData)
+
+    if (loadViaNvd) {
+      // Load as NVDocument
+      const document = await NVDocument.loadFromJSON(jsonData);
+      await document.fetchLinkedData()
+
+      try {
+        // LoadDocument may override some viewer options, so set them again
+        await nv.loadDocument(document);
+        syncViewerOptionsFromNiivue();
+        applyViewerOptions();
+      } catch (error) {
+        console.error("nv.loadDocument failed:", error);
+        console.log("Current nv.volumes:", nv.volumes);
+        console.log("Current nv.meshes:", nv.meshes);
+        console.log("Current nv.drawBitmap:", nv.drawBitmap);
+        throw error;
+      }
+
+      // Update niivue volumes with URL information from imageOptionsArray
+      if (jsonData.imageOptionsArray && nv.volumes) {
+        for (let i = 0; i < nv.volumes.length && i < jsonData.imageOptionsArray.length; i++) {
+          const imageOption = jsonData.imageOptionsArray[i];
+          if (imageOption.url) {
+            nv.volumes[i].url = imageOption.url;
+          }
+        }
+      }
+    } else {
+      // Direct loading without NVDocument
+      console.log("Loading directly without NVDocument");
+
+      // Clear existing state
+      while (nv.volumes.length > 0) {
+        nv.removeVolumeByIndex(0);
+      }
+      while (nv.meshes && nv.meshes.length > 0) {
+        nv.removeMesh(nv.meshes[0]);
+      }
+      nv.drawBitmap = null;
+      nv.setDrawingEnabled(false);
+
+      // Load volumes directly from the JSON data
+      if (jsonData.imageOptionsArray && jsonData.imageOptionsArray.length > 0) {
+        console.log("Loading volumes directly:", jsonData.imageOptionsArray);
+        await nv.loadVolumes(jsonData.imageOptionsArray);
+      }
+
+      // Load meshes if present
+      if (jsonData.meshOptionsArray && jsonData.meshOptionsArray.length > 0) {
+        console.log("Loading meshes:", jsonData.meshOptionsArray);
+        await nv.loadMeshes(jsonData.meshOptionsArray);
+      }
+
+      // Apply scene options if present
+      nv.setDefaults();
+      if (jsonData.opts) {
+        console.log("Applying options:", jsonData.opts);
+        nv.setDefaults(jsonData.opts);
+      }
+      syncViewerOptionsFromNiivue();
+      applyViewerOptions();
+    }
+
+    setCurrentImageIndex(0);
+    updateImageDetails();
+    nv.setCrosshairColor([0, 1, 0, 0.1]);
+  };
+
   // Add uploaded files to Niivue
   let handleFileUpload = async (files: File[]) => {
     if (!nvRef.current) return;
@@ -276,27 +355,47 @@ export default function NvdViewer() {
       throw new Error("Canvas failed to initialize after 2 seconds");
     }
 
-    // Process all files
-    const promises = files.map(async (file) => {
-      const nvimage = await NVImage.loadFromFile({
-        file: file,
+    // Check if any file is an NVD file
+    const nvdFiles = files.filter(file =>
+      file.name.toLowerCase().endsWith('.nvd') ||
+      file.name.toLowerCase().endsWith('.json')
+    );
+
+    if (nvdFiles.length > 0) {
+      // Handle NVD file upload
+      const nvdFile = nvdFiles[0]; // Take the first NVD file if multiple
+      try {
+        const text = await nvdFile.text();
+        const jsonData = JSON.parse(text);
+        console.log("NVD data loaded from uploaded file:", jsonData);
+        await loadNvdData(jsonData);
+      } catch (error) {
+        console.error('Error loading uploaded NVD file:', error);
+        // Fall back to regular file processing if JSON parsing fails
+      }
+    } else {
+      // Process regular image files
+      const promises = files.map(async (file) => {
+        const nvimage = await NVImage.loadFromFile({
+          file: file,
+        });
+        console.log("nv", nv)
+        nv.addVolume(nvimage);
+        return nvimage;
       });
-      console.log("nv", nv)
-      nv.addVolume(nvimage);
-      return nvimage;
-    });
 
-    // Wait for all files to be loaded
-    await Promise.all(promises);
+      // Wait for all files to be loaded
+      await Promise.all(promises);
 
-    // Apply viewer options
-    applyViewerOptions();
+      // Apply viewer options
+      applyViewerOptions();
 
-    // Update image details to get complete volume information
-    updateImageDetails();
+      // Update image details to get complete volume information
+      updateImageDetails();
 
-    if (currentImageIndex === null && files.length > 0) {
-      setCurrentImageIndex(0);
+      if (currentImageIndex === null && files.length > 0) {
+        setCurrentImageIndex(0);
+      }
     }
   }
 
@@ -385,92 +484,8 @@ export default function NvdViewer() {
         throw new Error("Canvas failed to initialize after 2 seconds");
       }
 
-      // Clear React state before loading new document
-      setImages([]);
-      setCurrentImageIndex(null);
-
-      if (loadViaNvd) {
-        const blob = new Blob([jsonData], { type: 'application/json' })
-
-        // Load as NVDocument
-        const document = await NVDocument.loadFromJSON(jsonData);
-        await document.fetchLinkedData()
-
-        try {
-          // LoadDocument may override some viewer options, so set them again
-          // immediatly after.  this still causes some flashing
-          await nv.loadDocument(document);
-          syncViewerOptionsFromNiivue();
-          applyViewerOptions();
-        } catch (error) {
-          console.error("nv.loadDocument failed:", error);
-          console.log("Current nv.volumes:", nv.volumes);
-          console.log("Current nv.meshes:", nv.meshes);
-          console.log("Current nv.drawBitmap:", nv.drawBitmap);
-          throw error;
-        }
-
-        // Update niivue volumes with URL information from imageOptionsArray
-        // This should be done by nv.loadDocument()?
-        if (jsonData.imageOptionsArray && nv.volumes) {
-          for (let i = 0; i < nv.volumes.length && i < jsonData.imageOptionsArray.length; i++) {
-            const imageOption = jsonData.imageOptionsArray[i];
-            if (imageOption.url) {
-              nv.volumes[i].url = imageOption.url;
-            }
-          }
-        }
-
-        console.log("niivue volumes immediately after loadDocument:")
-        console.log(nv.volumes)
-      } else {
-        // Direct loading without NVDocument
-        console.log("Loading directly without NVDocument");
-
-        // Clear existing state
-        // Remove all volumes
-        while (nv.volumes.length > 0) {
-          nv.removeVolumeByIndex(0);
-        }
-
-        // Remove all meshes
-        while (nv.meshes && nv.meshes.length > 0) {
-          nv.removeMesh(nv.meshes[0]);
-        }
-
-        // Reset drawing state
-        nv.drawBitmap = null;
-        nv.setDrawingEnabled(false);
-
-        // Load volumes directly from the JSON data
-        if (jsonData.imageOptionsArray && jsonData.imageOptionsArray.length > 0) {
-          console.log("Loading volumes directly:", jsonData.imageOptionsArray);
-          await nv.loadVolumes(jsonData.imageOptionsArray);
-        }
-
-        // Load meshes if present
-        if (jsonData.meshOptionsArray && jsonData.meshOptionsArray.length > 0) {
-          console.log("Loading meshes:", jsonData.meshOptionsArray);
-          await nv.loadMeshes(jsonData.meshOptionsArray);
-        }
-
-        // Apply scene options if present
-        // first, revert the options to the defaults
-        // then apply viewer options
-        nv.setDefaults();
-        if (jsonData.opts) {
-          console.log("Applying options:", jsonData.opts);
-          nv.setDefaults(jsonData.opts);
-        }
-        syncViewerOptionsFromNiivue();
-        applyViewerOptions();
-
-        console.log("Volumes after direct load:", nv.volumes);
-      }
-
-      setCurrentImageIndex(0);
-      updateImageDetails();
-      nv.setCrosshairColor([0, 1, 0, 0.1]);
+      // Use the shared NVD loading logic
+      await loadNvdData(jsonData);
 
       // Switch to scene details tab to show controls
       //setActiveTab("sceneDetails");
