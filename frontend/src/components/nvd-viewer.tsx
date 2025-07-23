@@ -272,10 +272,39 @@ export default function NvdViewer() {
       // Load as NVDocument
       const document = await NVDocument.loadFromJSON(jsonData);
       await document.fetchLinkedData()
+      console.log("loadNvdData() document: ", document)
 
       try {
         // LoadDocument may override some viewer options, so set them again
         await nv.loadDocument(document);
+
+        // Handle encoded image blobs if present
+        if (jsonData.encodedImageBlobs && jsonData.encodedImageBlobs.length > 0) {
+          console.log("Loading encoded image blobs:", jsonData.encodedImageBlobs.length)
+          for (let i = 0; i < jsonData.encodedImageBlobs.length; i++) {
+            const blob = jsonData.encodedImageBlobs[i]
+            if (blob) {
+              try {
+                // Get corresponding image options if available
+                const imageOptions = jsonData.imageOptionsArray?.[i] || {}
+
+                // Create NVImage from base64 with proper syntax
+                const nvimage = await NVImage.loadFromBase64({
+                  base64: blob,
+                  ...imageOptions
+                })
+
+                // Add to document volumes
+                //document.volumes.push(nvimage)
+                nv.addVolume(nvimage)
+                console.log(`Loaded encoded image blob ${i + 1}/${jsonData.encodedImageBlobs.length}`)
+              } catch (error) {
+                console.error(`Failed to load encoded image blob ${i}:`, error)
+              }
+            }
+          }
+        }
+
         syncViewerOptionsFromNiivue();
         applyViewerOptions();
       } catch (error) {
