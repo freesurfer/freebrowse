@@ -58,7 +58,6 @@ export default function NvdViewer() {
   const [volumeToRemove, setVolumeToRemove] = useState<number | null>(null)
   const [skipRemoveConfirmation, setSkipRemoveConfirmation] = useState(false)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
-  const [sceneJsonData, setSceneJsonData] = useState<any>(null)
   const [saveState, setSaveState] = useState({
     isDownloadMode: false,
     document: {
@@ -669,42 +668,13 @@ export default function NvdViewer() {
 
   const handleSaveScene = useCallback((isDownload: boolean = false) => {
     if (nvRef.current) {
-      // Temporarily store and clear drawBitmap to exclude it from JSON
-      const originalDrawBitmap = nvRef.current.document.drawBitmap
-      nvRef.current.document.drawBitmap = null
-
-      const jsonData = nvRef.current.document.json(isDownload) // embedImages when downloading
-
-      // Patch name and URL from niivue volumes into imageOptionsArray
-      // nv.document.json() should do this?
-      if (jsonData.imageOptionsArray && nvRef.current.volumes) {
-        for (let i = 0; i < jsonData.imageOptionsArray.length && i < nvRef.current.volumes.length; i++) {
-          const volume = nvRef.current.volumes[i]
-          if (volume.name) {
-            jsonData.imageOptionsArray[i].name = volume.name
-          }
-          // Only patch URL when not downloading
-          if (!isDownload && volume.url) {
-            jsonData.imageOptionsArray[i].url = volume.url
-          }
-        }
-      }
-
-      console.log("Scene JSON object:", jsonData)
-
-      // Restore the original drawBitmap
-      nvRef.current.document.drawBitmap = originalDrawBitmap
-
-      // Store the JSON data and show save dialog
-      setSceneJsonData(jsonData)
-
-      // Create volume save states
-      const volumeStates = jsonData.imageOptionsArray.map((imageOption: any) => {
-        const isExternal = !!(imageOption.url && imageOption.url.startsWith('http'))
+      // Create volume save states based on current volumes
+      const volumeStates = nvRef.current.volumes.map((volume, index) => {
+        const isExternal = !!(volume.url && volume.url.startsWith('http'))
         return {
           enabled: !isExternal, // Enable by default if not external
           isExternal,
-          url: isDownload ? imageOption.name || '' : imageOption.url || ''
+          url: isDownload ? volume.name || '' : volume.url || ''
         }
       })
 
@@ -724,12 +694,33 @@ export default function NvdViewer() {
 
   const handleConfirmSave = useCallback(async () => {
     console.log("Saving scene to:", saveState.document.location)
+    
+    if (!nvRef.current) return
 
     if (saveState.isDownloadMode) {
-      // Download to local machine mode
+      // Download mode
       if (saveState.document.enabled && saveState.document.location.trim()) {
+        // Generate JSON with embedded images for download
+        const originalDrawBitmap = nvRef.current.document.drawBitmap
+        nvRef.current.document.drawBitmap = null
+        
+        const jsonData = nvRef.current.document.json(true) // embed images
+        
+        // Patch volume names from niivue volumes into imageOptionsArray
+        if (jsonData.imageOptionsArray && nvRef.current.volumes) {
+          for (let i = 0; i < jsonData.imageOptionsArray.length && i < nvRef.current.volumes.length; i++) {
+            const volume = nvRef.current.volumes[i]
+            if (volume.name) {
+              jsonData.imageOptionsArray[i].name = volume.name
+            }
+          }
+        }
+        
+        // Restore the original drawBitmap
+        nvRef.current.document.drawBitmap = originalDrawBitmap
+        
         // Download the Niivue document
-        const blob = new Blob([JSON.stringify(sceneJsonData, null, 2)], { type: 'application/json' })
+        const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' })
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
@@ -746,11 +737,11 @@ export default function NvdViewer() {
         if (volumeState.enabled && nvRef.current && nvRef.current.volumes[index]) {
           const volume = nvRef.current.volumes[index]
           const filename = volumeState.url || `volume_${index + 1}.nii.gz`
-
+          
           try {
             // Convert volume to Uint8Array
             const uint8Array = await volume.saveToUint8Array(filename.endsWith('.nii.gz') ? filename : `${filename}.nii.gz`)
-
+            
             // Create blob and download
             const blob = new Blob([uint8Array], { type: 'application/octet-stream' })
             const url = URL.createObjectURL(blob)
@@ -767,11 +758,30 @@ export default function NvdViewer() {
         }
       }
     } else {
-      // Save to backend mode
-      if (sceneJsonData && saveState.document.enabled && saveState.document.location.trim()) {
+      // Save mode
+      if (saveState.document.enabled && saveState.document.location.trim()) {
         try {
-          // Update JSON with final URLs only for enabled volumes, otherwise keep original
-          const finalJsonData = { ...sceneJsonData }
+          // Generate JSON without embedded images for backend save
+          const originalDrawBitmap = nvRef.current.document.drawBitmap
+          nvRef.current.document.drawBitmap = null
+          
+          const jsonData = nvRef.current.document.json(false) // no embedded images
+          
+          // Patch name and URL from niivue volumes into imageOptionsArray
+          if (jsonData.imageOptionsArray && nvRef.current.volumes) {
+            for (let i = 0; i < jsonData.imageOptionsArray.length && i < nvRef.current.volumes.length; i++) {
+              const volume = nvRef.current.volumes[i]
+              if (volume.name) {
+                jsonData.imageOptionsArray[i].name = volume.name
+              }
+              if (volume.url) {
+                jsonData.imageOptionsArray[i].url = volume.url
+              }
+            }
+          }
+          
+          // Update JSON with final URLs only for enabled volumes
+          const finalJsonData = { ...jsonData }
           finalJsonData.imageOptionsArray = finalJsonData.imageOptionsArray.map((imageOption: any, index: number) => {
             const volumeState = saveState.volumes[index]
             if (volumeState?.enabled && volumeState.url.trim() !== '') {
@@ -779,6 +789,9 @@ export default function NvdViewer() {
             }
             return imageOption // Keep original URL if not enabled or no custom URL
           })
+          
+          // Restore the original drawBitmap
+          nvRef.current.document.drawBitmap = originalDrawBitmap
 
           // Save scene JSON to backend
           const response = await fetch('/nvd', {
@@ -863,8 +876,7 @@ export default function NvdViewer() {
       },
       volumes: []
     })
-    setSceneJsonData(null)
-  }, [saveState, sceneJsonData])
+  }, [saveState])
 
   const handleCancelSave = useCallback(() => {
     setSaveDialogOpen(false)
@@ -876,7 +888,6 @@ export default function NvdViewer() {
       },
       volumes: []
     })
-    setSceneJsonData(null)
   }, [])
 
   const uint8ArrayToBase64 = useCallback((uint8Array: Uint8Array): string => {
@@ -1896,13 +1907,13 @@ export default function NvdViewer() {
             </div>
           </div>
 
-          {sceneJsonData?.imageOptionsArray?.length > 0 && (
+          {saveState.volumes.length > 0 && (
             <div className="mt-4">
               <Label className="text-sm font-medium">Volumes to {saveState.isDownloadMode ? "Download" : "Save"}</Label>
               <div className="mt-2 space-y-4 max-h-48 overflow-y-auto">
-                {sceneJsonData.imageOptionsArray.map((imageOption: any, index: number) => {
-                  const volumeState = saveState.volumes[index]
-                  if (!volumeState) return null
+                {saveState.volumes.map((volumeState, index) => {
+                  const volume = nvRef.current?.volumes[index]
+                  if (!volumeState || !volume) return null
 
                   return (
                     <div key={index} className="flex items-center gap-3 p-3 border rounded-md">
@@ -1913,7 +1924,7 @@ export default function NvdViewer() {
                       />
                       <div className="flex-1 min-w-0">
                         <Label htmlFor={`volume-${index}`} className="text-sm font-medium">
-                          {imageOption.name || `Volume ${index + 1}`}
+                          {volume.name || `Volume ${index + 1}`}
                         </Label>
                         <Input
                           type="text"
