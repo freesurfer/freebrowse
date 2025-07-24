@@ -58,13 +58,19 @@ export default function NvdViewer() {
   const [volumeToRemove, setVolumeToRemove] = useState<number | null>(null)
   const [skipRemoveConfirmation, setSkipRemoveConfirmation] = useState(false)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
-  const [saveLocation, setSaveLocation] = useState("")
   const [sceneJsonData, setSceneJsonData] = useState<any>(null)
-  const [volumeSaveStates, setVolumeSaveStates] = useState<Array<{
-    enabled: boolean
-    isExternal: boolean
-    url: string
-  }>>([]);
+  const [saveState, setSaveState] = useState({
+    isDownloadMode: false,
+    document: {
+      enabled: false,
+      location: ""
+    },
+    volumes: [] as Array<{
+      enabled: boolean
+      isExternal: boolean
+      url: string
+    }>
+  })
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
   const [viewerOptions, setViewerOptions] = useState({
     viewMode: "ACS" as "axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render",
@@ -661,13 +667,13 @@ export default function NvdViewer() {
     fileInputRef.current?.click()
   }, [])
 
-  const handleSaveScene = useCallback((saveLocally: boolean = false) => {
+  const handleSaveScene = useCallback((isDownload: boolean = false) => {
     if (nvRef.current) {
       // Temporarily store and clear drawBitmap to exclude it from JSON
       const originalDrawBitmap = nvRef.current.document.drawBitmap
       nvRef.current.document.drawBitmap = null
 
-      const jsonData = nvRef.current.document.json(saveLocally) // embedImages when saving locally
+      const jsonData = nvRef.current.document.json(isDownload) // embedImages when downloading
 
       // Patch name and URL from niivue volumes into imageOptionsArray
       // nv.document.json() should do this?
@@ -677,8 +683,8 @@ export default function NvdViewer() {
           if (volume.name) {
             jsonData.imageOptionsArray[i].name = volume.name
           }
-          // Only patch URL when not saving locally
-          if (!saveLocally && volume.url) {
+          // Only patch URL when not downloading
+          if (!isDownload && volume.url) {
             jsonData.imageOptionsArray[i].url = volume.url
           }
         }
@@ -689,135 +695,188 @@ export default function NvdViewer() {
       // Restore the original drawBitmap
       nvRef.current.document.drawBitmap = originalDrawBitmap
 
-      if (saveLocally) {
-        // Download the JSON directly to user's computer
-        const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = 'scene.nvd'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-      } else {
-        // Store the JSON data and show save dialog
-        setSceneJsonData(jsonData)
+      // Store the JSON data and show save dialog
+      setSceneJsonData(jsonData)
 
-        // Create volume save states
-        const volumeStates = jsonData.imageOptionsArray.map((imageOption: any) => {
-          const isExternal = !!(imageOption.url && imageOption.url.startsWith('http'))
-          return {
-            enabled: !isExternal, // Enable by default if not external
-            isExternal,
-            url: imageOption.url || ''
-          }
-        })
-        setVolumeSaveStates(volumeStates)
+      // Create volume save states
+      const volumeStates = jsonData.imageOptionsArray.map((imageOption: any) => {
+        const isExternal = !!(imageOption.url && imageOption.url.startsWith('http'))
+        return {
+          enabled: !isExternal, // Enable by default if not external
+          isExternal,
+          url: isDownload ? imageOption.name || '' : imageOption.url || ''
+        }
+      })
 
-        setSaveDialogOpen(true)
-      }
+      // Reset save state with new data
+      setSaveState({
+        isDownloadMode: isDownload,
+        document: {
+          enabled: false,
+          location: ""
+        },
+        volumes: volumeStates
+      })
+
+      setSaveDialogOpen(true)
     }
   }, [])
 
   const handleConfirmSave = useCallback(async () => {
-    console.log("Saving scene to:", saveLocation)
-    if (sceneJsonData && saveLocation.trim()) {
-      try {
-        // Update JSON with final URLs only for enabled volumes, otherwise keep original
-        const finalJsonData = { ...sceneJsonData }
-        finalJsonData.imageOptionsArray = finalJsonData.imageOptionsArray.map((imageOption: any, index: number) => {
-          const saveState = volumeSaveStates[index]
-          if (saveState?.enabled && saveState.url.trim() !== '') {
-            return { ...imageOption, url: saveState.url }
-          }
-          return imageOption // Keep original URL if not enabled or no custom URL
-        })
+    console.log("Saving scene to:", saveState.document.location)
 
-        // Save scene JSON to backend
-        const response = await fetch('/nvd', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            filename: saveLocation,
-            data: finalJsonData
-          })
-        })
-
-        if (!response.ok) {
-          throw new Error(`Failed to save scene: ${response.statusText}`)
-        }
-
-        const result = await response.json()
-        console.log("Scene saved successfully:", result)
-
-        // Save enabled volumes to backend
-        const volumeSavePromises = volumeSaveStates.map(async (saveState, index) => {
-          if (saveState.enabled && nvRef.current && nvRef.current.volumes[index]) {
-            const volume = nvRef.current.volumes[index]
-
-            // Skip if no URL specified
-            if (!saveState.url || saveState.url.trim() === '') {
-              console.log(`Skipping volume ${index}: no URL specified`)
-              return
-            }
-
-            try {
-              // Convert volume to base64 with compression if filename ends with .gz
-              const shouldCompress = saveState.url.toLowerCase().endsWith('.gz')
-              const filename = shouldCompress ? saveState.url : saveState.url + '.gz'
-              const uint8Array = await volume.saveToUint8Array(filename)
-              const base64Data = uint8ArrayToBase64(uint8Array)
-
-              // Save volume to backend
-              const volumeResponse = await fetch('/nii', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  filename: saveState.url,
-                  data: base64Data
-                })
-              })
-
-              if (!volumeResponse.ok) {
-                throw new Error(`Failed to save volume ${index}: ${volumeResponse.statusText}`)
-              }
-
-              const volumeResult = await volumeResponse.json()
-              console.log(`Volume ${index} saved successfully:`, volumeResult)
-            } catch (error) {
-              console.error(`Error saving volume ${index}:`, error)
-              // TODO: Show error message to user
-            }
-          }
-        })
-
-        // Wait for all volume saves to complete
-        await Promise.all(volumeSavePromises)
-
-        // TODO: Show success message to user
-
-      } catch (error) {
-        console.error("Error saving scene:", error)
-        // TODO: Show error message to user
+    if (saveState.isDownloadMode) {
+      // Download to local machine mode
+      if (saveState.document.enabled && saveState.document.location.trim()) {
+        // Download the Niivue document
+        const blob = new Blob([JSON.stringify(sceneJsonData, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = saveState.document.location.endsWith('.nvd') ? saveState.document.location : `${saveState.document.location}.nvd`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
       }
+
+      // Download enabled volumes
+      for (let index = 0; index < saveState.volumes.length; index++) {
+        const volumeState = saveState.volumes[index]
+        if (volumeState.enabled && nvRef.current && nvRef.current.volumes[index]) {
+          const volume = nvRef.current.volumes[index]
+          const filename = volumeState.url || `volume_${index + 1}.nii.gz`
+
+          try {
+            // Convert volume to Uint8Array
+            const uint8Array = await volume.saveToUint8Array(filename.endsWith('.nii.gz') ? filename : `${filename}.nii.gz`)
+
+            // Create blob and download
+            const blob = new Blob([uint8Array], { type: 'application/octet-stream' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = filename.endsWith('.nii.gz') ? filename : `${filename}.nii.gz`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+          } catch (error) {
+            console.error(`Error downloading volume ${index}:`, error)
+          }
+        }
+      }
+    } else {
+      // Save to backend mode
+      if (sceneJsonData && saveState.document.enabled && saveState.document.location.trim()) {
+        try {
+          // Update JSON with final URLs only for enabled volumes, otherwise keep original
+          const finalJsonData = { ...sceneJsonData }
+          finalJsonData.imageOptionsArray = finalJsonData.imageOptionsArray.map((imageOption: any, index: number) => {
+            const volumeState = saveState.volumes[index]
+            if (volumeState?.enabled && volumeState.url.trim() !== '') {
+              return { ...imageOption, url: volumeState.url }
+            }
+            return imageOption // Keep original URL if not enabled or no custom URL
+          })
+
+          // Save scene JSON to backend
+          const response = await fetch('/nvd', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              filename: saveState.document.location,
+              data: finalJsonData
+            })
+          })
+
+          if (!response.ok) {
+            throw new Error(`Failed to save scene: ${response.statusText}`)
+          }
+
+          const result = await response.json()
+          console.log("Scene saved successfully:", result)
+        } catch (error) {
+          console.error("Error saving scene:", error)
+          // TODO: Show error message to user
+        }
+      }
+
+      // Save enabled volumes to backend
+      const volumeSavePromises = saveState.volumes.map(async (volumeState, index) => {
+        if (volumeState.enabled && nvRef.current && nvRef.current.volumes[index]) {
+          const volume = nvRef.current.volumes[index]
+
+          // Skip if no URL specified
+          if (!volumeState.url || volumeState.url.trim() === '') {
+            console.log(`Skipping volume ${index}: no URL specified`)
+            return
+          }
+
+          try {
+            // Convert volume to base64 with compression if filename ends with .gz
+            const shouldCompress = volumeState.url.toLowerCase().endsWith('.gz')
+            const filename = shouldCompress ? volumeState.url : volumeState.url + '.gz'
+            const uint8Array = await volume.saveToUint8Array(filename)
+            const base64Data = uint8ArrayToBase64(uint8Array)
+
+            // Save volume to backend
+            const volumeResponse = await fetch('/nii', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                filename: volumeState.url,
+                data: base64Data
+              })
+            })
+
+            if (!volumeResponse.ok) {
+              throw new Error(`Failed to save volume ${index}: ${volumeResponse.statusText}`)
+            }
+
+            const volumeResult = await volumeResponse.json()
+            console.log(`Volume ${index} saved successfully:`, volumeResult)
+          } catch (error) {
+            console.error(`Error saving volume ${index}:`, error)
+            // TODO: Show error message to user
+          }
+        }
+      })
+
+      // Wait for all volume saves to complete
+      await Promise.all(volumeSavePromises)
+
+      // TODO: Show success message to user
     }
 
     // Close dialog and reset
     setSaveDialogOpen(false)
-    setSaveLocation("")
+    setSaveState({
+      isDownloadMode: false,
+      document: {
+        enabled: false,
+        location: ""
+      },
+      volumes: []
+    })
     setSceneJsonData(null)
-  }, [saveLocation, sceneJsonData, volumeSaveStates])
+  }, [saveState, sceneJsonData])
 
   const handleCancelSave = useCallback(() => {
     setSaveDialogOpen(false)
-    setSaveLocation("")
+    setSaveState({
+      isDownloadMode: false,
+      document: {
+        enabled: false,
+        location: ""
+      },
+      volumes: []
+    })
     setSceneJsonData(null)
-    setVolumeSaveStates([])
   }, [])
 
   const uint8ArrayToBase64 = useCallback((uint8Array: Uint8Array): string => {
@@ -832,16 +891,18 @@ export default function NvdViewer() {
   }, [])
 
   const handleVolumeUrlChange = useCallback((index: number, url: string) => {
-    setVolumeSaveStates(prev =>
-      prev.map((state, i) =>
+    setSaveState(prev => ({
+      ...prev,
+      volumes: prev.volumes.map((state, i) =>
         i === index ? { ...state, url } : state
       )
-    )
+    }))
   }, [])
 
   const handleVolumeCheckboxChange = useCallback((index: number, enabled: boolean) => {
-    setVolumeSaveStates(prev =>
-      prev.map((state, i) => {
+    setSaveState(prev => ({
+      ...prev,
+      volumes: prev.volumes.map((state, i) => {
         if (i === index) {
           // Clear URL when checkbox is checked for external URLs
           if (enabled && state.isExternal) {
@@ -851,7 +912,27 @@ export default function NvdViewer() {
         }
         return state
       })
-    )
+    }))
+  }, [])
+
+  const handleDocumentLocationChange = useCallback((location: string) => {
+    setSaveState(prev => ({
+      ...prev,
+      document: {
+        ...prev.document,
+        location
+      }
+    }))
+  }, [])
+
+  const handleDocumentCheckboxChange = useCallback((enabled: boolean) => {
+    setSaveState(prev => ({
+      ...prev,
+      document: {
+        ...prev.document,
+        enabled
+      }
+    }))
   }, [])
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1511,7 +1592,7 @@ export default function NvdViewer() {
                           disabled={images.length === 0 || drawingOptions.enabled}
                         >
                           <Save className="mr-2 h-4 w-4" />
-                          Save Scene
+                          Save
                         </Button>
                         <Button
                           variant="outline"
@@ -1521,7 +1602,7 @@ export default function NvdViewer() {
                           disabled={images.length === 0 || drawingOptions.enabled}
                         >
                           <Download className="mr-2 h-4 w-4" />
-                          Download Scene
+                          Download
                         </Button>
                       </div>
                     </div>
@@ -1783,39 +1864,51 @@ export default function NvdViewer() {
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogContent onClose={handleCancelSave}>
           <DialogHeader>
-            <DialogTitle>Save Scene</DialogTitle>
+            <DialogTitle>{saveState.isDownloadMode ? "Download Scene" : "Save Scene"}</DialogTitle>
             <DialogDescription>
-              Enter the location where you want to save the scene.
+              {saveState.isDownloadMode
+                ? "Select the files you want to download."
+                : "Enter the location where you want to save the scene."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="mt-4">
-            <Label htmlFor="save-location" className="text-sm font-medium">
-              Save Location
-            </Label>
-            <Input
-              id="save-location"
-              type="text"
-              placeholder="Enter file path..."
-              value={saveLocation}
-              onChange={(e) => setSaveLocation(e.target.value)}
-              className="mt-2"
-            />
+            <div className="flex items-center gap-3 p-3 border rounded-md">
+              <Checkbox
+                id="document-checkbox"
+                checked={saveState.document.enabled}
+                onCheckedChange={handleDocumentCheckboxChange}
+                disabled={!saveState.document.location.trim()}
+              />
+              <div className="flex-1 min-w-0">
+                <Label htmlFor="document-checkbox" className="text-sm font-medium">
+                  {saveState.isDownloadMode ? "Niivue Document Name" : "Niivue Document Save Location"}
+                </Label>
+                <Input
+                  id="save-location"
+                  type="text"
+                  placeholder={saveState.isDownloadMode ? "Enter filename..." : "Enter file path..."}
+                  value={saveState.document.location}
+                  onChange={(e) => handleDocumentLocationChange(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
           </div>
 
           {sceneJsonData?.imageOptionsArray?.length > 0 && (
             <div className="mt-4">
-              <Label className="text-sm font-medium">Volumes to Save</Label>
+              <Label className="text-sm font-medium">Volumes to {saveState.isDownloadMode ? "Download" : "Save"}</Label>
               <div className="mt-2 space-y-4 max-h-48 overflow-y-auto">
                 {sceneJsonData.imageOptionsArray.map((imageOption: any, index: number) => {
-                  const saveState = volumeSaveStates[index]
-                  if (!saveState) return null
+                  const volumeState = saveState.volumes[index]
+                  if (!volumeState) return null
 
                   return (
                     <div key={index} className="flex items-center gap-3 p-3 border rounded-md">
                       <Checkbox
                         id={`volume-${index}`}
-                        checked={saveState.enabled}
+                        checked={volumeState.enabled}
                         onCheckedChange={(checked) => handleVolumeCheckboxChange(index, checked === true)}
                       />
                       <div className="flex-1 min-w-0">
@@ -1824,12 +1917,12 @@ export default function NvdViewer() {
                         </Label>
                         <Input
                           type="text"
-                          placeholder="Enter path..."
-                          value={saveState.url || ''}
+                          placeholder={saveState.isDownloadMode ? "Enter filename..." : "Enter path..."}
+                          value={volumeState.url || ''}
                           onChange={(e) => handleVolumeUrlChange(index, e.target.value)}
                           className="mt-1 text-xs"
                         />
-                        {saveState.isExternal && !saveState.enabled && (
+                        {!saveState.isDownloadMode && volumeState.isExternal && !volumeState.enabled && (
                           <p className="text-xs text-muted-foreground mt-1">
                             External URL - check to save with custom path
                           </p>
@@ -1846,7 +1939,13 @@ export default function NvdViewer() {
             <Button variant="outline" onClick={handleCancelSave}>
               Cancel
             </Button>
-            <Button onClick={handleConfirmSave} disabled={!saveLocation.trim()}>
+            <Button
+              onClick={handleConfirmSave}
+              disabled={
+                !saveState.document.enabled &&
+                !saveState.volumes.some(v => v.enabled)
+              }
+            >
               OK
             </Button>
           </DialogFooter>
