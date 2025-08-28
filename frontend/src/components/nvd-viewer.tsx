@@ -280,7 +280,6 @@ export default function NvdViewer() {
       console.log("loadNvdData() document: ", document)
 
       try {
-        // LoadDocument may override some viewer options, so set them again
         await nv.loadDocument(document);
 
         // Handle encoded image blobs if present
@@ -669,7 +668,7 @@ export default function NvdViewer() {
   const handleSaveScene = useCallback((isDownload: boolean = false) => {
     if (nvRef.current) {
       // Create volume save states based on current volumes
-      const volumeStates = nvRef.current.volumes.map((volume, index) => {
+      const volumeStates = nvRef.current.volumes.map((volume) => {
         const isExternal = !!(volume.url && volume.url.startsWith('http'))
         return {
           enabled: !isExternal, // Enable by default if not external
@@ -694,19 +693,22 @@ export default function NvdViewer() {
 
   const handleConfirmSave = useCallback(async () => {
     console.log("Saving scene to:", saveState.document.location)
-    
+
     if (!nvRef.current) return
 
     if (saveState.isDownloadMode) {
       // Download mode
       if (saveState.document.enabled && saveState.document.location.trim()) {
         // Generate JSON with embedded images for download
-        const originalDrawBitmap = nvRef.current.document.drawBitmap
-        nvRef.current.document.drawBitmap = null
-        
-        const jsonData = nvRef.current.document.json(true) // embed images
-        
+        //const originalDrawBitmap = nvRef.current.document.drawBitmap
+        //nvRef.current.document.drawBitmap = null
+
+        const jsonData = nvRef.current.document.json(true, false) // embed images but not drawing
+        //const jsonData = nvRef.current.document.json(true) // embed images
+
         // Patch volume names from niivue volumes into imageOptionsArray
+        // Niivue should do this?
+        /*
         if (jsonData.imageOptionsArray && nvRef.current.volumes) {
           for (let i = 0; i < jsonData.imageOptionsArray.length && i < nvRef.current.volumes.length; i++) {
             const volume = nvRef.current.volumes[i]
@@ -715,10 +717,11 @@ export default function NvdViewer() {
             }
           }
         }
-        
+        */
+
         // Restore the original drawBitmap
-        nvRef.current.document.drawBitmap = originalDrawBitmap
-        
+        //nvRef.current.document.drawBitmap = originalDrawBitmap
+
         // Download the Niivue document
         const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' })
         const url = URL.createObjectURL(blob)
@@ -737,11 +740,11 @@ export default function NvdViewer() {
         if (volumeState.enabled && nvRef.current && nvRef.current.volumes[index]) {
           const volume = nvRef.current.volumes[index]
           const filename = volumeState.url || `volume_${index + 1}.nii.gz`
-          
+
           try {
             // Convert volume to Uint8Array
             const uint8Array = await volume.saveToUint8Array(filename.endsWith('.nii.gz') ? filename : `${filename}.nii.gz`)
-            
+
             // Create blob and download
             const blob = new Blob([uint8Array], { type: 'application/octet-stream' })
             const url = URL.createObjectURL(blob)
@@ -758,28 +761,38 @@ export default function NvdViewer() {
         }
       }
     } else {
-      // Save mode
+      // Save to backend mode
+      // DEBUG **** DELETE
+      console.log("handleConfirmSave() -- nvRef.current.document:", nvRef.current.document)
       if (saveState.document.enabled && saveState.document.location.trim()) {
         try {
           // Generate JSON without embedded images for backend save
-          const originalDrawBitmap = nvRef.current.document.drawBitmap
-          nvRef.current.document.drawBitmap = null
-          
-          const jsonData = nvRef.current.document.json(false) // no embedded images
-          
+          //const originalDrawBitmap = nvRef.current.document.drawBitmap
+          //nvRef.current.document.drawBitmap = null
+
+          // no embedded images; no bitmap
+          const jsonData = nvRef.current.document.json(false, false)
+          //const jsonData = nvRef.current.document.json(false) // no embedded images
+          //console.log("handleConfirmSave() -- jsonData: ", structuredClone(jsonData))
+          //console.log("handleConfirmSave() -- jsonData.imageOptionsArray[0].name ", jsonData.imageOptionsArray[0].name)
           // Patch name and URL from niivue volumes into imageOptionsArray
+          // niivue should do this?
+          /*
           if (jsonData.imageOptionsArray && nvRef.current.volumes) {
             for (let i = 0; i < jsonData.imageOptionsArray.length && i < nvRef.current.volumes.length; i++) {
               const volume = nvRef.current.volumes[i]
               if (volume.name) {
+                console.log("handleConfirmSave() -- jsonData.imageOptionsArray[i].name before patch: ", jsonData.imageOptionsArray[i].name)
                 jsonData.imageOptionsArray[i].name = volume.name
+                console.log("handleConfirmSave() -- jsonData.imageOptionsArray[i].name after patch: ", jsonData.imageOptionsArray[i].name)
               }
               if (volume.url) {
                 jsonData.imageOptionsArray[i].url = volume.url
               }
             }
           }
-          
+          */
+
           // Update JSON with final URLs only for enabled volumes
           const finalJsonData = { ...jsonData }
           finalJsonData.imageOptionsArray = finalJsonData.imageOptionsArray.map((imageOption: any, index: number) => {
@@ -789,9 +802,9 @@ export default function NvdViewer() {
             }
             return imageOption // Keep original URL if not enabled or no custom URL
           })
-          
+
           // Restore the original drawBitmap
-          nvRef.current.document.drawBitmap = originalDrawBitmap
+          //nvRef.current.document.drawBitmap = originalDrawBitmap
 
           // Save scene JSON to backend
           const response = await fetch('/nvd', {
