@@ -13,7 +13,7 @@ import ViewSelector from "@/components/view-selector"
 import DragModeSelector, { type DragMode } from "@/components/drag-mode-selector"
 import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
-import { DocumentData, Niivue, NVDocument, NVImage, DRAG_MODE_SECONDARY, cmapper } from '@niivue/niivue'
+import { DocumentData, Niivue, NVDocument, NVImage, DRAG_MODE, cmapper } from '@niivue/niivue'
 import '../App.css'
 import ImageUploader from "./image-uploader"
 import ImageCanvas from "./image-canvas"
@@ -162,7 +162,7 @@ export default function NvdViewer() {
       nvRef.current.opts.crosshairWidth = viewerOptions.crosshairVisible ? viewerOptions.crosshairWidth : 0
       nvRef.current.setCrosshairColor(viewerOptions.crosshairColor)
       nvRef.current.setInterpolation(!viewerOptions.interpolateVoxels)
-      nvRef.current.opts.dragMode = DRAG_MODE_SECONDARY[viewerOptions.dragMode]
+      nvRef.current.opts.dragMode = DRAG_MODE[viewerOptions.dragMode]
       nvRef.current.overlayOutlineWidth = viewerOptions.overlayOutlineWidth
 
       if (viewConfig) {
@@ -188,9 +188,9 @@ export default function NvdViewer() {
         }
       }
 
-      // Find drag mode from DRAG_MODE_SECONDARY
+      // Find drag mode from DRAG_MODE
       let dragMode: DragMode = "contrast"
-      for (const [mode, value] of Object.entries(DRAG_MODE_SECONDARY)) {
+      for (const [mode, value] of Object.entries(DRAG_MODE)) {
         if (value === nv.opts.dragMode) {
           dragMode = mode as DragMode
           break

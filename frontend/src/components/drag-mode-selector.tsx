@@ -1,9 +1,9 @@
 "use client"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Move, Contrast, Ruler, MousePointer, Crosshair, CircleDot, Square, Maximize2 } from "lucide-react"
-import { DRAG_MODE_SECONDARY } from '@niivue/niivue'
+import { DRAG_MODE } from '@niivue/niivue'
 
-export type DragMode = keyof typeof DRAG_MODE_SECONDARY
+export type DragMode = keyof typeof DRAG_MODE
 
 interface DragModeSelectorProps {
   currentMode: DragMode
@@ -19,10 +19,12 @@ const dragModeConfig: Record<DragMode, { icon: React.FC<{ className?: string }>,
   slicer3D: { icon: Maximize2, label: "Slicer 3D", displayName: "slicer3D" },
   callbackOnly: { icon: CircleDot, label: "Callback Only", displayName: "callbackOnly" },
   roiSelection: { icon: Square, label: "ROI Selection", displayName: "roiSelection" },
-  angle: { icon: Crosshair, label: "Angle", displayName: "angle" }
+  angle: { icon: Crosshair, label: "Angle", displayName: "angle" },
+  crosshair: { icon: Crosshair, label: "Crosshair", displayName: "crosshair" },
+  windowing: { icon: Contrast, label: "Windowing", displayName: "windowing" }
 }
 
-const defaultAvailableModes: DragMode[] = Object.keys(DRAG_MODE_SECONDARY).filter(
+const defaultAvailableModes: DragMode[] = Object.keys(DRAG_MODE).filter(
   key => isNaN(Number(key))
 ) as DragMode[]
 
