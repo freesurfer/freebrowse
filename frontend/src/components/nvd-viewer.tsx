@@ -699,28 +699,16 @@ export default function NvdViewer() {
     if (saveState.isDownloadMode) {
       // Download mode
       if (saveState.document.enabled && saveState.document.location.trim()) {
+
         // Generate JSON with embedded images for download
-        //const originalDrawBitmap = nvRef.current.document.drawBitmap
-        //nvRef.current.document.drawBitmap = null
-
         const jsonData = nvRef.current.document.json(true, false) // embed images but not drawing
-        //const jsonData = nvRef.current.document.json(true) // embed images
 
-        // Patch volume names from niivue volumes into imageOptionsArray
-        // Niivue should do this?
-        /*
+        // Remove URL element from the jsonData until fixed in NiiVue
         if (jsonData.imageOptionsArray && nvRef.current.volumes) {
           for (let i = 0; i < jsonData.imageOptionsArray.length && i < nvRef.current.volumes.length; i++) {
-            const volume = nvRef.current.volumes[i]
-            if (volume.name) {
-              jsonData.imageOptionsArray[i].name = volume.name
-            }
+            jsonData.imageOptionsArray[i].url = ""
           }
         }
-        */
-
-        // Restore the original drawBitmap
-        //nvRef.current.document.drawBitmap = originalDrawBitmap
 
         // Download the Niivue document
         const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' })
