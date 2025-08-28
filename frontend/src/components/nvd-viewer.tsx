@@ -98,6 +98,8 @@ export default function NvdViewer() {
     penErases: false,
     opacity: 1.0,
     magicWand2dOnly: true,
+    magicWandMaxDistanceMM: 15, //nv.opts.clickToSegmentMaxDistanceMM || 15,
+    magicWandThresholdPercent: nv.opts.clickToSegmentPercent || 0.05,
     //colormap: "gray",
     filename: "drawing.nii.gz"
   })
@@ -209,6 +211,22 @@ export default function NvdViewer() {
     }
   }, [])
 
+  // Sync drawing options from Niivue when they change (e.g., via mouse wheel)
+  const syncDrawingOptionsFromNiivue = useCallback(() => {
+    if (nvRef.current && drawingOptions.mode === "wand") {
+      const nv = nvRef.current
+      // Only update if values have actually changed
+      if (nv.opts.clickToSegmentPercent !== drawingOptions.magicWandThresholdPercent ||
+          nv.opts.clickToSegmentMaxDistanceMM !== drawingOptions.magicWandMaxDistanceMM) {
+        setDrawingOptions(prev => ({
+          ...prev,
+          magicWandThresholdPercent: nv.opts.clickToSegmentPercent,
+          magicWandMaxDistanceMM: nv.opts.clickToSegmentMaxDistanceMM
+        }))
+      }
+    }
+  }, [drawingOptions.mode, drawingOptions.magicWandThresholdPercent, drawingOptions.magicWandMaxDistanceMM])
+
   // Set up the drag release callback
   // This can change the contrast of a volume, so update the image details accordingly
   useEffect(() => {
@@ -229,10 +247,10 @@ export default function NvdViewer() {
       // Set up onLocationChange to track pointer location
       nvRef.current.onLocationChange = handleLocationChange;
 
-      // Set up onOptsChange to consolidate all viewer option updates
-      //nvRef.current.onOptsChange = applyViewerOptions;
+      // Set up onOptsChange to sync drawing options when changed via mouse wheel
+      nvRef.current.onOptsChange = syncDrawingOptionsFromNiivue;
     }
-  }, [handleLocationChange, applyViewerOptions]); // Re-create callback when callbacks change
+  }, [handleLocationChange, syncDrawingOptionsFromNiivue]); // Re-create callback when callbacks change
 
   // Enable/disable drag-and-drop based on whether images are loaded
   useEffect(() => {
@@ -1224,6 +1242,8 @@ export default function NvdViewer() {
         nvRef.current.opts.clickToSegment = true
         nvRef.current.opts.clickToSegmentIs2D = drawingOptions.magicWand2dOnly
         nvRef.current.opts.clickToSegmentAutoIntensity = true
+        nvRef.current.opts.clickToSegmentMaxDistanceMM = drawingOptions.magicWandMaxDistanceMM
+        nvRef.current.opts.clickToSegmentPercent = drawingOptions.magicWandThresholdPercent
         const penValue = drawingOptions.penValue // Force pen erases to false for wand
         nvRef.current.setPenValue(penValue, false) // Magic wand doesn't use fill
       } else if (mode === "none") {
@@ -1277,6 +1297,20 @@ export default function NvdViewer() {
     setDrawingOptions(prev => ({ ...prev, magicWand2dOnly: checked }))
     if (nvRef.current && drawingOptions.mode === "wand") {
       nvRef.current.opts.clickToSegmentIs2D = checked
+    }
+  }, [drawingOptions.mode])
+
+  const handleMagicWandMaxDistanceChange = useCallback((value: number) => {
+    setDrawingOptions(prev => ({ ...prev, magicWandMaxDistanceMM: value }))
+    if (nvRef.current && drawingOptions.mode === "wand") {
+      nvRef.current.opts.clickToSegmentMaxDistanceMM = value
+    }
+  }, [drawingOptions.mode])
+
+  const handleMagicWandThresholdChange = useCallback((value: number) => {
+    setDrawingOptions(prev => ({ ...prev, magicWandThresholdPercent: value }))
+    if (nvRef.current && drawingOptions.mode === "wand") {
+      nvRef.current.opts.clickToSegmentPercent = value
     }
   }, [drawingOptions.mode])
 
@@ -1790,6 +1824,30 @@ export default function NvdViewer() {
                                   2D Only
                                 </Label>
                               </div>
+                            )}
+
+                            {/* Magic Wand Max Distance - only show for wand mode */}
+                            {drawingOptions.mode === "wand" && (
+                              <LabeledSliderWithInput
+                                label="Max Distance (mm)"
+                                value={drawingOptions.magicWandMaxDistanceMM}
+                                onValueChange={handleMagicWandMaxDistanceChange}
+                                min={2}
+                                max={500}
+                                step={1}
+                              />
+                            )}
+
+                            {/* Magic Wand Threshold Percentage - only show for wand mode */}
+                            {drawingOptions.mode === "wand" && (
+                              <LabeledSliderWithInput
+                                label="Threshold Percentage"
+                                value={drawingOptions.magicWandThresholdPercent}
+                                onValueChange={handleMagicWandThresholdChange}
+                                min={0.0}
+                                max={1.0}
+                                step={0.01}
+                              />
                             )}
 
                             {/* Pen Value Slider */}
