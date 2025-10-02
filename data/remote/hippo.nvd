@@ -1,0 +1,12 @@
+{
+  "title": "hippo remote",
+  "imageOptionsArray": [
+    {
+      "url": "https://niivue.com/demos/images/hippo.nii.gz",
+      "name": "hippo.nii.gz",
+      "colormap": "gray",
+      "visible": true,
+      "opacity": 1
+    }
+  ]
+}

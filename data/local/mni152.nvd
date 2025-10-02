@@ -1,0 +1,12 @@
+{
+  "title": "mni152 local",
+  "imageOptionsArray": [
+    {
+      "url": "data/volumes/mni152.nii.gz",
+      "name": "mni152.nii.gz",
+      "colormap": "gray",
+      "visible": true,
+      "opacity": 1
+    }
+  ]
+}

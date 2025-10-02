@@ -1,0 +1,19 @@
+{
+  "title": "Options Example -- local",
+  "imageOptionsArray": [
+    {
+      "url": "https://niivue.github.io/niivue-demo-images/mni152.nii.gz",
+      "name": "mni152.nii.gz",
+      "colormap": "gray",
+      "visible": true,
+      "opacity": 1
+    }
+  ],
+  "opts": {
+    "crosshairWidth": 0,
+    "show3Dcrosshair": false,
+    "isColorbar": true,
+    "backColor": [0.8, 0.8, 1, 1],
+    "logLevel": "debug"
+  }
+}
