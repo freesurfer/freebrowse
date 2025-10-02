@@ -88,7 +88,7 @@ cd backend
 pixi run dev
 ```
 
-Then navigate to localhost:
+Then navigate to [http://localhost:5173/](http://localhost:5173/)
 
 ## Production
 
