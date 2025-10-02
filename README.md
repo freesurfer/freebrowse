@@ -1,38 +1,83 @@
-# Fullstack niivue demo App
+# FreeBrowse v2
 
-🚧 This is a work in progress 🚧
+🚧 Work in progress 🚧
 
-## set up environments and install dependencies
+FreeBrowse is a full-stack, web-based neuroimaging viewer and editor.  It
+aspires to be a web-based version of the
+[FreeSurfer](surfer.nmr.mgh.harvard.edu) tool
+[FreeView](surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide).
+
+**Frontend:**
+- [React](https://react.dev) 18 + [TypeScript](https://www.typescriptlang.org)
+- [Vite](https://vite.dev) (build tool)
+- [Tailwind CSS](https://tailwindcss.com) 4 + [Radix UI](https://www.radix-ui.com) components
+- [NiiVue](https://github.com/niivue/niivue) (neuroimaging viewer)
+
+**Backend:**
+- [FastAPI](https://fastapi.tiangolo.com) (Python web framework)
+- [Pixi](https://pixi.sh) (package manager)
+
+This is a re-write of the initial FreeBrowse implementation, based off of the
+[niivue fullstack demo](https://github.com/niivue/fullstack-niivue-demo/).
+
+Are you looking for the original FreeBrowse codebase?  That now lives on the
+branch [`v1`](https://github.com/freesurfer/freebrowse/tree/v1).
+
+## Install
+
+### Pre-requisites
 
 Requirements:
-- Node.js (for frontend environment)
-- npm (for frontend environment)
-- pixi (for backend environment)
+- [Node.js](https://nodejs.org) (for frontend environment)
+- [npm](https://www.npmjs.com) (for frontend environment)
+- [pixi](https://pixi.sh) (for backend environment)
 - git
 
+This should install all dependencies on an Ubuntu 24.04 system:
 
-### frontend
+```
+sudo apt update && sudo apt upgrade -y
+sudo apt install nodejs npm git -y
+curl -fsSL https://pixi.sh/install.sh | sh
+```
+
+Then clone the repo:
+
+```
+git clone git@github.com:freesurfer/freebrowse.git
+```
+
+If you want to use the example data, run `get-example-volumes.sh` in the `data/` folder:
+
+```bash
+cd freebrowse/data
+./get-example-volumes.sh
+```
+
+### Frontend Setup
 
 ```bash
 cd frontend
 npm install
 ```
 
-### backend
+### Backend Setup
 
 ```bash
 cd backend
 pixi install
 ```
 
-## run the frontend in development mode
+## Dev
+
+### Run the frontend in development mode
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-## run the backend in development mode
+### Run the backend in development mode
 
 This hot reloads the backend when changes are made to the code.
 
@@ -43,9 +88,26 @@ cd backend
 pixi run dev
 ```
 
-## build the frontend for production
+Then navigate to localhost:
+
+## Production
+
+## Build the frontend for production
 
 ```bash
 cd frontend
 npm run build
 ```
+
+## Acknowledgements
+
+FreeBrowse was generously funded by
+[Gates Ventures](https://en.wikipedia.org/wiki/Gates_Ventures).  The [original
+implementation](https://github.com/freesurfer/freebrowse/tree/v1) was performed
+by [zuehlke](https://www.zuehlke.com).
+
+Version 2 is based off of the
+[niivue fullstack demo](https://github.com/niivue/fullstack-niivue-demo/) which
+was created during a
+[Google Summer of Code Project](https://summerofcode.withgoogle.com/programs/2025/projects/h9cDmi0E)
+in close collaboration with the [niivue](https://niivue.com) team.
