@@ -14,15 +14,6 @@ createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
     <Routes>
       <Route path="/" element={
-        <SceneProvider>
-          <div className="app-container">
-            <div className="main-content">
-              <MedicalImageProcessor />
-            </div>
-          </div>
-        </SceneProvider>
-      } />
-      <Route path="/ui" element={
          <div className="app-container">
            <div className="main-content">
              <NvdViewer />
