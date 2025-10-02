@@ -1,10 +1,10 @@
 [project]
-authors = ["Taylor Hanayik <hanayik@gmail.com>"]
+authors = ["Paul Wighton <pwighton@mgh.harvard.edu>"]
 channels = ["conda-forge"]
-description = "Demo fastAPI server that could work with niivue"
+description = "Re-write of initial FreeBrowse implementation, based off of github.com/niivue/fullstack-niivue-demo/"
 name = "backend"
 platforms = ["linux-64", "osx-arm64"]
-version = "0.1.0"
+version = "2.0.0"
 
 [tasks.dev]
 cmd = """
@@ -17,7 +17,7 @@ cmd = """
 [tasks.dev.env]
 NIIVUE_BUILD_DIR = "../frontend/dist"
 DATA_DIR = "../data"
-SCENE_SCHEMA_ID = "niivue-fullstack-demo"
+SCENE_SCHEMA_ID = "freebrowse"
 IMAGING_EXTENSIONS = '["*.nii", "*.nii.gz"]'
 
 [dependencies]
