@@ -42,7 +42,7 @@ const nv = new Niivue({
 // for interactive debugging
 //window.nv = nv;
 
-export default function NvdViewer() {
+export default function FreeBrowse() {
   const [images, setImages] = useState<ImageDetails[]>([])
   const [showUploader, setShowUploader] = useState(true)
   const [loadViaNvd, setLoadViaNvd] = useState(true)

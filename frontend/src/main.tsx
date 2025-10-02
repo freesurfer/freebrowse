@@ -3,7 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
-import NvdViewer from './components/nvd-viewer.tsx';
+import FreeBrowse from './components/freebrowse.tsx';
 
 createRoot(document.getElementById('root')!).render(
   // disable strict mode for for better niivue development experience
@@ -13,7 +13,7 @@ createRoot(document.getElementById('root')!).render(
       <Route path="/" element={
          <div className="app-container">
            <div className="main-content">
-             <NvdViewer />
+             <FreeBrowse />
            </div>
          </div>
       } />

@@ -47,34 +47,6 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")
 app.mount("/data", StaticFiles(directory=data_dir, html=False), name="data")
 
-# Endpoint to get scene file for processing result.  Files must:
-#  - end with `.nvd`
-@app.get("/scene")
-def list_scenes():
-    scenes_dir = os.path.join(data_dir)
-    logger.debug(f"Looking for scene .json files recursivly in {scenes_dir}")
-    # scene_files = []
-    document = {
-      "title": str(uuid.uuid4()),
-      "imageOptionsArray": [],
-    }
-    try:
-      url = 'https://niivue.github.io/niivue-demo-images/pcasl.nii.gz'
-      filename = url.split('/')[-1]
-      print(f"Checking url {url}, filename {filename}")
-      image = {
-        "url": url,
-        "name": filename,
-        "colormap": "gray",
-        "opacity": 1.0,
-      }
-
-      document["imageOptionsArray"].append(image)
-    except Exception as e:
-        return {"error": str(e)}
-    print("document", document)
-    return document
-
 @app.get("/nvd")
 def list_niivue_documents():
     nvd_dir = os.path.join(data_dir)
