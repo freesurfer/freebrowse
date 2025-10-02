@@ -1454,18 +1454,18 @@ export default function NvdViewer() {
               {locationData ? (
                 <div className="space-y-2">
                   <div className="flex items-center text-sm">
-                    <span className="min-w-[120px]"></span>
+                    <span className="min-w-[180px]"></span>
                     <span className="text-muted-foreground font-mono min-w-[200px]">
-                      <span className="inline-block w-12">RAS</span>[{locationData.mm[0].toFixed(1)}, {locationData.mm[1].toFixed(1)}, {locationData.mm[2].toFixed(1)}]
+                      <span className="inline-block w-16">RAS</span>[{locationData.mm[0].toFixed(1)}, {locationData.mm[1].toFixed(1)}, {locationData.mm[2].toFixed(1)}]
                     </span>
                   </div>
                   {locationData.voxels.map((vol, index) => (
                     <div key={index} className="flex items-center text-sm">
-                      <span className="font-medium min-w-[120px]">{vol.name}:</span>
+                      <span className="font-medium min-w-[180px]">{vol.name}:</span>
                       <span className="text-muted-foreground font-mono min-w-[200px]">
-                        <span className="inline-block w-12">Voxel</span>[{vol.voxel[0]}, {vol.voxel[1]}, {vol.voxel[2]}]
+                        <span className="inline-block w-16">Voxel</span>[{vol.voxel[0]}, {vol.voxel[1]}, {vol.voxel[2]}]
                       </span>
-                      <span className="text-muted-foreground">
+                      <span className="text-muted-foreground ml-4">
                         Value: {vol.value.toFixed(2)}
                       </span>
                     </div>
