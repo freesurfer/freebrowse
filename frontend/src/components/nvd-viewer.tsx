@@ -11,7 +11,6 @@ import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-inpu
 import { Select } from "@/components/ui/select"
 import ViewSelector from "@/components/view-selector"
 import DragModeSelector, { type DragMode } from "@/components/drag-mode-selector"
-import ProcessingHistory, { type ProcessingHistoryItem } from "@/components/processing-history"
 import { cn } from "@/lib/utils"
 import { DocumentData, Niivue, NVDocument, NVImage, DRAG_MODE, cmapper } from '@niivue/niivue'
 import '../App.css'

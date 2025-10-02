@@ -1,7 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useState, useContext } from "react"
-import { SceneContext } from '../Scenes';
+import { useRef, useEffect, useState } from "react"
 import { Niivue, NVImage, SHOW_RENDER } from '@niivue/niivue'
 
 interface ImageCanvasProps {
@@ -22,8 +21,6 @@ export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [imageLoaded, setImageLoaded] = useState(false)
-  // const nvRef = useRef<Niivue | null>(new Niivue())
-  const { selectedScene } = useContext(SceneContext);
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -35,44 +32,6 @@ export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
     nv.setSliceType(sliceTypeMap[viewMode]?.sliceType || 0) // Default to axial if viewMode is invalid;
     setImageLoaded(true)
   }, [])
-
-  useEffect(() => {
-    async function loadScene() {
-      if (!selectedScene || !nvRef) return;
-      const nv = nvRef
-
-      console.log(selectedScene.url)
-      try {
-        const response = await fetch(selectedScene.url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const jsonData = await response.json();
-        console.log(jsonData.niivueParameters.volumeList)
-
-        const niiVueVolumeList = jsonData.niivueParameters.volumeList;
-        //console.log(volumeList)
-
-        const niiVueMeshList = jsonData.niivueParameters.meshList;
-        //console.log(meshList)
-
-        const niiVueOptions = jsonData.niivueParameters.options;
-        //console.log(options)
-
-        niiVueVolumeList ? nv.loadVolumes(niiVueVolumeList) : nv.loadVolumes([])
-        niiVueMeshList ? nv.loadMeshes(niiVueMeshList) : nv.loadMeshes([])
-        //available options: https://niivue.github.io/niivue/devdocs/types/NVConfigOptions.html
-        niiVueOptions ? nv.setDefaults(niiVueOptions) : nv.setDefaults({})
-        // niiVueSliceType ? nv.setSliceType(niiVueSliceType) : nv.setSliceType(-1)
-
-      } catch (error) {
-        console.error("Failed to load the scene:", error);
-      }
-    }
-
-    loadScene();
-  }, [selectedScene]);
 
   const renderMultiView = () => {
     // PW: disable for now
