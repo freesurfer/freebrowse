@@ -8,7 +8,7 @@ aspires to be a web-based version of the
 [FreeView](surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide).
 
 **Frontend:**
-- [React](https://react.dev) 18 + [TypeScript](https://www.typescriptlang.org)
+- [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
 - [Vite](https://vite.dev) (build tool)
 - [Tailwind CSS](https://tailwindcss.com) 4 + [Radix UI](https://www.radix-ui.com) components
 - [NiiVue](https://github.com/niivue/niivue) (neuroimaging viewer)
@@ -31,7 +31,7 @@ Requirements:
 - [Node.js](https://nodejs.org) (for frontend environment)
 - [npm](https://www.npmjs.com) (for frontend environment)
 - [pixi](https://pixi.sh) (for backend environment)
-- git
+- [git](https://git-scm.com/)
 
 This should install all dependencies on an Ubuntu 24.04 system:
 
@@ -108,6 +108,6 @@ by [zuehlke](https://www.zuehlke.com).
 
 Version 2 is based off of the
 [niivue fullstack demo](https://github.com/niivue/fullstack-niivue-demo/) which
-was created during a
+was developed during a
 [Google Summer of Code Project](https://summerofcode.withgoogle.com/programs/2025/projects/h9cDmi0E)
 in close collaboration with the [niivue](https://niivue.com) team.
