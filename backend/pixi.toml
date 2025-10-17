@@ -19,6 +19,22 @@ NIIVUE_BUILD_DIR = "../frontend/dist"
 DATA_DIR = "../data"
 SCENE_SCHEMA_ID = "freebrowse"
 IMAGING_EXTENSIONS = '["*.nii", "*.nii.gz"]'
+SERVERLESS_MODE = "false"
+
+[tasks.dev-serverless]
+cmd = """
+  cd ../frontend && \
+  npm run build && \
+  cd ../backend && \
+  fastapi dev src/server.py
+"""
+
+[tasks.dev-serverless.env]
+NIIVUE_BUILD_DIR = "../frontend/dist"
+DATA_DIR = "../data"
+SCENE_SCHEMA_ID = "freebrowse"
+IMAGING_EXTENSIONS = '["*.nii", "*.nii.gz"]'
+SERVERLESS_MODE = "true"
 
 [dependencies]
 fastapi = ">=0.115.5,<0.116"

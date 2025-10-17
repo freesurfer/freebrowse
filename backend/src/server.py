@@ -25,11 +25,13 @@ data_dir = os.getenv('DATA_DIR')
 scene_schema_id = os.getenv('SCENE_SCHEMA_ID')
 imaging_extensions_str = os.getenv('IMAGING_EXTENSIONS', '["*.nii", "*.nii.gz"]')
 imaging_extensions = json.loads(imaging_extensions_str)
+serverless_mode = os.getenv('SERVERLESS_MODE', 'false').lower() == 'true'
 
 logger.info(f"NIIVUE_BUILD_DIR: {static_dir}")
 logger.info(f"DATA_DIR: {data_dir}")
 logger.info(f"SCENE_SCHEMA_ID: {scene_schema_id}")
 logger.info(f"IMAGING_EXTENSIONS: {imaging_extensions}")
+logger.info(f"SERVERLESS_MODE: {serverless_mode}")
 
 # Register the MIME type so that .gz files (or .nii.gz files) are served correctly.
 mimetypes.add_type("application/gzip", ".nii.gz", strict=True)
@@ -44,11 +46,18 @@ class SaveVolumeRequest(BaseModel):
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")
-app.mount("/data", StaticFiles(directory=data_dir, html=False), name="data")
+# Define API routes BEFORE static file mounts to prevent catch-all behavior
+@app.get("/config")
+def get_config():
+    """Return application configuration."""
+    return {
+        "serverless": serverless_mode
+    }
 
 @app.get("/nvd")
 def list_niivue_documents():
+    if serverless_mode:
+        raise HTTPException(status_code=404, detail="Endpoint not available in serverless mode")
     nvd_dir = os.path.join(data_dir)
     logger.debug(f"Looking for niivue documents (.nvd) files recursivly in {nvd_dir}")
     nvd_files = []
@@ -66,6 +75,8 @@ def list_niivue_documents():
 
 @app.get("/imaging")
 def list_imaging_files():
+    if serverless_mode:
+        raise HTTPException(status_code=404, detail="Endpoint not available in serverless mode")
     imaging_dir = os.path.join(data_dir)
     logger.debug(f"Looking for imaging files {imaging_extensions} recursively in {imaging_dir}")
     imaging_files = []
@@ -86,13 +97,15 @@ def list_imaging_files():
 def save_scene(request: SaveSceneRequest):
     """
     Save scene data to a file in the DATA_DIR directory.
-    
+
     Args:
         request: Contains filename and scene data
-    
+
     Returns:
         Success message or error
     """
+    if serverless_mode:
+        raise HTTPException(status_code=404, detail="Endpoint not available in serverless mode")
     try:
         # Validate filename
         if not request.filename:
@@ -130,13 +143,15 @@ def save_scene(request: SaveSceneRequest):
 def save_volume(request: SaveVolumeRequest):
     """
     Save volume data to a file in the DATA_DIR directory.
-    
+
     Args:
         request: Contains filename and base64 encoded NIfTI data
-    
+
     Returns:
         Success message or error
     """
+    if serverless_mode:
+        raise HTTPException(status_code=404, detail="Endpoint not available in serverless mode")
     try:
         # Validate filename
         if not request.filename:
@@ -178,3 +193,10 @@ def save_volume(request: SaveVolumeRequest):
     except Exception as e:
         logger.error(f"Error saving volume: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save volume: {str(e)}")
+
+# Mount static directories AFTER all API routes
+app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")
+
+# Only mount data directory if not in serverless mode
+if not serverless_mode:
+    app.mount("/data", StaticFiles(directory=data_dir, html=False), name="data")

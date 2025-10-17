@@ -70,22 +70,28 @@ pixi install
 
 ## Dev
 
+### Run the backend in development mode
+
+This hot reloads the backend when changes are made to the code.
+
+```bash
+cd backend
+pixi run dev
+```
+
+If you would like to run the backend in 'serverless' mode (cannot load or save
+data to the backend), run
+
+```bash
+cd backend
+pixi run dev-serverless
+```
+
 ### Run the frontend in development mode
 
 ```bash
 cd frontend
 npm run dev
-```
-
-### Run the backend in development mode
-
-This hot reloads the backend when changes are made to the code.
-
-> Note: the frontend will be "static" in this mode.
-
-```bash
-cd backend
-pixi run dev
 ```
 
 Then navigate to [http://localhost:5173/](http://localhost:5173/)

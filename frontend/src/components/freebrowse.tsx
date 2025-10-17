@@ -88,6 +88,10 @@ export default function FreeBrowse() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("nvds");
   const [footerOpen, setFooterOpen] = useState(true);
+  const [serverlessMode, setServerlessMode] = useState(false);
+  // Track whether config has been loaded to prevent race condition where
+  // FileList components mount and fetch before serverlessMode is set
+  const [configLoaded, setConfigLoaded] = useState(false);
   const nvRef = useRef<Niivue | null>(nv);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -316,6 +320,29 @@ export default function FreeBrowse() {
         showUploader && images.length === 0;
     }
   }, [images.length, showUploader]);
+
+  // Fetch serverless mode configuration on mount
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch("/config");
+        if (response.ok) {
+          const config = await response.json();
+          setServerlessMode(config.serverless || false);
+          // If in serverless mode, switch to sceneDetails tab by default
+          if (config.serverless) {
+            setActiveTab("sceneDetails");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching config:", error);
+      } finally {
+        // Mark config as loaded regardless of success/failure to allow rendering
+        setConfigLoaded(true);
+      }
+    };
+    fetchConfig();
+  }, []);
 
   // Load NVD from URL parameter on initial load
   useEffect(() => {
@@ -1760,18 +1787,22 @@ export default function FreeBrowse() {
               className="flex flex-col flex-1 min-h-0"
             >
               <TabsList className="w-full justify-start border-b rounded-none px-2 h-12 flex-shrink-0">
-                <TabsTrigger
-                  value="nvds"
-                  className="data-[state=active]:bg-muted"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                </TabsTrigger>
-                <TabsTrigger
-                  value="data"
-                  className="data-[state=active]:bg-muted"
-                >
-                  <Database className="h-4 w-4 mr-2" />
-                </TabsTrigger>
+                {!serverlessMode && (
+                  <TabsTrigger
+                    value="nvds"
+                    className="data-[state=active]:bg-muted"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                  </TabsTrigger>
+                )}
+                {!serverlessMode && (
+                  <TabsTrigger
+                    value="data"
+                    className="data-[state=active]:bg-muted"
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                  </TabsTrigger>
+                )}
                 <TabsTrigger
                   value="sceneDetails"
                   className="data-[state=active]:bg-muted"
@@ -1790,40 +1821,51 @@ export default function FreeBrowse() {
                 </TabsTrigger>
               </TabsList>
 
+              {/* Wait for config to load before rendering TabsContent to prevent
+                  FileList components from mounting and fetching data before
+                  serverlessMode state is properly initialized */}
               <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
-                <div className="border-b px-4 py-3">
-                  <h2 className="text-lg font-semibold">NiiVue Documents</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Load complete scenes and visualizations
-                  </p>
-                </div>
-                <ScrollArea className="h-full">
-                  <div className="p-4">
-                    <FileList
-                      endpoint="/nvd"
-                      onFileSelect={handleNvdFileSelect}
-                      emptyMessage="No niivue documents available."
-                    />
-                  </div>
-                </ScrollArea>
+                {configLoaded && !serverlessMode && (
+                  <>
+                    <div className="border-b px-4 py-3">
+                      <h2 className="text-lg font-semibold">NiiVue Documents</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Load complete scenes and visualizations
+                      </p>
+                    </div>
+                    <ScrollArea className="h-full">
+                      <div className="p-4">
+                        <FileList
+                          endpoint="/nvd"
+                          onFileSelect={handleNvdFileSelect}
+                          emptyMessage="No niivue documents available."
+                        />
+                      </div>
+                    </ScrollArea>
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="data" className="flex-1 min-h-0 p-0">
-                <div className="border-b px-4 py-3">
-                  <h2 className="text-lg font-semibold">Imaging Data</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Add individual volumes to the current scene
-                  </p>
-                </div>
-                <ScrollArea className="h-full">
-                  <div className="p-4">
-                    <FileList
-                      endpoint="/imaging"
-                      onFileSelect={handleImagingFileSelect}
-                      emptyMessage="No imaging files available."
-                    />
-                  </div>
-                </ScrollArea>
+                {configLoaded && !serverlessMode && (
+                  <>
+                    <div className="border-b px-4 py-3">
+                      <h2 className="text-lg font-semibold">Imaging Data</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Add individual volumes to the current scene
+                      </p>
+                    </div>
+                    <ScrollArea className="h-full">
+                      <div className="p-4">
+                        <FileList
+                          endpoint="/imaging"
+                          onFileSelect={handleImagingFileSelect}
+                          emptyMessage="No imaging files available."
+                        />
+                      </div>
+                    </ScrollArea>
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="sceneDetails" className="flex-1 min-h-0 p-0">
@@ -1937,7 +1979,7 @@ export default function FreeBrowse() {
                           className="flex-1"
                           onClick={() => handleSaveScene(false)}
                           disabled={
-                            images.length === 0 || drawingOptions.enabled
+                            images.length === 0 || drawingOptions.enabled || serverlessMode
                           }
                         >
                           <Save className="mr-2 h-4 w-4" />
