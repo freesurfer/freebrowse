@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# Docker files (exclude Dockerfile but include entrypoint script)
+docker/Dockerfile
+docker/README.md
+.dockerignore
+
+# Node modules (will be installed in container)
+frontend/node_modules
+frontend/dist
+
+# Python cache
+backend/__pycache__
+backend/**/__pycache__
+backend/**/*.pyc
+backend/.pixi
+
+# Development files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Environment files (if any)
+.env
+.env.local
+.env.*.local
+
+# Data directory - exclude everything (mount separately if needed)
+data/**
