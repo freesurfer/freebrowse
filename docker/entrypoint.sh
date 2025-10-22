@@ -50,18 +50,39 @@ fi
 # Parse arguments for mode and network settings
 MODE="server"
 FRONTEND_NETWORK_MODE="network"  # default: --host 0.0.0.0
+# FRONTEND_PORT defaults to env var if not set via argument
 
-for arg in "$@"; do
-    case $arg in
+while [[ $# -gt 0 ]]; do
+    case $1 in
         server|serverless)
-            MODE=$arg
+            MODE=$1
+            shift
             ;;
         localhostonly)
             FRONTEND_NETWORK_MODE="localhost"
+            shift
+            ;;
+        --frontend-port|--port)
+            if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+                FRONTEND_PORT=$2
+                shift 2
+            else
+                echo "ERROR: --frontend-port requires a port number"
+                exit 1
+            fi
+            ;;
+        --backend-port)
+            if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+                BACKEND_PORT=$2
+                shift 2
+            else
+                echo "ERROR: --backend-port requires a port number"
+                exit 1
+            fi
             ;;
         *)
-            echo "Unknown argument: $arg"
-            echo "Usage: entrypoint.sh [server|serverless] [localhostonly]"
+            echo "Unknown argument: $1"
+            echo "Usage: entrypoint.sh [server|serverless] [localhostonly] [--frontend-port PORT] [--backend-port PORT]"
             exit 1
             ;;
     esac

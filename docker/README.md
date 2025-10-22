@@ -56,9 +56,14 @@ docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 \
 
 The container accepts the following arguments:
 
+**Mode Arguments:**
 - `server` (default): Run with full backend (data endpoints enabled)
 - `serverless`: Run without backend data endpoints
 - `localhostonly`: Bind frontend to localhost only (requires SSH tunnel for remote access)
+
+**Port Arguments:**
+- `--frontend-port PORT` or `--port PORT`: Override the frontend port (default: 5173)
+- `--backend-port PORT`: Override the backend port (default: 8000)
 
 **Examples:**
 ```bash
@@ -73,6 +78,14 @@ docker run -p 5173:5173 -p 8000:8000 freebrowse:latest serverless
 
 # Serverless mode, localhost only
 docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 freebrowse:latest serverless localhostonly
+
+# Custom frontend port
+docker run -p 127.0.0.1:5174:5174 -p 127.0.0.1:8000:8000 \
+  freebrowse:latest server localhostonly --frontend-port 5174
+
+# Custom frontend and backend ports
+docker run -p 127.0.0.1:8080:8080 -p 127.0.0.1:8001:8001 \
+  freebrowse:latest server --frontend-port 8080 --backend-port 8001
 ```
 
 ## Converting to Singularity
@@ -100,6 +113,12 @@ singularity run freebrowse.sif serverless localhostonly
 
 # With data directory
 singularity run --bind /path/to/data:/app/data freebrowse.sif server localhostonly
+
+# Custom frontend port (useful when default port is in use)
+singularity run freebrowse.sif server localhostonly --frontend-port 5174
+
+# Custom frontend and backend ports
+singularity run freebrowse.sif server --frontend-port 8080 --backend-port 8001
 ```
 
 ## Environment Variables
@@ -109,6 +128,7 @@ You can override default environment variables:
 ```bash
 docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 \
   -e DATA_DIR=/app/data \
+  -e FRONTEND_PORT=5173 \
   -e BACKEND_PORT=8000 \
   -e IMAGING_EXTENSIONS='["*.nii", "*.nii.gz", "*.mgz"]' \
   freebrowse:latest server localhostonly
@@ -117,12 +137,16 @@ docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 \
 Available variables:
 - `DATA_DIR`: Directory for data files (default: `/app/data`)
 - `BACKEND_HOST`: Backend bind address (default: `0.0.0.0`)
-- `BACKEND_PORT`: Backend port (default: `8000`)
+- `BACKEND_PORT`: Backend port (default: `8000`) - can also be set via `--backend-port` argument
+- `FRONTEND_PORT`: Frontend port (default: `5173`) - can also be set via `--frontend-port` argument
 - `SCENE_SCHEMA_ID`: Schema ID (default: `freebrowse`)
 - `IMAGING_EXTENSIONS`: File extensions to scan (default: `["*.nii", "*.nii.gz"]`)
 - `SERVERLESS_MODE`: Set automatically based on command argument
 
+**Note:** Command-line arguments take precedence over environment variables for port configuration.
+
 ## Ports
 
+Default ports (can be overridden via command-line arguments or environment variables):
 - **5173**: Vite frontend dev server
 - **8000**: FastAPI backend server
