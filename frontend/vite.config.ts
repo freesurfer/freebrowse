@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react'
 import path from "path"
 import tailwindcss from "@tailwindcss/vite"
 
+// Read backend port from environment variable, default to 8000
+const backendPort = process.env.BACKEND_PORT || '8000'
+const backendUrl = `http://127.0.0.1:${backendPort}`
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -13,12 +17,12 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/config': 'http://127.0.0.1:8000',
-      '/scene': 'http://127.0.0.1:8000',
-      '/data': 'http://127.0.0.1:8000',
-      '/nvd': 'http://127.0.0.1:8000',
-      '/nii': 'http://127.0.0.1:8000',
-      '/imaging': 'http://127.0.0.1:8000'
+      '/config': backendUrl,
+      '/scene': backendUrl,
+      '/data': backendUrl,
+      '/nvd': backendUrl,
+      '/nii': backendUrl,
+      '/imaging': backendUrl
     }
   }
 })
