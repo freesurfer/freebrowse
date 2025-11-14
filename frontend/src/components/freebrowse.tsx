@@ -1742,27 +1742,28 @@ export default function FreeBrowse() {
             <footer className="border-t bg-background px-4 py-4 flex-shrink-0">
               {locationData ? (
                 <div className="space-y-2">
-                  <div className="flex items-center text-sm">
-                    <span className="min-w-[180px]"></span>
-                    <span className="text-muted-foreground font-mono min-w-[200px]">
+                  <div className="grid grid-cols-[50%_auto_1fr] gap-4 items-center text-sm">
+                    <div></div>
+                    <div className="text-muted-foreground font-mono whitespace-nowrap">
                       <span className="inline-block w-16">RAS</span>[
                       {locationData.mm[0].toFixed(1)},{" "}
                       {locationData.mm[1].toFixed(1)},{" "}
                       {locationData.mm[2].toFixed(1)}]
-                    </span>
+                    </div>
+                    <div></div>
                   </div>
                   {locationData.voxels.map((vol, index) => (
-                    <div key={index} className="flex items-center text-sm">
-                      <span className="font-medium min-w-[180px]">
+                    <div key={index} className="grid grid-cols-[50%_auto_1fr] gap-4 items-center text-sm">
+                      <div className="font-medium overflow-x-auto whitespace-nowrap">
                         {vol.name}:
-                      </span>
-                      <span className="text-muted-foreground font-mono min-w-[200px]">
+                      </div>
+                      <div className="text-muted-foreground font-mono whitespace-nowrap">
                         <span className="inline-block w-16">Voxel</span>[
                         {vol.voxel[0]}, {vol.voxel[1]}, {vol.voxel[2]}]
-                      </span>
-                      <span className="text-muted-foreground ml-4">
+                      </div>
+                      <div className="text-muted-foreground">
                         Value: {vol.value.toFixed(2)}
-                      </span>
+                      </div>
                     </div>
                   ))}
                 </div>
