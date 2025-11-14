@@ -469,6 +469,12 @@ export default function FreeBrowse() {
       syncViewerOptionsFromNiivue();
     }
 
+    // Load meshes if present (NVDocument doesn't support loading meshes from URL)
+    if (jsonData.meshes && jsonData.meshes.length > 0) {
+      console.log("Loading meshes:", jsonData.meshes);
+      await nv.loadMeshes(jsonData.meshes);
+    }
+
     setCurrentImageIndex(0);
     updateImageDetails();
     nv.setCrosshairColor([0, 1, 0, 0.1]);
