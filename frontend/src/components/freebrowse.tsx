@@ -1908,8 +1908,8 @@ export default function FreeBrowse() {
                                 )}
                               </Button>
                             </div>
-                            <div className="flex-1 w-0 overflow-x-auto">
-                              <p className="text-sm font-medium whitespace-nowrap">
+                            <div className="flex-1 w-0">
+                              <p className="text-sm font-medium break-words">
                                 {image.name}
                               </p>
                             </div>
