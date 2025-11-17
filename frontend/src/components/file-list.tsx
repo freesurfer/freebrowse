@@ -49,11 +49,11 @@ export const FileList: React.FC<FileListProps> = ({
       {loading && <p>Loading List...</p>}
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       {!loading && !error && (files.length > 0 ? (
-        <ul>
+        <ul className="space-y-1">
           {files.map((file, index) => (
             <li
               key={index}
-              style={{ cursor: 'pointer' }}
+              className="cursor-pointer px-3 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
               onClick={() => onFileSelect(file)}
             >
               {file.filename}
