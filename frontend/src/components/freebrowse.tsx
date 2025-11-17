@@ -2006,7 +2006,7 @@ export default function FreeBrowse() {
                   </ScrollArea>
                   <ScrollArea className="flex-1 min-h-0">
                     {currentImageIndex != null ? (
-                      <div className="grid gap-4 p-4">
+                      <div className="grid gap-4 p-4 pb-20">
                         <LabeledSliderWithInput
                           label="Opacity"
                           value={images[currentImageIndex]?.opacity || 1}
