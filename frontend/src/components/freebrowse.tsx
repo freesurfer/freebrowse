@@ -1753,7 +1753,10 @@ export default function FreeBrowse() {
                     <div></div>
                   </div>
                   {locationData.voxels.map((vol, index) => (
-                    <div key={index} className="grid grid-cols-[50%_auto_1fr] gap-4 items-center text-sm">
+                    <div key={index} className={cn(
+                      "grid grid-cols-[50%_auto_1fr] gap-4 items-center text-sm px-2 py-1 rounded-sm",
+                      index % 2 === 1 && "bg-accent"
+                    )}>
                       <div className="font-medium overflow-x-auto whitespace-nowrap">
                         {vol.name}:
                       </div>
