@@ -1646,7 +1646,7 @@ export default function FreeBrowse() {
   }, [applyViewerOptions]);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-full flex-col">
       <header className="border-b bg-background px-6 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold flex items-center">
@@ -1835,7 +1835,7 @@ export default function FreeBrowse() {
                       </p>
                     </div>
                     <ScrollArea className="h-full">
-                      <div className="p-4">
+                      <div className="p-4 pb-6">
                         <FileList
                           endpoint="/nvd"
                           onFileSelect={handleNvdFileSelect}
@@ -1857,7 +1857,7 @@ export default function FreeBrowse() {
                       </p>
                     </div>
                     <ScrollArea className="h-full">
-                      <div className="p-4">
+                      <div className="p-4 pb-6">
                         <FileList
                           endpoint="/imaging"
                           onFileSelect={handleImagingFileSelect}
