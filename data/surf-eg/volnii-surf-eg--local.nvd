@@ -1,0 +1,31 @@
+{
+  "title": "Volumes + Surfaces example -- remote",
+  "imageOptionsArray": [
+    {
+      "url": "data/surf-eg/brainmask.nii.gz",
+      "name": "brainmask.nii.gz",
+      "colormap": "gray",
+      "visible": false,
+      "opacity": 1
+    },
+    {
+      "url": "data/surf-eg/wm.nii.gz",
+      "name": "wm.nii.gz",
+      "colormap": "freesurfer",
+      "visible": false,
+      "opacity": 0.7
+    }
+  ],
+  "meshes": [
+    {
+      "url": "data/surf-eg/lh.white",
+      "rgba255": [255, 100, 200, 255],
+      "meshShaderIndex": 14
+    },
+    {
+      "url": "data/surf-eg/rh.white",
+      "rgba255": [255, 200, 10, 255],
+      "meshShaderIndex": 14
+    }
+  ]
+}
