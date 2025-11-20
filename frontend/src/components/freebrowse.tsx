@@ -1646,7 +1646,7 @@ export default function FreeBrowse() {
   }, [applyViewerOptions]);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-full flex-col">
       <header className="border-b bg-background px-6 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold flex items-center">
@@ -1742,27 +1742,31 @@ export default function FreeBrowse() {
             <footer className="border-t bg-background px-4 py-4 flex-shrink-0">
               {locationData ? (
                 <div className="space-y-2">
-                  <div className="flex items-center text-sm">
-                    <span className="min-w-[180px]"></span>
-                    <span className="text-muted-foreground font-mono min-w-[200px]">
+                  <div className="grid grid-cols-[50%_auto_1fr] gap-4 items-center text-sm">
+                    <div></div>
+                    <div className="text-muted-foreground font-mono whitespace-nowrap">
                       <span className="inline-block w-16">RAS</span>[
                       {locationData.mm[0].toFixed(1)},{" "}
                       {locationData.mm[1].toFixed(1)},{" "}
                       {locationData.mm[2].toFixed(1)}]
-                    </span>
+                    </div>
+                    <div></div>
                   </div>
                   {locationData.voxels.map((vol, index) => (
-                    <div key={index} className="flex items-center text-sm">
-                      <span className="font-medium min-w-[180px]">
+                    <div key={index} className={cn(
+                      "grid grid-cols-[50%_auto_1fr] gap-4 items-center text-sm px-2 py-1 rounded-sm",
+                      index % 2 === 1 && "bg-accent"
+                    )}>
+                      <div className="font-medium overflow-x-auto whitespace-nowrap">
                         {vol.name}:
-                      </span>
-                      <span className="text-muted-foreground font-mono min-w-[200px]">
+                      </div>
+                      <div className="text-muted-foreground font-mono whitespace-nowrap">
                         <span className="inline-block w-16">Voxel</span>[
                         {vol.voxel[0]}, {vol.voxel[1]}, {vol.voxel[2]}]
-                      </span>
-                      <span className="text-muted-foreground ml-4">
+                      </div>
+                      <div className="text-muted-foreground">
                         Value: {vol.value.toFixed(2)}
-                      </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1834,7 +1838,7 @@ export default function FreeBrowse() {
                       </p>
                     </div>
                     <ScrollArea className="h-full">
-                      <div className="p-4">
+                      <div className="p-4 pb-6">
                         <FileList
                           endpoint="/nvd"
                           onFileSelect={handleNvdFileSelect}
@@ -1856,7 +1860,7 @@ export default function FreeBrowse() {
                       </p>
                     </div>
                     <ScrollArea className="h-full">
-                      <div className="p-4">
+                      <div className="p-4 pb-6">
                         <FileList
                           endpoint="/imaging"
                           onFileSelect={handleImagingFileSelect}
@@ -1907,8 +1911,8 @@ export default function FreeBrowse() {
                                 )}
                               </Button>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">
+                            <div className="flex-1 w-0">
+                              <p className="text-sm font-medium break-words">
                                 {image.name}
                               </p>
                             </div>
@@ -2002,7 +2006,7 @@ export default function FreeBrowse() {
                   </ScrollArea>
                   <ScrollArea className="flex-1 min-h-0">
                     {currentImageIndex != null ? (
-                      <div className="grid gap-4 p-4">
+                      <div className="grid gap-4 p-4 pb-20">
                         <LabeledSliderWithInput
                           label="Opacity"
                           value={images[currentImageIndex]?.opacity || 1}

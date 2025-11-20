@@ -71,7 +71,7 @@ def list_niivue_documents():
         nvd_files.append(nvd_file)
     except Exception as e:
         return {"error": str(e)}
-    return nvd_files
+    return sorted(nvd_files, key=lambda x: x["url"])
 
 @app.get("/imaging")
 def list_imaging_files():
@@ -91,7 +91,7 @@ def list_imaging_files():
                 imaging_files.append(imaging_file)
     except Exception as e:
         return {"error": str(e)}
-    return imaging_files
+    return sorted(imaging_files, key=lambda x: x["url"])
 
 @app.post("/nvd")
 def save_scene(request: SaveSceneRequest):
