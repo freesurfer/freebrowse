@@ -7,6 +7,8 @@ aspires to be a web-based version of the
 [FreeSurfer](surfer.nmr.mgh.harvard.edu) tool
 [FreeView](surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide).
 
+Try out the 'serverless' version: [https://freesurfer.github.io/freebrowse/](https://freesurfer.github.io/freebrowse/)
+
 **Frontend:**
 - [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
 - [Vite](https://vite.dev) (build tool)
@@ -107,6 +109,16 @@ VITE_SERVERLESS=true npm run dev
 ```
 
 Then navigate to [http://localhost:5173/](http://localhost:5173/)
+
+### Github Pages
+
+To enable GitHub Pages:
+
+1. Go to your repo on GitHub: Settings --> Pages
+2. Under "Build and deployment", set Source to "GitHub Actions"
+3. Push changes to main
+
+You should then be able to view the 'serverless' version of your changes at https://{github-username.github.io/freebrowse/
 
 ## Production
 
