@@ -1645,7 +1645,7 @@ export default function FreeBrowse() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold flex items-center">
             <Brain className="h-6 w-6 mr-2" />
-            FreeBrowse {__APP_VERSION__}
+            <a href="https://github.com/freesurfer/freebrowse" target="_blank" rel="noopener noreferrer">FreeBrowse {__APP_VERSION__}</a>
           </h1>
           <div className="bg-background p-2">
             <div className="flex items-center justify-between flex-wrap gap-4">
