@@ -7,9 +7,14 @@ This directory contains the Docker configuration for running FreeBrowse as a mon
 From the root of the FreeBrowse repository:
 
 ```bash
-# Build the Docker image
+# Build the server image (with backend support)
 docker build -f docker/Dockerfile -t freebrowse:latest .
+
+# Build the serverless image (no backend support, for static hosting)
+docker build -f docker/Dockerfile --build-arg SERVERLESS=true -t freebrowse:serverless .
 ```
+
+**Note:** Serverless mode is determined at build time. The `freebrowse:latest` image includes full backend support, while `freebrowse:serverless` is built without backend functionality (suitable for static file serving).
 
 ## Running with Docker
 
@@ -18,13 +23,13 @@ docker build -f docker/Dockerfile -t freebrowse:latest .
 This binds ports only to localhost on the host machine:
 
 ```bash
-# Run in server mode (with backend data endpoints)
+# Run server image
 docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 \
-  freebrowse:latest server localhostonly
+  freebrowse:latest localhostonly
 
-# Run in serverless mode (no backend data endpoints)
+# Run serverless image
 docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 \
-  freebrowse:latest serverless localhostonly
+  freebrowse:serverless localhostonly
 ```
 
 ### Option 2: Network Accessible (Less Secure)
@@ -32,11 +37,11 @@ docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 \
 This allows direct network access without SSH tunnel:
 
 ```bash
-# Run in server mode
-docker run -p 5173:5173 -p 8000:8000 freebrowse:latest server
+# Run server image
+docker run -p 5173:5173 -p 8000:8000 freebrowse:latest
 
-# Run in serverless mode
-docker run -p 5173:5173 -p 8000:8000 freebrowse:latest serverless
+# Run serverless image
+docker run -p 5173:5173 -p 8000:8000 freebrowse:serverless
 ```
 
 Access directly at `http://<host-ip>:5173`
@@ -49,16 +54,14 @@ To persist data or provide existing data files:
 # Mount a data directory
 docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 \
   -v /path/to/your/data:/app/data \
-  freebrowse:latest server localhostonly
+  freebrowse:latest localhostonly
 ```
 
 ## Command Line Arguments
 
 The container accepts the following arguments:
 
-**Mode Arguments:**
-- `server` (default): Run with full backend (data endpoints enabled)
-- `serverless`: Run without backend data endpoints
+**Network Arguments:**
 - `localhostonly`: Bind frontend to localhost only (requires SSH tunnel for remote access)
 
 **Port Arguments:**
@@ -67,25 +70,25 @@ The container accepts the following arguments:
 
 **Examples:**
 ```bash
-# Server mode, network accessible
-docker run -p 5173:5173 -p 8000:8000 freebrowse:latest server
+# Server image, network accessible
+docker run -p 5173:5173 -p 8000:8000 freebrowse:latest
 
-# Server mode, localhost only
-docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 freebrowse:latest server localhostonly
+# Server image, localhost only
+docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 freebrowse:latest localhostonly
 
-# Serverless mode, network accessible
-docker run -p 5173:5173 -p 8000:8000 freebrowse:latest serverless
+# Serverless image, network accessible
+docker run -p 5173:5173 -p 8000:8000 freebrowse:serverless
 
-# Serverless mode, localhost only
-docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 freebrowse:latest serverless localhostonly
+# Serverless image, localhost only
+docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 freebrowse:serverless localhostonly
 
 # Custom frontend port
 docker run -p 127.0.0.1:5174:5174 -p 127.0.0.1:8000:8000 \
-  freebrowse:latest server localhostonly --frontend-port 5174
+  freebrowse:latest localhostonly --frontend-port 5174
 
 # Custom frontend and backend ports
 docker run -p 127.0.0.1:8080:8080 -p 127.0.0.1:8001:8001 \
-  freebrowse:latest server --frontend-port 8080 --backend-port 8001
+  freebrowse:latest --frontend-port 8080 --backend-port 8001
 ```
 
 ## Converting to Singularity
@@ -93,8 +96,11 @@ docker run -p 127.0.0.1:8080:8080 -p 127.0.0.1:8001:8001 \
 Singularity can directly convert Docker images:
 
 ```bash
-# Pull from Docker and convert to Singularity
+# Convert server image to Singularity
 singularity build freebrowse.sif docker-daemon://freebrowse:latest
+
+# Convert serverless image to Singularity
+singularity build freebrowse-serverless.sif docker-daemon://freebrowse:serverless
 
 # Or if you push to Docker Hub:
 singularity build freebrowse.sif docker://yourusername/freebrowse:latest
@@ -105,20 +111,20 @@ singularity build freebrowse.sif docker://yourusername/freebrowse:latest
 Singularity uses the host's network by default, which simplifies SSH tunneling:
 
 ```bash
-# Run in server mode with localhost only
-singularity run freebrowse.sif server localhostonly
+# Run server image with localhost only
+singularity run freebrowse.sif localhostonly
 
-# Run in serverless mode with localhost only
-singularity run freebrowse.sif serverless localhostonly
+# Run serverless image with localhost only
+singularity run freebrowse-serverless.sif localhostonly
 
-# With data directory
-singularity run --bind /path/to/data:/app/data freebrowse.sif server localhostonly
+# With data directory (server image)
+singularity run --bind /path/to/data:/app/data freebrowse.sif localhostonly
 
 # Custom frontend port (useful when default port is in use)
-singularity run freebrowse.sif server localhostonly --frontend-port 5174
+singularity run freebrowse.sif localhostonly --frontend-port 5174
 
 # Custom frontend and backend ports
-singularity run freebrowse.sif server --frontend-port 8080 --backend-port 8001
+singularity run freebrowse.sif --frontend-port 8080 --backend-port 8001
 ```
 
 ## Environment Variables
@@ -131,7 +137,7 @@ docker run -p 127.0.0.1:5173:5173 -p 127.0.0.1:8000:8000 \
   -e FRONTEND_PORT=5173 \
   -e BACKEND_PORT=8000 \
   -e IMAGING_EXTENSIONS='["*.nii", "*.nii.gz", "*.mgz"]' \
-  freebrowse:latest server localhostonly
+  freebrowse:latest localhostonly
 ```
 
 Available variables:
@@ -141,7 +147,6 @@ Available variables:
 - `FRONTEND_PORT`: Frontend port (default: `5173`) - can also be set via `--frontend-port` argument
 - `SCENE_SCHEMA_ID`: Schema ID (default: `freebrowse`)
 - `IMAGING_EXTENSIONS`: File extensions to scan (default: `["*.nii", "*.nii.gz"]`)
-- `SERVERLESS_MODE`: Set automatically based on command argument
 
 **Note:** Command-line arguments take precedence over environment variables for port configuration.
 

@@ -68,6 +68,19 @@ cd backend
 pixi install
 ```
 
+## Build
+
+To build a fully serverless frontend (no backend required at all), use the
+`VITE_SERVERLESS` environment variable:
+
+```bash
+cd frontend
+VITE_SERVERLESS=true npm run build
+```
+
+This creates a static build in `frontend/dist/` that can be deployed to GitHub
+Pages or any static file host.
+
 ## Dev
 
 ### Run the backend in development mode
@@ -79,19 +92,18 @@ cd backend
 pixi run dev
 ```
 
-If you would like to run the backend in 'serverless' mode (cannot load or save
-data to the backend), run
-
-```bash
-cd backend
-pixi run dev-serverless
-```
-
 ### Run the frontend in development mode
 
 ```bash
 cd frontend
 npm run dev
+```
+
+or
+
+```bash
+cd frontend
+VITE_SERVERLESS=true npm run dev
 ```
 
 Then navigate to [http://localhost:5173/](http://localhost:5173/)

@@ -19,6 +19,11 @@ COPY frontend/package*.json ./frontend/
 COPY frontend/ ./frontend/
 WORKDIR /app/frontend
 RUN npm ci
+
+# Build argument to control serverless mode (set at build time)
+# Usage: docker build --build-arg SERVERLESS=true ...
+ARG SERVERLESS=false
+ENV VITE_SERVERLESS=${SERVERLESS}
 RUN npm run build
 
 # Create data directory
@@ -34,7 +39,6 @@ ENV NIIVUE_BUILD_DIR=/app/frontend/dist
 ENV DATA_DIR=/app/data
 ENV SCENE_SCHEMA_ID=freebrowse
 ENV IMAGING_EXTENSIONS='["*.nii", "*.nii.gz"]'
-ENV SERVERLESS_MODE=false
 ENV BACKEND_HOST=0.0.0.0
 ENV BACKEND_PORT=8000
 ENV FRONTEND_PORT=5173
@@ -45,6 +49,4 @@ ENV FRONTEND_PORT=5173
 EXPOSE 8000 5173
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-# Default command: run in server mode
-# Can be overridden with: docker run <image> serverless
-CMD ["server"]
+CMD []

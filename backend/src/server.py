@@ -47,13 +47,6 @@ class SaveVolumeRequest(BaseModel):
 app = FastAPI()
 
 # Define API routes BEFORE static file mounts to prevent catch-all behavior
-@app.get("/config")
-def get_config():
-    """Return application configuration."""
-    return {
-        "serverless": serverless_mode
-    }
-
 @app.get("/nvd")
 def list_niivue_documents():
     if serverless_mode:

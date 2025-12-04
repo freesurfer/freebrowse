@@ -17,7 +17,6 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/config': backendUrl,
       '/scene': backendUrl,
       '/data': backendUrl,
       '/nvd': backendUrl,

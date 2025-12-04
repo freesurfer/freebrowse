@@ -91,10 +91,8 @@ export default function FreeBrowse() {
   const [activeTab, setActiveTab] = useState("nvds");
   const [footerOpen, setFooterOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
-  const [serverlessMode, setServerlessMode] = useState(false);
-  // Track whether config has been loaded to prevent race condition where
-  // FileList components mount and fetch before serverlessMode is set
-  const [configLoaded, setConfigLoaded] = useState(false);
+  // Serverless mode is determined at build time via VITE_SERVERLESS env var
+  const serverlessMode = import.meta.env.VITE_SERVERLESS === 'true';
   const nvRef = useRef<Niivue | null>(nv);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -324,28 +322,12 @@ export default function FreeBrowse() {
     }
   }, [images.length, showUploader]);
 
-  // Fetch serverless mode configuration on mount
+  // If in serverless mode, switch to sceneDetails tab by default
   useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const response = await fetch("/config");
-        if (response.ok) {
-          const config = await response.json();
-          setServerlessMode(config.serverless || false);
-          // If in serverless mode, switch to sceneDetails tab by default
-          if (config.serverless) {
-            setActiveTab("sceneDetails");
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching config:", error);
-      } finally {
-        // Mark config as loaded regardless of success/failure to allow rendering
-        setConfigLoaded(true);
-      }
-    };
-    fetchConfig();
-  }, []);
+    if (serverlessMode) {
+      setActiveTab("sceneDetails");
+    }
+  }, [serverlessMode]);
 
   // Load NVD from URL parameter on initial load
   useEffect(() => {
@@ -1855,11 +1837,8 @@ export default function FreeBrowse() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Wait for config to load before rendering TabsContent to prevent
-                  FileList components from mounting and fetching data before
-                  serverlessMode state is properly initialized */}
               <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
-                {configLoaded && !serverlessMode && (
+                {!serverlessMode && (
                   <>
                     <div className="border-b px-4 py-3">
                       <h2 className="text-lg font-semibold">
@@ -1883,7 +1862,7 @@ export default function FreeBrowse() {
               </TabsContent>
 
               <TabsContent value="data" className="flex-1 min-h-0 p-0">
-                {configLoaded && !serverlessMode && (
+                {!serverlessMode && (
                   <>
                     <div className="border-b px-4 py-3">
                       <h2 className="text-lg font-semibold">Imaging Data</h2>

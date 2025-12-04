@@ -47,17 +47,12 @@ else
     FRONTEND_DIR="/app/frontend"
 fi
 
-# Parse arguments for mode and network settings
-MODE="server"
+# Parse arguments for network settings and port configuration
 FRONTEND_NETWORK_MODE="network"  # default: --host 0.0.0.0
 # FRONTEND_PORT defaults to env var if not set via argument
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        server|serverless)
-            MODE=$1
-            shift
-            ;;
         localhostonly)
             FRONTEND_NETWORK_MODE="localhost"
             shift
@@ -82,19 +77,19 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "Unknown argument: $1"
-            echo "Usage: entrypoint.sh [server|serverless] [localhostonly] [--frontend-port PORT] [--backend-port PORT]"
+            echo "Usage: entrypoint.sh [localhostonly] [--frontend-port PORT] [--backend-port PORT]"
             exit 1
             ;;
     esac
 done
 
-# Set serverless mode based on MODE
-if [ "$MODE" = "serverless" ]; then
-    echo "Starting FreeBrowse in SERVERLESS mode..."
-    export SERVERLESS_MODE=true
-elif [ "$MODE" = "server" ]; then
+# Determine mode from build-time VITE_SERVERLESS setting
+if [ "$VITE_SERVERLESS" = "true" ]; then
+    MODE="serverless"
+    echo "Starting FreeBrowse in SERVERLESS mode (built without backend support)..."
+else
+    MODE="server"
     echo "Starting FreeBrowse in SERVER mode..."
-    export SERVERLESS_MODE=false
 fi
 
 # Check if backend port is already in use
@@ -146,7 +141,7 @@ fi
 echo ""
 echo "FreeBrowse is running!"
 echo "  Backend:  http://${BACKEND_HOST}:${BACKEND_PORT}"
-echo "  Mode:     $MODE (SERVERLESS_MODE=$SERVERLESS_MODE)"
+echo "  Mode:     $MODE"
 
 # Wait for both processes
 wait $BACKEND_PID $FRONTEND_PID
