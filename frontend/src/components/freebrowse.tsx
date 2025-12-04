@@ -19,6 +19,8 @@ import {
   Database,
   Undo,
   Download,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -88,6 +90,7 @@ export default function FreeBrowse() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("nvds");
   const [footerOpen, setFooterOpen] = useState(true);
+  const [darkMode, setDarkMode] = useState(true);
   const [serverlessMode, setServerlessMode] = useState(false);
   // Track whether config has been loaded to prevent race condition where
   // FileList components mount and fetch before serverlessMode is set
@@ -1645,6 +1648,15 @@ export default function FreeBrowse() {
     applyViewerOptions();
   }, [applyViewerOptions]);
 
+  // Apply dark mode class to document root
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
+
   return (
     <div className="flex h-full flex-col">
       <header className="border-b bg-background px-6 py-3">
@@ -1675,6 +1687,7 @@ export default function FreeBrowse() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/*
             <Button
               variant="outline"
               size="sm"
@@ -1686,6 +1699,7 @@ export default function FreeBrowse() {
                   : "Load via loadDocument()"}
               </span>
             </Button>
+            */}
             <Button
               variant="outline"
               size="sm"
@@ -1711,6 +1725,19 @@ export default function FreeBrowse() {
               <span className="ml-2 sr-only md:not-sr-only md:inline-block">
                 {/*footerOpen ? "Hide Footer" : "Show Footer"*/}
               </span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDarkMode(!darkMode)}
+              className="h-8 w-8 p-0"
+              title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {darkMode ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
             </Button>
             <Button
               variant="outline"
@@ -1753,10 +1780,13 @@ export default function FreeBrowse() {
                     <div></div>
                   </div>
                   {locationData.voxels.map((vol, index) => (
-                    <div key={index} className={cn(
-                      "grid grid-cols-[50%_auto_1fr] gap-4 items-center text-sm px-2 py-1 rounded-sm",
-                      index % 2 === 1 && "bg-accent"
-                    )}>
+                    <div
+                      key={index}
+                      className={cn(
+                        "grid grid-cols-[50%_auto_1fr] gap-4 items-center text-sm px-2 py-1 rounded-sm",
+                        index % 2 === 1 && "bg-accent",
+                      )}
+                    >
                       <div className="font-medium overflow-x-auto whitespace-nowrap">
                         {vol.name}:
                       </div>
@@ -1832,7 +1862,9 @@ export default function FreeBrowse() {
                 {configLoaded && !serverlessMode && (
                   <>
                     <div className="border-b px-4 py-3">
-                      <h2 className="text-lg font-semibold">NiiVue Documents</h2>
+                      <h2 className="text-lg font-semibold">
+                        NiiVue Documents
+                      </h2>
                       <p className="text-sm text-muted-foreground">
                         Load complete scenes and visualizations
                       </p>
@@ -1983,7 +2015,9 @@ export default function FreeBrowse() {
                           className="flex-1"
                           onClick={() => handleSaveScene(false)}
                           disabled={
-                            images.length === 0 || drawingOptions.enabled || serverlessMode
+                            images.length === 0 ||
+                            drawingOptions.enabled ||
+                            serverlessMode
                           }
                         >
                           <Save className="mr-2 h-4 w-4" />

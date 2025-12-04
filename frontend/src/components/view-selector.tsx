@@ -21,15 +21,15 @@ export default function ViewSelector({ currentView, onViewChange }: ViewSelector
         onValueChange={(value) => value && onViewChange(value as ViewMode)}
       >
         <ToggleGroupItem value="axial" aria-label="Axial view" title="Axial view">
-          <img src={axialIcon} alt="axial" />
+          <img src={axialIcon} alt="axial" className="dark:invert" />
           <span className="sr-only sm:not-sr-only sm:inline-block text-xs">Axial</span>
         </ToggleGroupItem>
         <ToggleGroupItem value="coronal" aria-label="Coronal view" title="Coronal view">
-          <img src={coronalIcon} alt="coronal" />
+          <img src={coronalIcon} alt="coronal" className="dark:invert" />
           <span className="sr-only sm:not-sr-only sm:inline-block text-xs">Coronal</span>
         </ToggleGroupItem>
         <ToggleGroupItem value="sagittal" aria-label="Sagittal view" title="Sagittal view">
-          <img src={sagittalIcon} alt="sagittal" />
+          <img src={sagittalIcon} alt="sagittal" className="dark:invert" />
           <span className="sr-only sm:not-sr-only sm:inline-block text-xs">Sagittal</span>
         </ToggleGroupItem>
         <ToggleGroupItem value="render" aria-label="Render view" title="Render view">
