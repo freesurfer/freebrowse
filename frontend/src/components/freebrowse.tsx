@@ -407,7 +407,6 @@ export default function FreeBrowse() {
         }
 
         syncViewerOptionsFromNiivue();
-        applyViewerOptions();
       } catch (error) {
         console.error("nv.loadDocument failed:", error);
         console.log("Current nv.volumes:", nv.volumes);
@@ -462,7 +461,6 @@ export default function FreeBrowse() {
         nv.setDefaults(jsonData.opts);
       }
       syncViewerOptionsFromNiivue();
-      applyViewerOptions();
     }
 
     setCurrentImageIndex(0);
