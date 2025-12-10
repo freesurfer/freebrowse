@@ -125,6 +125,8 @@ export default function FreeBrowse() {
     crosshairGap: 0,
     crosshairVisible: true,
     crosshairColor: [1.0, 0.0, 0.0, 0.5] as [number, number, number, number],
+    rulerWidth: 1.0,
+    rulerVisible: false,
     interpolateVoxels: false,
     dragMode: "contrast" as DragMode,
     overlayOutlineWidth: 0.0,
@@ -215,6 +217,8 @@ export default function FreeBrowse() {
         : 0;
       nvRef.current.opts.crosshairGap = viewerOptions.crosshairGap;
       nvRef.current.setCrosshairColor(viewerOptions.crosshairColor);
+      nvRef.current.opts.rulerWidth = viewerOptions.rulerWidth;
+      nvRef.current.opts.isRuler = viewerOptions.rulerVisible;
       nvRef.current.setInterpolation(!viewerOptions.interpolateVoxels);
       nvRef.current.opts.dragMode = DRAG_MODE[viewerOptions.dragMode];
       nvRef.current.overlayOutlineWidth = viewerOptions.overlayOutlineWidth;
@@ -259,6 +263,8 @@ export default function FreeBrowse() {
         crosshairColor: nv.opts.crosshairColor
           ? ([...nv.opts.crosshairColor] as [number, number, number, number])
           : [1.0, 0.0, 0.0, 0.5],
+        rulerWidth: nv.opts.rulerWidth ?? 1.0,
+        rulerVisible: nv.opts.isRuler ?? false,
         interpolateVoxels: !nv.opts.isNearestInterpolation,
         dragMode,
         overlayOutlineWidth: nv.overlayOutlineWidth,
@@ -1393,6 +1399,15 @@ export default function FreeBrowse() {
     }));
   }, []);
 
+  const handleRulerWidthChange = useCallback((value: number) => {
+    setViewerOptions((prev) => ({ ...prev, rulerWidth: value }));
+    debouncedGLUpdate();
+  }, []);
+
+  const handleRulerVisibleChange = useCallback((visible: boolean) => {
+    setViewerOptions((prev) => ({ ...prev, rulerVisible: visible }));
+  }, []);
+
   const handleOverlayOutlineWidthChange = useCallback(
     (value: number) => {
       setViewerOptions((prev) => ({ ...prev, overlayOutlineWidth: value }));
@@ -2523,7 +2538,39 @@ export default function FreeBrowse() {
                 className="w-full h-10"
               />
             </div>
-
+            {/*
+            // PW 20251210: Ruler UI elements commented out for now.  Only shows
+            //              in first panel and unclear what the scale is
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Ruler Width</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() =>
+                    handleRulerVisibleChange(!viewerOptions.rulerVisible)
+                  }
+                >
+                  {viewerOptions.rulerVisible ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 opacity-50" />
+                  )}
+                </Button>
+              </div>
+              <LabeledSliderWithInput
+                label=""
+                value={viewerOptions.rulerWidth}
+                onValueChange={handleRulerWidthChange}
+                min={0.0}
+                max={10.0}
+                step={0.1}
+                decimalPlaces={1}
+                disabled={!viewerOptions.rulerVisible}
+              />
+            </div>
+            */}
             <div className="space-y-2">
               <LabeledSliderWithInput
                 label="Overlay Outline Width"
