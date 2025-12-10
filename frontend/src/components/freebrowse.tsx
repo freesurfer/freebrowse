@@ -122,6 +122,7 @@ export default function FreeBrowse() {
       | "ACSR"
       | "render",
     crosshairWidth: 1,
+    crosshairGap: 0,
     crosshairVisible: true,
     crosshairColor: [1.0, 0.0, 0.0, 0.5] as [number, number, number, number],
     interpolateVoxels: false,
@@ -212,6 +213,7 @@ export default function FreeBrowse() {
       nvRef.current.opts.crosshairWidth = viewerOptions.crosshairVisible
         ? viewerOptions.crosshairWidth
         : 0;
+      nvRef.current.opts.crosshairGap = viewerOptions.crosshairGap;
       nvRef.current.setCrosshairColor(viewerOptions.crosshairColor);
       nvRef.current.setInterpolation(!viewerOptions.interpolateVoxels);
       nvRef.current.opts.dragMode = DRAG_MODE[viewerOptions.dragMode];
@@ -252,6 +254,7 @@ export default function FreeBrowse() {
       setViewerOptions({
         viewMode,
         crosshairWidth: nv.opts.crosshairWidth,
+        crosshairGap: nv.opts.crosshairGap ?? 0,
         crosshairVisible: nv.opts.crosshairWidth > 0,
         crosshairColor: nv.opts.crosshairColor
           ? ([...nv.opts.crosshairColor] as [number, number, number, number])
@@ -1363,7 +1366,12 @@ export default function FreeBrowse() {
 
   const handleCrosshairWidthChange = useCallback((value: number) => {
     setViewerOptions((prev) => ({ ...prev, crosshairWidth: value }));
-    debouncedGLUpdate(); // Add this line
+    debouncedGLUpdate();
+  }, []);
+
+  const handleCrosshairGapChange = useCallback((value: number) => {
+    setViewerOptions((prev) => ({ ...prev, crosshairGap: value }));
+    debouncedGLUpdate();
   }, []);
 
   const handleInterpolateVoxelsChange = useCallback((checked: boolean) => {
@@ -2480,6 +2488,19 @@ export default function FreeBrowse() {
                 min={0.0}
                 max={5}
                 step={0.1}
+                decimalPlaces={1}
+                disabled={!viewerOptions.crosshairVisible}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <LabeledSliderWithInput
+                label="Crosshair Gap"
+                value={viewerOptions.crosshairGap}
+                onValueChange={handleCrosshairGapChange}
+                min={0.0}
+                max={10.0}
+                step={0.5}
                 decimalPlaces={1}
                 disabled={!viewerOptions.crosshairVisible}
               />
