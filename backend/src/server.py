@@ -2,6 +2,7 @@ import os
 import json
 import mimetypes
 import logging
+from typing import Union, List
 import uuid
 import base64
 from pathlib import Path
@@ -43,6 +44,18 @@ class SaveSceneRequest(BaseModel):
 class SaveVolumeRequest(BaseModel):
     filename: str
     data: str  # base64 encoded NIfTI data
+
+class ScribblePrompt3dInferenceRequest(BaseModel):
+    """
+    Request a ScribblePrompt3d model for inference
+    """
+    session_id: str
+    model_name: str
+    positive_clicks: List[int]
+    negative_clicks: List[int]
+    previous_logits: Union[str, None] = None
+    niivue_dims: List[int]
+    volume_nifti: Union[str, None] = None
 
 app = FastAPI()
 
