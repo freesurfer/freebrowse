@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 static_dir = os.getenv('NIIVUE_BUILD_DIR')
 data_dir = os.getenv('DATA_DIR')
 scene_schema_id = os.getenv('SCENE_SCHEMA_ID')
+models_dir = os.getenv('MODELS_DIR')  # Contains trained PyTorch models
 imaging_extensions_str = os.getenv('IMAGING_EXTENSIONS', '["*.nii", "*.nii.gz"]')
 imaging_extensions = json.loads(imaging_extensions_str)
 serverless_mode = os.getenv('SERVERLESS_MODE', 'false').lower() == 'true'
@@ -31,6 +32,7 @@ serverless_mode = os.getenv('SERVERLESS_MODE', 'false').lower() == 'true'
 logger.info(f"NIIVUE_BUILD_DIR: {static_dir}")
 logger.info(f"DATA_DIR: {data_dir}")
 logger.info(f"SCENE_SCHEMA_ID: {scene_schema_id}")
+logger.info(f"MODELS_DIR: {models_dir}")
 logger.info(f"IMAGING_EXTENSIONS: {imaging_extensions}")
 logger.info(f"SERVERLESS_MODE: {serverless_mode}")
 
@@ -98,6 +100,38 @@ def list_imaging_files():
     except Exception as e:
         return {"error": str(e)}
     return sorted(imaging_files, key=lambda x: x["url"])
+
+@app.get('/models')
+def list_models():
+    """
+    List available trained PyTorch models in `MODELS_DIR`
+
+    A valid model consists of:
+        1. A `.py` file containing the model class/definition
+        2. A `.pt` file containing the `state_dict`
+
+    Returns
+    -------
+    List[str]
+        List of model names (without extensions) that have both `.py` and `.pt` files.
+    """
+    models_path = Path(models_dir)
+    models = []
+
+    for py_path in models_path.glob('*.py'):
+        model_name = py_path.stem
+        pt_path = models_path / f'{model_name}.pt'
+
+        if pt_path.exists():
+            models.append({
+                'name': model_name,
+                'model_module_path': str(py_path),
+                'checkpoint_path': str(pt_path)
+            })
+
+    return sorted(models, key=lambda x: x['name'])
+
+
 
 @app.post("/nvd")
 def save_scene(request: SaveSceneRequest):
