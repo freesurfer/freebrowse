@@ -2364,10 +2364,20 @@ export default function FreeBrowse() {
                               {scribblePrompt3dState.error}
                             </p>
                           )}
-                          {scribblePrompt3dState.modelsLoaded && (
-                            <p className="text-sm text-green-600">
-                              {scribblePrompt3dState.models.length} model(s) loaded
-                            </p>
+                          {scribblePrompt3dState.modelsLoaded && scribblePrompt3dState.models.length > 0 && (
+                            <Select
+                              value={scribblePrompt3dState.selectedModel ?? ""}
+                              onChange={(e) => setScribblePrompt3dState(prev => ({
+                                ...prev,
+                                selectedModel: e.target.value
+                              }))}
+                            >
+                              {scribblePrompt3dState.models.map((model) => (
+                                <option key={model.name} value={model.name}>
+                                  {model.name}
+                                </option>
+                              ))}
+                            </Select>
                           )}
                         </div>
                       </>
