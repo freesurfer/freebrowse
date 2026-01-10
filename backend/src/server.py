@@ -383,23 +383,28 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
     Parameters
     ----------
     request: ScribblePrompt3dInferenceRequest
+        - volume_data: raw voxels in file order (as stored in NIfTI)
+        - niivue_dims: dimensions in file order
+        - affine: file-order affine from NIfTI header
+        - clicks: flat indices in RAS order (from NiiVue's drawBitmap)
 
     Notes
     -----
-    - `drawBitmap` indices are RAS (NiiVue's internal display orientation)
-    - `saveToUint8Array` exports in original file orientation (e.g., LIA)
+    This backend reorients volume to RAS using nibabel so clicks align with voxels.
+    Output mask is in RAS order with RAS affine.
     """
-    # Resolve model paths
     models_path = Path(models_dir)
     module_file = models_path / f"{request.model_name}.py"
     checkpoint_file = models_path / f"{request.model_name}.pt"
 
-    if request.volume_nifti is None:
-        raise HTTPException(status_code=400, detail='Inference requires volume')
+    if request.volume_data is None:
+        raise HTTPException(status_code=400, detail='Inference requires volume_data')
+    if request.affine is None:
+        raise HTTPException(status_code=400, detail='Inference requires affine')
 
-    # Decode NIfTI bytes from request string and load with nibabel
-    nifti_bytes = gzip.decompress(base64.b64decode(request.volume_nifti))
-    nifti = nib.Nifti1Image.from_bytes(nifti_bytes)
+    # Decode raw float 32, file order voxel data from base64
+    volume_bytes = base64.b64decode(request.volume_data)
+    volume_array = np.frombuffer(volume_bytes, dtype=np.float32)
 
     # Load and reorient to RAS (Niivue's representation)
     nifti_ras = nib.as_closest_canonical(nifti)
