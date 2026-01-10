@@ -31,7 +31,8 @@ export default defineConfig({
       '/nvd': backendUrl,
       '/nii': backendUrl,
       '/imaging': backendUrl,
-      '/available_seg_models': backendUrl
+      '/available_seg_models': backendUrl,
+      '/scribbleprompt3d_inference': backendUrl
     }
   }
 })
