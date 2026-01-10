@@ -3,7 +3,6 @@ import {
   PanelLeft,
   PanelRight,
   PanelBottom,
-  Send,
   ImageIcon,
   Upload,
   Trash2,
@@ -21,6 +20,8 @@ import {
   Download,
   Moon,
   Sun,
+  Loader2,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -297,9 +298,9 @@ export default function FreeBrowse() {
       // Only update if values have actually changed
       if (
         nv.opts.clickToSegmentPercent !==
-          drawingOptions.magicWandThresholdPercent ||
+        drawingOptions.magicWandThresholdPercent ||
         nv.opts.clickToSegmentMaxDistanceMM !==
-          drawingOptions.magicWandMaxDistanceMM
+        drawingOptions.magicWandMaxDistanceMM
       ) {
         setDrawingOptions((prev) => ({
           ...prev,
@@ -1664,6 +1665,14 @@ export default function FreeBrowse() {
     }
   }, [drawingOptions]);
 
+  async function fetchModels(): Promise<ScribblePrompt3dModelInfo[]> {
+    const response = await fetch("/models");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.statusText}`);
+    }
+    return response.json()
+  }
+
   // Apply viewer options when they change
   useEffect(() => {
     applyViewerOptions();
@@ -2188,108 +2197,108 @@ export default function FreeBrowse() {
                         {/* Undo Button - show when pen or wand mode is selected */}
                         {(drawingOptions.mode === "pen" ||
                           drawingOptions.mode === "wand") && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={handleDrawUndo}
-                          >
-                            <Undo className="mr-2 h-4 w-4" />
-                            Undo
-                          </Button>
-                        )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                              onClick={handleDrawUndo}
+                            >
+                              <Undo className="mr-2 h-4 w-4" />
+                              Undo
+                            </Button>
+                          )}
 
                         {/* Pen-related controls - show when pen or wand mode is selected */}
                         {(drawingOptions.mode === "pen" ||
                           drawingOptions.mode === "wand") && (
-                          <>
-                            {/* Pen Fill Checkbox - only show for pen mode */}
-                            {drawingOptions.mode === "pen" && (
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="pen-fill"
-                                  checked={drawingOptions.penFill}
-                                  onCheckedChange={handlePenFillChange}
-                                />
-                                <Label
-                                  htmlFor="pen-fill"
-                                  className="text-sm font-medium"
-                                >
-                                  Pen Fill
-                                </Label>
-                              </div>
-                            )}
+                            <>
+                              {/* Pen Fill Checkbox - only show for pen mode */}
+                              {drawingOptions.mode === "pen" && (
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="pen-fill"
+                                    checked={drawingOptions.penFill}
+                                    onCheckedChange={handlePenFillChange}
+                                  />
+                                  <Label
+                                    htmlFor="pen-fill"
+                                    className="text-sm font-medium"
+                                  >
+                                    Pen Fill
+                                  </Label>
+                                </div>
+                              )}
 
-                            {/* Pen Erases Checkbox - only show for pen mode */}
-                            {drawingOptions.mode === "pen" && (
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="pen-erases"
-                                  checked={drawingOptions.penErases}
-                                  onCheckedChange={handlePenErasesChange}
-                                />
-                                <Label
-                                  htmlFor="pen-erases"
-                                  className="text-sm font-medium"
-                                >
-                                  Pen Erases
-                                </Label>
-                              </div>
-                            )}
+                              {/* Pen Erases Checkbox - only show for pen mode */}
+                              {drawingOptions.mode === "pen" && (
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="pen-erases"
+                                    checked={drawingOptions.penErases}
+                                    onCheckedChange={handlePenErasesChange}
+                                  />
+                                  <Label
+                                    htmlFor="pen-erases"
+                                    className="text-sm font-medium"
+                                  >
+                                    Pen Erases
+                                  </Label>
+                                </div>
+                              )}
 
-                            {/* 2D Only Checkbox - only show for wand mode */}
-                            {drawingOptions.mode === "wand" && (
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="magic-wand-2d-only"
-                                  checked={drawingOptions.magicWand2dOnly}
-                                  onCheckedChange={handleMagicWand2dOnlyChange}
-                                />
-                                <Label
-                                  htmlFor="magic-wand-2d-only"
-                                  className="text-sm font-medium"
-                                >
-                                  2D Only
-                                </Label>
-                              </div>
-                            )}
+                              {/* 2D Only Checkbox - only show for wand mode */}
+                              {drawingOptions.mode === "wand" && (
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="magic-wand-2d-only"
+                                    checked={drawingOptions.magicWand2dOnly}
+                                    onCheckedChange={handleMagicWand2dOnlyChange}
+                                  />
+                                  <Label
+                                    htmlFor="magic-wand-2d-only"
+                                    className="text-sm font-medium"
+                                  >
+                                    2D Only
+                                  </Label>
+                                </div>
+                              )}
 
-                            {/* Magic Wand Max Distance - only show for wand mode */}
-                            {drawingOptions.mode === "wand" && (
+                              {/* Magic Wand Max Distance - only show for wand mode */}
+                              {drawingOptions.mode === "wand" && (
+                                <LabeledSliderWithInput
+                                  label="Max Distance (mm)"
+                                  value={drawingOptions.magicWandMaxDistanceMM}
+                                  onValueChange={handleMagicWandMaxDistanceChange}
+                                  min={2}
+                                  max={500}
+                                  step={1}
+                                />
+                              )}
+
+                              {/* Magic Wand Threshold Percentage - only show for wand mode */}
+                              {drawingOptions.mode === "wand" && (
+                                <LabeledSliderWithInput
+                                  label="Threshold Percentage"
+                                  value={drawingOptions.magicWandThresholdPercent}
+                                  onValueChange={handleMagicWandThresholdChange}
+                                  min={0.0}
+                                  max={1.0}
+                                  step={0.01}
+                                />
+                              )}
+
+                              {/* Pen Value Slider */}
                               <LabeledSliderWithInput
-                                label="Max Distance (mm)"
-                                value={drawingOptions.magicWandMaxDistanceMM}
-                                onValueChange={handleMagicWandMaxDistanceChange}
-                                min={2}
-                                max={500}
+                                label="Pen Value"
+                                value={drawingOptions.penValue}
+                                onValueChange={handlePenValueChange}
+                                min={1}
+                                max={255}
                                 step={1}
+                                disabled={drawingOptions.penErases}
                               />
-                            )}
-
-                            {/* Magic Wand Threshold Percentage - only show for wand mode */}
-                            {drawingOptions.mode === "wand" && (
-                              <LabeledSliderWithInput
-                                label="Threshold Percentage"
-                                value={drawingOptions.magicWandThresholdPercent}
-                                onValueChange={handleMagicWandThresholdChange}
-                                min={0.0}
-                                max={1.0}
-                                step={0.01}
-                              />
-                            )}
-
-                            {/* Pen Value Slider */}
-                            <LabeledSliderWithInput
-                              label="Pen Value"
-                              value={drawingOptions.penValue}
-                              onValueChange={handlePenValueChange}
-                              min={1}
-                              max={255}
-                              step={1}
-                              disabled={drawingOptions.penErases}
-                            />
-                          </>
-                        )}
+                            </>
+                          )}
 
                         {/* Save Drawing Button */}
                         <Button
@@ -2544,14 +2553,14 @@ export default function FreeBrowse() {
                 value={`#${Math.round(viewerOptions.crosshairColor[0] * 255)
                   .toString(16)
                   .padStart(2, "0")}${Math.round(
-                  viewerOptions.crosshairColor[1] * 255,
-                )
-                  .toString(16)
-                  .padStart(2, "0")}${Math.round(
-                  viewerOptions.crosshairColor[2] * 255,
-                )
-                  .toString(16)
-                  .padStart(2, "0")}`}
+                    viewerOptions.crosshairColor[1] * 255,
+                  )
+                    .toString(16)
+                    .padStart(2, "0")}${Math.round(
+                      viewerOptions.crosshairColor[2] * 255,
+                    )
+                      .toString(16)
+                      .padStart(2, "0")}`}
                 onChange={(e) => handleCrosshairColorChange(e.target.value)}
                 className="w-full h-10"
               />
