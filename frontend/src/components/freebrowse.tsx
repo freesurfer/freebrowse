@@ -1673,6 +1673,30 @@ export default function FreeBrowse() {
     return response.json()
   }
 
+  const initScribblePrompt3dModel = useCallback(async () => {
+    setScribblePrompt3dState((prev) => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const models = await fetchModels();
+      const firstModel = models[0]?.name ?? null;
+
+      setScribblePrompt3dState((prev) => ({
+        ...prev,
+        loading: false,
+        modelsLoaded: true,
+        models,
+        selectedModel: firstModel,
+      }));
+
+    } catch (err) {
+      setScribblePrompt3dState((prev) => ({
+        ...prev,
+        loading: false,
+        error: (err as Error).message,
+      }));
+    }
+  }, []);
+
   // Apply viewer options when they change
   useEffect(() => {
     applyViewerOptions();
