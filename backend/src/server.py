@@ -331,7 +331,8 @@ def load_model(module_path: Path, checkpoint_path: Path, device: torch.device) -
     else:
         state_dict = checkpoint
 
-    return model.load_state_dict(state_dict).to(device).eval()
+    model.load_state_dict(state_dict)
+    return model.to(device).eval()
 
 
 def create_mask_nifti(mask: np.ndarray, affine: np.ndarray) -> nib.Nifti1Image:
