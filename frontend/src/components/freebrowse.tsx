@@ -1697,6 +1697,223 @@ export default function FreeBrowse() {
     }
   }, []);
 
+  function generateSessionId(): string {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  function getVolumeDims(volume: NVImage): [number, number, number] {
+    // Return file-order dimensions from NIfTI header. Backend will handle reorientation to RAS.
+    if (!volume.hdr?.dims) {
+      throw new Error("volume.hdr.dims is not available.");
+    }
+    return [volume.hdr.dims[1], volume.hdr.dims[2], volume.hdr.dims[3]];
+  }
+
+  function encodeFloat32ArrayToBase64(arr: Float32Array): string {
+    // Convert Float32Array to base64
+    const bytes = new Uint8Array(arr.buffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+
+  function getVolumeAffine(volume: NVImage): number[] {
+    // Return file-order affine from NIfTI header. Backend will handle reorientation to RAS.
+    if (!volume.hdr?.affine) {
+      throw new Error("Volume missing affine matrix");
+    }
+    return (volume.hdr.affine as number[][]).flat();
+  }
+
+  /**
+   * Collect click indices from drawBitmap.
+   * Clicks are in RAS order (NiiVue display order).
+   * Backend will reorient volume to RAS to match.
+   */
+  function collectClicksFromDrawBitmap(drawBitmap: Uint8Array | null): {
+    positive: number[];
+    negative: number[];
+  } {
+    const positive: number[] = [];
+    const negative: number[] = [];
+
+    if (drawBitmap) {
+      for (let i = 0; i < drawBitmap.length; i++) {
+        if (drawBitmap[i] === 1) positive.push(i);
+        else if (drawBitmap[i] === 2) negative.push(i);
+      }
+    }
+    return { positive, negative };
+  }
+
+  function buildInferenceRequest(params: {
+    sessionId: string;
+    modelName: string;
+    positiveClicks: number[];
+    negativeClicks: number[];
+    previousLogits: string | null;
+    dims: [number, number, number];
+    volumeDataBase64?: string;
+    affine?: number[];
+  }): Record<string, unknown> {
+    const request: Record<string, unknown> = {
+      session_id: params.sessionId,
+      model_name: params.modelName,
+      positive_clicks: params.positiveClicks,
+      negative_clicks: params.negativeClicks,
+      previous_logits: params.previousLogits,
+      niivue_dims: params.dims,
+    };
+
+    if (params.volumeDataBase64) {
+      request.volume_data = params.volumeDataBase64;
+    }
+
+    if (params.affine) {
+      request.affine = params.affine;
+    }
+
+    return request;
+  }
+
+  async function callInferenceEndpoint(
+    requestBody: Record<string, unknown>
+  ): Promise<{ mask_nifti: string; logits: string | null }> {
+
+    // TODO: Handle error cases more gracefully
+    const response = await fetch(
+      "/scribbleprompt3d_inference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Inference failed: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  function decodeBase64ToBytes(base64: string): Uint8Array {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  async function loadMaskAsNVImage(maskBytes: Uint8Array): Promise<NVImage> {
+    const maskBlob = new Blob([maskBytes], { type: "application/gzip" });
+    const maskFile = new File([maskBlob], "segmentation_mask.nii.gz");
+
+    return await NVImage.loadFromFile({
+      file: maskFile,
+      colormap: "red",
+      opacity: 0.5,
+    });
+  }
+
+  function displayMaskOverlay(nv: Niivue, maskImage: NVImage): void {
+    if (nv.volumes.length > 1) {
+      nv.removeVolume(nv.volumes[1]);
+    }
+    nv.addVolume(maskImage);
+    nv.updateGLVolume();
+  }
+
+  const runScribblePrompt3dSegmentation = useCallback(async () => {
+    const nv = nvRef.current;
+    if (!nv || nv.volumes.length === 0) return;
+
+    if (!scribblePrompt3dState.selectedModel) {
+      setScribblePrompt3dState((prev) => ({ ...prev, error: "No model selected" }));
+      return;
+    }
+
+    setScribblePrompt3dState((prev) => ({ ...prev, loading: true, progress: 10, error: null }));
+
+    const volume = nv.volumes[0];
+    if (!volume.hdr?.dims || !volume.img) {
+      setScribblePrompt3dState((prev) => ({ ...prev, loading: false, error: "Volume data not available" }));
+      return;
+    }
+
+    // Send file-order data; backend will reorient to RAS
+    const dims = getVolumeDims(volume);
+
+    try {
+      const isFirstCall = scribblePrompt3dState.sessionId === null;
+      const sessionId = isFirstCall ? generateSessionId() : scribblePrompt3dState.sessionId!;
+
+      setScribblePrompt3dState((prev) => ({ ...prev, progress: 20 }));
+
+      // Send raw volume data in file order; backend handles RAS reorientation
+      let volumeDataBase64: string | undefined;
+      let affine: number[] | undefined;
+
+      if (isFirstCall) {
+        const float32Data = new Float32Array(volume.img);
+        // JSON can't serialize Float32Array, so encode to base64
+        volumeDataBase64 = encodeFloat32ArrayToBase64(float32Data);
+        affine = getVolumeAffine(volume);
+      }
+
+      setScribblePrompt3dState((prev) => ({ ...prev, progress: 40 }));
+
+      // Clicks are in RAS order (from drawBitmap); backend reorients volume to match
+      const clicks = collectClicksFromDrawBitmap(nv.drawBitmap);
+
+      const requestBody = buildInferenceRequest({
+        sessionId,
+        modelName: scribblePrompt3dState.selectedModel!,
+        positiveClicks: clicks.positive,
+        negativeClicks: clicks.negative,
+        previousLogits: scribblePrompt3dState.previousLogits,
+        dims,
+        volumeDataBase64,
+        affine,
+      });
+
+      setScribblePrompt3dState((prev) => ({ ...prev, progress: 60 }));
+
+      const result = await callInferenceEndpoint(requestBody);
+
+      setScribblePrompt3dState((prev) => ({ ...prev, progress: 80 }));
+
+      const maskBytes = decodeBase64ToBytes(result.mask_nifti);
+      const maskImage = await loadMaskAsNVImage(maskBytes);
+      displayMaskOverlay(nv, maskImage);
+
+      setScribblePrompt3dState((prev) => ({
+        ...prev,
+        loading: false,
+        progress: 100,
+        previousLogits: result.logits || null,
+        sessionId,
+      }));
+
+      updateImageDetails();
+    } catch (err) {
+      console.error("Segmentation failed:", err);
+      setScribblePrompt3dState((prev) => ({
+        ...prev,
+        loading: false,
+        error: (err as Error).message,
+      }));
+    }
+  }, [
+    scribblePrompt3dState.selectedModel,
+    scribblePrompt3dState.previousLogits,
+    scribblePrompt3dState.sessionId,
+    updateImageDetails,
+  ]);
+
   // Apply viewer options when they change
   useEffect(() => {
     applyViewerOptions();
@@ -2378,6 +2595,86 @@ export default function FreeBrowse() {
                                 </option>
                               ))}
                             </Select>
+                          )}
+
+                          {/* Click mode toggle: positive (penValue=1) or negative (penValue=2) */}
+                          {scribblePrompt3dState.modelsLoaded && (
+                            <div className="space-y-1">
+                              <Label className="text-xs">Click Mode</Label>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant={scribblePrompt3dState.clickMode === "positive" ? "default" : "outline"}
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => {
+                                    setScribblePrompt3dState((prev) => ({ ...prev, clickMode: "positive" }));
+                                    if (nvRef.current) {
+                                      nvRef.current.setPenValue(1, drawingOptions.penFill);
+                                    }
+                                  }}
+                                >
+                                  + Positive
+                                </Button>
+                                <Button
+                                  variant={scribblePrompt3dState.clickMode === "negative" ? "default" : "outline"}
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => {
+                                    setScribblePrompt3dState((prev) => ({ ...prev, clickMode: "negative" }));
+                                    if (nvRef.current) {
+                                      nvRef.current.setPenValue(2, drawingOptions.penFill);
+                                    }
+                                  }}
+                                >
+                                  - Negative
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Run Segmentation button */}
+                          {scribblePrompt3dState.modelsLoaded && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="w-full"
+                              onClick={runScribblePrompt3dSegmentation}
+                              disabled={scribblePrompt3dState.loading || !scribblePrompt3dState.selectedModel}
+                            >
+                              {scribblePrompt3dState.loading ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  {scribblePrompt3dState.progress}%
+                                </>
+                              ) : (
+                                <>
+                                  <Zap className="mr-2 h-4 w-4" />
+                                  Run Segmentation
+                                </>
+                              )}
+                            </Button>
+                          )}
+
+                          {/* Reset button - clears session and logits for fresh start */}
+                          {scribblePrompt3dState.previousLogits && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                              onClick={() => {
+                                setScribblePrompt3dState((prev) => ({
+                                  ...prev,
+                                  previousLogits: null,
+                                  sessionId: null,
+                                }));
+                                if (nvRef.current) {
+                                  nvRef.current.createEmptyDrawing();
+                                }
+                              }}
+                            >
+                              <Undo className="mr-2 h-4 w-4" />
+                              Reset Session
+                            </Button>
                           )}
                         </div>
                       </>
