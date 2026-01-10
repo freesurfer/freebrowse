@@ -58,6 +58,11 @@ import { sliceTypeMap } from "./image-canvas";
 import { ViewMode } from "./view-selector";
 import { FileList, type FileItem } from "./file-list";
 
+type ScribblePrompt3dModelInfo = {
+  name: string;
+  path: string;
+};
+
 type ImageDetails = {
   id: string;
   name: string;
@@ -153,6 +158,19 @@ export default function FreeBrowse() {
     magicWandThresholdPercent: nv.opts.clickToSegmentPercent || 0.05,
     //colormap: "gray",
     filename: "drawing.nii.gz",
+  });
+
+  const [scribblePrompt3dState, setScribblePrompt3dState] = useState({
+    enabled: false,
+    loading: false,
+    progress: 0,
+    modelsLoaded: false,
+    models: [] as ScribblePrompt3dModelInfo[],
+    selectedModel: null as string | null,
+    error: null as string | null,
+    previousLogits: null as string | null,  // For iterative refinement
+    clickMode: "positive" as "positive" | "negative",  // Current click type
+    sessionId: null as string | null,  // Session ID for server-side volume caching
   });
 
   // Debounced GL update to prevent excessive calls
