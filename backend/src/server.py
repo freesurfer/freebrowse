@@ -271,20 +271,34 @@ def pad_to_multiple(tensor: torch.Tensor, multiple: int = 16) -> torch.Tensor:
 
 def clicks_to_mask(clicks: list[int], original_shape: Tuple[int, int, int]) -> torch.Tensor:
     """
-    Convert flat indices from NiiVue's `drawBitmap` (uses fortran ordering) to 3D coordinates.
+    Convert flat click indices from NiiVue's drawBitmap to 3D mask.
+
+    Parameters
+    ----------
+    clicks
+        Flat indices in RAS order using Fortran layout (idx = x + y*nx + z*nx*ny).
+    original_shape
+        Volume shape in RAS order (nx_ras, ny_ras, nz_ras).
+
+    Returns
+    -------
+    torch.Tensor
+        Binary mask with shape matching original_shape.
 
     Notes
     -----
-    Convert Fortran-order flat indices (idx = x + y*nx + z*nx*ny) to 3D mask.
+    - The annotations from drawBitmap are indexed using RAS-oriented coordinates.
     """
     nx, ny, nz = original_shape
-    mask = torch.zeros((nz, ny, nx), dtype=torch.float32)
+    mask = torch.zeros((nx, ny, nz), dtype=torch.float32)
     valid = [i for i in clicks if 0 <= i < nx * ny * nz]
 
+    if valid:
+        idx = torch.tensor(valid)
         z = idx // (nx * ny)
         y = (idx // nx) % ny
         x = idx % nx
-        mask[z, y, x] = 1.0
+        mask[x, y, z] = 1.0
 
     return mask
 
