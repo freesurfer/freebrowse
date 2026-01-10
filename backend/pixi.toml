@@ -17,6 +17,7 @@ cmd = """
 [tasks.dev.env]
 NIIVUE_BUILD_DIR = "../frontend/dist"
 DATA_DIR = "../data"
+MODELS_DIR = "../models"
 SCENE_SCHEMA_ID = "freebrowse"
 IMAGING_EXTENSIONS = '["*.nii", "*.nii.gz"]'
 SERVERLESS_MODE = "false"
