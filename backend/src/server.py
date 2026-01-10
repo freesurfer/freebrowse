@@ -427,7 +427,7 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
     return {
         "success": True,
         "mask_nifti": encode_nifti(create_mask_nifti(mask, affine)),
-        "logits": base64.b64encode(logits.astype(np.float32).tobytes()).decode("utf-8"),
+        "logits": base64.b64encode(logits.numpy().astype(np.float32).tobytes()).decode("utf-8"),
         "logits_shape": list(volume_tensor.shape),
     }
 
