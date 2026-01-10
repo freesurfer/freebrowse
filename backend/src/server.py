@@ -108,7 +108,7 @@ def list_imaging_files():
         return {"error": str(e)}
     return sorted(imaging_files, key=lambda x: x["url"])
 
-@app.get('/models')
+@app.get('/available_seg_models')
 def list_models():
     """
     List available trained PyTorch models in `MODELS_DIR`

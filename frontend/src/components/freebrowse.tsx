@@ -1666,7 +1666,7 @@ export default function FreeBrowse() {
   }, [drawingOptions]);
 
   async function fetchModels(): Promise<ScribblePrompt3dModelInfo[]> {
-    const response = await fetch("/models");
+    const response = await fetch("/available_seg_models");
     if (!response.ok) {
       throw new Error(`Failed to fetch models: ${response.statusText}`);
     }
