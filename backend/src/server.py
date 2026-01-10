@@ -57,6 +57,15 @@ class SaveVolumeRequest(BaseModel):
 class ScribblePrompt3dInferenceRequest(BaseModel):
     """
     Request a ScribblePrompt3d model for inference
+
+    Attributes
+    ----------
+    positive_clicks: str
+        Flat indices in RAS order using Fortran layout (idx = x + y*nx + z*nx*ny).   
+    negative_clicks: str
+        Flat indices in RAS order using Fortran layout (idx = x + y*nx + z*nx*ny).   
+    volume_data
+        Base64 encoded volume in voxel space.
     """
     session_id: str
     model_name: str
@@ -64,7 +73,8 @@ class ScribblePrompt3dInferenceRequest(BaseModel):
     negative_clicks: List[int]
     previous_logits: Union[str, None] = None
     niivue_dims: List[int]
-    volume_nifti: Union[str, None] = None
+    volume_data: Union[str, None] = None
+    affine: Union[List[float], None] = None
 
 app = FastAPI()
 
@@ -271,8 +281,6 @@ def clicks_to_mask(clicks: list[int], original_shape: Tuple[int, int, int]) -> t
     mask = torch.zeros((nz, ny, nx), dtype=torch.float32)
     valid = [i for i in clicks if 0 <= i < nx * ny * nz]
 
-    if valid:
-        idx = torch.tensor(valid)
         z = idx // (nx * ny)
         y = (idx // nx) % ny
         x = idx % nx
