@@ -30,7 +30,8 @@ export default defineConfig({
       '/data': backendUrl,
       '/nvd': backendUrl,
       '/nii': backendUrl,
-      '/imaging': backendUrl
+      '/imaging': backendUrl,
+      '/available_seg_models': backendUrl
     }
   }
 })

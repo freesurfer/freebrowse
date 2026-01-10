@@ -2334,6 +2334,42 @@ export default function FreeBrowse() {
                           <Save className="mr-2 h-4 w-4" />
                           Save Drawing
                         </Button>
+
+                        {/* ScribblePrompt 3D Section */}
+                        <div className="space-y-3 border-t pt-4 mt-4">
+                          <Label className="text-sm font-medium">
+                            ScribblePrompt 3D
+                          </Label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={initScribblePrompt3dModel}
+                            disabled={scribblePrompt3dState.loading}
+                          >
+                            {scribblePrompt3dState.loading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Loading Models...
+                              </>
+                            ) : (
+                              <>
+                                <Zap className="mr-2 h-4 w-4" />
+                                Load Models
+                              </>
+                            )}
+                          </Button>
+                          {scribblePrompt3dState.error && (
+                            <p className="text-sm text-red-500">
+                              {scribblePrompt3dState.error}
+                            </p>
+                          )}
+                          {scribblePrompt3dState.modelsLoaded && (
+                            <p className="text-sm text-green-600">
+                              {scribblePrompt3dState.models.length} model(s) loaded
+                            </p>
+                          )}
+                        </div>
                       </>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
