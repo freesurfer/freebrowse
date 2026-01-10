@@ -406,29 +406,38 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
     volume_bytes = base64.b64decode(request.volume_data)
     volume_array = np.frombuffer(volume_bytes, dtype=np.float32)
 
-    # Load and reorient to RAS (Niivue's representation)
-    nifti_ras = nib.as_closest_canonical(nifti)
-    affine = nifti_ras.affine.copy()
-    header = nifti_ras.header.copy()
+    # Reshape to 3D using file order dims from NiiVue
+    # TODO: Validate dimensions match data length
 
-    volume_tensor = torch.from_numpy(nifti_ras.get_fdata()).float()
-    original_shape = volume_tensor.shape
-    volume_tensor = volume_tensor.permute(2, 1, 0)
+    # Use Fortran order b/c of Niivue's internal convention of `x + y*nx + z*nx*ny` indexing
+    volume_file_order = volume_array.copy().reshape(tuple(request.niivue_dims), order='F')
 
-    niivue_dims = tuple(request.niivue_dims)
+    # 16 floats row-major -> 4x4 matrix
+    file_affine = np.array(request.affine).reshape(4, 4)
+
+    # Reorient volume to RAS with nibabel (matches NiiVue display and click indexing orientation)
+    img_file_order = nib.Nifti1Image(volume_file_order, file_affine)
+    img_ras = nib.as_closest_canonical(img_file_order)
+    volume_ras = img_ras.get_fdata().astype(np.float32)
+    affine_ras = img_ras.affine
+
+    # Now volume_ras and clicks are both in RAS order
+    ras_dims = volume_ras.shape
+    volume_tensor = torch.from_numpy(volume_ras).float()
 
     # Preprocess the data for inference
     vmin, vmax = volume_tensor.min(), volume_tensor.max()
     volume_tensor = (volume_tensor - vmin) / (vmax - vmin)
 
+    # Save shape before padding for later cropping
+    volume_shape_before_pad = volume_tensor.shape
     volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=16)
 
-    transposed_shape = tuple(reversed(original_shape))
-
-    pos_mask = clicks_to_mask(clicks=request.positive_clicks, original_shape=transposed_shape)
+    # Clicks are in RAS order, use RAS dims
+    pos_mask = clicks_to_mask(clicks=request.positive_clicks, original_shape=ras_dims)
     pos_mask = pad_to_multiple(tensor=pos_mask, multiple=16)
 
-    neg_mask = clicks_to_mask(clicks=request.negative_clicks, original_shape=transposed_shape)
+    neg_mask = clicks_to_mask(clicks=request.negative_clicks, original_shape=ras_dims)
     neg_mask = pad_to_multiple(tensor=neg_mask, multiple=16)
 
     input_tensor = torch.zeros((1, 5, *volume_tensor.shape), dtype=torch.float32)
@@ -447,13 +456,18 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
         output = model(input_tensor.to(device))
         logits = output.squeeze().cpu()
 
-    logits = logits[:transposed_shape[0], :transposed_shape[1], :transposed_shape[2]]
-    mask = (logits.sigmoid() > 0.5)
-    mask = mask.permute(2, 1, 0).cpu().numpy()
+    logits = logits[
+        :volume_shape_before_pad[0],
+        :volume_shape_before_pad[1],
+        :volume_shape_before_pad[2]
+    ]
+
+    mask = (logits.sigmoid() > 0.5).to(torch.uint8)
+    mask = mask.cpu().numpy()
 
     return {
         "success": True,
-        "mask_nifti": encode_nifti(create_mask_nifti(mask, affine)),
+        "mask_nifti": encode_nifti(create_mask_nifti(mask, affine_ras)),
         "logits": base64.b64encode(logits.numpy().astype(np.float32).tobytes()).decode("utf-8"),
         "logits_shape": list(volume_tensor.shape),
     }
@@ -461,6 +475,7 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
 # Only mount data directory if not in serverless mode
 if not serverless_mode:
     app.mount("/data", StaticFiles(directory=data_dir, html=False), name="data")
+
 
 # Mount frontend static files at root LAST (catch-all)
 app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
