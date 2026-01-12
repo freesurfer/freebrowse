@@ -334,25 +334,44 @@ def clicks_to_mask(clicks: list[int], original_shape: Tuple[int, int, int]) -> t
     return mask
 
 
-def decode_previous_mask(
-    logits_b64: Union[str, None],
-    shape: Tuple[int, int, int]
-) -> Union[torch.Tensor, None]:
+def decode_previous_prediction(
+    logits_b64: str | None,
+    shape: Tuple[int, int, int],
+    include_previous_prediction: bool,
+    include_previous_logits: bool,
+) -> torch.Tensor | None:
     """
-    Decode base64 logits and apply sigmoid to get previous mask.
+    Decode previous logits and transform based on config flags.
+
+    Parameters
+    ----------
+    logits_b64
+        Base64-encoded raw logits from previous inference.
+    shape
+        Expected tensor shape.
+    include_previous_prediction
+        If True, return binary mask (sigmoid > 0.5).
+    include_previous_logits
+        If True, return raw logits.
+
+    Returns
+    -------
+    torch.Tensor | None
+        Transformed tensor for channel 1, or None if both flags are False.
     """
-    if not logits_b64:
-        return None
-    try:
-        logits_bytes = base64.b64decode(logits_b64)
-        if len(logits_bytes) // 4 != shape[0] * shape[1] * shape[2]:
+    if not logits_b64 or not (include_previous_prediction or include_previous_logits):
             return None
-        logits = torch.from_numpy(
-            np.frombuffer(logits_bytes, dtype=np.float32).copy().reshape(shape)
-        )
-        return torch.sigmoid(logits)
-    except Exception:
+
+    logits_bytes = base64.b64decode(logits_b64)
+    if len(logits_bytes) // 4 != np.prod(shape):
         return None
+
+    logits = torch.from_numpy(np.frombuffer(logits_bytes, dtype=np.float32).copy().reshape(shape))
+
+    if include_previous_logits:
+        return logits
+    elif include_previous_prediction:
+        return (torch.sigmoid(logits) > 0.5).float()
 
 
 def load_model_config(config_path: Path) -> dict[str, Any]:
@@ -521,9 +540,20 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
     input_tensor[0, 2] = pos_mask
     input_tensor[0, 3] = neg_mask
 
-    prev_mask = decode_previous_mask(logits_b64=request.previous_logits, shape=volume_tensor.shape)
-    if prev_mask is not None:
-        input_tensor[0, 4] = prev_mask
+    # Load config to determine how to handle previous prediction
+    config_file = model_dir / 'config.yml'
+    config = load_model_config(config_file) if config_file.exists() else {}
+    prompts_config = config.get('prompts', {})
+
+    prev_pred = decode_previous_prediction(
+        logits_b64=request.previous_logits,
+        shape=volume_tensor.shape,
+        include_previous_prediction=prompts_config.get('include_previous_prediction', False),
+        include_previous_logits=prompts_config.get('include_previous_logits', False),
+    )
+
+    if prev_pred is not None:
+        input_tensor[0, 1] = prev_pred
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_model(module_file, checkpoint_file, device)
