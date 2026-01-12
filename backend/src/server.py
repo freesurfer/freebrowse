@@ -5,6 +5,7 @@ import json
 import mimetypes
 import logging
 import tempfile
+from dataclasses import dataclass, field
 from typing import Union, List, Tuple, Any
 import uuid
 import base64
@@ -78,6 +79,21 @@ class ScribblePrompt3dInferenceRequest(BaseModel):
     affine: Union[List[float], None] = None
 
 app = FastAPI()
+
+
+@dataclass
+class SessionState:
+    """State for an active segmentation session."""
+    volume_tensor: torch.Tensor
+    affine_ras: np.ndarray
+    ras_dims: Tuple[int, int, int]
+    shape_before_pad: Tuple[int, int, int]
+    positive_clicks: list[int] = field(default_factory=list)
+    negative_clicks: list[int] = field(default_factory=list)
+
+
+# Active sessions keyed by session_id
+sessions: dict[str, SessionState] = {}
 
 # Define API routes BEFORE static file mounts to prevent catch-all behavior
 @app.get("/nvd")
@@ -416,62 +432,88 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
     Parameters
     ----------
     request: ScribblePrompt3dInferenceRequest
-        - volume_data: raw voxels in file order (as stored in NIfTI)
+        - volume_data: raw voxels in file order (required on first call, optional after)
         - niivue_dims: dimensions in file order
-        - affine: file-order affine from NIfTI header
+        - affine: file-order affine from NIfTI header (required on first call)
         - clicks: flat indices in RAS order (from NiiVue's drawBitmap)
+        - session_id: used to store preprocessed volume data for iterative prompting
 
     Notes
     -----
-    This backend reorients volume to RAS using nibabel so clicks align with voxels.
-    Output mask is in RAS order with RAS affine.
+    On first call, volume_data and affine are required. The preprocessed volume is stored in RAM
+    by session_id. On subsequent calls with the same session_id, volume_data can be omitted
+    to reuse the stored volume data.
     """
     models_path = Path(models_dir)
     model_dir = models_path / request.model_name
     module_file = model_dir / 'model.py'
     checkpoint_file = model_dir / 'weights.pt'
 
-    if request.volume_data is None:
-        raise HTTPException(status_code=400, detail='Inference requires volume_data')
-    if request.affine is None:
-        raise HTTPException(status_code=400, detail='Inference requires affine')
+    session = sessions.get(request.session_id)
 
-    # Decode raw float 32, file order voxel data from base64
-    volume_bytes = base64.b64decode(request.volume_data)
-    volume_array = np.frombuffer(volume_bytes, dtype=np.float32)
+    if request.volume_data is not None:
+        if request.affine is None:
+            raise HTTPException(status_code=400, detail='Inference requires affine with volume_data')
 
-    # Reshape to 3D using file order dims from NiiVue
-    # TODO: Validate dimensions match data length
+        # Decode raw float 32, file order voxel data from base64
+        volume_bytes = base64.b64decode(request.volume_data)
+        volume_array = np.frombuffer(volume_bytes, dtype=np.float32)
 
-    # Use Fortran order b/c of Niivue's internal convention of `x + y*nx + z*nx*ny` indexing
-    volume_file_order = volume_array.copy().reshape(tuple(request.niivue_dims), order='F')
+        # Use Fortran order b/c of Niivue's internal convention of `x + y*nx + z*nx*ny` indexing
+        volume_file_order = volume_array.copy().reshape(tuple(request.niivue_dims), order='F')
 
-    # 16 floats row-major -> 4x4 matrix
-    file_affine = np.array(request.affine).reshape(4, 4)
+        # 16 floats row-major -> 4x4 matrix
+        file_affine = np.array(request.affine).reshape(4, 4)
 
-    # Reorient volume to RAS with nibabel (matches NiiVue display and click indexing orientation)
-    img_file_order = nib.Nifti1Image(volume_file_order, file_affine)
-    img_ras = nib.as_closest_canonical(img_file_order)
-    volume_ras = img_ras.get_fdata().astype(np.float32)
-    affine_ras = img_ras.affine
+        # Reorient volume to RAS with nib (matches NiiVue display and click indexing orientation)
+        img_file_order = nib.Nifti1Image(volume_file_order, file_affine)
+        img_ras = nib.as_closest_canonical(img_file_order)
+        volume_ras = img_ras.get_fdata().astype(np.float32)
+        affine_ras = img_ras.affine
 
-    # Now volume_ras and clicks are both in RAS order
-    ras_dims = volume_ras.shape
-    volume_tensor = torch.from_numpy(volume_ras).float()
+        # Now volume_ras and clicks are both in RAS order
+        ras_dims = volume_ras.shape
+        volume_tensor = torch.from_numpy(volume_ras).float()
 
-    # Preprocess the data for inference
-    vmin, vmax = volume_tensor.min(), volume_tensor.max()
-    volume_tensor = (volume_tensor - vmin) / (vmax - vmin)
+        # Preprocess the data for inference
+        vmin, vmax = volume_tensor.min(), volume_tensor.max()
+        volume_tensor = (volume_tensor - vmin) / (vmax - vmin)
 
-    # Save shape before padding for later cropping
-    volume_shape_before_pad = volume_tensor.shape
-    volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=16)
+        # Save shape before padding for later cropping
+        shape_before_pad = volume_tensor.shape
+        volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=16)
 
-    # Clicks are in RAS order, use RAS dims
-    pos_mask = clicks_to_mask(clicks=request.positive_clicks, original_shape=ras_dims)
+        # Store session state
+        session = SessionState(
+            volume_tensor=volume_tensor,
+            affine_ras=affine_ras,
+            ras_dims=ras_dims,
+            shape_before_pad=shape_before_pad,
+        )
+        sessions[request.session_id] = session
+
+    elif session is not None:
+        # Use stored volume data
+        volume_tensor = session.volume_tensor
+        affine_ras = session.affine_ras
+        ras_dims = session.ras_dims
+        shape_before_pad = session.shape_before_pad
+
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail='First inference request requires volume_data and affine'
+        )
+
+    # Accumulate clicks from this request
+    session.positive_clicks.extend(request.positive_clicks)
+    session.negative_clicks.extend(request.negative_clicks)
+
+    # Use accumulated clicks for masks
+    pos_mask = clicks_to_mask(clicks=session.positive_clicks, original_shape=ras_dims)
     pos_mask = pad_to_multiple(tensor=pos_mask, multiple=16)
 
-    neg_mask = clicks_to_mask(clicks=request.negative_clicks, original_shape=ras_dims)
+    neg_mask = clicks_to_mask(clicks=session.negative_clicks, original_shape=ras_dims)
     neg_mask = pad_to_multiple(tensor=neg_mask, multiple=16)
 
     input_tensor = torch.zeros((1, 5, *volume_tensor.shape), dtype=torch.float32)
@@ -490,11 +532,7 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
         output = model(input_tensor.to(device))
         logits = output.squeeze().cpu()
 
-    logits = logits[
-        :volume_shape_before_pad[0],
-        :volume_shape_before_pad[1],
-        :volume_shape_before_pad[2]
-    ]
+    logits = logits[:shape_before_pad[0], :shape_before_pad[1], :shape_before_pad[2]]
 
     mask = (logits.sigmoid() > 0.5).to(torch.uint8)
     mask = mask.cpu().numpy()
