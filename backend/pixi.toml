@@ -43,3 +43,7 @@ pytorch = ">=2.0"
 nibabel = ">=5.0"
 numpy = ">=1.24"
 monai = ">=1.3"
+pyyaml = ">=6.0"
+
+[pypi-dependencies]
+neurite = { git = "https://github.com/adalca/neurite.git" }

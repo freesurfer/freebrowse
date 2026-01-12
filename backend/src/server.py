@@ -5,11 +5,12 @@ import json
 import mimetypes
 import logging
 import tempfile
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Any
 import uuid
 import base64
 import gzip
 import torch
+import yaml
 import numpy as np
 from pathlib import Path
 
@@ -121,31 +122,45 @@ def list_imaging_files():
 @app.get('/available_seg_models')
 def list_models():
     """
-    List available trained PyTorch models in `MODELS_DIR`
+    List available PyTorch models in `MODELS_DIR`.
 
-    A valid model consists of:
-        1. A `.py` file containing the model class/definition
-        2. A `.pt` file containing the `state_dict`
+    Each model is represented by a subdirectory containing:
+        - model.py: Model class definition (must have `SegModel` class)
+        - weights.pt: PyTorch state_dict checkpoint
+        - config.yml: (optional) Model configuration
 
     Returns
     -------
-    List[str]
-        List of model names (without extensions) that have both `.py` and `.pt` files.
+    list[dict]
+        List of model metadata dicts with keys: name, model_module_path, checkpoint_path,
+        config_path (if exists), config (parsed yaml if exists).
     """
     models_path = Path(models_dir)
     models = []
 
-    # Find python files/model definitions that also have checkpoints
-    for py_path in models_path.glob('*.py'):
-        model_name = py_path.stem
-        pt_path = models_path / f'{model_name}.pt'
+    for model_dir in models_path.iterdir():
+        if not model_dir.is_dir():
+            continue
 
-        if pt_path.exists():
-            models.append({
-                'name': model_name,
-                'model_module_path': str(py_path),
-                'checkpoint_path': str(pt_path)
-            })
+        model_file = model_dir / 'model.py'
+        weights_file = model_dir / 'weights.pt'
+
+        # Model must have both!
+        if not model_file.exists() or not weights_file.exists():
+            continue
+
+        model_info = {
+            'name': model_dir.name,
+            'model_module_path': str(model_file),
+            'checkpoint_path': str(weights_file),
+        }
+
+        config_file = model_dir / 'config.yml'
+        if config_file.exists():
+            model_info['config_path'] = str(config_file)
+            model_info['config'] = load_model_config(config_file)
+
+        models.append(model_info)
 
     return sorted(models, key=lambda x: x['name'])
 
@@ -324,6 +339,24 @@ def decode_previous_mask(
         return None
 
 
+def load_model_config(config_path: Path) -> dict[str, Any]:
+    """
+    Load model configuration from a YAML file.
+
+    Parameters
+    ----------
+    config_path
+        Path to the config.yml file.
+
+    Returns
+    -------
+    dict[str, Any]
+        Parsed configuration dictionary.
+    """
+    with open(config_path, 'r') as f:
+        return yaml.safe_load(f)
+
+
 def load_model_class(module_path: Path):
     """
     Load the model class definition from its python file.
@@ -394,8 +427,9 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
     Output mask is in RAS order with RAS affine.
     """
     models_path = Path(models_dir)
-    module_file = models_path / f"{request.model_name}.py"
-    checkpoint_file = models_path / f"{request.model_name}.pt"
+    model_dir = models_path / request.model_name
+    module_file = model_dir / 'model.py'
+    checkpoint_file = model_dir / 'weights.pt'
 
     if request.volume_data is None:
         raise HTTPException(status_code=400, detail='Inference requires volume_data')
