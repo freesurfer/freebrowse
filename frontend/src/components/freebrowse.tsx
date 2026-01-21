@@ -67,6 +67,8 @@ type ImageDetails = {
   opacity: number;
   contrastMin: number;
   contrastMax: number;
+  frame4D: number;
+  nFrame4D: number;
 };
 
 type SurfaceDetails = {
@@ -684,6 +686,8 @@ export default function FreeBrowse() {
         opacity: vol.opacity,
         contrastMin: vol.cal_min ?? 0,
         contrastMax: vol.cal_max ?? 100,
+        frame4D: vol.frame4D ?? 0,
+        nFrame4D: vol.nFrame4D ?? 1,
       }));
       setImages(loadedImages);
 
@@ -948,6 +952,29 @@ export default function FreeBrowse() {
       }
     },
     [currentImageIndex],
+  );
+
+  const handleFrameChange = useCallback(
+    (newFrame: number) => {
+      if (
+        currentImageIndex !== null &&
+        nvRef.current &&
+        images[currentImageIndex]
+      ) {
+        const currentImageId = images[currentImageIndex].id;
+        nvRef.current.setFrame4D(currentImageId, newFrame);
+
+        // Update the images state to reflect the new frame
+        setImages((prevImages) =>
+          prevImages.map((img, index) =>
+            index === currentImageIndex
+              ? { ...img, frame4D: newFrame }
+              : img,
+          ),
+        );
+      }
+    },
+    [currentImageIndex, images],
   );
 
   const handleContrastMinChange = useCallback(
@@ -2343,6 +2370,16 @@ export default function FreeBrowse() {
                   <ScrollArea className="flex-1 min-h-0">
                     {currentImageIndex != null ? (
                       <div className="grid gap-4 p-4 pb-20">
+                        {(images[currentImageIndex]?.nFrame4D || 1) > 1 && (
+                          <LabeledSliderWithInput
+                            label="Frame"
+                            value={images[currentImageIndex]?.frame4D || 0}
+                            onValueChange={handleFrameChange}
+                            min={0}
+                            max={(images[currentImageIndex]?.nFrame4D || 1) - 1}
+                            step={1}
+                          />
+                        )}
                         <LabeledSliderWithInput
                           label="Opacity"
                           value={images[currentImageIndex]?.opacity || 1}
