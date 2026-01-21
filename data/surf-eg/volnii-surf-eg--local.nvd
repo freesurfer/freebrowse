@@ -19,11 +19,13 @@
   "meshes": [
     {
       "url": "data/surf-eg/lh.white",
+      "name": "lh.white",
       "rgba255": [255, 255, 0, 255],
       "meshShaderIndex": 14
     },
     {
       "url": "data/surf-eg/rh.white",
+      "name": "rh.white",
       "rgba255": [255, 255, 0, 255],
       "meshShaderIndex": 14
     }
