@@ -15,6 +15,7 @@ import {
   Pencil,
   FileText,
   Info,
+  Box,
   Brain,
   Database,
   Undo,
@@ -1850,7 +1851,7 @@ export default function FreeBrowse() {
                   value="sceneDetails"
                   className="data-[state=active]:bg-muted"
                 >
-                  <Info className="h-4 w-4 mr-2" />
+                  <Box className="h-4 w-4 mr-2" />
                 </TabsTrigger>
                 <TabsTrigger
                   value="drawing"
@@ -1912,7 +1913,7 @@ export default function FreeBrowse() {
 
               <TabsContent value="sceneDetails" className="flex-1 min-h-0 p-0">
                 <div className="border-b px-4 py-3">
-                  <h2 className="text-lg font-semibold">Scene Details</h2>
+                  <h2 className="text-lg font-semibold">Volumetric Details</h2>
                   <p className="text-sm text-muted-foreground">
                     Manage volumes and adjust properties
                   </p>
