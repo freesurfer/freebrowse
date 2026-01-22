@@ -682,7 +682,7 @@ export default function FreeBrowse() {
     if (nv) {
       const loadedImages = nv.volumes.map((vol, index) => {
         // NiiVue issue: global_min/global_max are calculated from only frame 0,
-        // not all frames. For 4D volumes, use 65535 as max to allow full range.
+        // not all frames. For 4D volumes, use 150000 as max fornow.
         // See: https://github.com/niivue/niivue/issues/1521
         const is4D = vol.nFrame4D && vol.nFrame4D > 1;
         return {
@@ -694,7 +694,7 @@ export default function FreeBrowse() {
           contrastMin: vol.cal_min ?? 0,
           contrastMax: vol.cal_max ?? 100,
           globalMin: vol.global_min ?? 0,
-          globalMax: is4D ? 65535 : (vol.global_max ?? 65535),
+          globalMax: is4D ? 150000 : (vol.global_max ?? 150000),
           frame4D: vol.frame4D ?? 0,
           nFrame4D: vol.nFrame4D ?? 1,
         };
