@@ -387,6 +387,42 @@ export default function FreeBrowse() {
     }
   }, []); // Empty dependency array since this should only run once on mount
 
+  // Load embedded NVD data (for self-contained HTML files)
+  useEffect(() => {
+    const handleEmbeddedNvd = async (event: CustomEvent) => {
+      if (!event.detail || !nvRef.current) return;
+
+      // Prevent double-loading (both bootstrap and React may dispatch the event)
+      if ((window as any).__EMBEDDED_NVD_LOADED__) return;
+      (window as any).__EMBEDDED_NVD_LOADED__ = true;
+
+      console.log('Loading embedded NVD data');
+      setShowUploader(false);
+
+      // Wait for canvas to be ready
+      let retries = 0;
+      while (!nvRef.current.canvas && retries < 20) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries++;
+      }
+
+      if (nvRef.current.canvas) {
+        await loadNvdData(event.detail);
+      }
+    };
+
+    window.addEventListener('loadEmbeddedNvd', handleEmbeddedNvd as unknown as EventListener);
+
+    // Check if data was loaded before React mounted
+    if ((window as any).__EMBEDDED_NVD_DATA__ && !(window as any).__EMBEDDED_NVD_LOADED__) {
+      window.dispatchEvent(new CustomEvent('loadEmbeddedNvd', {
+        detail: (window as any).__EMBEDDED_NVD_DATA__
+      }));
+    }
+
+    return () => window.removeEventListener('loadEmbeddedNvd', handleEmbeddedNvd as unknown as EventListener);
+  }, []);
+
   // Helper function to load NVD data (extracted from handleNvdFileSelect)
   const loadNvdData = async (jsonData: any) => {
     if (!nvRef.current) return;
