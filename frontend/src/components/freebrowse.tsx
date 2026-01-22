@@ -67,6 +67,8 @@ type ImageDetails = {
   opacity: number;
   contrastMin: number;
   contrastMax: number;
+  globalMin: number;
+  globalMax: number;
   frame4D: number;
   nFrame4D: number;
 };
@@ -217,7 +219,7 @@ export default function FreeBrowse() {
         const k = Math.round(voxel[2]);
 
         // Get the value at this voxel
-        const value = volume.getValue(i, j, k);
+        const value = volume.getValue(i, j, k, volume.frame4D);
 
         return {
           name: volume.name || `Volume ${index + 1}`,
@@ -678,17 +680,25 @@ export default function FreeBrowse() {
   const updateImageDetails = () => {
     const nv = nvRef.current;
     if (nv) {
-      const loadedImages = nv.volumes.map((vol, index) => ({
-        id: vol.id,
-        name: vol.name || `Volume ${index + 1}`,
-        visible: vol.opacity > 0,
-        colormap: vol.colormap,
-        opacity: vol.opacity,
-        contrastMin: vol.cal_min ?? 0,
-        contrastMax: vol.cal_max ?? 100,
-        frame4D: vol.frame4D ?? 0,
-        nFrame4D: vol.nFrame4D ?? 1,
-      }));
+      const loadedImages = nv.volumes.map((vol, index) => {
+        // NiiVue issue: global_min/global_max are calculated from only frame 0,
+        // not all frames. For 4D volumes, use 65535 as max to allow full range.
+        // See: https://github.com/niivue/niivue/issues/1521
+        const is4D = vol.nFrame4D && vol.nFrame4D > 1;
+        return {
+          id: vol.id,
+          name: vol.name || `Volume ${index + 1}`,
+          visible: vol.opacity > 0,
+          colormap: vol.colormap,
+          opacity: vol.opacity,
+          contrastMin: vol.cal_min ?? 0,
+          contrastMax: vol.cal_max ?? 100,
+          globalMin: vol.global_min ?? 0,
+          globalMax: is4D ? 65535 : (vol.global_max ?? 65535),
+          frame4D: vol.frame4D ?? 0,
+          nFrame4D: vol.nFrame4D ?? 1,
+        };
+      });
       setImages(loadedImages);
 
       console.log("updateImageDetails() loadedImages:", loadedImages);
@@ -2392,8 +2402,8 @@ export default function FreeBrowse() {
                           label="Contrast Min"
                           value={images[currentImageIndex]?.contrastMin || 0}
                           onValueChange={handleContrastMinChange}
-                          min={0}
-                          max={255}
+                          min={images[currentImageIndex]?.globalMin ?? 0}
+                          max={images[currentImageIndex]?.globalMax ?? 255}
                           step={0.1}
                           decimalPlaces={1}
                         />
@@ -2401,8 +2411,8 @@ export default function FreeBrowse() {
                           label="Contrast Max"
                           value={images[currentImageIndex]?.contrastMax || 100}
                           onValueChange={handleContrastMaxChange}
-                          min={0}
-                          max={255}
+                          min={images[currentImageIndex]?.globalMin ?? 0}
+                          max={images[currentImageIndex]?.globalMax ?? 255}
                           step={0.1}
                           decimalPlaces={1}
                         />
