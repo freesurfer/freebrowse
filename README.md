@@ -96,7 +96,7 @@ is compatible with the `file://` protocol.  User's can use this to view local
 imaging data or self-contained niivue documents.  The latest version of the
 standalone html file is available at
 
-https://freesurfer.github.io/freebrowse/downloads/freebrowse-<version>.html
+`https://freesurfer.github.io/freebrowse/downloads/freebrowse-<version>.html`
 
 Where `<version>` is the [current version of freebrowse](https://github.com/freesurfer/freebrowse/blob/main/frontend/package.json#L4)
 
