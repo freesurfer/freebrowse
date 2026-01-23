@@ -1,11 +1,12 @@
 {
   "name": "@freebrowse/frontend",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:singlefile": "tsc -b && vite build --config vite.config.singlefile.ts && node scripts/rename-singlefile.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -43,6 +44,7 @@
     "tw-animate-css": "^1.3.3",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.11.0",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "vite-plugin-singlefile": "^2.3.0"
   }
 }

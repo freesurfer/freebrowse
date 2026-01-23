@@ -1,9 +1,9 @@
 "use client"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Layers, Layers3, SplitSquareVertical, Columns3, Grid2X2, Box } from "lucide-react"
-import axialIcon from "/assets/images/axialSlice24.png";
-import coronalIcon from "/assets/images/coronalSlice24.png";
-import sagittalIcon from "/assets/images/sagittalSlice24.png";
+import axialIcon from "@/assets/images/axialSlice24.png";
+import coronalIcon from "@/assets/images/coronalSlice24.png";
+import sagittalIcon from "@/assets/images/sagittalSlice24.png";
 
 export type ViewMode = "axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render"
 

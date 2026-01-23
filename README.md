@@ -83,6 +83,23 @@ VITE_SERVERLESS=true npm run build
 This creates a static build in `frontend/dist/` that can be deployed to GitHub
 Pages or any static file host.
 
+To build a single html file that can be distributed alongside output of
+processing pipelines:
+
+```bash
+cd frontend
+npm run build:singlefile
+```
+
+This creates a single standalone html file in `frontend/dist-singlefile/` that 
+is compatible with the `file://` protocol.  User's can use this to view local
+imaging data or self-contained niivue documents.  The latest version of the
+standalone html file is available at
+
+https://freesurfer.github.io/freebrowse/downloads/freebrowse-<version>.html
+
+Where `<version>` is the [current version of freebrowse](https://github.com/freesurfer/freebrowse/blob/main/frontend/package.json#L4)
+
 ## Dev
 
 ### Run the backend in development mode
