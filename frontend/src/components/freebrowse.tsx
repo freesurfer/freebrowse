@@ -22,6 +22,7 @@ import {
   Sun,
   Loader2,
   Zap,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -173,6 +174,8 @@ export default function FreeBrowse() {
     clickMode: "positive" as "positive" | "negative",  // Current click type
     sessionId: null as string | null,  // Session ID for server-side volume caching
   });
+
+  const [voxelPromptText, setVoxelPromptText] = useState("");
 
   // Debounced GL update to prevent excessive calls
   const debouncedGLUpdate = useCallback(() => {
@@ -1799,6 +1802,19 @@ export default function FreeBrowse() {
     return await response.json();
   }
 
+  async function sendVoxelPrompt(): Promise<void> {
+    if (!voxelPromptText.trim()) return;
+    const sessionId = scribblePrompt3dState.sessionId ?? generateSessionId();
+    await fetch(
+      "/voxelprompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId, text: voxelPromptText }),
+      }
+    );
+    setVoxelPromptText("");
+  }
+
   function decodeBase64ToBytes(base64: string): Uint8Array {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
@@ -2366,6 +2382,21 @@ export default function FreeBrowse() {
                   <p className="text-sm text-muted-foreground">
                     Edit annotations
                   </p>
+                </div>
+                <div className="border-b px-4 py-3">
+                  <Label className="text-sm font-medium">VoxelPrompt</Label>
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      type="text"
+                      value={voxelPromptText}
+                      onChange={(e) => setVoxelPromptText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && sendVoxelPrompt()}
+                      placeholder="Enter prompt..."
+                    />
+                    <Button size="sm" onClick={sendVoxelPrompt}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <ScrollArea className="h-full">
                   <div className="p-4 space-y-4">

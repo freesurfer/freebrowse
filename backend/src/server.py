@@ -78,6 +78,10 @@ class ScribblePrompt3dInferenceRequest(BaseModel):
     volume_data: Union[str, None] = None
     affine: Union[List[float], None] = None
 
+class VoxelPromptRequest(BaseModel):
+    session_id: str
+    text: str
+
 app = FastAPI()
 
 
@@ -573,6 +577,13 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
         "logits": base64.b64encode(logits.numpy().astype(np.float32).tobytes()).decode("utf-8"),
         "logits_shape": list(volume_tensor.shape),
     }
+
+@app.post('/voxelprompt')
+def voxelprompt(request: VoxelPromptRequest):
+    """Receive text prompt from frontend VoxelPrompt textbox."""
+    print(f"VoxelPrompt request: session_id={request.session_id}, text={request.text}")
+    return {"status": "ok"}
+
 
 # Only mount data directory if not in serverless mode
 if not serverless_mode:
