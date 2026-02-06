@@ -702,6 +702,7 @@ def run_scribbleprompt3d_inference(request: InferenceRequest):
         "logits_shape": list(session.volume_tensor.shape),
     }
 
+
 @app.post('/voxelprompt')
 def voxelprompt(request: VoxelPromptRequest):
     """Run VoxelPrompt inference with text + clicks + volume."""
@@ -716,6 +717,133 @@ def voxelprompt(request: VoxelPromptRequest):
     return {
         "success": True,
         "mask_nifti": encode_nifti(create_mask_nifti(mask, session.affine_ras)),
+    }
+
+
+@app.post("/rating/init")
+def rating_init(request: RatingInitRequest):
+    """Initialize or resume a rating session."""
+    if not master_json or not Path(master_json).exists():
+        raise HTTPException(
+            status_code=500,
+            detail="MASTER_JSON not configured or file not found",
+        )
+
+    session_id = make_rating_session_id(request.name, request.seed)
+    existing = load_rating_session(session_id)
+
+    if existing is not None:
+        logger.info(
+            f"Resuming rating session: {session_id} at index "
+            f"{existing.current_index}"
+        )
+
+        return {
+            "session_id": session_id,
+            "current_index": existing.current_index,
+            "total_volumes": existing.total_volumes,
+        }
+
+    paths = load_shuffled_paths(request.seed)
+    session = RatingSession(
+        name=request.name,
+        seed=request.seed,
+        current_index=0,
+        total_volumes=len(paths),
+    )
+
+    save_rating_session(session_id, session)
+    logger.info(
+        f"Created rating session: {session_id} with "
+        f"{len(paths)} volumes"
+    )
+
+    return {
+        "session_id": session_id,
+        "current_index": 0,
+        "total_volumes": len(paths),
+    }
+
+
+@app.get("/rating/volume")
+def rating_volume(session_id: str):
+    """Return the current volume as base64-encoded gzipped NIfTI."""
+    session = load_rating_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    paths = load_shuffled_paths(session.seed)
+
+    if session.current_index >= len(paths):
+        raise HTTPException(
+            status_code=400,
+            detail="All volumes have been rated"
+        )
+
+    nifti_path = paths[session.current_index]
+    if not Path(nifti_path).exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"NIfTI file not found: {nifti_path}"
+        )
+
+    img = nib.load(nifti_path)
+    return {
+        "volume_nifti": encode_nifti(img),
+        "path": nifti_path,
+        "current_index": session.current_index,
+        "total_volumes": session.total_volumes,
+    }
+
+
+@app.post("/rating/rate")
+def rating_rate(request: RatingSubmitRequest):
+    """Record a rating for the current volume. Every click is recorded."""
+    session = load_rating_session(request.session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if request.rating < 1 or request.rating > 5:
+        raise HTTPException(
+            status_code=400,
+            detail="Rating must be between 1 and 5"
+        )
+
+    paths = load_shuffled_paths(session.seed)
+    if session.current_index >= len(paths):
+        raise HTTPException(
+            status_code=400,
+            detail="No current volume to rate"
+        )
+
+    current_path = paths[session.current_index]
+    append_rating_to_csv(request.session_id, current_path, request.rating)
+    logger.info(
+        f"Rating recorded: session={request.session_id}, "
+        f"path={current_path}, rating={request.rating}"
+    )
+    return {"success": True}
+
+
+@app.post("/rating/next")
+def rating_next(request: RatingNextRequest):
+    """Advance to the next volume. Does not return volume data.
+
+    Volume data is fetched separately via GET /rating/volume. This keeps
+    mutation (advancing) separate from reading (fetching NIfTI data), so
+    the client has a single code path for loading volumes.
+    """
+    session = load_rating_session(request.session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    session.current_index += 1
+    save_rating_session(request.session_id, session)
+
+    return {
+        "done": session.current_index >= session.total_volumes,
+        "current_index": session.current_index,
+        "total_volumes": session.total_volumes,
     }
 
 
