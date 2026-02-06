@@ -2003,6 +2003,34 @@ export default function FreeBrowse() {
       }));
     }
   }
+
+  async function submitRating(rating: number): Promise<void> {
+    if (!ratingState.sessionId) return;
+
+    setRatingState((prev) => ({ ...prev, selectedRating: rating }));
+
+    try {
+      const response = await fetch("/rating/rate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({session_id: ratingState.sessionId, rating}),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to submit rating");
+      }
+    } catch (err) {
+      setRatingState((prev) => ({...prev,error: (err as Error).message}));
+    }
+  }
+
+
+  /**
+   * Advance index via POST to /rating/next, then fetch volume via
+   * loadRatingVolume (GET from /rating/volume). Mutation and data-fetching are
+   * separate endpoints.
+   */
   async function advanceToNextVolume(): Promise<void> {
     if (!ratingState.sessionId) return;
 
