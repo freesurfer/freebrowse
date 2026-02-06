@@ -2,10 +2,14 @@ import os
 import sys
 import importlib
 import json
+import csv
+import random
 import mimetypes
 import logging
+from datetime import datetime, timezone
 import tempfile
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Union, List, Tuple, Any
 import uuid
 import base64
@@ -37,6 +41,7 @@ models_dir = os.getenv('MODELS_DIR')  # Contains trained PyTorch models
 imaging_extensions_str = os.getenv('IMAGING_EXTENSIONS', '["*.nii", "*.nii.gz"]')
 imaging_extensions = json.loads(imaging_extensions_str)
 serverless_mode = os.getenv('SERVERLESS_MODE', 'false').lower() == 'true'
+master_json = os.getenv('MASTER_JSON')
 
 logger.info(f"NIIVUE_BUILD_DIR: {static_dir}")
 logger.info(f"DATA_DIR: {data_dir}")
@@ -44,6 +49,7 @@ logger.info(f"SCENE_SCHEMA_ID: {scene_schema_id}")
 logger.info(f"MODELS_DIR: {models_dir}")
 logger.info(f"IMAGING_EXTENSIONS: {imaging_extensions}")
 logger.info(f"SERVERLESS_MODE: {serverless_mode}")
+logger.info(f"MASTER_JSON: {master_json}")
 
 # Register the MIME type so that .gz files (or .nii.gz files) are served correctly.
 mimetypes.add_type("application/gzip", ".nii.gz", strict=True)
