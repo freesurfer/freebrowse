@@ -32,7 +32,9 @@ export default defineConfig({
       '/nii': backendUrl,
       '/imaging': backendUrl,
       '/available_seg_models': backendUrl,
-      '/scribbleprompt3d_inference': backendUrl
+      '/scribbleprompt3d_inference': backendUrl,
+      '/voxelprompt': backendUrl,
+      '/rating': backendUrl
     }
   }
 })
