@@ -2318,6 +2318,14 @@ export default function FreeBrowse() {
                 >
                   <Pencil className="h-4 w-4 mr-2" />
                 </TabsTrigger>
+                {!serverlessMode && (
+                  <TabsTrigger
+                    value="rating"
+                    className="data-[state=active]:bg-muted"
+                  >
+                    <Star className="h-4 w-4 mr-2" />
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
@@ -2898,6 +2906,151 @@ export default function FreeBrowse() {
                     )}
                   </div>
                 </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="rating" className="flex-1 min-h-0 p-0">
+                {!serverlessMode && (
+                  <>
+                    <div className="border-b px-4 py-3">
+                      <h2 className="text-lg font-semibold">Rating</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Rate neuroimaging volumes
+                      </p>
+                    </div>
+                    <ScrollArea className="h-full">
+                      <div className="p-4 space-y-4">
+                        {!ratingState.sessionId ? (
+                          <>
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">
+                                Name
+                              </Label>
+                              <Input
+                                type="text"
+                                value={ratingState.name}
+                                onChange={(e) =>
+                                  setRatingState((prev) => ({
+                                    ...prev,
+                                    name: e.target.value,
+                                  }))
+                                }
+                                placeholder="Your name"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">
+                                Seed
+                              </Label>
+                              <Input
+                                type="number"
+                                value={ratingState.seed}
+                                onChange={(e) =>
+                                  setRatingState((prev) => ({
+                                    ...prev,
+                                    seed: e.target.value,
+                                  }))
+                                }
+                                onKeyDown={(e) =>
+                                  e.key === "Enter" && initRatingSession()
+                                }
+                                placeholder="Random seed (integer)"
+                              />
+                            </div>
+                            <Button
+                              className="w-full"
+                              onClick={initRatingSession}
+                              disabled={ratingState.loading}
+                            >
+                              {ratingState.loading && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Start Session
+                            </Button>
+                          </>
+                        ) : ratingState.done ? (
+                          <div className="text-center text-muted-foreground py-8">
+                            <Star className="h-8 w-8 mx-auto mb-2" />
+                            <p className="font-medium">All volumes rated!</p>
+                            <p className="text-sm">
+                              {ratingState.totalVolumes} /{" "}
+                              {ratingState.totalVolumes} complete
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-sm text-muted-foreground">
+                              Volume {ratingState.currentIndex + 1} of{" "}
+                              {ratingState.totalVolumes}
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">
+                                Rating
+                              </Label>
+                              <div className="grid grid-cols-5 gap-2">
+                                {Array.from({ length: 5 }, (_, i) => i + 1).map(
+                                  (n) => (
+                                    <Button
+                                      key={n}
+                                      variant={
+                                        ratingState.selectedRating === n
+                                          ? "default"
+                                          : "outline"
+                                      }
+                                      size="sm"
+                                      onClick={() => submitRating(n)}
+                                      disabled={ratingState.loading}
+                                    >
+                                      {n}
+                                    </Button>
+                                  ),
+                                )}
+                              </div>
+                            </div>
+
+                            <Button
+                              className="w-full"
+                              onClick={advanceToNextVolume}
+                              disabled={ratingState.loading}
+                            >
+                              {ratingState.loading && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Next Volume
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                              onClick={() =>
+                                setRatingState((prev) => ({
+                                  ...prev,
+                                  sessionId: null,
+                                  currentIndex: 0,
+                                  totalVolumes: 0,
+                                  currentPath: "",
+                                  selectedRating: null,
+                                  loading: false,
+                                  done: false,
+                                  error: null,
+                                }))
+                              }
+                            >
+                              End Session
+                            </Button>
+                          </>
+                        )}
+
+                        {ratingState.error && (
+                          <p className="text-sm text-destructive">
+                            {ratingState.error}
+                          </p>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </>
+                )}
               </TabsContent>
             </Tabs>
           </aside>
