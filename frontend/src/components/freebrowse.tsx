@@ -1975,6 +1975,35 @@ export default function FreeBrowse() {
     }
   }
 
+  async function loadRatingVolume(sessionId: string): Promise<void> {
+    setRatingState((prev) => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const response = await fetch(`/rating/volume?session_id=${sessionId}`);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to load volume");
+      }
+
+      const data = await response.json();
+      await loadNiftiIntoViewer(data.volume_nifti);
+
+      setRatingState((prev) => ({
+        ...prev,
+        currentPath: data.path,
+        currentIndex: data.current_index,
+        selectedRating: null,
+        loading: false,
+      }));
+    } catch (err) {
+      setRatingState((prev) => ({
+        ...prev,
+        loading: false,
+        error: (err as Error).message,
+      }));
+    }
+  }
+
   function decodeBase64ToBytes(base64: string): Uint8Array {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
