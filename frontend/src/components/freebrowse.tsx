@@ -1925,6 +1925,56 @@ export default function FreeBrowse() {
     nv.updateGLVolume();
   }
 
+  async function initRatingSession(): Promise<void> {
+    if (!ratingState.name.trim() || !ratingState.seed.trim()) {
+      setRatingState((prev) => ({ ...prev, error: "Name and seed are required" }));
+      return;
+    }
+
+    const seedNum = parseInt(ratingState.seed, 10);
+    if (isNaN(seedNum)) {
+      setRatingState((prev) => ({ ...prev, error: "Seed must be a number" }));
+      return;
+    }
+
+    setRatingState((prev) => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const response = await fetch("/rating/init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: ratingState.name.trim(), seed: seedNum }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to initialize session");
+      }
+
+      const data = await response.json();
+      const done = data.current_index >= data.total_volumes;
+
+      setRatingState((prev) => ({
+        ...prev,
+        sessionId: data.session_id,
+        currentIndex: data.current_index,
+        totalVolumes: data.total_volumes,
+        loading: false,
+        done,
+      }));
+
+      if (!done) {
+        await loadRatingVolume(data.session_id);
+      }
+    } catch (err) {
+      setRatingState((prev) => ({
+        ...prev,
+        loading: false,
+        error: (err as Error).message,
+      }));
+    }
+  }
+
   function decodeBase64ToBytes(base64: string): Uint8Array {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
