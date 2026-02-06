@@ -1,0 +1,11 @@
+name: freebrowse-jupyter
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - jupyterlab>=4.0.0,<5
+  - jupyter_server>=2.0.0,<3
+  - nodejs>=20
+  - pip
+  - pip:
+    - jupyterlab-freebrowse
