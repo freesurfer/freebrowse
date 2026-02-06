@@ -2003,6 +2003,52 @@ export default function FreeBrowse() {
       }));
     }
   }
+  async function advanceToNextVolume(): Promise<void> {
+    if (!ratingState.sessionId) return;
+
+    setRatingState((prev) => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const response = await fetch("/rating/next", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: ratingState.sessionId }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to advance");
+      }
+
+      const data = await response.json();
+
+      if (data.done) {
+        setRatingState((prev) => ({
+          ...prev,
+          done: true,
+          loading: false,
+          currentIndex: data.current_index,
+        }));
+        return;
+      }
+
+      await loadNiftiIntoViewer(data.volume_nifti);
+
+      setRatingState((prev) => ({
+        ...prev,
+        currentPath: data.path,
+        currentIndex: data.current_index,
+        selectedRating: null,
+        loading: false,
+      }));
+    } catch (err) {
+      setRatingState((prev) => ({
+        ...prev,
+        loading: false,
+        error: (err as Error).message,
+      }));
+    }
+  }
 
   function decodeBase64ToBytes(base64: string): Uint8Array {
     const binary = atob(base64);
