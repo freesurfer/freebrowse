@@ -787,11 +787,11 @@ def rating_volume(session_id: str):
             detail=f"NIfTI file not found: {nifti_path}"
         )
 
-    img = nib.load(nifti_path)
+    raw_bytes = Path(nifti_path).read_bytes()
     return {
-        "volume_nifti": encode_nifti(img),
+        "volume_nifti": base64.b64encode(raw_bytes).decode("utf-8"),
         "path": nifti_path,
-        "current_index": session.current_index,
+        "current_index": vol_index,
         "total_volumes": session.total_volumes,
     }
 
