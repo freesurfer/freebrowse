@@ -56,16 +56,16 @@ class SaveVolumeRequest(BaseModel):
     filename: str
     data: str  # base64 encoded NIfTI data
 
-class ScribblePrompt3dInferenceRequest(BaseModel):
+class InferenceRequest(BaseModel):
     """
-    Request a ScribblePrompt3d model for inference
+    Shared request fields for all inference endpoints.
 
     Attributes
     ----------
-    positive_clicks: str
-        Flat indices in RAS order using Fortran layout (idx = x + y*nx + z*nx*ny).   
-    negative_clicks: str
-        Flat indices in RAS order using Fortran layout (idx = x + y*nx + z*nx*ny).   
+    positive_clicks
+        Flat indices in RAS order using Fortran layout (idx = x + y*nx + z*nx*ny).
+    negative_clicks
+        Flat indices in RAS order using Fortran layout (idx = x + y*nx + z*nx*ny).
     volume_data
         Base64 encoded volume in voxel space.
     """
@@ -78,8 +78,7 @@ class ScribblePrompt3dInferenceRequest(BaseModel):
     volume_data: Union[str, None] = None
     affine: Union[List[float], None] = None
 
-class VoxelPromptRequest(BaseModel):
-    session_id: str
+class VoxelPromptRequest(InferenceRequest):
     text: str
 
 app = FastAPI()
