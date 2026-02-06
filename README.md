@@ -107,7 +107,7 @@ cd frontend
 npm run build:jupyter
 ```
 
-Output is in `frontend/dist-jupyter/`. See the [JupyterLab Integration](#jupyterlab-integration)
+Output is in `frontend/dist-jupyter/`. See the [Jupyter Integration](#jupyter-integration)
 section for full setup instructions.
 
 ### Single HTML file
@@ -184,22 +184,31 @@ cd frontend
 npm run build
 ```
 
-## JupyterLab Integration
+## Jupyter Integration
 
-FreeBrowse can be used as a NIfTI file viewer inside JupyterLab. Clicking a
-`.nii` or `.nii.gz` file in JupyterLab's file browser opens it in FreeBrowse in
-a new browser tab.
+FreeBrowse can be used as a NIfTI file viewer inside JupyterLab or Jupyter
+Notebook 7. Clicking a `.nii` or `.nii.gz` file in the file browser opens it in
+FreeBrowse in a new browser tab.
 
 ### Setup
 
-Create and activate a conda environment:
+Create and activate a conda environment with either JupyterLab or Notebook 7:
+
+**Option A: JupyterLab**
 
 ```bash
 conda create -n freebrowse-jupyter python=3.11 jupyterlab nodejs -c conda-forge
 conda activate freebrowse-jupyter
 ```
 
-Build the FreeBrowse frontend for JupyterLab (this also copies the built files
+**Option B: Jupyter Notebook 7**
+
+```bash
+conda create -n freebrowse-jupyter python=3.11 notebook nodejs -c conda-forge
+conda activate freebrowse-jupyter
+```
+
+Build the FreeBrowse frontend for Jupyter (this also copies the built files
 into the extension's static directory):
 
 ```bash
@@ -208,7 +217,7 @@ npm install
 npm run build:jupyter
 ```
 
-Install the JupyterLab extension (from the `jupyter/` directory):
+Install the extension (from the `jupyter/` directory):
 
 ```bash
 cd ../jupyter
@@ -219,10 +228,11 @@ pip install -e .
 
 ### Usage
 
-Start JupyterLab:
+Start JupyterLab or Notebook:
 
 ```bash
-jupyter lab
+jupyter lab       # if using JupyterLab
+jupyter notebook  # if using Notebook 7
 ```
 
 Navigate to a directory containing `.nii` or `.nii.gz` files, then either:
