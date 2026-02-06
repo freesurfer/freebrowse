@@ -1975,6 +1975,9 @@ export default function FreeBrowse() {
     }
   }
 
+  /**
+   * Single code path for loading rating volumes into the viewer.
+   */
   async function loadRatingVolume(sessionId: string): Promise<void> {
     setRatingState((prev) => ({ ...prev, loading: true, error: null }));
 
