@@ -18,9 +18,21 @@ function isNiftiFile(name: string): boolean {
   return lower.endsWith(".nii") || lower.endsWith(".nii.gz");
 }
 
+function isNvdFile(name: string): boolean {
+  return name.toLowerCase().endsWith(".nvd");
+}
+
+function isFreeBrowseFile(name: string): boolean {
+  return isNiftiFile(name) || isNvdFile(name);
+}
+
 function freebrowseUrl(filePath: string): string {
   const baseUrl = PageConfig.getBaseUrl();
-  return `${baseUrl}freebrowse/?vol=${baseUrl}files/${filePath}`;
+  const fileUrl = `${baseUrl}files/${filePath}`;
+  if (filePath.toLowerCase().endsWith(".nvd")) {
+    return `${baseUrl}freebrowse/?nvd=${fileUrl}`;
+  }
+  return `${baseUrl}freebrowse/?vol=${fileUrl}`;
 }
 
 /**
@@ -73,7 +85,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const item = browser.selectedItems().next();
         if (item.done) return false;
 
-        return isNiftiFile(item.value.name);
+        return isFreeBrowseFile(item.value.name);
       },
     });
 
@@ -96,13 +108,19 @@ const plugin: JupyterFrontEndPlugin<void> = {
       extensions: [".nii.gz"],
       fileFormat: "base64",
     });
+    app.docRegistry.addFileType({
+      name: "nvd",
+      displayName: "NiiVue Document",
+      extensions: [".nvd"],
+      fileFormat: "base64",
+    });
 
     const factory = new FreeBrowseFactory({
       name: "FreeBrowse",
       label: "FreeBrowse",
       modelName: "base64",
-      fileTypes: ["nifti", "nifti-gz"],
-      defaultFor: ["nifti", "nifti-gz"],
+      fileTypes: ["nifti", "nifti-gz", "nvd"],
+      defaultFor: ["nifti", "nifti-gz", "nvd"],
       readOnly: true,
     });
     app.docRegistry.addWidgetFactory(factory);
