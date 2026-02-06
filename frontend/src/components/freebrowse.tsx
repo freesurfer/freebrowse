@@ -1905,16 +1905,15 @@ export default function FreeBrowse() {
     });
   }
 
-  /** Load/replace nifti from data sent in response */
-  async function loadNiftiIntoViewer(niftiBase64: string): Promise<void> {
-    // Narrowing guard
-    const nv = nvRef.current;
-    if (!nv) return;
-
+  /** Decode base64 NIfTI and create an NVImage (does not touch viewer). */
+  async function decodeNiftiToNVImage(
+    niftiBase64: string,
+  ): Promise<NVImage> {
     const niftiBytes = decodeBase64ToBytes(niftiBase64);
     const blob = new Blob([niftiBytes], { type: "application/gzip" });
     const file = new File([blob], "rating_volume.nii.gz");
-    const nvimage = await NVImage.loadFromFile({ file });
+    return await NVImage.loadFromFile({ file });
+  }
 
     if (showUploader) setShowUploader(false);
 
