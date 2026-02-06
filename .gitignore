@@ -8,6 +8,7 @@
 # Build outputs
 frontend/dist/
 frontend/dist-singlefile/
+frontend/dist-jupyter/
 
 # Vite temp files
 *.timestamp-*.mjs

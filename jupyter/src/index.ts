@@ -7,80 +7,104 @@ import {
   DocumentRegistry,
   DocumentWidget,
 } from "@jupyterlab/docregistry";
+import { IFileBrowserFactory } from "@jupyterlab/filebrowser";
 import { PageConfig } from "@jupyterlab/coreutils";
 import { Widget } from "@lumino/widgets";
 
-const FACTORY = "FreeBrowse";
+const COMMAND_ID = "freebrowse:open";
 
-/**
- * Content widget that renders a NIfTI file inside a FreeBrowse iframe.
- */
-class FreeBrowseContent extends Widget {
-  constructor(context: DocumentRegistry.IContext<DocumentRegistry.IModel>) {
-    super();
-    this.addClass("jp-FreeBrowseWidget");
+function isNiftiFile(name: string): boolean {
+  const lower = name.toLowerCase();
+  return lower.endsWith(".nii") || lower.endsWith(".nii.gz");
+}
 
-    const baseUrl = PageConfig.getBaseUrl();
-    const filePath = context.path;
-
-    const iframe = document.createElement("iframe");
-    iframe.style.width = "100%";
-    iframe.style.height = "100%";
-    iframe.style.border = "none";
-    iframe.src = `${baseUrl}freebrowse/?vol=${baseUrl}files/${filePath}`;
-
-    this.node.appendChild(iframe);
-  }
+function freebrowseUrl(filePath: string): string {
+  const baseUrl = PageConfig.getBaseUrl();
+  return `${baseUrl}freebrowse/?vol=${baseUrl}files/${filePath}`;
 }
 
 /**
- * Widget factory that creates DocumentWidgets containing FreeBrowse iframes.
+ * Minimal content widget used for double-click handling.
+ * Opens FreeBrowse in a new browser tab, then auto-closes the JupyterLab tab.
  */
+class FreeBrowseRedirect extends Widget {
+  constructor(context: DocumentRegistry.IContext<DocumentRegistry.IModel>) {
+    super();
+    window.open(freebrowseUrl(context.path), "_blank");
+  }
+}
+
 class FreeBrowseFactory extends ABCWidgetFactory<
-  DocumentWidget<FreeBrowseContent>,
+  DocumentWidget<FreeBrowseRedirect>,
   DocumentRegistry.IModel
 > {
   protected createNewWidget(
     context: DocumentRegistry.IContext<DocumentRegistry.IModel>
-  ): DocumentWidget<FreeBrowseContent> {
-    const content = new FreeBrowseContent(context);
-    return new DocumentWidget({ content, context });
+  ): DocumentWidget<FreeBrowseRedirect> {
+    const content = new FreeBrowseRedirect(context);
+    const widget = new DocumentWidget({ content, context });
+    // Auto-close the JupyterLab tab since the viewer opened in a new browser tab
+    setTimeout(() => widget.close(), 500);
+    return widget;
   }
 }
 
-/**
- * JupyterLab plugin that registers FreeBrowse as a viewer for NIfTI files.
- */
 const plugin: JupyterFrontEndPlugin<void> = {
   id: "jupyterlab-freebrowse:plugin",
   autoStart: true,
-  activate: (app: JupyterFrontEnd) => {
-    // Register file types
+  requires: [IFileBrowserFactory],
+  activate: (app: JupyterFrontEnd, fileBrowserFactory: IFileBrowserFactory) => {
+    // --- Context menu: right-click "Open in FreeBrowse" ---
+    app.commands.addCommand(COMMAND_ID, {
+      label: "Open in FreeBrowse",
+      execute: () => {
+        const browser = fileBrowserFactory.tracker.currentWidget;
+        if (!browser) return;
+
+        const item = browser.selectedItems().next();
+        if (item.done) return;
+
+        window.open(freebrowseUrl(item.value.path), "_blank");
+      },
+      isVisible: () => {
+        const browser = fileBrowserFactory.tracker.currentWidget;
+        if (!browser) return false;
+
+        const item = browser.selectedItems().next();
+        if (item.done) return false;
+
+        return isNiftiFile(item.value.name);
+      },
+    });
+
+    app.contextMenu.addItem({
+      command: COMMAND_ID,
+      selector: ".jp-DirListing-item",
+      rank: 1,
+    });
+
+    // --- Double-click: register file types + widget factory ---
     app.docRegistry.addFileType({
       name: "nifti",
       displayName: "NIfTI Image",
       extensions: [".nii"],
-      mimeTypes: ["application/octet-stream"],
       fileFormat: "base64",
     });
     app.docRegistry.addFileType({
       name: "nifti-gz",
       displayName: "NIfTI Image (compressed)",
       extensions: [".nii.gz"],
-      mimeTypes: ["application/gzip"],
       fileFormat: "base64",
     });
 
-    // Register the widget factory
     const factory = new FreeBrowseFactory({
-      name: FACTORY,
+      name: "FreeBrowse",
       label: "FreeBrowse",
       modelName: "base64",
       fileTypes: ["nifti", "nifti-gz"],
       defaultFor: ["nifti", "nifti-gz"],
       readOnly: true,
     });
-
     app.docRegistry.addWidgetFactory(factory);
 
     console.log("jupyterlab-freebrowse extension activated");
