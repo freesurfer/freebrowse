@@ -488,6 +488,65 @@ def encode_nifti(nii: nib.Nifti1Image) -> str:
     return base64.b64encode(gzip.compress(nii.to_bytes())).decode("utf-8")
 
 
+def get_rating_dir() -> Path:
+    """Return the rating sessions directory, creating it if needed."""
+    rating_dir = Path(data_dir) / "rating_sessions"
+    rating_dir.mkdir(parents=True, exist_ok=True)
+    return rating_dir
+
+
+def make_rating_session_id(name: str, seed: int) -> str:
+    """
+    Deterministic session ID from name + seed. Same inputs = same session.
+    """
+    safe_name = name.strip().lower().replace(" ", "_")
+    return f"rating_{safe_name}_{seed}"
+
+
+def load_shuffled_paths(seed: int) -> list[str]:
+    """
+    Load master path list and shuffle deterministically with seed.
+    """
+    with open(master_json, "r") as f:
+        paths = [line.strip() for line in f if line.strip()]
+    rng = random.Random(seed)
+    rng.shuffle(paths)
+    return paths
+
+
+def save_rating_session(session_id: str, session: RatingSession) -> None:
+    """Persist rating session state to JSON on disk."""
+    path = get_rating_dir() / f"{session_id}.json"
+    with open(path, "w") as f:
+        json.dump({
+            "name": session.name,
+            "seed": session.seed,
+            "current_index": session.current_index,
+            "total_volumes": session.total_volumes,
+        }, f)
+
+
+def load_rating_session(session_id: str) -> RatingSession | None:
+    """Load rating session from disk, or return None if not found."""
+    path = get_rating_dir() / f"{session_id}.json"
+    if not path.exists():
+        return None
+    with open(path, "r") as f:
+        data = json.load(f)
+    return RatingSession(**data)
+
+
+def append_rating_to_csv(session_id: str, nifti_path: str, rating: int) -> None:
+    """Append a single rating row to the session CSV."""
+    csv_path = get_rating_dir() / f"{session_id}_ratings.csv"
+    file_exists = csv_path.exists()
+    with open(csv_path, "a", newline="") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["timestamp", "path", "rating"])
+        writer.writerow([datetime.now(timezone.utc).isoformat(), nifti_path, rating])
+
+
 def prepare_inference_input(
     request: InferenceRequest,
 ) -> Tuple[torch.Tensor, SessionState]:
