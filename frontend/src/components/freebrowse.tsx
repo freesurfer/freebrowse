@@ -1905,6 +1905,26 @@ export default function FreeBrowse() {
     });
   }
 
+  /** Load/replace nifti from data sent in response */
+  async function loadNiftiIntoViewer(niftiBase64: string): Promise<void> {
+    // Narrowing guard
+    const nv = nvRef.current;
+    if (!nv) return;
+
+    const niftiBytes = decodeBase64ToBytes(niftiBase64);
+    const blob = new Blob([niftiBytes], { type: "application/gzip" });
+    const file = new File([blob], "rating_volume.nii.gz");
+    const nvimage = await NVImage.loadFromFile({ file });
+
+    if (showUploader) setShowUploader(false);
+
+    while (nv.volumes.length > 0) {
+      nv.removeVolumeByIndex(0);
+    }
+    nv.addVolume(nvimage);
+    nv.updateGLVolume();
+  }
+
   function decodeBase64ToBytes(base64: string): Uint8Array {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
