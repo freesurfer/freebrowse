@@ -1915,13 +1915,55 @@ export default function FreeBrowse() {
     return await NVImage.loadFromFile({ file });
   }
 
+  /** Replace the viewer contents with a pre-decoded NVImage. */
+  function showNVImageInViewer(nvimage: NVImage): void {
+    const nv = nvRef.current;
+    if (!nv) return;
     if (showUploader) setShowUploader(false);
-
     while (nv.volumes.length > 0) {
       nv.removeVolumeByIndex(0);
     }
     nv.addVolume(nvimage);
     nv.updateGLVolume();
+  }
+
+  /** Fetch and decode a volume by index, returning the NVImage and path. */
+  async function fetchAndDecodeVolume(
+    sessionId: string,
+    index: number,
+  ): Promise<{ nvimage: NVImage; path: string }> {
+    const url = `/rating/volume?session_id=${sessionId}&index=${index}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to load volume");
+    }
+    const data = await response.json();
+    const nvimage = await decodeNiftiToNVImage(data.volume_nifti);
+    return { nvimage, path: data.path };
+  }
+
+  /** Prefetch the next PREFETCH_AHEAD volumes into the cache. */
+  const PREFETCH_AHEAD = 5;
+
+  function prefetchVolumes(
+    sessionId: string,
+    currentIndex: number,
+    totalVolumes: number,
+  ): void {
+    const preloadedVolumes = preloadedRatingVolumeRef.current;
+    for (let i = 1; i <= PREFETCH_AHEAD; i++) {
+      const idx = currentIndex + i;
+
+      // Skip volumes already preloaded or stop prefetching if at end
+      if (idx >= totalVolumes) break;
+      if (preloadedVolumes.has(idx)) continue;
+
+      // Do NOT await this -- would block thread
+      fetchAndDecodeVolume(sessionId, idx)
+        .then((result) => { preloadedRatingVolumeRef.current.set(idx, result); })
+        .catch(() => {});
+    }
   }
 
   async function initRatingSession(): Promise<void> {
