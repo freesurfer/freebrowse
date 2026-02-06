@@ -6,7 +6,6 @@ import csv
 import random
 import mimetypes
 import logging
-from datetime import datetime, timezone
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -87,6 +86,21 @@ class InferenceRequest(BaseModel):
 class VoxelPromptRequest(InferenceRequest):
     text: str
 
+
+class RatingInitRequest(BaseModel):
+    name: str
+    seed: int
+
+
+class RatingSubmitRequest(BaseModel):
+    session_id: str
+    rating: int
+
+
+class RatingNextRequest(BaseModel):
+    session_id: str
+
+
 app = FastAPI()
 
 
@@ -99,6 +113,15 @@ class SessionState:
     shape_before_pad: Tuple[int, int, int]
     positive_clicks: list[int] = field(default_factory=list)
     negative_clicks: list[int] = field(default_factory=list)
+
+
+@dataclass
+class RatingSession:
+    """State for a volume rating session. Persisted to disk as JSON."""
+    name: str
+    seed: int
+    current_index: int
+    total_volumes: int
 
 
 # Active sessions keyed by session_id
