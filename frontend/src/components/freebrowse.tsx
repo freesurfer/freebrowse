@@ -104,6 +104,8 @@ export default function FreeBrowse() {
   const nvRef = useRef<Niivue | null>(nv);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Pre-decoded volumes keyed by volume index
+  const preloadedRatingVolumeRef = useRef<Map<number, { nvimage: NVImage; path: string }>>(new Map());
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [volumeToRemove, setVolumeToRemove] = useState<number | null>(null);
   const [skipRemoveConfirmation, setSkipRemoveConfirmation] = useState(false);
@@ -1978,6 +1980,7 @@ export default function FreeBrowse() {
       return;
     }
 
+    preloadedRatingVolumeRef.current.clear();
     setRatingState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
@@ -2005,7 +2008,9 @@ export default function FreeBrowse() {
       }));
 
       if (!done) {
-        await loadRatingVolume(data.session_id);
+        await loadRatingVolume(
+          data.session_id, data.current_index, data.total_volumes,
+        );
       }
     } catch (err) {
       setRatingState((prev) => ({
@@ -2017,28 +2022,44 @@ export default function FreeBrowse() {
   }
 
   /**
-   * Single code path for loading rating volumes into the viewer.
+   * Load a rating volume into the viewer. Uses prefetch if
+   * available, otherwise fetches directly.
    */
-  async function loadRatingVolume(sessionId: string): Promise<void> {
+  async function loadRatingVolume(
+    sessionId: string,
+    index: number,
+    totalVolumes: number,
+  ): Promise<void> {
     setRatingState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const response = await fetch(`/rating/volume?session_id=${sessionId}`);
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.detail || "Failed to load volume");
+      const prefectchedVolumes = preloadedRatingVolumeRef.current;
+      let nvimage: NVImage;
+      let path: string;
+
+      const prefetchedVolume = prefectchedVolumes.get(index);
+      if (prefetchedVolume) {
+        nvimage = prefetchedVolume.nvimage;
+        path = prefetchedVolume.path;
+        prefectchedVolumes.delete(index);
+      } else {
+        const result = await fetchAndDecodeVolume(sessionId, index);
+        nvimage = result.nvimage;
+        path = result.path;
       }
 
-      const data = await response.json();
-      await loadNiftiIntoViewer(data.volume_nifti);
+      showNVImageInViewer(nvimage);
 
       setRatingState((prev) => ({
         ...prev,
-        currentPath: data.path,
-        currentIndex: data.current_index,
+        currentPath: path,
+        currentIndex: index,
         selectedRating: null,
         loading: false,
       }));
+
+      // Kick off prefetch for upcoming volumes
+      prefetchVolumes(sessionId, index, totalVolumes);
     } catch (err) {
       setRatingState((prev) => ({
         ...prev,
@@ -2069,11 +2090,9 @@ export default function FreeBrowse() {
     }
   }
 
-
   /**
-   * Advance index via POST to /rating/next, then fetch volume via
-   * loadRatingVolume (GET from /rating/volume). Mutation and data-fetching are
-   * separate endpoints.
+   * Advance index via POST to /rating/next, then load the volume from
+   * preloaded volumes or fetch it.
    */
   async function advanceToNextVolume(): Promise<void> {
     if (!ratingState.sessionId) return;
@@ -2104,7 +2123,11 @@ export default function FreeBrowse() {
         return;
       }
 
-      await loadRatingVolume(ratingState.sessionId);
+      await loadRatingVolume(
+        ratingState.sessionId,
+        data.current_index,
+        data.total_volumes,
+      );
     } catch (err) {
       setRatingState((prev) => ({
         ...prev,
