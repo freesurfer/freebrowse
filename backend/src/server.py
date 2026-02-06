@@ -231,6 +231,7 @@ def save_scene(request: SaveSceneRequest):
         logger.error(f"Error saving scene: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save scene: {str(e)}")
 
+
 @app.post("/nii")
 def save_volume(request: SaveVolumeRequest):
     """
@@ -399,12 +400,16 @@ def load_model_class(module_path: Path):
     """
     Load the model class definition from its python file.
     """
-    spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
+    spec = importlib.util.spec_from_file_location(
+        module_path.stem,
+        module_path
+    )
+
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_path.stem] = module
     spec.loader.exec_module(module)
 
-    # Convention: The segmentation model in the .py must have class name SegModel
+    # Convention: The segmentation model in the .py must have cls name SegModel
     model_class = getattr(module, "SegModel", None)
     if model_class is None:
         raise ValueError(f"No SegModel class found in {module_path}")
@@ -412,12 +417,20 @@ def load_model_class(module_path: Path):
     return model_class
 
 
-def load_model(module_path: Path, checkpoint_path: Path, device: torch.device) -> torch.nn.Module:
+def load_model(
+    module_path: Path,
+    checkpoint_path: Path,
+    device: torch.device
+) -> torch.nn.Module:
     """
     Load the segmentation model from the module file and `.pt` checkpoint
     """
     model = load_model_class(module_path=module_path)()
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    checkpoint = torch.load(
+        checkpoint_path,
+        map_location=device,
+        weights_only=False
+    )
 
     if isinstance(checkpoint, dict) and "model" in checkpoint:
         state_dict = checkpoint['model']
@@ -446,48 +459,48 @@ def encode_nifti(nii: nib.Nifti1Image) -> str:
     return base64.b64encode(gzip.compress(nii.to_bytes())).decode("utf-8")
 
 
-@app.post('/scribbleprompt3d_inference')
-def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
+def prepare_inference_input(
+    request: InferenceRequest,
+) -> Tuple[torch.Tensor, SessionState]:
     """
-    Run 3d interactive segmentation with a trained ScribblePrompt3d model.
+    Decode volume, manage session, and build the 5-channel input tensor.
 
-    Parameters
-    ----------
-    request: ScribblePrompt3dInferenceRequest
-        - volume_data: raw voxels in file order (required on first call, optional after)
-        - niivue_dims: dimensions in file order
-        - affine: file-order affine from NIfTI header (required on first call)
-        - clicks: flat indices in RAS order (from NiiVue's drawBitmap)
-        - session_id: used to store preprocessed volume data for iterative prompting
+    Shared by all inference endpoints. Handles:
+    - First-call volume decoding + RAS reorientation + session creation
+    - Subsequent-call session reuse
+    - Click accumulation and mask construction
+    - Input tensor assembly (1, 5, D, H, W)
 
-    Notes
-    -----
-    On first call, volume_data and affine are required. The preprocessed volume is stored in RAM
-    by session_id. On subsequent calls with the same session_id, volume_data can be omitted
-    to reuse the stored volume data.
+    Returns
+    -------
+    tuple[torch.Tensor, SessionState]
+        The input tensor and the (new or existing) session.
     """
-    models_path = Path(models_dir)
-    model_dir = models_path / request.model_name
-    module_file = model_dir / 'model.py'
-    checkpoint_file = model_dir / 'weights.pt'
-
     session = sessions.get(request.session_id)
 
     if request.volume_data is not None:
         if request.affine is None:
-            raise HTTPException(status_code=400, detail='Inference requires affine with volume_data')
+            raise HTTPException(
+                status_code=400,
+                detail='Inference requires affine with volume_data'
+            )
 
         # Decode raw float 32, file order voxel data from base64
         volume_bytes = base64.b64decode(request.volume_data)
         volume_array = np.frombuffer(volume_bytes, dtype=np.float32)
 
-        # Use Fortran order b/c of Niivue's internal convention of `x + y*nx + z*nx*ny` indexing
-        volume_file_order = volume_array.copy().reshape(tuple(request.niivue_dims), order='F')
+        # Use Fortran order b/c of Niivue's internal convention of
+        # `x + y*nx + z*nx*ny` indexing
+        volume_file_order = volume_array.copy().reshape(
+            tuple(request.niivue_dims),
+            order='F'
+        )
 
         # 16 floats row-major -> 4x4 matrix
         file_affine = np.array(request.affine).reshape(4, 4)
 
-        # Reorient volume to RAS with nib (matches NiiVue display and click indexing orientation)
+        # Reorient volume to RAS with nib (matches NiiVue display and click
+        # indexing orientation)
         img_file_order = nib.Nifti1Image(volume_file_order, file_affine)
         img_ras = nib.as_closest_canonical(img_file_order)
         volume_ras = img_ras.get_fdata().astype(np.float32)
@@ -515,11 +528,7 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
         sessions[request.session_id] = session
 
     elif session is not None:
-        # Use stored volume data
         volume_tensor = session.volume_tensor
-        affine_ras = session.affine_ras
-        ras_dims = session.ras_dims
-        shape_before_pad = session.shape_before_pad
 
     else:
         raise HTTPException(
@@ -527,21 +536,46 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
             detail='First inference request requires volume_data and affine'
         )
 
-    # Accumulate clicks from this request
     session.positive_clicks.extend(request.positive_clicks)
     session.negative_clicks.extend(request.negative_clicks)
 
-    # Use accumulated clicks for masks
-    pos_mask = clicks_to_mask(clicks=session.positive_clicks, original_shape=ras_dims)
+    pos_mask = clicks_to_mask(
+        clicks=session.positive_clicks,
+        original_shape=session.ras_dims
+    )
     pos_mask = pad_to_multiple(tensor=pos_mask, multiple=16)
 
-    neg_mask = clicks_to_mask(clicks=session.negative_clicks, original_shape=ras_dims)
+    neg_mask = clicks_to_mask(
+        clicks=session.negative_clicks,
+        original_shape=session.ras_dims
+    )
     neg_mask = pad_to_multiple(tensor=neg_mask, multiple=16)
 
     input_tensor = torch.zeros((1, 5, *volume_tensor.shape), dtype=torch.float32)
     input_tensor[0, 0] = volume_tensor
     input_tensor[0, 2] = pos_mask
     input_tensor[0, 3] = neg_mask
+
+    return input_tensor, session
+
+
+@app.post('/scribbleprompt3d_inference')
+def run_scribbleprompt3d_inference(request: InferenceRequest):
+    """
+    Run 3d interactive segmentation with a trained ScribblePrompt3d model.
+
+    Notes
+    -----
+    On first call, volume_data and affine are required. The preprocessed
+    volume is stored in RAM by session_id. Subsequent calls with the same
+    session_id reuse the cached volume.
+    """
+    input_tensor, session = prepare_inference_input(request)
+
+    models_path = Path(models_dir)
+    model_dir = models_path / request.model_name
+    module_file = model_dir / 'model.py'
+    checkpoint_file = model_dir / 'weights.pt'
 
     # Load config to determine how to handle previous prediction
     config_file = model_dir / 'config.yml'
@@ -550,9 +584,15 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
 
     prev_pred = decode_previous_prediction(
         logits_b64=request.previous_logits,
-        shape=volume_tensor.shape,
-        include_previous_prediction=prompts_config.get('include_previous_prediction', False),
-        include_previous_logits=prompts_config.get('include_previous_logits', False),
+        shape=session.volume_tensor.shape,
+        include_previous_prediction=prompts_config.get(
+            'include_previous_prediction',
+            False
+        ),
+        include_previous_logits=prompts_config.get(
+            'include_previous_logits',
+            False
+        ),
     )
 
     if prev_pred is not None:
@@ -565,23 +605,34 @@ def run_scribbleprompt3d_inference(request: ScribblePrompt3dInferenceRequest):
         output = model(input_tensor.to(device))
         logits = output.squeeze().cpu()
 
-    logits = logits[:shape_before_pad[0], :shape_before_pad[1], :shape_before_pad[2]]
+    d, h, w = session.shape_before_pad
+    logits = logits[:d, :h, :w]
 
-    mask = (logits.sigmoid() > 0.5).to(torch.uint8)
-    mask = mask.cpu().numpy()
+    mask = (logits.sigmoid() > 0.5).to(torch.uint8).cpu().numpy()
+    logit_bytes = logits.numpy().astype(np.float32).tobytes()
 
     return {
         "success": True,
-        "mask_nifti": encode_nifti(create_mask_nifti(mask, affine_ras)),
-        "logits": base64.b64encode(logits.numpy().astype(np.float32).tobytes()).decode("utf-8"),
-        "logits_shape": list(volume_tensor.shape),
+        "mask_nifti": encode_nifti(create_mask_nifti(mask, session.affine_ras)),
+        "logits": base64.b64encode(logit_bytes).decode("utf-8"),
+        "logits_shape": list(session.volume_tensor.shape),
     }
 
 @app.post('/voxelprompt')
 def voxelprompt(request: VoxelPromptRequest):
-    """Receive text prompt from frontend VoxelPrompt textbox."""
-    print(f"VoxelPrompt request: session_id={request.session_id}, text={request.text}")
-    return {"status": "ok"}
+    """Run VoxelPrompt inference with text + clicks + volume."""
+    input_tensor, session = prepare_inference_input(request)
+
+    # TODO[Andrew]: Replace stuff below with VoxelPrompt model inference.
+    print(f"VXP request: session_id={request.session_id}, text={request.text}")
+
+    logits = torch.zeros(session.shape_before_pad, dtype=torch.float32)
+    mask = (logits.sigmoid() > 0.5).to(torch.uint8).numpy()
+
+    return {
+        "success": True,
+        "mask_nifti": encode_nifti(create_mask_nifti(mask, session.affine_ras)),
+    }
 
 
 # Only mount data directory if not in serverless mode
