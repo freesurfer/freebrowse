@@ -23,6 +23,7 @@ import {
   Loader2,
   Zap,
   Send,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -176,6 +177,19 @@ export default function FreeBrowse() {
   });
 
   const [voxelPromptText, setVoxelPromptText] = useState("");
+
+  const [ratingState, setRatingState] = useState({
+    name: "",
+    seed: "",
+    sessionId: null as string | null,
+    currentIndex: 0,
+    totalVolumes: 0,
+    currentPath: "",
+    selectedRating: null as number | null,
+    loading: false,
+    done: false,
+    error: null as string | null,
+  });
 
   // Debounced GL update to prevent excessive calls
   const debouncedGLUpdate = useCallback(() => {
