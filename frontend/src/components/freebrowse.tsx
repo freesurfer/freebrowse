@@ -1781,38 +1781,111 @@ export default function FreeBrowse() {
     return request;
   }
 
-  async function callInferenceEndpoint(
-    requestBody: Record<string, unknown>
-  ): Promise<{ mask_nifti: string; logits: string | null }> {
+  async function runInference(options: {
+    endpoint: string;
+    extraFields?: Record<string, unknown>;
+    storeLogits?: boolean;
+    onSuccess?: () => void;
+  }): Promise<void> {
+    const nv = nvRef.current;
+    if (!nv || nv.volumes.length === 0) return;
 
-    // TODO: Handle error cases more gracefully
-    const response = await fetch(
-      "/scribbleprompt3d_inference", {
+    if (!segState.selectedModel) {
+      setSegState((prev) => ({ ...prev, error: "No model selected" }));
+      return;
+    }
+
+    setSegState((prev) => ({ ...prev, loading: true, progress: 10, error: null }));
+
+    const volume = nv.volumes[0];
+    if (!volume.hdr?.dims || !volume.img) {
+      setSegState((prev) => ({ ...prev, loading: false, error: "Volume data not available" }));
+      return;
+    }
+
+    // Send file-order data; backend will reorient to RAS
+    const dims = getVolumeDims(volume);
+
+    try {
+      const isFirstCall = segState.sessionId === null;
+      const sessionId = isFirstCall ? generateSessionId() : segState.sessionId!;
+
+
+      // Send raw volume data in file order; backend handles RAS reorientation
+      let volumeDataBase64: string | undefined;
+      let affine: number[] | undefined;
+
+      if (isFirstCall) {
+        const float32Data = new Float32Array(volume.img);
+        // JSON can't serialize Float32Array, so encode to base64
+        volumeDataBase64 = encodeFloat32ArrayToBase64(float32Data);
+        affine = getVolumeAffine(volume);
+      }
+
+      setSegState((prev) => ({ ...prev, progress: 40 }));
+
+      // Clicks are in RAS order (from drawBitmap); backend reorients volume to match
+      const clicks = collectClicksFromDrawBitmap(nv.drawBitmap);
+
+      const requestBody = buildInferenceRequest({
+        sessionId,
+        modelName: segState.selectedModel!,
+        positiveClicks: clicks.positive,
+        negativeClicks: clicks.negative,
+        previousLogits: segState.previousLogits,
+        dims,
+        volumeDataBase64,
+        affine,
+      });
+
+      /** Add extra field for vxp text. */
+      if (options.extraFields) {
+        Object.assign(requestBody, options.extraFields);
+      }
+
+      const response = await fetch(options.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Inference failed: ${response.statusText}`);
       }
-    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Inference failed: ${response.statusText}`);
+      const result = await response.json();
+      const maskBytes = decodeBase64ToBytes(result.mask_nifti);
+      const maskImage = await loadMaskAsNVImage(maskBytes);
+      displayMaskOverlay(nv, maskImage);
+
+      setSegState((prev) => ({
+        ...prev,
+        loading: false,
+        progress: 100,
+        previousLogits: options.storeLogits ? (result.logits || null) : prev.previousLogits,
+        sessionId,
+      }));
+
+      options.onSuccess?.();
+      updateImageDetails();
+    } catch (err) {
+      console.error("Inference failed:", err);
+      setSegState((prev) => ({
+        ...prev,
+        loading: false,
+        error: (err as Error).message,
+      }));
     }
-
-    return await response.json();
   }
 
   async function sendVoxelPrompt(): Promise<void> {
     if (!voxelPromptText.trim()) return;
-    const sessionId = scribblePrompt3dState.sessionId ?? generateSessionId();
-    await fetch(
-      "/voxelprompt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, text: voxelPromptText }),
-      }
-    );
-    setVoxelPromptText("");
+    await runInference({
+      endpoint: "/voxelprompt",
+      extraFields: { text: voxelPromptText },
+      onSuccess: () => setVoxelPromptText(""),
+    });
   }
 
   function decodeBase64ToBytes(base64: string): Uint8Array {
@@ -1843,92 +1916,12 @@ export default function FreeBrowse() {
     nv.updateGLVolume();
   }
 
-  const runScribblePrompt3dSegmentation = useCallback(async () => {
-    const nv = nvRef.current;
-    if (!nv || nv.volumes.length === 0) return;
-
-    if (!segState.selectedModel) {
-      setSegState((prev) => ({ ...prev, error: "No model selected" }));
-      return;
-    }
-
-    setScribblePrompt3dState((prev) => ({ ...prev, loading: true, progress: 10, error: null }));
-
-    const volume = nv.volumes[0];
-    if (!volume.hdr?.dims || !volume.img) {
-      setSegState((prev) => ({ ...prev, loading: false, error: "Volume data not available" }));
-      return;
-    }
-
-    // Send file-order data; backend will reorient to RAS
-    const dims = getVolumeDims(volume);
-
-    try {
-      const isFirstCall = segState.sessionId === null;
-      const sessionId = isFirstCall ? generateSessionId() : segState.sessionId!;
-
-
-      // Send raw volume data in file order; backend handles RAS reorientation
-      let volumeDataBase64: string | undefined;
-      let affine: number[] | undefined;
-
-      if (isFirstCall) {
-        const float32Data = new Float32Array(volume.img);
-        // JSON can't serialize Float32Array, so encode to base64
-        volumeDataBase64 = encodeFloat32ArrayToBase64(float32Data);
-        affine = getVolumeAffine(volume);
-      }
-
-      setScribblePrompt3dState((prev) => ({ ...prev, progress: 40 }));
-
-      // Clicks are in RAS order (from drawBitmap); backend reorients volume to match
-      const clicks = collectClicksFromDrawBitmap(nv.drawBitmap);
-
-      const requestBody = buildInferenceRequest({
-        sessionId,
-        modelName: segState.selectedModel!,
-        positiveClicks: clicks.positive,
-        negativeClicks: clicks.negative,
-        previousLogits: segState.previousLogits,
-        dims,
-        volumeDataBase64,
-        affine,
-      });
-
-      setScribblePrompt3dState((prev) => ({ ...prev, progress: 60 }));
-
-      const result = await callInferenceEndpoint(requestBody);
-
-      setScribblePrompt3dState((prev) => ({ ...prev, progress: 80 }));
-
-      const maskBytes = decodeBase64ToBytes(result.mask_nifti);
-      const maskImage = await loadMaskAsNVImage(maskBytes);
-      displayMaskOverlay(nv, maskImage);
-
-      setSegState((prev) => ({
-        ...prev,
-        loading: false,
-        progress: 100,
-        previousLogits: options.storeLogits ? (result.logits || null) : prev.previousLogits,
-        sessionId,
-      }));
-
-      options.onSuccess?.();
-      updateImageDetails();
-    } catch (err) {
-      console.error("Inference failed:", err);
-      setSegState((prev) => ({
-        ...prev,
-        loading: false,
-        error: (err as Error).message,
-      }));
-    }
-  }, [
-    scribblePrompt3dState.selectedModel,
-    scribblePrompt3dState.previousLogits,
-    scribblePrompt3dState.sessionId,
-    updateImageDetails,
-  ]);
+  async function runSegmentation(): Promise<void> {
+    await runInference({
+      endpoint: "/scribbleprompt3d_inference",
+      storeLogits: true,
+    });
+  }
 
   // Apply viewer options when they change
   useEffect(() => {
