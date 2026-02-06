@@ -60,7 +60,7 @@ import { sliceTypeMap } from "./image-canvas";
 import { ViewMode } from "./view-selector";
 import { FileList, type FileItem } from "./file-list";
 
-type ScribblePrompt3dModelInfo = {
+type SegModelInfo = {
   name: string;
   path: string;
 };
@@ -162,12 +162,12 @@ export default function FreeBrowse() {
     filename: "drawing.nii.gz",
   });
 
-  const [scribblePrompt3dState, setScribblePrompt3dState] = useState({
+  const [segState, setSegState] = useState({
     enabled: false,
     loading: false,
     progress: 0,
     modelsLoaded: false,
-    models: [] as ScribblePrompt3dModelInfo[],
+    models: [] as SegModelInfo[],
     selectedModel: null as string | null,
     error: null as string | null,
     previousLogits: null as string | null,  // For iterative refinement
@@ -1668,7 +1668,7 @@ export default function FreeBrowse() {
     }
   }, [drawingOptions]);
 
-  async function fetchModels(): Promise<ScribblePrompt3dModelInfo[]> {
+  async function fetchModels(): Promise<SegModelInfo[]> {
     const response = await fetch("/available_seg_models");
     if (!response.ok) {
       throw new Error(`Failed to fetch models: ${response.statusText}`);
@@ -1676,14 +1676,14 @@ export default function FreeBrowse() {
     return response.json()
   }
 
-  const initScribblePrompt3dModel = useCallback(async () => {
-    setScribblePrompt3dState((prev) => ({ ...prev, loading: true, error: null }));
+  const initSegModel = useCallback(async () => {
+    setSegState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
       const models = await fetchModels();
       const firstModel = models[0]?.name ?? null;
 
-      setScribblePrompt3dState((prev) => ({
+      setSegState((prev) => ({
         ...prev,
         loading: false,
         modelsLoaded: true,
@@ -1692,7 +1692,7 @@ export default function FreeBrowse() {
       }));
 
     } catch (err) {
-      setScribblePrompt3dState((prev) => ({
+      setSegState((prev) => ({
         ...prev,
         loading: false,
         error: (err as Error).message,
@@ -1847,8 +1847,8 @@ export default function FreeBrowse() {
     const nv = nvRef.current;
     if (!nv || nv.volumes.length === 0) return;
 
-    if (!scribblePrompt3dState.selectedModel) {
-      setScribblePrompt3dState((prev) => ({ ...prev, error: "No model selected" }));
+    if (!segState.selectedModel) {
+      setSegState((prev) => ({ ...prev, error: "No model selected" }));
       return;
     }
 
@@ -1856,7 +1856,7 @@ export default function FreeBrowse() {
 
     const volume = nv.volumes[0];
     if (!volume.hdr?.dims || !volume.img) {
-      setScribblePrompt3dState((prev) => ({ ...prev, loading: false, error: "Volume data not available" }));
+      setSegState((prev) => ({ ...prev, loading: false, error: "Volume data not available" }));
       return;
     }
 
@@ -1864,10 +1864,9 @@ export default function FreeBrowse() {
     const dims = getVolumeDims(volume);
 
     try {
-      const isFirstCall = scribblePrompt3dState.sessionId === null;
-      const sessionId = isFirstCall ? generateSessionId() : scribblePrompt3dState.sessionId!;
+      const isFirstCall = segState.sessionId === null;
+      const sessionId = isFirstCall ? generateSessionId() : segState.sessionId!;
 
-      setScribblePrompt3dState((prev) => ({ ...prev, progress: 20 }));
 
       // Send raw volume data in file order; backend handles RAS reorientation
       let volumeDataBase64: string | undefined;
@@ -1887,10 +1886,10 @@ export default function FreeBrowse() {
 
       const requestBody = buildInferenceRequest({
         sessionId,
-        modelName: scribblePrompt3dState.selectedModel!,
+        modelName: segState.selectedModel!,
         positiveClicks: clicks.positive,
         negativeClicks: clicks.negative,
-        previousLogits: scribblePrompt3dState.previousLogits,
+        previousLogits: segState.previousLogits,
         dims,
         volumeDataBase64,
         affine,
@@ -1906,18 +1905,19 @@ export default function FreeBrowse() {
       const maskImage = await loadMaskAsNVImage(maskBytes);
       displayMaskOverlay(nv, maskImage);
 
-      setScribblePrompt3dState((prev) => ({
+      setSegState((prev) => ({
         ...prev,
         loading: false,
         progress: 100,
-        previousLogits: result.logits || null,
+        previousLogits: options.storeLogits ? (result.logits || null) : prev.previousLogits,
         sessionId,
       }));
 
+      options.onSuccess?.();
       updateImageDetails();
     } catch (err) {
-      console.error("Segmentation failed:", err);
-      setScribblePrompt3dState((prev) => ({
+      console.error("Inference failed:", err);
+      setSegState((prev) => ({
         ...prev,
         loading: false,
         error: (err as Error).message,
@@ -2592,10 +2592,10 @@ export default function FreeBrowse() {
                             variant="outline"
                             size="sm"
                             className="w-full"
-                            onClick={initScribblePrompt3dModel}
-                            disabled={scribblePrompt3dState.loading}
+                            onClick={initSegModel}
+                            disabled={segState.loading}
                           >
-                            {scribblePrompt3dState.loading ? (
+                            {segState.loading ? (
                               <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 Loading Models...
@@ -2607,20 +2607,20 @@ export default function FreeBrowse() {
                               </>
                             )}
                           </Button>
-                          {scribblePrompt3dState.error && (
+                          {segState.error && (
                             <p className="text-sm text-red-500">
-                              {scribblePrompt3dState.error}
+                              {segState.error}
                             </p>
                           )}
-                          {scribblePrompt3dState.modelsLoaded && scribblePrompt3dState.models.length > 0 && (
+                          {segState.modelsLoaded && segState.models.length > 0 && (
                             <Select
-                              value={scribblePrompt3dState.selectedModel ?? ""}
-                              onChange={(e) => setScribblePrompt3dState(prev => ({
+                              value={segState.selectedModel ?? ""}
+                              onChange={(e) => setSegState(prev => ({
                                 ...prev,
                                 selectedModel: e.target.value
                               }))}
                             >
-                              {scribblePrompt3dState.models.map((model) => (
+                              {segState.models.map((model) => (
                                 <option key={model.name} value={model.name}>
                                   {model.name}
                                 </option>
@@ -2629,16 +2629,16 @@ export default function FreeBrowse() {
                           )}
 
                           {/* Click mode toggle: positive (penValue=1) or negative (penValue=2) */}
-                          {scribblePrompt3dState.modelsLoaded && (
+                          {segState.modelsLoaded && (
                             <div className="space-y-1">
                               <Label className="text-xs">Click Mode</Label>
                               <div className="flex gap-1">
                                 <Button
-                                  variant={scribblePrompt3dState.clickMode === "positive" ? "default" : "outline"}
+                                  variant={segState.clickMode === "positive" ? "default" : "outline"}
                                   size="sm"
                                   className="flex-1"
                                   onClick={() => {
-                                    setScribblePrompt3dState((prev) => ({ ...prev, clickMode: "positive" }));
+                                    setSegState((prev) => ({ ...prev, clickMode: "positive" }));
                                     if (nvRef.current) {
                                       nvRef.current.setPenValue(1, drawingOptions.penFill);
                                     }
@@ -2647,11 +2647,11 @@ export default function FreeBrowse() {
                                   + Positive
                                 </Button>
                                 <Button
-                                  variant={scribblePrompt3dState.clickMode === "negative" ? "default" : "outline"}
+                                  variant={segState.clickMode === "negative" ? "default" : "outline"}
                                   size="sm"
                                   className="flex-1"
                                   onClick={() => {
-                                    setScribblePrompt3dState((prev) => ({ ...prev, clickMode: "negative" }));
+                                    setSegState((prev) => ({ ...prev, clickMode: "negative" }));
                                     if (nvRef.current) {
                                       nvRef.current.setPenValue(2, drawingOptions.penFill);
                                     }
@@ -2664,18 +2664,18 @@ export default function FreeBrowse() {
                           )}
 
                           {/* Run Segmentation button */}
-                          {scribblePrompt3dState.modelsLoaded && (
+                          {segState.modelsLoaded && (
                             <Button
                               variant="default"
                               size="sm"
                               className="w-full"
-                              onClick={runScribblePrompt3dSegmentation}
-                              disabled={scribblePrompt3dState.loading || !scribblePrompt3dState.selectedModel}
+                              onClick={runSegmentation}
+                              disabled={segState.loading || !segState.selectedModel}
                             >
-                              {scribblePrompt3dState.loading ? (
+                              {segState.loading ? (
                                 <>
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  {scribblePrompt3dState.progress}%
+                                  {segState.progress}%
                                 </>
                               ) : (
                                 <>
@@ -2687,13 +2687,13 @@ export default function FreeBrowse() {
                           )}
 
                           {/* Reset button - clears session and logits for fresh start */}
-                          {scribblePrompt3dState.previousLogits && (
+                          {segState.previousLogits && (
                             <Button
                               variant="outline"
                               size="sm"
                               className="w-full"
                               onClick={() => {
-                                setScribblePrompt3dState((prev) => ({
+                                setSegState((prev) => ({
                                   ...prev,
                                   previousLogits: null,
                                   sessionId: null,
