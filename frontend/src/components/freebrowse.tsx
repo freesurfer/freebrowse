@@ -1786,11 +1786,13 @@ export default function FreeBrowse() {
     extraFields?: Record<string, unknown>;
     storeLogits?: boolean;
     onSuccess?: () => void;
+    modelName?: string;
   }): Promise<void> {
     const nv = nvRef.current;
     if (!nv || nv.volumes.length === 0) return;
 
-    if (!segState.selectedModel) {
+    const modelName = options.modelName ?? segState.selectedModel;
+    if (!modelName) {
       setSegState((prev) => ({ ...prev, error: "No model selected" }));
       return;
     }
@@ -1829,7 +1831,7 @@ export default function FreeBrowse() {
 
       const requestBody = buildInferenceRequest({
         sessionId,
-        modelName: segState.selectedModel!,
+        modelName,
         positiveClicks: clicks.positive,
         negativeClicks: clicks.negative,
         previousLogits: segState.previousLogits,
@@ -1885,6 +1887,7 @@ export default function FreeBrowse() {
       endpoint: "/voxelprompt",
       extraFields: { text: voxelPromptText },
       onSuccess: () => setVoxelPromptText(""),
+      modelName: "voxelprompt",
     });
   }
 
