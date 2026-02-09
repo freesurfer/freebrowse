@@ -766,21 +766,33 @@ def rating_init(request: RatingInitRequest):
 
 
 @app.get("/rating/volume")
-def rating_volume(session_id: str):
-    """Return the current volume as base64-encoded gzipped NIfTI."""
+def rating_volume(session_id: str, index: int | None = None):
+    """
+    Return a volume as base64-encoded gzipped NIfTI.
+
+    Parameters
+    ----------
+    session_id : str
+        The rating session ID.
+    index : int | None
+        Volume index to fetch. Defaults to session's current_index.
+        Allows frontend to prefetch upcoming volumes without advancing
+        the session pointer.
+    """
     session = load_rating_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     paths = load_shuffled_paths(session.seed)
+    vol_index = index if index is not None else session.current_index
 
-    if session.current_index >= len(paths):
+    if vol_index < 0 or vol_index >= len(paths):
         raise HTTPException(
             status_code=400,
-            detail="All volumes have been rated"
+            detail="Volume index out of range"
         )
 
-    nifti_path = paths[session.current_index]
+    nifti_path = paths[vol_index]
     if not Path(nifti_path).exists():
         raise HTTPException(
             status_code=404,
