@@ -107,8 +107,7 @@ cd frontend
 npm run build:jupyter
 ```
 
-Output is in `frontend/dist-jupyter/`. See the [Jupyter Integration](#jupyter-integration)
-section for full setup instructions.
+Output is in `frontend/dist-jupyter/`. It also gets copied to `jupyter/jupyterlab_freebrowse/static/freebrowse/`. See the [Jupyter Integration](#jupyter-integration) for more information.
 
 ### Single HTML file
 
@@ -156,13 +155,6 @@ cd frontend
 npm run dev
 ```
 
-or
-
-```bash
-cd frontend
-VITE_SERVERLESS=true npm run dev
-```
-
 Then navigate to [http://localhost:5173/](http://localhost:5173/)
 
 ### Github Pages
@@ -187,43 +179,22 @@ npm run build
 ## Jupyter Integration
 
 FreeBrowse can be used as a NIfTI file viewer inside JupyterLab or Jupyter
-Notebook 7. Clicking a `.nii` or `.nii.gz` file in the file browser opens it in
-FreeBrowse in a new browser tab.
+Notebook 7. Clicking a `.nii`, `.nii.gz` or `.nvd` (niivue document) file in the
+file browser opens it in FreeBrowse in a new browser tab.
 
 ### Setup
 
-Create and activate a conda environment with either JupyterLab or Notebook 7:
+Create and activate a conda environment with either JupyterLab or Notebook
+7 and run `pip install -e .` from the `jupyter/` directory.
 
-**Option A: JupyterLab**
-
-```bash
-conda create -n freebrowse-jupyter python=3.11 jupyterlab nodejs -c conda-forge
-conda activate freebrowse-jupyter
-```
-
-**Option B: Jupyter Notebook 7**
+The file `jupyter/environment.yml` contains a sample maximal environment that
+contains both JupyterLab, Jupyter Notebook and nodejs (for development) as well
+as [ipyniivue](https://github.com/niivue/ipyniivue) to run niivue directly
+inside of Jupyter notebooks.
 
 ```bash
-conda create -n freebrowse-jupyter python=3.11 notebook nodejs -c conda-forge
-conda activate freebrowse-jupyter
-```
-
-Build the FreeBrowse frontend for Jupyter (this also copies the built files
-into the extension's static directory):
-
-```bash
-cd frontend
-npm install
-npm run build:jupyter
-```
-
-Install the extension (from the `jupyter/` directory):
-
-```bash
-cd ../jupyter
-jlpm install
-jlpm build
-pip install -e .
+cd ./jupyter
+conda env create -f environment.yml
 ```
 
 ### Usage
@@ -235,9 +206,32 @@ jupyter lab       # if using JupyterLab
 jupyter notebook  # if using Notebook 7
 ```
 
-Navigate to a directory containing `.nii` or `.nii.gz` files, then either:
+Navigate to a directory containing `.nii`, `.nii.gz` or `.nvd` files, then either:
 - **Double-click** a file to open it in FreeBrowse in a new browser tab
 - **Right-click** a file and select **Open in FreeBrowse**
+
+[ipyniivue](https://github.com/niivue/ipyniivue) is also installed in the example
+`freebrowse-jupyter` environment.  See the [example notebooks repository](https://github.com/niivue/jupyter-notebooks)
+for examples on how to use niivue directly inside jupyter
+
+### Development
+
+If you make changes to the frontend, you will have to rebuild the `jupyter` before
+they become visible in Jupyter notebooks.
+
+```bash
+cd frontend
+npm run build:jupyter
+```
+
+To re-install the JupyterLab extensions:
+
+```bash
+cd jupyter
+jlpm install
+jlpm build
+pip install -e .
+```
 
 ## Acknowledgements
 

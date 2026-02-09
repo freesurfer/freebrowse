@@ -7,6 +7,8 @@ dependencies:
   - nodejs>=20
   - jupyterlab>=4.0.0,<5
   - notebook>=7.0.0,<8
+  - nodejs
   - pip
   - pip:
-    - jupyterlab-freebrowse
+    - -e .
+    - ipyniivue
