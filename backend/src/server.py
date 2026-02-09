@@ -491,16 +491,12 @@ def prepare_inference_input(
 
         # Use Fortran order b/c of Niivue's internal convention of
         # `x + y*nx + z*nx*ny` indexing
-        volume_file_order = volume_array.copy().reshape(
-            tuple(request.niivue_dims),
-            order='F'
-        )
+        volume_file_order = volume_array.copy().reshape(tuple(request.niivue_dims), order='F')
 
         # 16 floats row-major -> 4x4 matrix
         file_affine = np.array(request.affine).reshape(4, 4)
 
-        # Reorient volume to RAS with nib (matches NiiVue display and click
-        # indexing orientation)
+        # Reorient volume to RAS with nib (matches NiiVue display and click indexing orientation)
         img_file_order = nib.Nifti1Image(volume_file_order, file_affine)
         img_ras = nib.as_closest_canonical(img_file_order)
         volume_ras = img_ras.get_fdata().astype(np.float32)
