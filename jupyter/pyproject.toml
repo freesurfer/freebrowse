@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling>=1.5.0", "jupyterlab>=4.0.0,<5", "hatch-nodejs-version>=0.3.2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jupyterlab-freebrowse"
+description = "JupyterLab extension for FreeBrowse neuroimaging viewer"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+classifiers = [
+    "Framework :: Jupyter",
+    "Framework :: Jupyter :: JupyterLab",
+    "Framework :: Jupyter :: JupyterLab :: 4",
+    "Framework :: Jupyter :: JupyterLab :: Extensions",
+    "Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+dynamic = ["version"]
+dependencies = ["jupyter_server>=2.0.0,<3"]
+
+[tool.hatch.version]
+source = "nodejs"
+
+[tool.hatch.build.targets.sdist]
+artifacts = ["jupyterlab_freebrowse/labextension"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"jupyterlab_freebrowse/labextension" = "share/jupyter/labextensions/jupyterlab-freebrowse"
+"jupyter-config/jupyter_server_config.d/jupyterlab_freebrowse.json" = "etc/jupyter/jupyter_server_config.d/jupyterlab_freebrowse.json"

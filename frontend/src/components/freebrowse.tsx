@@ -387,6 +387,20 @@ export default function FreeBrowse() {
     }
   }, []); // Empty dependency array since this should only run once on mount
 
+  // Load volume from URL parameter on initial load (e.g., ?vol=/files/brain.nii.gz)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const volParam = urlParams.get("vol");
+
+    if (volParam) {
+      console.log("Loading volume from URL parameter:", volParam);
+
+      const filename = volParam.split("/").pop() || volParam;
+      const fileItem: FileItem = { filename, url: volParam };
+      handleImagingFileSelect(fileItem);
+    }
+  }, []);
+
   // Load embedded NVD data (for self-contained HTML files)
   useEffect(() => {
     const handleEmbeddedNvd = async (event: CustomEvent) => {

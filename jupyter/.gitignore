@@ -1,0 +1,6 @@
+node_modules/
+lib/
+.yarn/
+tsconfig.tsbuildinfo
+jupyterlab_freebrowse/labextension/
+jupyterlab_freebrowse/__pycache__/
