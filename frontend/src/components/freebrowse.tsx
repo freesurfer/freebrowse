@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { useViewerOptions } from "@/hooks/use-viewer-options";
+import { useLocation } from "@/hooks/use-location";
 import {
   PanelLeft,
   PanelRight,
@@ -104,7 +105,6 @@ export default function FreeBrowse() {
   const settingsDialogOpen = useFreeBrowseStore((s) => s.settingsDialogOpen);
   const setSettingsDialogOpen = useFreeBrowseStore((s) => s.setSettingsDialogOpen);
   const locationData = useFreeBrowseStore((s) => s.locationData);
-  const setLocationData = useFreeBrowseStore((s) => s.setLocationData);
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
   const setDrawingOptions = useFreeBrowseStore((s) => s.setDrawingOptions);
   const surfaces = useFreeBrowseStore((s) => s.surfaces);
@@ -139,6 +139,7 @@ export default function FreeBrowse() {
     handleRulerVisibleChange,
     handleOverlayOutlineWidthChange,
   } = useViewerOptions(nvRef);
+  const { handleLocationChange } = useLocation(nvRef);
 
   // Cleanup surface color timeout on unmount
   useEffect(() => {
@@ -149,34 +150,6 @@ export default function FreeBrowse() {
     };
   }, []);
 
-  // Update voxelData for the footer
-  const handleLocationChange = useCallback((locationObject: any) => {
-    if (locationObject && nvRef.current && nvRef.current.volumes.length > 0) {
-      const voxelData = nvRef.current.volumes.map((volume, index) => {
-        // Convert mm to voxel coordinates directly on the volume
-        const voxel = volume.mm2vox(locationObject.mm);
-
-        // Round once for getting the value
-        const i = Math.round(voxel[0]);
-        const j = Math.round(voxel[1]);
-        const k = Math.round(voxel[2]);
-
-        // Get the value at this voxel
-        const value = volume.getValue(i, j, k, volume.frame4D);
-
-        return {
-          name: volume.name || `Volume ${index + 1}`,
-          voxel: [i, j, k] as [number, number, number],
-          value: value,
-        };
-      });
-
-      setLocationData({
-        mm: locationObject.mm,
-        voxels: voxelData,
-      });
-    }
-  }, []);
 
 
   // Sync drawing options from Niivue when they change (e.g., via mouse wheel)
