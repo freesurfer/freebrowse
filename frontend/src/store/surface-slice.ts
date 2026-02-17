@@ -5,7 +5,7 @@ export interface SurfaceSlice {
   surfaces: SurfaceDetails[];
   currentSurfaceIndex: number | null;
   surfaceToRemove: number | null;
-  setSurfaces: (surfaces: SurfaceDetails[]) => void;
+  setSurfaces: (surfaces: SurfaceDetails[] | ((prev: SurfaceDetails[]) => SurfaceDetails[])) => void;
   setCurrentSurfaceIndex: (index: number | null) => void;
   setSurfaceToRemove: (index: number | null) => void;
 }
@@ -14,7 +14,10 @@ export const createSurfaceSlice: StateCreator<SurfaceSlice> = (set) => ({
   surfaces: [],
   currentSurfaceIndex: null,
   surfaceToRemove: null,
-  setSurfaces: (surfaces) => set({ surfaces }),
+  setSurfaces: (surfaces) =>
+    set((state) => ({
+      surfaces: typeof surfaces === "function" ? surfaces(state.surfaces) : surfaces,
+    })),
   setCurrentSurfaceIndex: (currentSurfaceIndex) => set({ currentSurfaceIndex }),
   setSurfaceToRemove: (surfaceToRemove) => set({ surfaceToRemove }),
 });

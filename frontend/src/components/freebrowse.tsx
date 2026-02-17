@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { useFreeBrowseStore } from "@/store";
 import {
   PanelLeft,
   PanelRight,
@@ -80,87 +81,55 @@ const nv = new Niivue({
 //window.nv = nv;
 
 export default function FreeBrowse() {
-  const [images, setImages] = useState<ImageDetails[]>([]);
-  const [showUploader, setShowUploader] = useState(true);
-  const [loadViaNvd, setLoadViaNvd] = useState(true);
-  const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(
-    null,
-  );
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState("nvds");
-  const [footerOpen, setFooterOpen] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
+  // --- Zustand store ---
+  const images = useFreeBrowseStore((s) => s.images);
+  const setImages = useFreeBrowseStore((s) => s.setImages);
+  const showUploader = useFreeBrowseStore((s) => s.showUploader);
+  const setShowUploader = useFreeBrowseStore((s) => s.setShowUploader);
+  const loadViaNvd = useFreeBrowseStore((s) => s.loadViaNvd);
+  const setLoadViaNvd = useFreeBrowseStore((s) => s.setLoadViaNvd);
+  const currentImageIndex = useFreeBrowseStore((s) => s.currentImageIndex);
+  const setCurrentImageIndex = useFreeBrowseStore((s) => s.setCurrentImageIndex);
+  const sidebarOpen = useFreeBrowseStore((s) => s.sidebarOpen);
+  const setSidebarOpen = useFreeBrowseStore((s) => s.setSidebarOpen);
+  const activeTab = useFreeBrowseStore((s) => s.activeTab);
+  const setActiveTab = useFreeBrowseStore((s) => s.setActiveTab);
+  const footerOpen = useFreeBrowseStore((s) => s.footerOpen);
+  const setFooterOpen = useFreeBrowseStore((s) => s.setFooterOpen);
+  const darkMode = useFreeBrowseStore((s) => s.darkMode);
+  const setDarkMode = useFreeBrowseStore((s) => s.setDarkMode);
+  const removeDialogOpen = useFreeBrowseStore((s) => s.removeDialogOpen);
+  const setRemoveDialogOpen = useFreeBrowseStore((s) => s.setRemoveDialogOpen);
+  const volumeToRemove = useFreeBrowseStore((s) => s.volumeToRemove);
+  const setVolumeToRemove = useFreeBrowseStore((s) => s.setVolumeToRemove);
+  const skipRemoveConfirmation = useFreeBrowseStore((s) => s.skipRemoveConfirmation);
+  const setSkipRemoveConfirmation = useFreeBrowseStore((s) => s.setSkipRemoveConfirmation);
+  const saveDialogOpen = useFreeBrowseStore((s) => s.saveDialogOpen);
+  const setSaveDialogOpen = useFreeBrowseStore((s) => s.setSaveDialogOpen);
+  const saveState = useFreeBrowseStore((s) => s.saveState);
+  const setSaveState = useFreeBrowseStore((s) => s.setSaveState);
+  const settingsDialogOpen = useFreeBrowseStore((s) => s.settingsDialogOpen);
+  const setSettingsDialogOpen = useFreeBrowseStore((s) => s.setSettingsDialogOpen);
+  const viewerOptions = useFreeBrowseStore((s) => s.viewerOptions);
+  const setViewerOptions = useFreeBrowseStore((s) => s.setViewerOptions);
+  const locationData = useFreeBrowseStore((s) => s.locationData);
+  const setLocationData = useFreeBrowseStore((s) => s.setLocationData);
+  const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
+  const setDrawingOptions = useFreeBrowseStore((s) => s.setDrawingOptions);
+  const surfaces = useFreeBrowseStore((s) => s.surfaces);
+  const setSurfaces = useFreeBrowseStore((s) => s.setSurfaces);
+  const currentSurfaceIndex = useFreeBrowseStore((s) => s.currentSurfaceIndex);
+  const setCurrentSurfaceIndex = useFreeBrowseStore((s) => s.setCurrentSurfaceIndex);
+  const surfaceToRemove = useFreeBrowseStore((s) => s.surfaceToRemove);
+  const setSurfaceToRemove = useFreeBrowseStore((s) => s.setSurfaceToRemove);
+
+  // --- Component-local state ---
   // Serverless mode is determined at build time via VITE_SERVERLESS env var
   const serverlessMode = import.meta.env.VITE_SERVERLESS === 'true';
   const nvRef = useRef<Niivue | null>(nv);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
-  const [volumeToRemove, setVolumeToRemove] = useState<number | null>(null);
-  const [skipRemoveConfirmation, setSkipRemoveConfirmation] = useState(false);
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [saveState, setSaveState] = useState({
-    isDownloadMode: false,
-    document: {
-      enabled: false,
-      location: "",
-    },
-    volumes: [] as Array<{
-      enabled: boolean;
-      isExternal: boolean;
-      url: string;
-    }>,
-  });
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
-  const [viewerOptions, setViewerOptions] = useState({
-    viewMode: "ACS" as
-      | "axial"
-      | "coronal"
-      | "sagittal"
-      | "ACS"
-      | "ACSR"
-      | "render",
-    crosshairWidth: 1,
-    crosshairGap: 0,
-    crosshairVisible: true,
-    crosshairColor: [1.0, 0.0, 0.0, 0.5] as [number, number, number, number],
-    rulerWidth: 1.0,
-    rulerVisible: false,
-    interpolateVoxels: false,
-    dragMode: "contrast" as DragMode,
-    overlayOutlineWidth: 0.0,
-  });
-  const [locationData, setLocationData] = useState<{
-    mm: [number, number, number];
-    voxels: Array<{
-      name: string;
-      voxel: [number, number, number];
-      value: number;
-    }>;
-  } | null>(null);
-
-  // Drawing-related state
-  const [drawingOptions, setDrawingOptions] = useState({
-    enabled: false,
-    mode: "none" as "none" | "pen" | "wand",
-    penValue: 1,
-    penFill: true,
-    penErases: false,
-    opacity: 1.0,
-    magicWand2dOnly: true,
-    magicWandMaxDistanceMM: 15, //nv.opts.clickToSegmentMaxDistanceMM || 15,
-    magicWandThresholdPercent: nv.opts.clickToSegmentPercent || 0.05,
-    //colormap: "gray",
-    filename: "drawing.nii.gz",
-  });
-
-  // Surface-related state
-  const [surfaces, setSurfaces] = useState<SurfaceDetails[]>([]);
-  const [currentSurfaceIndex, setCurrentSurfaceIndex] = useState<number | null>(
-    null,
-  );
   const surfaceFileInputRef = useRef<HTMLInputElement>(null);
-  const [surfaceToRemove, setSurfaceToRemove] = useState<number | null>(null);
   const surfaceColorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const crosshairColorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
