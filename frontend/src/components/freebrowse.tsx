@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useFreeBrowseStore } from "@/store";
+import { useViewerOptions } from "@/hooks/use-viewer-options";
 import {
   PanelLeft,
   PanelRight,
@@ -102,8 +103,6 @@ export default function FreeBrowse() {
   const setSaveState = useFreeBrowseStore((s) => s.setSaveState);
   const settingsDialogOpen = useFreeBrowseStore((s) => s.settingsDialogOpen);
   const setSettingsDialogOpen = useFreeBrowseStore((s) => s.setSettingsDialogOpen);
-  const viewerOptions = useFreeBrowseStore((s) => s.viewerOptions);
-  const setViewerOptions = useFreeBrowseStore((s) => s.setViewerOptions);
   const locationData = useFreeBrowseStore((s) => s.locationData);
   const setLocationData = useFreeBrowseStore((s) => s.setLocationData);
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
@@ -119,35 +118,33 @@ export default function FreeBrowse() {
   // Serverless mode is determined at build time via VITE_SERVERLESS env var
   const serverlessMode = import.meta.env.VITE_SERVERLESS === 'true';
   const nvRef = useRef<Niivue | null>(nv);
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const surfaceFileInputRef = useRef<HTMLInputElement>(null);
   const surfaceColorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const crosshairColorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debounced GL update to prevent excessive calls
-  const debouncedGLUpdate = useCallback(() => {
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current);
-    }
-    updateTimeoutRef.current = setTimeout(() => {
-      if (nvRef.current) {
-        nvRef.current.updateGLVolume();
-      }
-    }, 100); // 100ms debounce
-  }, []);
+  // --- Hooks ---
+  const {
+    viewerOptions,
+    setViewerOptions,
+    applyViewerOptions,
+    syncViewerOptionsFromNiivue,
+    debouncedGLUpdate,
+    handleViewMode,
+    handleCrosshairWidthChange,
+    handleCrosshairGapChange,
+    handleInterpolateVoxelsChange,
+    handleCrosshairVisibleChange,
+    handleCrosshairColorChange,
+    handleRulerWidthChange,
+    handleRulerVisibleChange,
+    handleOverlayOutlineWidthChange,
+  } = useViewerOptions(nvRef);
 
-  // Cleanup timeouts on unmount
+  // Cleanup surface color timeout on unmount
   useEffect(() => {
     return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
       if (surfaceColorTimeoutRef.current) {
         clearTimeout(surfaceColorTimeoutRef.current);
-      }
-      if (crosshairColorTimeoutRef.current) {
-        clearTimeout(crosshairColorTimeoutRef.current);
       }
     };
   }, []);
@@ -181,72 +178,6 @@ export default function FreeBrowse() {
     }
   }, []);
 
-  // all calls that change nv.opts should go here,
-  const applyViewerOptions = useCallback(() => {
-    if (nvRef.current) {
-      const viewConfig = sliceTypeMap[viewerOptions.viewMode];
-      console.log("applyViewerOptions() -- viewConfig: ", viewConfig);
-
-      // Apply all options together
-      nvRef.current.opts.crosshairWidth = viewerOptions.crosshairVisible
-        ? viewerOptions.crosshairWidth
-        : 0;
-      nvRef.current.opts.crosshairGap = viewerOptions.crosshairGap;
-      nvRef.current.setCrosshairColor(viewerOptions.crosshairColor);
-      nvRef.current.opts.rulerWidth = viewerOptions.rulerWidth;
-      nvRef.current.opts.isRuler = viewerOptions.rulerVisible;
-      nvRef.current.setInterpolation(!viewerOptions.interpolateVoxels);
-      nvRef.current.opts.dragMode = DRAG_MODE[viewerOptions.dragMode];
-      nvRef.current.overlayOutlineWidth = viewerOptions.overlayOutlineWidth;
-
-      if (viewConfig) {
-        nvRef.current.opts.multiplanarShowRender = viewConfig.showRender;
-        nvRef.current.setSliceType(viewConfig.sliceType);
-      } else {
-        nvRef.current.setSliceType(0); // Default to axial if mode is invalid
-      }
-    }
-  }, [viewerOptions]);
-
-  // Update viewerOptions state from current niivue state
-  const syncViewerOptionsFromNiivue = useCallback(() => {
-    if (nvRef.current) {
-      const nv = nvRef.current;
-
-      // Find the view mode from slice type
-      let viewMode: typeof viewerOptions.viewMode = "ACS";
-      for (const [mode, config] of Object.entries(sliceTypeMap)) {
-        if (config.sliceType === nv.opts.sliceType) {
-          viewMode = mode as typeof viewerOptions.viewMode;
-          break;
-        }
-      }
-
-      // Find drag mode from DRAG_MODE
-      let dragMode: DragMode = "contrast";
-      for (const [mode, value] of Object.entries(DRAG_MODE)) {
-        if (value === nv.opts.dragMode) {
-          dragMode = mode as DragMode;
-          break;
-        }
-      }
-
-      setViewerOptions({
-        viewMode,
-        crosshairWidth: nv.opts.crosshairWidth,
-        crosshairGap: nv.opts.crosshairGap ?? 0,
-        crosshairVisible: nv.opts.crosshairWidth > 0,
-        crosshairColor: nv.opts.crosshairColor
-          ? ([...nv.opts.crosshairColor] as [number, number, number, number])
-          : [1.0, 0.0, 0.0, 0.5],
-        rulerWidth: nv.opts.rulerWidth ?? 1.0,
-        rulerVisible: nv.opts.isRuler ?? false,
-        interpolateVoxels: !nv.opts.isNearestInterpolation,
-        dragMode,
-        overlayOutlineWidth: nv.overlayOutlineWidth,
-      });
-    }
-  }, []);
 
   // Sync drawing options from Niivue when they change (e.g., via mouse wheel)
   const syncDrawingOptionsFromNiivue = useCallback(() => {
@@ -921,9 +852,6 @@ export default function FreeBrowse() {
     return shaderNames[index] || "Phong";
   };
 
-  const handleViewMode = (mode: ViewMode) => {
-    setViewerOptions((prev) => ({ ...prev, viewMode: mode }));
-  };
 
   const handleOpacityChange = useCallback(
     (newOpacity: number) => {
@@ -1665,70 +1593,6 @@ export default function FreeBrowse() {
     setSurfaceToRemove(null);
   }, []);
 
-  const handleCrosshairWidthChange = useCallback((value: number) => {
-    setViewerOptions((prev) => ({ ...prev, crosshairWidth: value }));
-    debouncedGLUpdate();
-  }, []);
-
-  const handleCrosshairGapChange = useCallback((value: number) => {
-    setViewerOptions((prev) => ({ ...prev, crosshairGap: value }));
-    debouncedGLUpdate();
-  }, []);
-
-  const handleInterpolateVoxelsChange = useCallback((checked: boolean) => {
-    setViewerOptions((prev) => ({ ...prev, interpolateVoxels: checked }));
-  }, []);
-
-  const handleCrosshairVisibleChange = useCallback((visible: boolean) => {
-    setViewerOptions((prev) => ({ ...prev, crosshairVisible: visible }));
-  }, []);
-
-  const handleCrosshairColorChange = useCallback((color: string) => {
-    // Convert hex color to RGBA array (0-1 range)
-    const hex = color.replace("#", "");
-    const r = parseInt(hex.substr(0, 2), 16) / 255;
-    const g = parseInt(hex.substr(2, 2), 16) / 255;
-    const b = parseInt(hex.substr(4, 2), 16) / 255;
-    const a = viewerOptions.crosshairColor[3]; // Keep existing alpha
-
-    // Debounce both the NiiVue update AND the React state update
-    // This prevents applyViewerOptions from running on every color change
-    if (crosshairColorTimeoutRef.current) {
-      clearTimeout(crosshairColorTimeoutRef.current);
-    }
-    crosshairColorTimeoutRef.current = setTimeout(() => {
-      if (nvRef.current) {
-        nvRef.current.setCrosshairColor([r, g, b, a]);
-        nvRef.current.updateGLVolume();
-      }
-      // Update React state after debounce (for persistence)
-      setViewerOptions((prev) => ({
-        ...prev,
-        crosshairColor: [r, g, b, a] as [number, number, number, number],
-      }));
-    }, 50); // 50ms debounce for color changes
-  }, [viewerOptions.crosshairColor]);
-
-  const handleRulerWidthChange = useCallback((value: number) => {
-    setViewerOptions((prev) => ({ ...prev, rulerWidth: value }));
-    debouncedGLUpdate();
-  }, []);
-
-  const handleRulerVisibleChange = useCallback((visible: boolean) => {
-    setViewerOptions((prev) => ({ ...prev, rulerVisible: visible }));
-  }, []);
-
-  const handleOverlayOutlineWidthChange = useCallback(
-    (value: number) => {
-      setViewerOptions((prev) => ({ ...prev, overlayOutlineWidth: value }));
-      if (nvRef.current) {
-        nvRef.current.overlayOutlineWidth = value;
-        debouncedGLUpdate();
-      }
-    },
-    [debouncedGLUpdate],
-  );
-
   // Drawing event handlers
   const handleCreateDrawingLayer = useCallback(() => {
     if (nvRef.current) {
@@ -1955,11 +1819,6 @@ export default function FreeBrowse() {
       }
     }
   }, [drawingOptions]);
-
-  // Apply viewer options when they change
-  useEffect(() => {
-    applyViewerOptions();
-  }, [applyViewerOptions]);
 
   // Apply dark mode class to document root
   useEffect(() => {
