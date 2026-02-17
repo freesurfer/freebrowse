@@ -44,6 +44,14 @@ import DragModeSelector, {
   type DragMode,
 } from "@/components/drag-mode-selector";
 import { cn } from "@/lib/utils";
+import type {
+  ImageDetails,
+  SurfaceDetails,
+  DrawingOptions,
+  ViewerOptions,
+  LocationData,
+  SaveState,
+} from "@/store/types";
 import {
   DocumentData,
   Niivue,
@@ -55,32 +63,9 @@ import {
 import "../App.css";
 import ImageUploader from "./image-uploader";
 import ImageCanvas from "./image-canvas";
-import { sliceTypeMap } from "./image-canvas";
+import { sliceTypeMap, rgba255ToHex, uint8ArrayToBase64 } from "@/lib/niivue-helpers";
 import { ViewMode } from "./view-selector";
 import { FileList, type FileItem } from "./file-list";
-
-type ImageDetails = {
-  id: string;
-  name: string;
-  visible: boolean;
-  colormap: string;
-  opacity: number;
-  contrastMin: number;
-  contrastMax: number;
-  globalMin: number;
-  globalMax: number;
-  frame4D: number;
-  nFrame4D: number;
-};
-
-type SurfaceDetails = {
-  id: string;
-  name: string;
-  visible: boolean;
-  opacity: number;
-  rgba255: [number, number, number, number];
-  meshShaderIndex: number;
-};
 
 const nv = new Niivue({
   loadingText: "Drag-drop images",
@@ -968,14 +953,6 @@ export default function FreeBrowse() {
     [currentSurfaceIndex, surfaces, debouncedGLUpdate],
   );
 
-  // Helper to convert rgba255 to hex color
-  const rgba255ToHex = (rgba255: [number, number, number, number]) => {
-    const r = rgba255[0].toString(16).padStart(2, "0");
-    const g = rgba255[1].toString(16).padStart(2, "0");
-    const b = rgba255[2].toString(16).padStart(2, "0");
-    return `#${r}${g}${b}`;
-  };
-
   // Get mesh shader name from index
   const getMeshShaderName = (index: number): string => {
     if (!nvRef.current) return "Phong";
@@ -1395,17 +1372,6 @@ export default function FreeBrowse() {
       },
       volumes: [],
     });
-  }, []);
-
-  const uint8ArrayToBase64 = useCallback((uint8Array: Uint8Array): string => {
-    // Convert Uint8Array to base64 efficiently for large arrays
-    let binaryString = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.subarray(i, i + chunkSize);
-      binaryString += String.fromCharCode(...chunk);
-    }
-    return btoa(binaryString);
   }, []);
 
   const handleVolumeUrlChange = useCallback((index: number, url: string) => {
