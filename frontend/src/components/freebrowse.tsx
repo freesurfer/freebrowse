@@ -45,14 +45,6 @@ import DragModeSelector, {
   type DragMode,
 } from "@/components/drag-mode-selector";
 import { cn } from "@/lib/utils";
-import type {
-  ImageDetails,
-  SurfaceDetails,
-  DrawingOptions,
-  ViewerOptions,
-  LocationData,
-  SaveState,
-} from "@/store/types";
 import {
   DocumentData,
   Niivue,
