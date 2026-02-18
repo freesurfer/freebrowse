@@ -7,7 +7,7 @@ import type { Niivue } from "@niivue/niivue";
 interface CanvasAreaProps {
   nvInstance: Niivue;
   viewMode: ViewMode;
-  onFileUpload: (files: File[]) => void;
+  onFileUpload: (files: File[]) => Promise<void>;
 }
 
 export default function CanvasArea({ nvInstance, viewMode, onFileUpload }: CanvasAreaProps) {
