@@ -7,6 +7,8 @@ import { useSurfaces } from "@/hooks/use-surfaces";
 import { useDrawing } from "@/hooks/use-drawing";
 import { useSave } from "@/hooks/use-save";
 import { useFileLoading } from "@/hooks/use-file-loading";
+import { useSegmentation } from "@/hooks/use-segmentation";
+import { useRating } from "@/hooks/use-rating";
 import { Niivue } from "@niivue/niivue";
 import "../App.css";
 import Header from "./header";
@@ -108,6 +110,25 @@ export default function FreeBrowse() {
     handleLocationChange,
     syncDrawingOptionsFromNiivue,
   );
+  const {
+    segState,
+    setSegState,
+    voxelPromptText,
+    setVoxelPromptText,
+    initSegModel,
+    runSegmentation,
+    sendVoxelPrompt,
+    handleClickModeChange,
+    handleResetSession,
+  } = useSegmentation(nvRef, updateImageDetails);
+  const {
+    ratingState,
+    setRatingState,
+    initRatingSession,
+    submitRating,
+    advanceToNextVolume,
+    handleEndSession,
+  } = useRating(nvRef);
 
   // Apply dark mode class to document root
   useEffect(() => {
@@ -168,6 +189,23 @@ export default function FreeBrowse() {
             onDrawUndo={handleDrawUndo}
             onSaveDrawing={handleSaveDrawing}
             onSaveScene={handleSaveScene}
+            segState={segState}
+            voxelPromptText={voxelPromptText}
+            onSendVoxelPrompt={sendVoxelPrompt}
+            onInitSegModel={initSegModel}
+            onModelSelect={(name) =>
+              setSegState((prev) => ({ ...prev, selectedModel: name }))
+            }
+            onClickModeChange={handleClickModeChange}
+            onRunSegmentation={runSegmentation}
+            onResetSession={handleResetSession}
+            onVoxelPromptTextChange={setVoxelPromptText}
+            ratingState={ratingState}
+            onRatingStateChange={setRatingState}
+            onInitRatingSession={initRatingSession}
+            onSubmitRating={submitRating}
+            onAdvanceToNextVolume={advanceToNextVolume}
+            onEndRatingSession={handleEndSession}
           />
         )}
       </div>

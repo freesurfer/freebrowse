@@ -3,6 +3,9 @@ import {
   Save,
   Pencil,
   Undo,
+  Loader2,
+  Zap,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input";
 import { Select } from "@/components/ui/select";
+import type { SegState } from "@/hooks/use-segmentation";
 
 interface DrawingTabProps {
   onDrawModeChange: (mode: "none" | "pen" | "wand") => void;
@@ -23,6 +27,16 @@ interface DrawingTabProps {
   onMagicWandThresholdChange: (value: number) => void;
   onDrawUndo: () => void;
   onSaveDrawing: () => void;
+  // Segmentation props
+  segState: SegState;
+  voxelPromptText: string;
+  onSendVoxelPrompt: () => void;
+  onInitSegModel: () => void;
+  onModelSelect: (modelName: string) => void;
+  onClickModeChange: (mode: "positive" | "negative") => void;
+  onRunSegmentation: () => void;
+  onResetSession: () => void;
+  onVoxelPromptTextChange: (text: string) => void;
 }
 
 export default function DrawingTab({
@@ -36,6 +50,15 @@ export default function DrawingTab({
   onMagicWandThresholdChange,
   onDrawUndo,
   onSaveDrawing,
+  segState,
+  voxelPromptText,
+  onSendVoxelPrompt,
+  onInitSegModel,
+  onModelSelect,
+  onClickModeChange,
+  onRunSegmentation,
+  onResetSession,
+  onVoxelPromptTextChange,
 }: DrawingTabProps) {
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
   const setDrawingOptions = useFreeBrowseStore((s) => s.setDrawingOptions);
@@ -48,6 +71,24 @@ export default function DrawingTab({
           Edit annotations
         </p>
       </div>
+
+      {/* VoxelPrompt Section */}
+      <div className="border-b px-4 py-3">
+        <Label className="text-sm font-medium">VoxelPrompt</Label>
+        <div className="flex gap-2 mt-2">
+          <Input
+            type="text"
+            value={voxelPromptText}
+            onChange={(e) => onVoxelPromptTextChange(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && onSendVoxelPrompt()}
+            placeholder="Enter prompt..."
+          />
+          <Button size="sm" onClick={onSendVoxelPrompt}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
       <ScrollArea className="h-full">
         <div className="p-4 space-y-4">
           {drawingOptions.enabled ? (
@@ -215,6 +256,116 @@ export default function DrawingTab({
                 <Save className="mr-2 h-4 w-4" />
                 Save Drawing
               </Button>
+
+              {/* ScribblePrompt 3D Section */}
+              <div className="space-y-3 border-t pt-4 mt-4">
+                <Label className="text-sm font-medium">
+                  ScribblePrompt 3D
+                </Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={onInitSegModel}
+                  disabled={segState.loading}
+                >
+                  {segState.loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading Models...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2 h-4 w-4" />
+                      Load Models
+                    </>
+                  )}
+                </Button>
+                {segState.error && (
+                  <p className="text-sm text-red-500">{segState.error}</p>
+                )}
+                {segState.modelsLoaded && segState.models.length > 0 && (
+                  <Select
+                    value={segState.selectedModel ?? ""}
+                    onChange={(e) => onModelSelect(e.target.value)}
+                  >
+                    {segState.models.map((model) => (
+                      <option key={model.name} value={model.name}>
+                        {model.name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+
+                {/* Click mode toggle */}
+                {segState.modelsLoaded && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Click Mode</Label>
+                    <div className="flex gap-1">
+                      <Button
+                        variant={
+                          segState.clickMode === "positive"
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => onClickModeChange("positive")}
+                      >
+                        + Positive
+                      </Button>
+                      <Button
+                        variant={
+                          segState.clickMode === "negative"
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => onClickModeChange("negative")}
+                      >
+                        - Negative
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Run Segmentation button */}
+                {segState.modelsLoaded && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-full"
+                    onClick={onRunSegmentation}
+                    disabled={segState.loading || !segState.selectedModel}
+                  >
+                    {segState.loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {segState.progress}%
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="mr-2 h-4 w-4" />
+                        Run Segmentation
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {/* Reset button */}
+                {segState.previousLogits && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={onResetSession}
+                  >
+                    <Undo className="mr-2 h-4 w-4" />
+                    Reset Session
+                  </Button>
+                )}
+              </div>
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">

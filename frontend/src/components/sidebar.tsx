@@ -5,16 +5,20 @@ import {
   Brain,
   Database,
   Pencil,
+  Star,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { Niivue } from "@niivue/niivue";
 import type { FileItem } from "@/components/file-list";
+import type { SegState } from "@/hooks/use-segmentation";
+import type { RatingState } from "@/hooks/use-rating";
 import NvdTab from "@/components/tabs/nvd-tab";
 import DataTab from "@/components/tabs/data-tab";
 import SceneDetailsTab from "@/components/tabs/scene-details-tab";
 import SurfaceDetailsTab from "@/components/tabs/surface-details-tab";
 import DrawingTab from "@/components/tabs/drawing-tab";
+import RatingTab from "@/components/tabs/rating-tab";
 
 interface SidebarProps {
   nvRef: React.RefObject<Niivue | null>;
@@ -55,6 +59,23 @@ interface SidebarProps {
   onSaveDrawing: () => void;
   // Save operations
   onSaveScene: (isDownload: boolean) => void;
+  // Segmentation
+  segState: SegState;
+  voxelPromptText: string;
+  onSendVoxelPrompt: () => void;
+  onInitSegModel: () => void;
+  onModelSelect: (modelName: string) => void;
+  onClickModeChange: (mode: "positive" | "negative") => void;
+  onRunSegmentation: () => void;
+  onResetSession: () => void;
+  onVoxelPromptTextChange: (text: string) => void;
+  // Rating
+  ratingState: RatingState;
+  onRatingStateChange: (updater: (prev: RatingState) => RatingState) => void;
+  onInitRatingSession: () => void;
+  onSubmitRating: (rating: number) => void;
+  onAdvanceToNextVolume: () => void;
+  onEndRatingSession: () => void;
 }
 
 export default function Sidebar(props: SidebarProps) {
@@ -112,6 +133,14 @@ export default function Sidebar(props: SidebarProps) {
           >
             <Pencil className="h-4 w-4 mr-2" />
           </TabsTrigger>
+          {!props.serverlessMode && (
+            <TabsTrigger
+              value="rating"
+              className="data-[state=active]:bg-muted"
+            >
+              <Star className="h-4 w-4 mr-2" />
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
@@ -170,7 +199,29 @@ export default function Sidebar(props: SidebarProps) {
             onMagicWandThresholdChange={props.onMagicWandThresholdChange}
             onDrawUndo={props.onDrawUndo}
             onSaveDrawing={props.onSaveDrawing}
+            segState={props.segState}
+            voxelPromptText={props.voxelPromptText}
+            onSendVoxelPrompt={props.onSendVoxelPrompt}
+            onInitSegModel={props.onInitSegModel}
+            onModelSelect={props.onModelSelect}
+            onClickModeChange={props.onClickModeChange}
+            onRunSegmentation={props.onRunSegmentation}
+            onResetSession={props.onResetSession}
+            onVoxelPromptTextChange={props.onVoxelPromptTextChange}
           />
+        </TabsContent>
+
+        <TabsContent value="rating" className="flex-1 min-h-0 p-0">
+          {!props.serverlessMode && (
+            <RatingTab
+              ratingState={props.ratingState}
+              onRatingStateChange={props.onRatingStateChange}
+              onInitSession={props.onInitRatingSession}
+              onSubmitRating={props.onSubmitRating}
+              onAdvance={props.onAdvanceToNextVolume}
+              onEndSession={props.onEndRatingSession}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </aside>
