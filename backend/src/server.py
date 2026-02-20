@@ -1,13 +1,26 @@
 import os
+import sys
+import importlib
 import json
+import csv
+import random
 import mimetypes
 import logging
+import tempfile
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Union, List, Tuple, Any
 import uuid
 import base64
+import gzip
+import torch
+import yaml
+import numpy as np
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
+import nibabel as nib
 from pydantic import BaseModel
 
 # Configure logging.  Possible logging levels are:
@@ -23,15 +36,19 @@ logger = logging.getLogger(__name__)
 static_dir = os.getenv('NIIVUE_BUILD_DIR')
 data_dir = os.getenv('DATA_DIR')
 scene_schema_id = os.getenv('SCENE_SCHEMA_ID')
+models_dir = os.getenv('MODELS_DIR')  # Contains trained PyTorch models
 imaging_extensions_str = os.getenv('IMAGING_EXTENSIONS', '["*.nii", "*.nii.gz"]')
 imaging_extensions = json.loads(imaging_extensions_str)
 serverless_mode = os.getenv('SERVERLESS_MODE', 'false').lower() == 'true'
+master_json = os.getenv('MASTER_JSON')
 
 logger.info(f"NIIVUE_BUILD_DIR: {static_dir}")
 logger.info(f"DATA_DIR: {data_dir}")
 logger.info(f"SCENE_SCHEMA_ID: {scene_schema_id}")
+logger.info(f"MODELS_DIR: {models_dir}")
 logger.info(f"IMAGING_EXTENSIONS: {imaging_extensions}")
 logger.info(f"SERVERLESS_MODE: {serverless_mode}")
+logger.info(f"MASTER_JSON: {master_json}")
 
 # Register the MIME type so that .gz files (or .nii.gz files) are served correctly.
 mimetypes.add_type("application/gzip", ".nii.gz", strict=True)
@@ -44,7 +61,71 @@ class SaveVolumeRequest(BaseModel):
     filename: str
     data: str  # base64 encoded NIfTI data
 
+class InferenceRequest(BaseModel):
+    """
+    Shared request fields for all inference endpoints.
+
+    Attributes
+    ----------
+    positive_clicks
+        Flat indices in RAS order using Fortran layout (idx = x + y*nx + z*nx*ny).
+    negative_clicks
+        Flat indices in RAS order using Fortran layout (idx = x + y*nx + z*nx*ny).
+    volume_data
+        Base64 encoded volume in voxel space.
+    """
+    session_id: str
+    model_name: str
+    positive_clicks: List[int]
+    negative_clicks: List[int]
+    previous_logits: Union[str, None] = None
+    niivue_dims: List[int]
+    volume_data: Union[str, None] = None
+    affine: Union[List[float], None] = None
+
+class VoxelPromptRequest(InferenceRequest):
+    text: str
+
+
+class RatingInitRequest(BaseModel):
+    name: str
+    seed: int
+
+
+class RatingSubmitRequest(BaseModel):
+    session_id: str
+    rating: int
+
+
+class RatingNextRequest(BaseModel):
+    session_id: str
+
+
 app = FastAPI()
+
+
+@dataclass
+class SessionState:
+    """State for an active segmentation session."""
+    volume_tensor: torch.Tensor
+    affine_ras: np.ndarray
+    ras_dims: Tuple[int, int, int]
+    shape_before_pad: Tuple[int, int, int]
+    positive_clicks: list[int] = field(default_factory=list)
+    negative_clicks: list[int] = field(default_factory=list)
+
+
+@dataclass
+class RatingSession:
+    """State for a volume rating session. Persisted to disk as JSON."""
+    name: str
+    seed: int
+    current_index: int
+    total_volumes: int
+
+
+# Active sessions keyed by session_id
+sessions: dict[str, SessionState] = {}
 
 # Define API routes BEFORE static file mounts to prevent catch-all behavior
 @app.get("/nvd")
@@ -85,6 +166,53 @@ def list_imaging_files():
     except Exception as e:
         return {"error": str(e)}
     return sorted(imaging_files, key=lambda x: x["url"])
+
+@app.get('/available_seg_models')
+def list_models():
+    """
+    List available PyTorch models in `MODELS_DIR`.
+
+    Each model is represented by a subdirectory containing:
+        - model.py: Model class definition (must have `SegModel` class)
+        - weights.pt: PyTorch state_dict checkpoint
+        - config.yml: (optional) Model configuration
+
+    Returns
+    -------
+    list[dict]
+        List of model metadata dicts with keys: name, model_module_path, checkpoint_path,
+        config_path (if exists), config (parsed yaml if exists).
+    """
+    models_path = Path(models_dir)
+    models = []
+
+    for model_dir in models_path.iterdir():
+        if not model_dir.is_dir():
+            continue
+
+        model_file = model_dir / 'model.py'
+        weights_file = model_dir / 'weights.pt'
+
+        # Model must have both!
+        if not model_file.exists() or not weights_file.exists():
+            continue
+
+        model_info = {
+            'name': model_dir.name,
+            'model_module_path': str(model_file),
+            'checkpoint_path': str(weights_file),
+        }
+
+        config_file = model_dir / 'config.yml'
+        if config_file.exists():
+            model_info['config_path'] = str(config_file)
+            model_info['config'] = load_model_config(config_file)
+
+        models.append(model_info)
+
+    return sorted(models, key=lambda x: x['name'])
+
+
 
 @app.post("/nvd")
 def save_scene(request: SaveSceneRequest):
@@ -131,6 +259,7 @@ def save_scene(request: SaveSceneRequest):
     except Exception as e:
         logger.error(f"Error saving scene: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save scene: {str(e)}")
+
 
 @app.post("/nii")
 def save_volume(request: SaveVolumeRequest):
@@ -187,9 +316,553 @@ def save_volume(request: SaveVolumeRequest):
         logger.error(f"Error saving volume: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save volume: {str(e)}")
 
-# Mount static directories AFTER all API routes
-app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")
+
+def pad_to_multiple(tensor: torch.Tensor, multiple: int = 16) -> torch.Tensor:
+    """
+    Pad 3D tensor so each dimension is divisible by `multiple`.
+    """
+    d, h, w = tensor.shape
+
+    pd = (multiple - d % multiple) % multiple
+    ph = (multiple - h % multiple) % multiple
+    pw = (multiple - w % multiple) % multiple
+
+    if pd == 0 and ph == 0 and pw == 0:
+        return tensor
+
+    return torch.nn.functional.pad(tensor, (0, pw, 0, ph, 0, pd))
+
+
+def clicks_to_mask(clicks: list[int], original_shape: Tuple[int, int, int]) -> torch.Tensor:
+    """
+    Convert flat click indices from NiiVue's drawBitmap to 3D mask.
+
+    Parameters
+    ----------
+    clicks
+        Flat indices in RAS order using Fortran layout (idx = x + y*nx + z*nx*ny).
+    original_shape
+        Volume shape in RAS order (nx_ras, ny_ras, nz_ras).
+
+    Returns
+    -------
+    torch.Tensor
+        Binary mask with shape matching original_shape.
+
+    Notes
+    -----
+    - The annotations from drawBitmap are indexed using RAS-oriented coordinates.
+    """
+    nx, ny, nz = original_shape
+    mask = torch.zeros((nx, ny, nz), dtype=torch.float32)
+    valid = [i for i in clicks if 0 <= i < nx * ny * nz]
+
+    if valid:
+        idx = torch.tensor(valid)
+        z = idx // (nx * ny)
+        y = (idx // nx) % ny
+        x = idx % nx
+        mask[x, y, z] = 1.0
+
+    return mask
+
+
+def decode_previous_prediction(
+    logits_b64: str | None,
+    shape: Tuple[int, int, int],
+    include_previous_prediction: bool,
+    include_previous_logits: bool,
+) -> torch.Tensor | None:
+    """
+    Decode previous logits and transform based on config flags.
+
+    Parameters
+    ----------
+    logits_b64
+        Base64-encoded raw logits from previous inference.
+    shape
+        Expected tensor shape.
+    include_previous_prediction
+        If True, return binary mask (sigmoid > 0.5).
+    include_previous_logits
+        If True, return raw logits.
+
+    Returns
+    -------
+    torch.Tensor | None
+        Transformed tensor for channel 1, or None if both flags are False.
+    """
+    if not logits_b64 or not (include_previous_prediction or include_previous_logits):
+            return None
+
+    logits_bytes = base64.b64decode(logits_b64)
+    if len(logits_bytes) // 4 != np.prod(shape):
+        return None
+
+    logits = torch.from_numpy(np.frombuffer(logits_bytes, dtype=np.float32).copy().reshape(shape))
+
+    if include_previous_logits:
+        return logits
+    elif include_previous_prediction:
+        return (torch.sigmoid(logits) > 0.5).float()
+
+
+def load_model_config(config_path: Path) -> dict[str, Any]:
+    """
+    Load model configuration from a YAML file.
+
+    Parameters
+    ----------
+    config_path
+        Path to the config.yml file.
+
+    Returns
+    -------
+    dict[str, Any]
+        Parsed configuration dictionary.
+    """
+    with open(config_path, 'r') as f:
+        return yaml.safe_load(f)
+
+
+def load_model_class(module_path: Path):
+    """
+    Load the model class definition from its python file.
+    """
+    spec = importlib.util.spec_from_file_location(
+        module_path.stem,
+        module_path
+    )
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_path.stem] = module
+    spec.loader.exec_module(module)
+
+    # Convention: The segmentation model in the .py must have cls name SegModel
+    model_class = getattr(module, "SegModel", None)
+    if model_class is None:
+        raise ValueError(f"No SegModel class found in {module_path}")
+
+    return model_class
+
+
+def load_model(
+    module_path: Path,
+    checkpoint_path: Path,
+    device: torch.device
+) -> torch.nn.Module:
+    """
+    Load the segmentation model from the module file and `.pt` checkpoint
+    """
+    model = load_model_class(module_path=module_path)()
+    checkpoint = torch.load(
+        checkpoint_path,
+        map_location=device,
+        weights_only=False
+    )
+
+    if isinstance(checkpoint, dict) and "model" in checkpoint:
+        state_dict = checkpoint['model']
+    else:
+        state_dict = checkpoint
+
+    model.load_state_dict(state_dict)
+    return model.to(device).eval()
+
+
+def create_mask_nifti(mask: np.ndarray, affine: np.ndarray) -> nib.Nifti1Image:
+    """
+    Create NIfTI image from binary mask.
+    """
+    nii = nib.Nifti1Image(mask, affine)
+    nii.header.set_slope_inter(1.0, 0.0)
+    nii.header['cal_min'] = 0.0
+    nii.header['cal_max'] = 1.0
+    return nii
+
+
+def encode_nifti(nii: nib.Nifti1Image) -> str:
+    """
+    Encode NIfTI as gzipped base64 string.
+    """
+    return base64.b64encode(gzip.compress(nii.to_bytes())).decode("utf-8")
+
+
+def get_rating_dir() -> Path:
+    """Return the rating sessions directory, creating it if needed."""
+    rating_dir = Path(data_dir) / "rating_sessions"
+    rating_dir.mkdir(parents=True, exist_ok=True)
+    return rating_dir
+
+
+def make_rating_session_id(name: str, seed: int) -> str:
+    """
+    Deterministic session ID from name + seed. Same inputs = same session.
+    """
+    safe_name = name.strip().lower().replace(" ", "_")
+    return f"rating_{safe_name}_{seed}"
+
+
+def load_shuffled_paths(seed: int) -> list[str]:
+    """
+    Load master path list and shuffle deterministically with seed.
+    """
+    with open(master_json, "r") as f:
+        paths = [line.strip() for line in f if line.strip()]
+    rng = random.Random(seed)
+    rng.shuffle(paths)
+    return paths
+
+
+def save_rating_session(session_id: str, session: RatingSession) -> None:
+    """Persist rating session state to JSON on disk."""
+    path = get_rating_dir() / f"{session_id}.json"
+    with open(path, "w") as f:
+        json.dump({
+            "name": session.name,
+            "seed": session.seed,
+            "current_index": session.current_index,
+            "total_volumes": session.total_volumes,
+        }, f)
+
+
+def load_rating_session(session_id: str) -> RatingSession | None:
+    """Load rating session from disk, or return None if not found."""
+    path = get_rating_dir() / f"{session_id}.json"
+    if not path.exists():
+        return None
+    with open(path, "r") as f:
+        data = json.load(f)
+    return RatingSession(**data)
+
+
+def append_rating_to_csv(session_id: str, nifti_path: str, rating: int) -> None:
+    """Append a single rating row to the session CSV."""
+    csv_path = get_rating_dir() / f"{session_id}_ratings.csv"
+    file_exists = csv_path.exists()
+    with open(csv_path, "a", newline="") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["timestamp", "path", "rating"])
+        writer.writerow([datetime.now(timezone.utc).isoformat(), nifti_path, rating])
+
+
+def prepare_inference_input(
+    request: InferenceRequest,
+) -> Tuple[torch.Tensor, SessionState]:
+    """
+    Decode volume, manage session, and build the 5-channel input tensor.
+
+    Shared by all inference endpoints. Handles:
+    - First-call volume decoding + RAS reorientation + session creation
+    - Subsequent-call session reuse
+    - Click accumulation and mask construction
+    - Input tensor assembly (1, 5, D, H, W)
+
+    Returns
+    -------
+    tuple[torch.Tensor, SessionState]
+        The input tensor and the (new or existing) session.
+    """
+    session = sessions.get(request.session_id)
+
+    if request.volume_data is not None:
+        if request.affine is None:
+            raise HTTPException(
+                status_code=400,
+                detail='Inference requires affine with volume_data'
+            )
+
+        # Decode raw float 32, file order voxel data from base64
+        volume_bytes = base64.b64decode(request.volume_data)
+        volume_array = np.frombuffer(volume_bytes, dtype=np.float32)
+
+        # Use Fortran order b/c of Niivue's internal convention of
+        # `x + y*nx + z*nx*ny` indexing
+        volume_file_order = volume_array.copy().reshape(tuple(request.niivue_dims), order='F')
+
+        # 16 floats row-major -> 4x4 matrix
+        file_affine = np.array(request.affine).reshape(4, 4)
+
+        # Reorient volume to RAS with nib (matches NiiVue display and click indexing orientation)
+        img_file_order = nib.Nifti1Image(volume_file_order, file_affine)
+        img_ras = nib.as_closest_canonical(img_file_order)
+        volume_ras = img_ras.get_fdata().astype(np.float32)
+        affine_ras = img_ras.affine
+
+        # Now volume_ras and clicks are both in RAS order
+        ras_dims = volume_ras.shape
+        volume_tensor = torch.from_numpy(volume_ras).float()
+
+        # Preprocess the data for inference
+        vmin, vmax = volume_tensor.min(), volume_tensor.max()
+        volume_tensor = (volume_tensor - vmin) / (vmax - vmin)
+
+        # Save shape before padding for later cropping
+        shape_before_pad = volume_tensor.shape
+        volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=16)
+
+        # Store session state
+        session = SessionState(
+            volume_tensor=volume_tensor,
+            affine_ras=affine_ras,
+            ras_dims=ras_dims,
+            shape_before_pad=shape_before_pad,
+        )
+        sessions[request.session_id] = session
+
+    elif session is not None:
+        volume_tensor = session.volume_tensor
+
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail='First inference request requires volume_data and affine'
+        )
+
+    session.positive_clicks.extend(request.positive_clicks)
+    session.negative_clicks.extend(request.negative_clicks)
+
+    pos_mask = clicks_to_mask(
+        clicks=session.positive_clicks,
+        original_shape=session.ras_dims
+    )
+    pos_mask = pad_to_multiple(tensor=pos_mask, multiple=16)
+
+    neg_mask = clicks_to_mask(
+        clicks=session.negative_clicks,
+        original_shape=session.ras_dims
+    )
+    neg_mask = pad_to_multiple(tensor=neg_mask, multiple=16)
+
+    input_tensor = torch.zeros((1, 5, *volume_tensor.shape), dtype=torch.float32)
+    input_tensor[0, 0] = volume_tensor
+    input_tensor[0, 2] = pos_mask
+    input_tensor[0, 3] = neg_mask
+
+    return input_tensor, session
+
+
+@app.post('/scribbleprompt3d_inference')
+def run_scribbleprompt3d_inference(request: InferenceRequest):
+    """
+    Run 3d interactive segmentation with a trained ScribblePrompt3d model.
+
+    Notes
+    -----
+    On first call, volume_data and affine are required. The preprocessed
+    volume is stored in RAM by session_id. Subsequent calls with the same
+    session_id reuse the cached volume.
+    """
+    input_tensor, session = prepare_inference_input(request)
+
+    models_path = Path(models_dir)
+    model_dir = models_path / request.model_name
+    module_file = model_dir / 'model.py'
+    checkpoint_file = model_dir / 'weights.pt'
+
+    # Load config to determine how to handle previous prediction
+    config_file = model_dir / 'config.yml'
+    config = load_model_config(config_file) if config_file.exists() else {}
+    prompts_config = config.get('prompts', {})
+
+    prev_pred = decode_previous_prediction(
+        logits_b64=request.previous_logits,
+        shape=session.volume_tensor.shape,
+        include_previous_prediction=prompts_config.get(
+            'include_previous_prediction',
+            False
+        ),
+        include_previous_logits=prompts_config.get(
+            'include_previous_logits',
+            False
+        ),
+    )
+
+    if prev_pred is not None:
+        input_tensor[0, 1] = prev_pred
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_model(module_file, checkpoint_file, device)
+
+    with torch.no_grad():
+        output = model(input_tensor.to(device))
+        logits = output.squeeze().cpu()
+
+    d, h, w = session.shape_before_pad
+    logits = logits[:d, :h, :w]
+
+    mask = (logits.sigmoid() > 0.5).to(torch.uint8).cpu().numpy()
+    logit_bytes = logits.numpy().astype(np.float32).tobytes()
+
+    return {
+        "success": True,
+        "mask_nifti": encode_nifti(create_mask_nifti(mask, session.affine_ras)),
+        "logits": base64.b64encode(logit_bytes).decode("utf-8"),
+        "logits_shape": list(session.volume_tensor.shape),
+    }
+
+
+@app.post('/voxelprompt')
+def voxelprompt(request: VoxelPromptRequest):
+    """Run VoxelPrompt inference with text + clicks + volume."""
+    input_tensor, session = prepare_inference_input(request)
+
+    # TODO[Andrew]: Replace stuff below with VoxelPrompt model inference.
+    print(f"VXP request: session_id={request.session_id}, text={request.text}")
+
+    logits = torch.zeros(session.shape_before_pad, dtype=torch.float32)
+    mask = (logits.sigmoid() > 0.5).to(torch.uint8).numpy()
+
+    return {
+        "success": True,
+        "mask_nifti": encode_nifti(create_mask_nifti(mask, session.affine_ras)),
+    }
+
+
+@app.post("/rating/init")
+def rating_init(request: RatingInitRequest):
+    """Initialize or resume a rating session."""
+    if not master_json or not Path(master_json).exists():
+        raise HTTPException(
+            status_code=500,
+            detail="MASTER_JSON not configured or file not found",
+        )
+
+    session_id = make_rating_session_id(request.name, request.seed)
+    existing = load_rating_session(session_id)
+
+    if existing is not None:
+        logger.info(
+            f"Resuming rating session: {session_id} at index "
+            f"{existing.current_index}"
+        )
+
+        return {
+            "session_id": session_id,
+            "current_index": existing.current_index,
+            "total_volumes": existing.total_volumes,
+        }
+
+    paths = load_shuffled_paths(request.seed)
+    session = RatingSession(
+        name=request.name,
+        seed=request.seed,
+        current_index=0,
+        total_volumes=len(paths),
+    )
+
+    save_rating_session(session_id, session)
+    logger.info(
+        f"Created rating session: {session_id} with "
+        f"{len(paths)} volumes"
+    )
+
+    return {
+        "session_id": session_id,
+        "current_index": 0,
+        "total_volumes": len(paths),
+    }
+
+
+@app.get("/rating/volume")
+def rating_volume(session_id: str, index: int | None = None):
+    """
+    Return a volume as base64-encoded gzipped NIfTI.
+
+    Parameters
+    ----------
+    session_id : str
+        The rating session ID.
+    index : int | None
+        Volume index to fetch. Defaults to session's current_index.
+        Allows frontend to prefetch upcoming volumes without advancing
+        the session pointer.
+    """
+    session = load_rating_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    paths = load_shuffled_paths(session.seed)
+    vol_index = index if index is not None else session.current_index
+
+    if vol_index < 0 or vol_index >= len(paths):
+        raise HTTPException(
+            status_code=400,
+            detail="Volume index out of range"
+        )
+
+    nifti_path = paths[vol_index]
+    if not Path(nifti_path).exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"NIfTI file not found: {nifti_path}"
+        )
+
+    raw_bytes = Path(nifti_path).read_bytes()
+    return {
+        "volume_nifti": base64.b64encode(raw_bytes).decode("utf-8"),
+        "path": nifti_path,
+        "current_index": vol_index,
+        "total_volumes": session.total_volumes,
+    }
+
+
+@app.post("/rating/rate")
+def rating_rate(request: RatingSubmitRequest):
+    """Record a rating for the current volume. Every click is recorded."""
+    session = load_rating_session(request.session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if request.rating < 1 or request.rating > 5:
+        raise HTTPException(
+            status_code=400,
+            detail="Rating must be between 1 and 5"
+        )
+
+    paths = load_shuffled_paths(session.seed)
+    if session.current_index >= len(paths):
+        raise HTTPException(
+            status_code=400,
+            detail="No current volume to rate"
+        )
+
+    current_path = paths[session.current_index]
+    append_rating_to_csv(request.session_id, current_path, request.rating)
+    logger.info(
+        f"Rating recorded: session={request.session_id}, "
+        f"path={current_path}, rating={request.rating}"
+    )
+    return {"success": True}
+
+
+@app.post("/rating/next")
+def rating_next(request: RatingNextRequest):
+    """Advance to the next volume. Does not return volume data.
+
+    Volume data is fetched separately via GET /rating/volume. This keeps
+    mutation (advancing) separate from reading (fetching NIfTI data), so
+    the client has a single code path for loading volumes.
+    """
+    session = load_rating_session(request.session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    session.current_index += 1
+    save_rating_session(request.session_id, session)
+
+    return {
+        "done": session.current_index >= session.total_volumes,
+        "current_index": session.current_index,
+        "total_volumes": session.total_volumes,
+    }
+
 
 # Only mount data directory if not in serverless mode
 if not serverless_mode:
     app.mount("/data", StaticFiles(directory=data_dir, html=False), name="data")
+
+
+# Mount frontend static files at root LAST (catch-all)
+app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
