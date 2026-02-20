@@ -30,7 +30,11 @@ export default defineConfig({
       '/data': backendUrl,
       '/nvd': backendUrl,
       '/nii': backendUrl,
-      '/imaging': backendUrl
+      '/imaging': backendUrl,
+      '/available_seg_models': backendUrl,
+      '/scribbleprompt3d_inference': backendUrl,
+      '/voxelprompt': backendUrl,
+      '/rating': backendUrl
     }
   }
 })
