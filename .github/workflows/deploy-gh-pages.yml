@@ -40,9 +40,17 @@ jobs:
       - name: Build for GitHub Pages (serverless mode)
         working-directory: frontend
         env:
-          VITE_SERVERLESS: 'true'
           VITE_BASE_PATH: '/${{ github.event.repository.name }}/'
-        run: npm run build
+        run: npm run build:serverless
+
+      - name: Build single-file version
+        working-directory: frontend
+        env:
+          VITE_SERVERLESS: 'true'
+        run: |
+          npm run build:singlefile
+          mkdir -p dist/downloads
+          cp dist-singlefile/*.html dist/downloads/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

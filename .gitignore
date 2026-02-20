@@ -4,3 +4,11 @@
 
 # Ignore the node_modules directory
 /node_modules
+
+# Build outputs
+frontend/dist/
+frontend/dist-singlefile/
+frontend/dist-jupyter/
+
+# Vite temp files
+*.timestamp-*.mjs

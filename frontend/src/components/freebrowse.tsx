@@ -14,6 +14,7 @@ import {
   Pencil,
   FileText,
   Info,
+  Box,
   Brain,
   Database,
   Undo,
@@ -74,6 +75,19 @@ type ImageDetails = {
   opacity: number;
   contrastMin: number;
   contrastMax: number;
+  globalMin: number;
+  globalMax: number;
+  frame4D: number;
+  nFrame4D: number;
+};
+
+type SurfaceDetails = {
+  id: string;
+  name: string;
+  visible: boolean;
+  opacity: number;
+  rgba255: [number, number, number, number];
+  meshShaderIndex: number;
 };
 
 const nv = new Niivue({
@@ -193,6 +207,16 @@ export default function FreeBrowse() {
     error: null as string | null,
   });
 
+  // Surface-related state
+  const [surfaces, setSurfaces] = useState<SurfaceDetails[]>([]);
+  const [currentSurfaceIndex, setCurrentSurfaceIndex] = useState<number | null>(
+    null,
+  );
+  const surfaceFileInputRef = useRef<HTMLInputElement>(null);
+  const [surfaceToRemove, setSurfaceToRemove] = useState<number | null>(null);
+  const surfaceColorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const crosshairColorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Debounced GL update to prevent excessive calls
   const debouncedGLUpdate = useCallback(() => {
     if (updateTimeoutRef.current) {
@@ -205,11 +229,17 @@ export default function FreeBrowse() {
     }, 100); // 100ms debounce
   }, []);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
+      }
+      if (surfaceColorTimeoutRef.current) {
+        clearTimeout(surfaceColorTimeoutRef.current);
+      }
+      if (crosshairColorTimeoutRef.current) {
+        clearTimeout(crosshairColorTimeoutRef.current);
       }
     };
   }, []);
@@ -227,7 +257,7 @@ export default function FreeBrowse() {
         const k = Math.round(voxel[2]);
 
         // Get the value at this voxel
-        const value = volume.getValue(i, j, k);
+        const value = volume.getValue(i, j, k, volume.frame4D);
 
         return {
           name: volume.name || `Volume ${index + 1}`,
@@ -395,6 +425,56 @@ export default function FreeBrowse() {
     }
   }, []); // Empty dependency array since this should only run once on mount
 
+  // Load volume from URL parameter on initial load (e.g., ?vol=/files/brain.nii.gz)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const volParam = urlParams.get("vol");
+
+    if (volParam) {
+      console.log("Loading volume from URL parameter:", volParam);
+
+      const filename = volParam.split("/").pop() || volParam;
+      const fileItem: FileItem = { filename, url: volParam };
+      handleImagingFileSelect(fileItem);
+    }
+  }, []);
+
+  // Load embedded NVD data (for self-contained HTML files)
+  useEffect(() => {
+    const handleEmbeddedNvd = async (event: CustomEvent) => {
+      if (!event.detail || !nvRef.current) return;
+
+      // Prevent double-loading (both bootstrap and React may dispatch the event)
+      if ((window as any).__EMBEDDED_NVD_LOADED__) return;
+      (window as any).__EMBEDDED_NVD_LOADED__ = true;
+
+      console.log('Loading embedded NVD data');
+      setShowUploader(false);
+
+      // Wait for canvas to be ready
+      let retries = 0;
+      while (!nvRef.current.canvas && retries < 20) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries++;
+      }
+
+      if (nvRef.current.canvas) {
+        await loadNvdData(event.detail);
+      }
+    };
+
+    window.addEventListener('loadEmbeddedNvd', handleEmbeddedNvd as unknown as EventListener);
+
+    // Check if data was loaded before React mounted
+    if ((window as any).__EMBEDDED_NVD_DATA__ && !(window as any).__EMBEDDED_NVD_LOADED__) {
+      window.dispatchEvent(new CustomEvent('loadEmbeddedNvd', {
+        detail: (window as any).__EMBEDDED_NVD_DATA__
+      }));
+    }
+
+    return () => window.removeEventListener('loadEmbeddedNvd', handleEmbeddedNvd as unknown as EventListener);
+  }, []);
+
   // Helper function to load NVD data (extracted from handleNvdFileSelect)
   const loadNvdData = async (jsonData: any) => {
     if (!nvRef.current) return;
@@ -507,8 +587,15 @@ export default function FreeBrowse() {
       syncViewerOptionsFromNiivue();
     }
 
+    // Load meshes if present (NVDocument doesn't support loading meshes from URL)
+    if (jsonData.meshes && jsonData.meshes.length > 0) {
+      console.log("Loading meshes:", jsonData.meshes);
+      await nv.loadMeshes(jsonData.meshes);
+    }
+
     setCurrentImageIndex(0);
     updateImageDetails();
+    updateSurfaceDetails();
     nv.setCrosshairColor([0, 1, 0, 0.1]);
   };
 
@@ -681,15 +768,25 @@ export default function FreeBrowse() {
   const updateImageDetails = () => {
     const nv = nvRef.current;
     if (nv) {
-      const loadedImages = nv.volumes.map((vol, index) => ({
-        id: vol.id,
-        name: vol.name || `Volume ${index + 1}`,
-        visible: vol.opacity > 0,
-        colormap: vol.colormap,
-        opacity: vol.opacity,
-        contrastMin: vol.cal_min ?? 0,
-        contrastMax: vol.cal_max ?? 100,
-      }));
+      const loadedImages = nv.volumes.map((vol, index) => {
+        // NiiVue issue: global_min/global_max are calculated from only frame 0,
+        // not all frames. For 4D volumes, use 150000 as max fornow.
+        // See: https://github.com/niivue/niivue/issues/1521
+        const is4D = vol.nFrame4D && vol.nFrame4D > 1;
+        return {
+          id: vol.id,
+          name: vol.name || `Volume ${index + 1}`,
+          visible: vol.opacity > 0,
+          colormap: vol.colormap,
+          opacity: vol.opacity,
+          contrastMin: vol.cal_min ?? 0,
+          contrastMax: vol.cal_max ?? 100,
+          globalMin: vol.global_min ?? 0,
+          globalMax: is4D ? 150000 : (vol.global_max ?? 150000),
+          frame4D: vol.frame4D ?? 0,
+          nFrame4D: vol.nFrame4D ?? 1,
+        };
+      });
       setImages(loadedImages);
 
       console.log("updateImageDetails() loadedImages:", loadedImages);
@@ -733,6 +830,197 @@ export default function FreeBrowse() {
     }
   };
 
+  // Surface-related functions
+  const updateSurfaceDetails = () => {
+    const nv = nvRef.current;
+    if (nv && nv.meshes) {
+      const loadedSurfaces = nv.meshes.map((mesh, index) => {
+        // Use mesh name, or fallback to a default
+        const name = mesh.name || `Surface ${index + 1}`;
+        // Default to yellow color and Crosscut shader if not specified
+        const rgba255 = mesh.rgba255 || new Uint8Array([255, 255, 0, 255]);
+        return {
+          id: mesh.id,
+          name: name,
+          visible: mesh.visible !== false,
+          opacity: mesh.opacity ?? 1.0,
+          rgba255: [rgba255[0], rgba255[1], rgba255[2], rgba255[3]] as [number, number, number, number],
+          meshShaderIndex: mesh.meshShaderIndex ?? 14, // Default to Crosscut
+        };
+      });
+      setSurfaces(loadedSurfaces);
+      console.log("updateSurfaceDetails() loadedSurfaces:", loadedSurfaces);
+
+      // Select first surface if none selected and surfaces exist
+      if (currentSurfaceIndex === null && loadedSurfaces.length > 0) {
+        setCurrentSurfaceIndex(0);
+      }
+    }
+  };
+
+  const toggleSurfaceVisibility = (id: string) => {
+    setSurfaces(
+      surfaces.map((surf, index) => {
+        if (surf.id === id) {
+          const newVisible = !surf.visible;
+          if (nvRef.current) {
+            // Use mesh index for setMeshProperty
+            nvRef.current.setMeshProperty(index, "visible", newVisible);
+          }
+          return { ...surf, visible: newVisible };
+        }
+        return surf;
+      }),
+    );
+
+    if (nvRef.current) {
+      nvRef.current.updateGLVolume();
+    }
+  };
+
+  const removeSurface = useCallback(
+    (surfaceIndex: number) => {
+      if (nvRef.current && surfaces[surfaceIndex]) {
+        const mesh = nvRef.current.meshes[surfaceIndex];
+        if (mesh) {
+          nvRef.current.removeMesh(mesh);
+          updateSurfaceDetails();
+
+          // Adjust current selection if needed
+          if (currentSurfaceIndex === surfaceIndex) {
+            if (surfaceIndex > 0) {
+              setCurrentSurfaceIndex(surfaceIndex - 1);
+            } else if (surfaces.length > 1) {
+              setCurrentSurfaceIndex(0);
+            } else {
+              setCurrentSurfaceIndex(null);
+            }
+          } else if (
+            currentSurfaceIndex !== null &&
+            currentSurfaceIndex > surfaceIndex
+          ) {
+            setCurrentSurfaceIndex(currentSurfaceIndex - 1);
+          }
+        }
+      }
+    },
+    [surfaces, currentSurfaceIndex],
+  );
+
+  const handleRemoveSurfaceClick = useCallback(
+    (surfaceIndex: number) => {
+      if (skipRemoveConfirmation) {
+        removeSurface(surfaceIndex);
+      } else {
+        setSurfaceToRemove(surfaceIndex);
+        setRemoveDialogOpen(true);
+      }
+    },
+    [skipRemoveConfirmation, removeSurface],
+  );
+
+  const handleSurfaceOpacityChange = useCallback(
+    (newOpacity: number) => {
+      if (
+        currentSurfaceIndex !== null &&
+        nvRef.current &&
+        surfaces[currentSurfaceIndex]
+      ) {
+        // Use mesh index for setMeshProperty
+        nvRef.current.setMeshProperty(currentSurfaceIndex, "opacity", newOpacity);
+        debouncedGLUpdate();
+
+        setSurfaces((prevSurfaces) =>
+          prevSurfaces.map((surf, index) =>
+            index === currentSurfaceIndex
+              ? { ...surf, opacity: newOpacity }
+              : surf,
+          ),
+        );
+      }
+    },
+    [currentSurfaceIndex, surfaces, debouncedGLUpdate],
+  );
+
+  const handleSurfaceColorChange = useCallback(
+    (hexColor: string) => {
+      if (
+        currentSurfaceIndex !== null &&
+        nvRef.current &&
+        surfaces[currentSurfaceIndex]
+      ) {
+        // Convert hex to rgba255
+        const r = parseInt(hexColor.slice(1, 3), 16);
+        const g = parseInt(hexColor.slice(3, 5), 16);
+        const b = parseInt(hexColor.slice(5, 7), 16);
+
+        // Update React state immediately for responsive UI
+        setSurfaces((prevSurfaces) =>
+          prevSurfaces.map((surf, index) =>
+            index === currentSurfaceIndex
+              ? { ...surf, rgba255: [r, g, b, 255] as [number, number, number, number] }
+              : surf,
+          ),
+        );
+
+        // Debounce the NiiVue update to prevent lag
+        if (surfaceColorTimeoutRef.current) {
+          clearTimeout(surfaceColorTimeoutRef.current);
+        }
+        const meshIndex = currentSurfaceIndex;
+        surfaceColorTimeoutRef.current = setTimeout(() => {
+          if (nvRef.current) {
+            const rgba255 = new Uint8Array([r, g, b, 255]);
+            nvRef.current.setMeshProperty(meshIndex, "rgba255", rgba255);
+            nvRef.current.updateGLVolume();
+          }
+        }, 50); // 50ms debounce for color changes
+      }
+    },
+    [currentSurfaceIndex, surfaces],
+  );
+
+  const handleMeshShaderChange = useCallback(
+    (shaderName: string) => {
+      if (
+        currentSurfaceIndex !== null &&
+        nvRef.current &&
+        surfaces[currentSurfaceIndex]
+      ) {
+        // Use mesh index for setMeshShader
+        nvRef.current.setMeshShader(currentSurfaceIndex, shaderName);
+
+        // Get the shader index after setting
+        const shaderIndex = nvRef.current.meshShaderNameToNumber(shaderName) ?? 0;
+        debouncedGLUpdate();
+
+        setSurfaces((prevSurfaces) =>
+          prevSurfaces.map((surf, index) =>
+            index === currentSurfaceIndex
+              ? { ...surf, meshShaderIndex: shaderIndex }
+              : surf,
+          ),
+        );
+      }
+    },
+    [currentSurfaceIndex, surfaces, debouncedGLUpdate],
+  );
+
+  // Helper to convert rgba255 to hex color
+  const rgba255ToHex = (rgba255: [number, number, number, number]) => {
+    const r = rgba255[0].toString(16).padStart(2, "0");
+    const g = rgba255[1].toString(16).padStart(2, "0");
+    const b = rgba255[2].toString(16).padStart(2, "0");
+    return `#${r}${g}${b}`;
+  };
+
+  // Get mesh shader name from index
+  const getMeshShaderName = (index: number): string => {
+    if (!nvRef.current) return "Phong";
+    const shaderNames = nvRef.current.meshShaderNames(false); // unsorted
+    return shaderNames[index] || "Phong";
+  };
+
   const handleViewMode = (mode: ViewMode) => {
     setViewerOptions((prev) => ({ ...prev, viewMode: mode }));
   };
@@ -762,6 +1050,29 @@ export default function FreeBrowse() {
       }
     },
     [currentImageIndex],
+  );
+
+  const handleFrameChange = useCallback(
+    (newFrame: number) => {
+      if (
+        currentImageIndex !== null &&
+        nvRef.current &&
+        images[currentImageIndex]
+      ) {
+        const currentImageId = images[currentImageIndex].id;
+        nvRef.current.setFrame4D(currentImageId, newFrame);
+
+        // Update the images state to reflect the new frame
+        setImages((prevImages) =>
+          prevImages.map((img, index) =>
+            index === currentImageIndex
+              ? { ...img, frame4D: newFrame }
+              : img,
+          ),
+        );
+      }
+    },
+    [currentImageIndex, images],
   );
 
   const handleContrastMinChange = useCallback(
@@ -1195,6 +1506,60 @@ export default function FreeBrowse() {
     [],
   );
 
+  const handleAddSurfaceFiles = useCallback(() => {
+    surfaceFileInputRef.current?.click();
+  }, []);
+
+  const handleSurfaceFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0 && nvRef.current) {
+        const nv = nvRef.current;
+        const files = Array.from(e.target.files);
+
+        // Ensure canvas is ready
+        if (showUploader) {
+          setShowUploader(false);
+        }
+
+        let retries = 0;
+        while (!nv.canvas && retries < 20) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          retries++;
+        }
+
+        if (!nv.canvas) {
+          console.error("Canvas failed to initialize for surface upload");
+          return;
+        }
+
+        // Load surface files (use addMeshesFromUrl to append, not replace)
+        const meshOptionsList = files.map((file) => ({
+          url: URL.createObjectURL(file),
+          name: file.name,
+          rgba255: [255, 255, 0, 255] as [number, number, number, number],
+          meshShaderIndex: 14, // Crosscut shader
+        }));
+
+        try {
+          await nv.addMeshesFromUrl(meshOptionsList);
+          nv.updateGLVolume();
+        } catch (error) {
+          console.error("Error loading surface files:", error);
+        }
+
+        updateSurfaceDetails();
+
+        // Select the first newly loaded surface if none selected
+        if (currentSurfaceIndex === null && nv.meshes.length > 0) {
+          setCurrentSurfaceIndex(nv.meshes.length - files.length);
+        }
+      }
+      // Clear the input value so the same file can be selected again
+      e.target.value = "";
+    },
+    [showUploader, currentSurfaceIndex],
+  );
+
   const removeVolume = useCallback(
     (imageIndex: number) => {
       if (nvRef.current && images[imageIndex]) {
@@ -1395,15 +1760,20 @@ export default function FreeBrowse() {
     if (volumeToRemove !== null) {
       removeVolume(volumeToRemove);
     }
+    if (surfaceToRemove !== null) {
+      removeSurface(surfaceToRemove);
+    }
 
     // Close dialog and reset state
     setRemoveDialogOpen(false);
     setVolumeToRemove(null);
-  }, [volumeToRemove, removeVolume]);
+    setSurfaceToRemove(null);
+  }, [volumeToRemove, removeVolume, surfaceToRemove, removeSurface]);
 
   const handleCancelRemove = useCallback(() => {
     setRemoveDialogOpen(false);
     setVolumeToRemove(null);
+    setSurfaceToRemove(null);
   }, []);
 
   const handleCrosshairWidthChange = useCallback((value: number) => {
@@ -1431,11 +1801,24 @@ export default function FreeBrowse() {
     const g = parseInt(hex.substr(2, 2), 16) / 255;
     const b = parseInt(hex.substr(4, 2), 16) / 255;
     const a = viewerOptions.crosshairColor[3]; // Keep existing alpha
-    setViewerOptions((prev) => ({
-      ...prev,
-      crosshairColor: [r, g, b, a] as [number, number, number, number],
-    }));
-  }, []);
+
+    // Debounce both the NiiVue update AND the React state update
+    // This prevents applyViewerOptions from running on every color change
+    if (crosshairColorTimeoutRef.current) {
+      clearTimeout(crosshairColorTimeoutRef.current);
+    }
+    crosshairColorTimeoutRef.current = setTimeout(() => {
+      if (nvRef.current) {
+        nvRef.current.setCrosshairColor([r, g, b, a]);
+        nvRef.current.updateGLVolume();
+      }
+      // Update React state after debounce (for persistence)
+      setViewerOptions((prev) => ({
+        ...prev,
+        crosshairColor: [r, g, b, a] as [number, number, number, number],
+      }));
+    }, 50); // 50ms debounce for color changes
+  }, [viewerOptions.crosshairColor]);
 
   const handleRulerWidthChange = useCallback((value: number) => {
     setViewerOptions((prev) => ({ ...prev, rulerWidth: value }));
@@ -2370,7 +2753,13 @@ export default function FreeBrowse() {
                   value="sceneDetails"
                   className="data-[state=active]:bg-muted"
                 >
-                  <Info className="h-4 w-4 mr-2" />
+                  <Box className="h-4 w-4 mr-2" />
+                </TabsTrigger>
+                <TabsTrigger
+                  value="surfaceDetails"
+                  className="data-[state=active]:bg-muted"
+                >
+                  <Brain className="h-4 w-4 mr-2" />
                 </TabsTrigger>
                 <TabsTrigger
                   value="drawing"
@@ -2440,7 +2829,7 @@ export default function FreeBrowse() {
 
               <TabsContent value="sceneDetails" className="flex-1 min-h-0 p-0">
                 <div className="border-b px-4 py-3">
-                  <h2 className="text-lg font-semibold">Scene Details</h2>
+                  <h2 className="text-lg font-semibold">Volumetric Details</h2>
                   <p className="text-sm text-muted-foreground">
                     Manage volumes and adjust properties
                   </p>
@@ -2575,6 +2964,16 @@ export default function FreeBrowse() {
                   <ScrollArea className="flex-1 min-h-0">
                     {currentImageIndex != null ? (
                       <div className="grid gap-4 p-4 pb-20">
+                        {(images[currentImageIndex]?.nFrame4D || 1) > 1 && (
+                          <LabeledSliderWithInput
+                            label="Frame"
+                            value={images[currentImageIndex]?.frame4D || 0}
+                            onValueChange={handleFrameChange}
+                            min={0}
+                            max={(images[currentImageIndex]?.nFrame4D || 1) - 1}
+                            step={1}
+                          />
+                        )}
                         <LabeledSliderWithInput
                           label="Opacity"
                           value={images[currentImageIndex]?.opacity || 1}
@@ -2587,8 +2986,8 @@ export default function FreeBrowse() {
                           label="Contrast Min"
                           value={images[currentImageIndex]?.contrastMin || 0}
                           onValueChange={handleContrastMinChange}
-                          min={0}
-                          max={255}
+                          min={images[currentImageIndex]?.globalMin ?? 0}
+                          max={images[currentImageIndex]?.globalMax ?? 255}
                           step={0.1}
                           decimalPlaces={1}
                         />
@@ -2596,8 +2995,8 @@ export default function FreeBrowse() {
                           label="Contrast Max"
                           value={images[currentImageIndex]?.contrastMax || 100}
                           onValueChange={handleContrastMaxChange}
-                          min={0}
-                          max={255}
+                          min={images[currentImageIndex]?.globalMin ?? 0}
+                          max={images[currentImageIndex]?.globalMax ?? 255}
                           step={0.1}
                           decimalPlaces={1}
                         />
@@ -2614,6 +3013,133 @@ export default function FreeBrowse() {
                             {nvRef.current?.colormaps().map((colormap) => (
                               <option key={colormap} value={colormap}>
                                 {colormap}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground"></div>
+                    )}
+                  </ScrollArea>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="surfaceDetails" className="flex-1 min-h-0 p-0">
+                <div className="border-b px-4 py-3">
+                  <h2 className="text-lg font-semibold">Surface Details</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Manage surfaces and adjust properties
+                  </p>
+                </div>
+                <div className="flex flex-col h-full">
+                  <ScrollArea className="max-h-[50%] min-h-0">
+                    {surfaces.length > 0 ? (
+                      <div className="grid gap-2 p-4">
+                        {surfaces.map((surface, index) => (
+                          <div
+                            key={surface.id}
+                            className={cn(
+                              "flex items-center gap-2 p-2 rounded-md cursor-pointer",
+                              currentSurfaceIndex === index
+                                ? "bg-muted"
+                                : "hover:bg-muted/50",
+                            )}
+                            onClick={() => setCurrentSurfaceIndex(index)}
+                          >
+                            <div className="flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSurfaceVisibility(surface.id);
+                                }}
+                              >
+                                {surface.visible ? (
+                                  <Eye className="h-3 w-3" />
+                                ) : (
+                                  <EyeOff className="h-3 w-3 opacity-50" />
+                                )}
+                              </Button>
+                            </div>
+                            <div className="flex-1 w-0">
+                              <p className="text-sm font-medium break-words">
+                                {surface.name}
+                              </p>
+                            </div>
+                            <div className="flex-shrink-0 flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveSurfaceClick(index);
+                                }}
+                                title="Delete surface"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
+                        <Brain className="h-8 w-8 mb-2" />
+                        <p>No surfaces</p>
+                      </div>
+                    )}
+                    <div className="p-2 border-t space-y-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={handleAddSurfaceFiles}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload surfaces
+                      </Button>
+                    </div>
+                  </ScrollArea>
+                  <ScrollArea className="flex-1 min-h-0">
+                    {currentSurfaceIndex != null && surfaces[currentSurfaceIndex] ? (
+                      <div className="grid gap-4 p-4 pb-20">
+                        <LabeledSliderWithInput
+                          label="Opacity"
+                          value={surfaces[currentSurfaceIndex]?.opacity || 1}
+                          onValueChange={handleSurfaceOpacityChange}
+                          min={0}
+                          max={1}
+                          step={0.01}
+                        />
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Color</Label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={rgba255ToHex(surfaces[currentSurfaceIndex]?.rgba255 || [255, 255, 0, 255])}
+                              onChange={(e) => handleSurfaceColorChange(e.target.value)}
+                              className="h-9 w-16 rounded-md border border-input cursor-pointer"
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              {rgba255ToHex(surfaces[currentSurfaceIndex]?.rgba255 || [255, 255, 0, 255])}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            Mesh Shader
+                          </Label>
+                          <Select
+                            value={getMeshShaderName(surfaces[currentSurfaceIndex]?.meshShaderIndex || 0)}
+                            onChange={(e) => handleMeshShaderChange(e.target.value)}
+                          >
+                            {nvRef.current?.meshShaderNames(true).map((shaderName) => (
+                              <option key={shaderName} value={shaderName}>
+                                {shaderName}
                               </option>
                             ))}
                           </Select>
@@ -3127,14 +3653,23 @@ export default function FreeBrowse() {
         multiple
         className="hidden"
       />
+      <input
+        type="file"
+        ref={surfaceFileInputRef}
+        onChange={handleSurfaceFileChange}
+        multiple
+        className="hidden"
+      />
 
-      {/* Remove Volume Confirmation Dialog */}
+      {/* Remove Volume/Surface Confirmation Dialog */}
       <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
         <DialogContent onClose={handleCancelRemove}>
           <DialogHeader>
-            <DialogTitle>Remove Volume</DialogTitle>
+            <DialogTitle>
+              {surfaceToRemove !== null ? "Remove Surface" : "Remove Volume"}
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove this volume?
+              Are you sure you want to remove this {surfaceToRemove !== null ? "surface" : "volume"}?
             </DialogDescription>
           </DialogHeader>
 

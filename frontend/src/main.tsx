@@ -1,7 +1,7 @@
 // import { StrictMode } from 'react'
 import React from 'react';
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import FreeBrowse from './components/freebrowse.tsx';
 
@@ -9,10 +9,14 @@ import FreeBrowse from './components/freebrowse.tsx';
 // This is automatically set by Vite based on the `base` config option
 const basename = import.meta.env.BASE_URL;
 
+// Use HashRouter for serverless mode (file:// protocol compatibility)
+const isServerless = import.meta.env.VITE_SERVERLESS === 'true';
+const Router = isServerless ? HashRouter : BrowserRouter;
+
 createRoot(document.getElementById('root')!).render(
   // disable strict mode for for better niivue development experience
   // <StrictMode>
-  <BrowserRouter basename={basename}>
+  <Router basename={isServerless ? undefined : basename}>
     <Routes>
       <Route path="/" element={
          <div className="app-container">
@@ -22,7 +26,7 @@ createRoot(document.getElementById('root')!).render(
          </div>
       } />
     </Routes>
-  </BrowserRouter>
+  </Router>
   // </StrictMode>,
 
 )

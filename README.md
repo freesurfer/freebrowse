@@ -72,16 +72,70 @@ pixi install
 
 ## Build
 
-To build a fully serverless frontend (no backend required at all), use the
-`VITE_SERVERLESS` environment variable:
+The frontend has several build targets:
+
+### Serverless (static deployment)
+
+Builds a fully serverless frontend (no backend required) that can be deployed to
+any static file host:
 
 ```bash
 cd frontend
-VITE_SERVERLESS=true npm run build
+npm run build:serverless
 ```
 
-This creates a static build in `frontend/dist/` that can be deployed to GitHub
-Pages or any static file host.
+This creates a static build in `frontend/dist/`. You can set `VITE_BASE_PATH` to
+control the base URL path (defaults to `/`).
+
+### GitHub Pages
+
+Builds the serverless version configured for GitHub Pages deployment:
+
+```bash
+cd frontend
+npm run build:github
+```
+
+Output is in `frontend/dist-github/`.
+
+### JupyterLab
+
+Builds the serverless version configured for embedding inside JupyterLab:
+
+```bash
+cd frontend
+npm run build:jupyter
+```
+
+Output is in `frontend/dist-jupyter/`. It also gets copied to `jupyter/jupyterlab_freebrowse/static/freebrowse/`. See the [Jupyter Integration](#jupyter-integration) for more information.
+
+### Single HTML file
+
+Builds a single standalone HTML file that can be distributed alongside output of
+processing pipelines:
+
+```bash
+cd frontend
+npm run build:singlefile
+```
+
+This creates a single standalone HTML file in `frontend/dist-singlefile/` that
+is compatible with the `file://` protocol. Users can use this to view local
+imaging data or self-contained NiiVue documents. The latest version of the
+standalone HTML file is available at
+
+`https://freesurfer.github.io/freebrowse/downloads/freebrowse-<version>.html`
+
+Where `<version>` is the [current version of freebrowse](https://github.com/freesurfer/freebrowse/blob/main/frontend/package.json#L4)
+
+### Full stack (with backend)
+
+Builds the frontend for use with the FastAPI backend:
+
+```bash
+cd frontend
+npm run build
+```
 
 ## Dev
 
@@ -99,13 +153,6 @@ pixi run dev
 ```bash
 cd frontend
 npm run dev
-```
-
-or
-
-```bash
-cd frontend
-VITE_SERVERLESS=true npm run dev
 ```
 
 Then navigate to [http://localhost:5173/](http://localhost:5173/)
@@ -127,6 +174,63 @@ You should then be able to view the 'serverless' version of your changes at http
 ```bash
 cd frontend
 npm run build
+```
+
+## Jupyter Integration
+
+FreeBrowse can be used as a NIfTI file viewer inside JupyterLab or Jupyter
+Notebook 7. Clicking a `.nii`, `.nii.gz` or `.nvd` (niivue document) file in the
+file browser opens it in FreeBrowse in a new browser tab.
+
+### Setup
+
+Create and activate a conda environment with either JupyterLab or Notebook
+7 and run `pip install -e .` from the `jupyter/` directory.
+
+The file `jupyter/environment.yml` contains a sample maximal environment that
+contains both JupyterLab, Jupyter Notebook and nodejs (for development) as well
+as [ipyniivue](https://github.com/niivue/ipyniivue) to run niivue directly
+inside of Jupyter notebooks.
+
+```bash
+cd ./jupyter
+conda env create -f environment.yml
+```
+
+### Usage
+
+Start JupyterLab or Notebook:
+
+```bash
+jupyter lab       # if using JupyterLab
+jupyter notebook  # if using Notebook 7
+```
+
+Navigate to a directory containing `.nii`, `.nii.gz` or `.nvd` files, then either:
+- **Double-click** a file to open it in FreeBrowse in a new browser tab
+- **Right-click** a file and select **Open in FreeBrowse**
+
+[ipyniivue](https://github.com/niivue/ipyniivue) is also installed in the example
+`freebrowse-jupyter` environment.  See the [example notebooks repository](https://github.com/niivue/jupyter-notebooks)
+for examples on how to use niivue directly inside jupyter
+
+### Development
+
+If you make changes to the frontend, you will have to rebuild the `jupyter` before
+they become visible in Jupyter notebooks.
+
+```bash
+cd frontend
+npm run build:jupyter
+```
+
+To re-install the JupyterLab extensions:
+
+```bash
+cd jupyter
+jlpm install
+jlpm build
+pip install -e .
 ```
 
 ## Acknowledgements
