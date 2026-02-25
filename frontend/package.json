@@ -16,7 +16,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@niivue/niivue": "0.67.0",
+    "@niivue/niivue": "0.68.1",
     "@radix-ui/react-checkbox": "^1.3.2",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-radio-group": "^1.3.7",
