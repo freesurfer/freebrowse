@@ -1,21 +1,16 @@
 "use client"
 
 import { useRef, useEffect, useState } from "react"
-import { Niivue, NVImage, SHOW_RENDER } from '@niivue/niivue'
+import { Niivue } from '@niivue/niivue'
+import { sliceTypeMap } from "@/lib/niivue-helpers"
+
+// Re-export for backwards compatibility during refactor
+export { sliceTypeMap }
 
 interface ImageCanvasProps {
   viewMode: "axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render"
   nvRef: Niivue
 }
-
-export const sliceTypeMap: {[type: string]: {sliceType: number, showRender: number}} = {
-  "axial": { sliceType: 0, showRender: SHOW_RENDER.NEVER },
-  "coronal": { sliceType: 1, showRender: SHOW_RENDER.NEVER },
-  "sagittal": { sliceType: 2, showRender: SHOW_RENDER.NEVER },
-  "ACS": { sliceType: 3, showRender: SHOW_RENDER.NEVER },
-  "ACSR": { sliceType: 3, showRender: SHOW_RENDER.ALWAYS },
-  "render": { sliceType: 4, showRender: SHOW_RENDER.ALWAYS }
-};
 
 export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)

@@ -33,7 +33,7 @@ const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWit
   }, ref) => {
     
     const [localValue, setLocalValue] = React.useState(value)
-    const timeoutRef = React.useRef<NodeJS.Timeout>()
+    const timeoutRef = React.useRef<NodeJS.Timeout>(undefined)
     
     // Helper function to format the displayed value
     const formatValue = (val: number) => {
