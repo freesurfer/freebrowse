@@ -193,6 +193,7 @@ export function useVolumes(
         const volumeIndex = nvRef.current.getVolumeIndexByID(currentImageId);
         if (volumeIndex >= 0) {
           const volume = nvRef.current.volumes[volumeIndex];
+          if (!volume.hdr) return;
           volume.hdr.intent_code = checked ? 1002 : 0;
           nvRef.current.updateGLVolume();
           setImages((prevImages) =>
