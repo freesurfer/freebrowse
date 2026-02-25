@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input";
 import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { Niivue } from "@niivue/niivue";
 
@@ -33,6 +34,7 @@ interface SceneDetailsTabProps {
   onContrastMinChange: (value: number) => void;
   onContrastMaxChange: (value: number) => void;
   onColormapChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  onLabelVolumeChange: (checked: boolean) => void;
 }
 
 export default function SceneDetailsTab({
@@ -50,6 +52,7 @@ export default function SceneDetailsTab({
   onContrastMinChange,
   onContrastMaxChange,
   onColormapChange,
+  onLabelVolumeChange,
 }: SceneDetailsTabProps) {
   const images = useFreeBrowseStore((s) => s.images);
   const currentImageIndex = useFreeBrowseStore((s) => s.currentImageIndex);
@@ -204,6 +207,18 @@ export default function SceneDetailsTab({
                   step={1}
                 />
               )}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="label-volume"
+                  checked={images[currentImageIndex]?.isLabelVolume ?? false}
+                  onCheckedChange={(checked) =>
+                    onLabelVolumeChange(checked === true)
+                  }
+                />
+                <Label htmlFor="label-volume" className="text-sm font-medium">
+                  Label Volume
+                </Label>
+              </div>
               <LabeledSliderWithInput
                 label="Opacity"
                 value={images[currentImageIndex]?.opacity || 1}

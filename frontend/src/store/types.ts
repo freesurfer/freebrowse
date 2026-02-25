@@ -12,6 +12,7 @@ export type ImageDetails = {
   globalMax: number;
   frame4D: number;
   nFrame4D: number;
+  isLabelVolume: boolean;
 };
 
 export type SurfaceDetails = {

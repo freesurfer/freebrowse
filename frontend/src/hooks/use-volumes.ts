@@ -39,6 +39,7 @@ export function useVolumes(
           globalMax: is4D ? 150000 : (vol.global_max ?? 150000),
           frame4D: vol.frame4D ?? 0,
           nFrame4D: vol.nFrame4D ?? 1,
+          isLabelVolume: vol.hdr?.intent_code === 1002,
         };
       });
       setImages(loadedImages);
@@ -179,6 +180,32 @@ export function useVolumes(
       }
     },
     [currentImageIndex, images, nvRef, debouncedGLUpdate, setImages],
+  );
+
+  const handleLabelVolumeChange = useCallback(
+    (checked: boolean) => {
+      if (
+        currentImageIndex !== null &&
+        nvRef.current &&
+        images[currentImageIndex]
+      ) {
+        const currentImageId = images[currentImageIndex].id;
+        const volumeIndex = nvRef.current.getVolumeIndexByID(currentImageId);
+        if (volumeIndex >= 0) {
+          const volume = nvRef.current.volumes[volumeIndex];
+          volume.hdr.intent_code = checked ? 1002 : 0;
+          nvRef.current.updateGLVolume();
+          setImages((prevImages) =>
+            prevImages.map((img, index) =>
+              index === currentImageIndex
+                ? { ...img, isLabelVolume: checked }
+                : img,
+            ),
+          );
+        }
+      }
+    },
+    [currentImageIndex, images, nvRef, setImages],
   );
 
   const handleColormapChange = useCallback(
@@ -396,6 +423,7 @@ export function useVolumes(
     handleContrastMinChange,
     handleContrastMaxChange,
     handleColormapChange,
+    handleLabelVolumeChange,
     removeVolume,
     handleRemoveVolumeClick,
     handleEditVolume,

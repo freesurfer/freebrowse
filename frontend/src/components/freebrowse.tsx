@@ -59,6 +59,7 @@ export default function FreeBrowse() {
     handleContrastMinChange,
     handleContrastMaxChange,
     handleColormapChange,
+    handleLabelVolumeChange,
     handleRemoveVolumeClick,
     handleEditVolume,
     canEditVolume,
@@ -150,6 +151,7 @@ export default function FreeBrowse() {
             onContrastMinChange={handleContrastMinChange}
             onContrastMaxChange={handleContrastMaxChange}
             onColormapChange={handleColormapChange}
+            onLabelVolumeChange={handleLabelVolumeChange}
             onToggleSurfaceVisibility={toggleSurfaceVisibility}
             onRemoveSurfaceClick={handleRemoveSurfaceClick}
             onSurfaceOpacityChange={handleSurfaceOpacityChange}
