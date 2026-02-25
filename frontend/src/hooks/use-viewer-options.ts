@@ -84,11 +84,11 @@ export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
       setViewerOptions({
         viewMode,
         crosshairWidth: nv.opts.crosshairWidth,
-        crosshairGap: nv.opts.crosshairGap ?? 0,
+        crosshairGap: nv.opts.crosshairGap ?? 10,
         crosshairVisible: nv.opts.crosshairWidth > 0,
         crosshairColor: nv.opts.crosshairColor
           ? ([...nv.opts.crosshairColor] as [number, number, number, number])
-          : [1.0, 0.0, 0.0, 0.5],
+          : [1.0, 0.88, 0.88, 1.0],
         rulerWidth: nv.opts.rulerWidth ?? 1.0,
         rulerVisible: nv.opts.isRuler ?? false,
         interpolateVoxels: !nv.opts.isNearestInterpolation,
