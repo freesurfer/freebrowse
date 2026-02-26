@@ -617,7 +617,7 @@ def prepare_inference_input(
     Shared by all inference endpoints. Handles:
     - First-call volume decoding + RAS reorientation + session creation
     - Subsequent-call session reuse
-    - Click accumulation and mask construction
+    - Click replacement (frontend sends all clicks) and mask construction
     - Input tensor assembly (1, 5, D, H, W)
 
     Returns
@@ -633,56 +633,21 @@ def prepare_inference_input(
                 status_code=400,
                 detail='Inference requires affine with volume_data'
             )
-
-        # Decode raw float 32, file order voxel data from base64
-        volume_bytes = base64.b64decode(request.volume_data)
-        volume_array = np.frombuffer(volume_bytes, dtype=np.float32)
-
-        # Use Fortran order b/c of Niivue's internal convention of
-        # `x + y*nx + z*nx*ny` indexing
-        volume_file_order = volume_array.copy().reshape(tuple(request.niivue_dims), order='F')
-
-        # 16 floats row-major -> 4x4 matrix
-        file_affine = np.array(request.affine).reshape(4, 4)
-
-        # Reorient volume to RAS with nib (matches NiiVue display and click indexing orientation)
-        img_file_order = nib.Nifti1Image(volume_file_order, file_affine)
-        img_ras = nib.as_closest_canonical(img_file_order)
-        volume_ras = img_ras.get_fdata().astype(np.float32)
-        affine_ras = img_ras.affine
-
-        # Now volume_ras and clicks are both in RAS order
-        ras_dims = volume_ras.shape
-        volume_tensor = torch.from_numpy(volume_ras).float()
-
-        # Preprocess the data for inference
-        vmin, vmax = volume_tensor.min(), volume_tensor.max()
-        volume_tensor = (volume_tensor - vmin) / (vmax - vmin)
-
-        # Save shape before padding for later cropping
-        shape_before_pad = volume_tensor.shape
-        volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=16)
-
-        # Store session state
-        session = SessionState(
-            volume_tensor=volume_tensor,
-            affine_ras=affine_ras,
-            ras_dims=ras_dims,
-            shape_before_pad=shape_before_pad,
+        session = _decode_and_store_volume(
+            session_id=request.session_id,
+            volume_data=request.volume_data,
+            affine=request.affine,
+            niivue_dims=request.niivue_dims,
         )
-        sessions[request.session_id] = session
 
-    elif session is not None:
-        volume_tensor = session.volume_tensor
-
-    else:
+    elif session is None:
         raise HTTPException(
             status_code=400,
-            detail='First inference request requires volume_data and affine'
+            detail='No session found. Upload volume via POST /session first.'
         )
 
-    session.positive_clicks.extend(request.positive_clicks)
-    session.negative_clicks.extend(request.negative_clicks)
+    session.positive_clicks = request.positive_clicks
+    session.negative_clicks = request.negative_clicks
 
     pos_mask = clicks_to_mask(
         clicks=session.positive_clicks,
@@ -696,12 +661,29 @@ def prepare_inference_input(
     )
     neg_mask = pad_to_multiple(tensor=neg_mask, multiple=16)
 
-    input_tensor = torch.zeros((1, 5, *volume_tensor.shape), dtype=torch.float32)
-    input_tensor[0, 0] = volume_tensor
+    input_tensor = torch.zeros((1, 5, *session.volume_tensor.shape), dtype=torch.float32)
+    input_tensor[0, 0] = session.volume_tensor
     input_tensor[0, 2] = pos_mask
     input_tensor[0, 3] = neg_mask
 
     return input_tensor, session
+
+
+@app.post('/session')
+def upload_volume(request: UploadVolumeRequest):
+    """
+    Upload and preprocess a volume for later inference requests.
+
+    Decodes the base64 volume, reorients to RAS, normalizes, pads,
+    and caches the result by session_id.
+    """
+    _decode_and_store_volume(
+        session_id=request.session_id,
+        volume_data=request.volume_data,
+        affine=request.affine,
+        niivue_dims=request.niivue_dims,
+    )
+    return {"session_id": request.session_id, "success": True}
 
 
 @app.post('/scribbleprompt3d_inference')
