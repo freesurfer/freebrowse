@@ -11,7 +11,7 @@ export function useFileLoading(
   updateSurfaceDetails: () => void,
   handleLocationChange: (locationObject: any) => void,
   syncDrawingOptionsFromNiivue: () => void,
-  onVolumeLoaded?: (volume: NVImage) => void,
+  uploadVolumeToBackend?: (volume: NVImage) => void,
 ) {
   const images = useFreeBrowseStore((s) => s.images);
   const setImages = useFreeBrowseStore((s) => s.setImages);
