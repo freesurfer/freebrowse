@@ -84,7 +84,6 @@ export default function ImageUploader({ onUpload, compact = false }: ImageUpload
         <div className="grid gap-1 text-center">
           <h3 className="text-lg font-semibold">Upload Medical Images</h3>
           <p className="text-sm text-muted-foreground">Drag and drop your medical images here or click to browse</p>
-          <p className="text-xs text-muted-foreground mt-2">Supported formats: NIfTI, GIfTI</p>
         </div>
         <Button onClick={handleButtonClick}>
           <Upload className="mr-2 h-4 w-4" />
