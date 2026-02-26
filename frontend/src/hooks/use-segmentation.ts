@@ -10,6 +10,7 @@ type SegModelInfo = {
 export type SegState = {
   enabled: boolean;
   loading: boolean;
+  uploading: boolean;
   progress: number;
   modelsLoaded: boolean;
   models: SegModelInfo[];
@@ -79,10 +80,8 @@ function buildInferenceRequest(params: {
   negativeClicks: number[];
   previousLogits: string | null;
   dims: [number, number, number];
-  volumeDataBase64?: string;
-  affine?: number[];
 }): Record<string, unknown> {
-  const request: Record<string, unknown> = {
+  return {
     session_id: params.sessionId,
     model_name: params.modelName,
     positive_clicks: params.positiveClicks,
@@ -90,16 +89,6 @@ function buildInferenceRequest(params: {
     previous_logits: params.previousLogits,
     niivue_dims: params.dims,
   };
-
-  if (params.volumeDataBase64) {
-    request.volume_data = params.volumeDataBase64;
-  }
-
-  if (params.affine) {
-    request.affine = params.affine;
-  }
-
-  return request;
 }
 
 function decodeBase64ToBytes(base64: string): Uint8Array {
@@ -141,6 +130,7 @@ export function useSegmentation(
   const [segState, setSegState] = useState<SegState>({
     enabled: false,
     loading: false,
+    uploading: false,
     progress: 0,
     modelsLoaded: false,
     models: [],
@@ -152,6 +142,59 @@ export function useSegmentation(
   });
 
   const [voxelPromptText, setVoxelPromptText] = useState("");
+
+  const serverlessMode = import.meta.env.VITE_SERVERLESS === "true";
+
+  const uploadVolumeToBackend = useCallback(
+    async (volume: NVImage) => {
+      if (serverlessMode) return;
+      if (!volume.hdr?.dims || !volume.img) return;
+
+      setSegState((prev) => ({ ...prev, uploading: true, error: null }));
+
+      try {
+        const sessionId = generateSessionId();
+        const float32Data = new Float32Array(volume.img);
+        const volumeDataBase64 = encodeFloat32ArrayToBase64(float32Data);
+        const affine = getVolumeAffine(volume);
+        const dims = getVolumeDims(volume);
+
+        const response = await fetch("/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: sessionId,
+            volume_data: volumeDataBase64,
+            affine,
+            niivue_dims: dims,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.detail || `Volume upload failed: ${response.statusText}`,
+          );
+        }
+
+        setSegState((prev) => ({
+          ...prev,
+          uploading: false,
+          sessionId,
+          previousLogits: null,
+          error: null,
+        }));
+      } catch (err) {
+        console.error("Volume upload failed:", err);
+        setSegState((prev) => ({
+          ...prev,
+          uploading: false,
+          error: (err as Error).message,
+        }));
+      }
+    },
+    [serverlessMode],
+  );
 
   const initSegModel = useCallback(async () => {
     setSegState((prev) => ({ ...prev, loading: true, error: null }));
@@ -212,19 +255,25 @@ export function useSegmentation(
     const dims = getVolumeDims(volume);
 
     try {
-      const isFirstCall = segState.sessionId === null;
-      const sessionId = isFirstCall
-        ? generateSessionId()
-        : segState.sessionId!;
-
-      let volumeDataBase64: string | undefined;
-      let affine: number[] | undefined;
-
-      if (isFirstCall) {
-        const float32Data = new Float32Array(volume.img);
-        volumeDataBase64 = encodeFloat32ArrayToBase64(float32Data);
-        affine = getVolumeAffine(volume);
+      if (segState.uploading) {
+        setSegState((prev) => ({
+          ...prev,
+          loading: false,
+          error: "Volume is still uploading. Please wait.",
+        }));
+        return;
       }
+
+      if (!segState.sessionId) {
+        setSegState((prev) => ({
+          ...prev,
+          loading: false,
+          error: "No volume uploaded. Load a volume first.",
+        }));
+        return;
+      }
+
+      const sessionId = segState.sessionId;
 
       setSegState((prev) => ({ ...prev, progress: 40 }));
 
@@ -237,8 +286,6 @@ export function useSegmentation(
         negativeClicks: clicks.negative,
         previousLogits: segState.previousLogits,
         dims,
-        volumeDataBase64,
-        affine,
       });
 
       if (options.extraFields) {
@@ -270,7 +317,6 @@ export function useSegmentation(
         previousLogits: options.storeLogits
           ? result.logits || null
           : prev.previousLogits,
-        sessionId,
       }));
 
       options.onSuccess?.();
@@ -314,7 +360,6 @@ export function useSegmentation(
     setSegState((prev) => ({
       ...prev,
       previousLogits: null,
-      sessionId: null,
     }));
     if (nvRef.current) {
       nvRef.current.createEmptyDrawing();
@@ -326,6 +371,7 @@ export function useSegmentation(
     setSegState,
     voxelPromptText,
     setVoxelPromptText,
+    uploadVolumeToBackend,
     initSegModel,
     runSegmentation,
     sendVoxelPrompt,

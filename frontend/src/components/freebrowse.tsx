@@ -92,6 +92,18 @@ export default function FreeBrowse() {
     handleDocumentCheckboxChange,
   } = useSave(nvRef);
   const {
+    segState,
+    setSegState,
+    voxelPromptText,
+    setVoxelPromptText,
+    uploadVolumeToBackend,
+    initSegModel,
+    runSegmentation,
+    sendVoxelPrompt,
+    handleClickModeChange,
+    handleResetSession,
+  } = useSegmentation(nvRef, updateImageDetails);
+  const {
     serverlessMode,
     fileInputRef,
     surfaceFileInputRef,
@@ -110,18 +122,8 @@ export default function FreeBrowse() {
     updateSurfaceDetails,
     handleLocationChange,
     syncDrawingOptionsFromNiivue,
+    uploadVolumeToBackend,
   );
-  const {
-    segState,
-    setSegState,
-    voxelPromptText,
-    setVoxelPromptText,
-    initSegModel,
-    runSegmentation,
-    sendVoxelPrompt,
-    handleClickModeChange,
-    handleResetSession,
-  } = useSegmentation(nvRef, updateImageDetails);
   const {
     ratingState,
     setRatingState,
