@@ -25,10 +25,10 @@ export interface ViewerSlice {
 export const createViewerSlice: StateCreator<ViewerSlice> = (set) => ({
   viewerOptions: {
     viewMode: "ACS",
-    crosshairWidth: 1,
-    crosshairGap: 0,
+    crosshairWidth: 0.3,
+    crosshairGap: 10,
     crosshairVisible: true,
-    crosshairColor: [1.0, 0.0, 0.0, 0.5],
+    crosshairColor: [1.0, 0.88, 0.88, 1.0],
     rulerWidth: 1.0,
     rulerVisible: false,
     interpolateVoxels: false,
