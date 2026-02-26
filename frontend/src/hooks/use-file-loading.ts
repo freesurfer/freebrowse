@@ -11,6 +11,7 @@ export function useFileLoading(
   updateSurfaceDetails: () => void,
   handleLocationChange: (locationObject: any) => void,
   syncDrawingOptionsFromNiivue: () => void,
+  onVolumeLoaded?: (volume: NVImage) => void,
 ) {
   const images = useFreeBrowseStore((s) => s.images);
   const setImages = useFreeBrowseStore((s) => s.setImages);
@@ -136,8 +137,12 @@ export function useFileLoading(
       updateImageDetails();
       updateSurfaceDetails();
       nv.setCrosshairColor([0, 1, 0, 0.1]);
+
+      if (nv.volumes.length > 0 && onVolumeLoaded) {
+        onVolumeLoaded(nv.volumes[0]);
+      }
     },
-    [nvRef, loadViaNvd, setImages, setCurrentImageIndex, syncViewerOptionsFromNiivue, updateImageDetails, updateSurfaceDetails],
+    [nvRef, loadViaNvd, setImages, setCurrentImageIndex, syncViewerOptionsFromNiivue, updateImageDetails, updateSurfaceDetails, onVolumeLoaded],
   );
 
   // Add uploaded files to Niivue
@@ -198,8 +203,12 @@ export function useFileLoading(
           setCurrentImageIndex(0);
         }
       }
+
+      if (nv.volumes.length > 0 && onVolumeLoaded) {
+        onVolumeLoaded(nv.volumes[0]);
+      }
     },
-    [nvRef, showUploader, currentImageIndex, loadNvdData, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex],
+    [nvRef, showUploader, currentImageIndex, loadNvdData, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex, onVolumeLoaded],
   );
 
   const handleImagingFileSelect = useCallback(
@@ -242,11 +251,15 @@ export function useFileLoading(
         }
 
         console.log("Imaging file loaded successfully");
+
+        if (nv.volumes.length > 0 && onVolumeLoaded) {
+          onVolumeLoaded(nv.volumes[0]);
+        }
       } catch (error) {
         console.error("Error loading imaging file:", error);
       }
     },
-    [nvRef, showUploader, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex],
+    [nvRef, showUploader, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex, onVolumeLoaded],
   );
 
   const handleNvdFileSelect = useCallback(
