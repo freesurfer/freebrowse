@@ -337,9 +337,14 @@ export default function DrawingTab({
                     size="sm"
                     className="w-full"
                     onClick={onRunSegmentation}
-                    disabled={segState.loading || !segState.selectedModel}
+                    disabled={segState.loading || segState.uploading || !segState.selectedModel}
                   >
-                    {segState.loading ? (
+                    {segState.uploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading volume...
+                      </>
+                    ) : segState.loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         {segState.progress}%
