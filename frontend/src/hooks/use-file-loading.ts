@@ -11,7 +11,7 @@ export function useFileLoading(
   updateSurfaceDetails: () => void,
   handleLocationChange: (locationObject: any) => void,
   syncDrawingOptionsFromNiivue: () => void,
-  uploadVolumeToBackend?: (volume: NVImage) => void,
+  onVolumeLoadedToBackend?: (volume: NVImage) => void,
 ) {
   const images = useFreeBrowseStore((s) => s.images);
   const setImages = useFreeBrowseStore((s) => s.setImages);
@@ -138,11 +138,11 @@ export function useFileLoading(
       updateSurfaceDetails();
       nv.setCrosshairColor([0, 1, 0, 0.1]);
 
-      if (nv.volumes.length > 0 && onVolumeLoaded) {
-        onVolumeLoaded(nv.volumes[0]);
+      if (nv.volumes.length > 0 && onVolumeLoadedToBackend) {
+        onVolumeLoadedToBackend(nv.volumes[0]);
       }
     },
-    [nvRef, loadViaNvd, setImages, setCurrentImageIndex, syncViewerOptionsFromNiivue, updateImageDetails, updateSurfaceDetails, onVolumeLoaded],
+    [nvRef, loadViaNvd, setImages, setCurrentImageIndex, syncViewerOptionsFromNiivue, updateImageDetails, updateSurfaceDetails, onVolumeLoadedToBackend],
   );
 
   // Add uploaded files to Niivue
@@ -204,11 +204,11 @@ export function useFileLoading(
         }
       }
 
-      if (nv.volumes.length > 0 && onVolumeLoaded) {
-        onVolumeLoaded(nv.volumes[0]);
+      if (nv.volumes.length > 0 && onVolumeLoadedToBackend) {
+        onVolumeLoadedToBackend(nv.volumes[0]);
       }
     },
-    [nvRef, showUploader, currentImageIndex, loadNvdData, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex, onVolumeLoaded],
+    [nvRef, showUploader, currentImageIndex, loadNvdData, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex, onVolumeLoadedToBackend],
   );
 
   const handleImagingFileSelect = useCallback(
@@ -252,14 +252,14 @@ export function useFileLoading(
 
         console.log("Imaging file loaded successfully");
 
-        if (nv.volumes.length > 0 && onVolumeLoaded) {
-          onVolumeLoaded(nv.volumes[0]);
+        if (nv.volumes.length > 0 && onVolumeLoadedToBackend) {
+          onVolumeLoadedToBackend(nv.volumes[0]);
         }
       } catch (error) {
         console.error("Error loading imaging file:", error);
       }
     },
-    [nvRef, showUploader, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex, onVolumeLoaded],
+    [nvRef, showUploader, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex, onVolumeLoadedToBackend],
   );
 
   const handleNvdFileSelect = useCallback(

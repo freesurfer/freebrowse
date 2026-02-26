@@ -95,7 +95,7 @@ export default function FreeBrowse() {
     setSegState,
     voxelPromptText,
     setVoxelPromptText,
-    uploadVolume,
+    uploadVolumeToBackend,
     initSegModel,
     runSegmentation,
     sendVoxelPrompt,
@@ -121,7 +121,7 @@ export default function FreeBrowse() {
     updateSurfaceDetails,
     handleLocationChange,
     syncDrawingOptionsFromNiivue,
-    uploadVolume,
+    uploadVolumeToBackend,
   );
   const {
     ratingState,
