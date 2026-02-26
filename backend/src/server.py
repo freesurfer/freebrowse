@@ -83,6 +83,13 @@ class InferenceRequest(BaseModel):
     volume_data: Union[str, None] = None
     affine: Union[List[float], None] = None
 
+class UploadVolumeRequest(BaseModel):
+    session_id: str
+    volume_data: str
+    affine: list[float]
+    niivue_dims: list[int]
+
+
 class VoxelPromptRequest(InferenceRequest):
     text: str
 
@@ -545,6 +552,60 @@ def append_rating_to_csv(session_id: str, nifti_path: str, rating: int) -> None:
         if not file_exists:
             writer.writerow(["timestamp", "path", "rating"])
         writer.writerow([datetime.now(timezone.utc).isoformat(), nifti_path, rating])
+
+
+def _decode_and_store_volume(
+    session_id: str,
+    volume_data: str,
+    affine: list[float],
+    niivue_dims: list[int],
+) -> SessionState:
+    """
+    Decode base64 volume, reorient to RAS, normalize, pad, and cache.
+
+    Parameters
+    ----------
+    session_id
+        Key for the session store.
+    volume_data
+        Base64-encoded float32 voxel data in file order.
+    affine
+        Flat 16-element row-major affine matrix.
+    niivue_dims
+        Volume dimensions [nx, ny, nz] in file order.
+
+    Returns
+    -------
+    SessionState
+        The newly created and cached session.
+    """
+    volume_bytes = base64.b64decode(volume_data)
+    volume_array = np.frombuffer(volume_bytes, dtype=np.float32)
+    volume_file_order = volume_array.copy().reshape(tuple(niivue_dims), order='F')
+
+    file_affine = np.array(affine).reshape(4, 4)
+    img_file_order = nib.Nifti1Image(volume_file_order, file_affine)
+    img_ras = nib.as_closest_canonical(img_file_order)
+    volume_ras = img_ras.get_fdata().astype(np.float32)
+    affine_ras = img_ras.affine
+
+    ras_dims = volume_ras.shape
+    volume_tensor = torch.from_numpy(volume_ras).float()
+
+    vmin, vmax = volume_tensor.min(), volume_tensor.max()
+    volume_tensor = (volume_tensor - vmin) / (vmax - vmin)
+
+    shape_before_pad = volume_tensor.shape
+    volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=16)
+
+    session = SessionState(
+        volume_tensor=volume_tensor,
+        affine_ras=affine_ras,
+        ras_dims=ras_dims,
+        shape_before_pad=shape_before_pad,
+    )
+    sessions[session_id] = session
+    return session
 
 
 def prepare_inference_input(
