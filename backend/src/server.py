@@ -725,6 +725,21 @@ def upload_volume(request: UploadVolumeRequest):
     return {"session_id": request.session_id, "success": True}
 
 
+@app.delete('/session/{session_id}')
+def delete_session(session_id: str):
+    """Remove a session and free its memory.
+
+    Each session holds a volume tensor (50-200MB) in RAM. Called by the
+    frontend before creating a new session so the old volume data doesn't
+    accumulate on the server.
+    """
+    removed = sessions.pop(session_id, None)
+    if removed is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    logger.info(f"Deleted session '{session_id}'")
+    return {"success": True}
+
+
 @app.post('/scribbleprompt3d_inference')
 def run_scribbleprompt3d_inference(request: InferenceRequest):
     """
