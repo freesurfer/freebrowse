@@ -1,6 +1,7 @@
 import { ClipboardCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import QaTab from "@/components/tabs/qa-tab";
 
 export default function QaSidebar() {
   return (
@@ -23,8 +24,8 @@ export default function QaSidebar() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="qa" className="flex-1 min-h-0 p-4">
-          <p className="text-sm text-muted-foreground">todo</p>
+        <TabsContent value="qa" className="flex-1 min-h-0 p-0">
+          <QaTab />
         </TabsContent>
       </Tabs>
     </aside>
