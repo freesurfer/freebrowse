@@ -1,5 +1,4 @@
-import { useEffect, useRef } from "react";
-import { useFreeBrowseStore } from "@/store";
+import { useRef } from "react";
 import { useViewerOptions } from "@/hooks/use-viewer-options";
 import { useLocation } from "@/hooks/use-location";
 import { useVolumes } from "@/hooks/use-volumes";
@@ -9,9 +8,7 @@ import { useSave } from "@/hooks/use-save";
 import { useFileLoading } from "@/hooks/use-file-loading";
 import { Niivue } from "@niivue/niivue";
 import "../App.css";
-import Header from "./header";
-import Footer from "./footer";
-import CanvasArea from "./canvas-area";
+import ViewerShell from "./viewer-shell";
 import Sidebar from "./sidebar";
 import RemoveDialog from "./dialogs/remove-dialog";
 import SaveDialog from "./dialogs/save-dialog";
@@ -27,10 +24,6 @@ const nv = new Niivue({
 });
 
 export default function FreeBrowse() {
-  const sidebarOpen = useFreeBrowseStore((s) => s.sidebarOpen);
-  const footerOpen = useFreeBrowseStore((s) => s.footerOpen);
-  const darkMode = useFreeBrowseStore((s) => s.darkMode);
-
   const nvRef = useRef<Niivue | null>(nv);
 
   // --- Hooks ---
@@ -110,99 +103,85 @@ export default function FreeBrowse() {
     syncDrawingOptionsFromNiivue,
   );
 
-  // Apply dark mode class to document root
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [darkMode]);
-
   return (
-    <div className="flex h-full flex-col">
-      <Header nvRef={nvRef} />
-
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex flex-1 flex-col min-h-0">
-          <CanvasArea
-            nvInstance={nv}
-            viewMode={viewerOptions.viewMode}
-            onFileUpload={handleFileUpload}
+    <ViewerShell
+      nvInstance={nv}
+      viewMode={viewerOptions.viewMode}
+      onFileUpload={handleFileUpload}
+      sidebar={
+        <Sidebar
+          nvRef={nvRef}
+          serverlessMode={serverlessMode}
+          onNvdFileSelect={handleNvdFileSelect}
+          onImagingFileSelect={handleImagingFileSelect}
+          onAddMoreFiles={handleAddMoreFiles}
+          onAddSurfaceFiles={handleAddSurfaceFiles}
+          onToggleImageVisibility={toggleImageVisibility}
+          onEditVolume={handleEditVolume}
+          canEditVolume={canEditVolume}
+          onRemoveVolumeClick={handleRemoveVolumeClick}
+          onOpacityChange={handleOpacityChange}
+          onFrameChange={handleFrameChange}
+          onContrastMinChange={handleContrastMinChange}
+          onContrastMaxChange={handleContrastMaxChange}
+          onColormapChange={handleColormapChange}
+          onLabelVolumeChange={handleLabelVolumeChange}
+          onToggleSurfaceVisibility={toggleSurfaceVisibility}
+          onRemoveSurfaceClick={handleRemoveSurfaceClick}
+          onSurfaceOpacityChange={handleSurfaceOpacityChange}
+          onSurfaceColorChange={handleSurfaceColorChange}
+          onMeshShaderChange={handleMeshShaderChange}
+          getMeshShaderName={getMeshShaderName}
+          onCreateDrawingLayer={handleCreateDrawingLayer}
+          onDrawModeChange={handleDrawModeChange}
+          onPenFillChange={handlePenFillChange}
+          onPenErasesChange={handlePenErasesChange}
+          onPenValueChange={handlePenValueChange}
+          onDrawingOpacityChange={handleDrawingOpacityChange}
+          onMagicWand2dOnlyChange={handleMagicWand2dOnlyChange}
+          onMagicWandMaxDistanceChange={handleMagicWandMaxDistanceChange}
+          onMagicWandThresholdChange={handleMagicWandThresholdChange}
+          onDrawUndo={handleDrawUndo}
+          onSaveDrawing={handleSaveDrawing}
+          onSaveScene={handleSaveScene}
+        />
+      }
+      dialogs={
+        <>
+          <RemoveDialog
+            onConfirm={handleConfirmRemove}
+            onCancel={handleCancelRemove}
           />
-
-          {footerOpen && <Footer />}
-        </div>
-
-        {sidebarOpen && (
-          <Sidebar
+          <SaveDialog
             nvRef={nvRef}
-            serverlessMode={serverlessMode}
-            onNvdFileSelect={handleNvdFileSelect}
-            onImagingFileSelect={handleImagingFileSelect}
-            onAddMoreFiles={handleAddMoreFiles}
-            onAddSurfaceFiles={handleAddSurfaceFiles}
-            onToggleImageVisibility={toggleImageVisibility}
-            onEditVolume={handleEditVolume}
-            canEditVolume={canEditVolume}
-            onRemoveVolumeClick={handleRemoveVolumeClick}
-            onOpacityChange={handleOpacityChange}
-            onFrameChange={handleFrameChange}
-            onContrastMinChange={handleContrastMinChange}
-            onContrastMaxChange={handleContrastMaxChange}
-            onColormapChange={handleColormapChange}
-            onLabelVolumeChange={handleLabelVolumeChange}
-            onToggleSurfaceVisibility={toggleSurfaceVisibility}
-            onRemoveSurfaceClick={handleRemoveSurfaceClick}
-            onSurfaceOpacityChange={handleSurfaceOpacityChange}
-            onSurfaceColorChange={handleSurfaceColorChange}
-            onMeshShaderChange={handleMeshShaderChange}
-            getMeshShaderName={getMeshShaderName}
-            onCreateDrawingLayer={handleCreateDrawingLayer}
-            onDrawModeChange={handleDrawModeChange}
-            onPenFillChange={handlePenFillChange}
-            onPenErasesChange={handlePenErasesChange}
-            onPenValueChange={handlePenValueChange}
-            onDrawingOpacityChange={handleDrawingOpacityChange}
-            onMagicWand2dOnlyChange={handleMagicWand2dOnlyChange}
-            onMagicWandMaxDistanceChange={handleMagicWandMaxDistanceChange}
-            onMagicWandThresholdChange={handleMagicWandThresholdChange}
-            onDrawUndo={handleDrawUndo}
-            onSaveDrawing={handleSaveDrawing}
-            onSaveScene={handleSaveScene}
+            onConfirm={handleConfirmSave}
+            onCancel={handleCancelSave}
+            onVolumeUrlChange={handleVolumeUrlChange}
+            onVolumeCheckboxChange={handleVolumeCheckboxChange}
+            onDocumentLocationChange={handleDocumentLocationChange}
+            onDocumentCheckboxChange={handleDocumentCheckboxChange}
           />
-        )}
-      </div>
-
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        multiple
-        className="hidden"
-      />
-      <input
-        type="file"
-        ref={surfaceFileInputRef}
-        onChange={handleSurfaceFileChange}
-        multiple
-        className="hidden"
-      />
-
-      <RemoveDialog
-        onConfirm={handleConfirmRemove}
-        onCancel={handleCancelRemove}
-      />
-      <SaveDialog
-        nvRef={nvRef}
-        onConfirm={handleConfirmSave}
-        onCancel={handleCancelSave}
-        onVolumeUrlChange={handleVolumeUrlChange}
-        onVolumeCheckboxChange={handleVolumeCheckboxChange}
-        onDocumentLocationChange={handleDocumentLocationChange}
-        onDocumentCheckboxChange={handleDocumentCheckboxChange}
-      />
-      <SettingsDialog nvRef={nvRef} />
-    </div>
+          <SettingsDialog nvRef={nvRef} />
+        </>
+      }
+      hiddenInputs={
+        <>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            multiple
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={surfaceFileInputRef}
+            onChange={handleSurfaceFileChange}
+            multiple
+            className="hidden"
+          />
+        </>
+      }
+    />
   );
 }
