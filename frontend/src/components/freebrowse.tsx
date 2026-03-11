@@ -7,7 +7,6 @@ import { useDrawing } from "@/hooks/use-drawing";
 import { useSave } from "@/hooks/use-save";
 import { useFileLoading } from "@/hooks/use-file-loading";
 import { useSegmentation } from "@/hooks/use-segmentation";
-import { useRating } from "@/hooks/use-rating";
 import { Niivue } from "@niivue/niivue";
 import "../App.css";
 import ViewerShell from "./viewer-shell";
@@ -117,14 +116,6 @@ export default function FreeBrowse() {
     syncDrawingOptionsFromNiivue,
     uploadVolumeToBackend,
   );
-  const {
-    ratingState,
-    setRatingState,
-    initRatingSession,
-    submitRating,
-    advanceToNextVolume,
-    handleEndSession,
-  } = useRating(nvRef);
 
   return (
     <ViewerShell
@@ -178,12 +169,6 @@ export default function FreeBrowse() {
           onRunSegmentation={runSegmentation}
           onResetSession={handleResetSession}
           onVoxelPromptTextChange={setVoxelPromptText}
-          ratingState={ratingState}
-          onRatingStateChange={setRatingState}
-          onInitRatingSession={initRatingSession}
-          onSubmitRating={submitRating}
-          onAdvanceToNextVolume={advanceToNextVolume}
-          onEndRatingSession={handleEndSession}
         />
       }
       dialogs={
