@@ -19,6 +19,7 @@ import numpy as np
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import nibabel as nib
 from pydantic import BaseModel
@@ -905,6 +906,12 @@ def rating_next(request: RatingNextRequest):
 # Only mount data directory if not in serverless mode
 if not serverless_mode:
     app.mount("/data", StaticFiles(directory=data_dir, html=False), name="data")
+
+
+# SPA fallback: serve index.html for client-side routes so React Router handles them
+@app.get("/qa")
+async def serve_qa():
+    return FileResponse(os.path.join(static_dir, "index.html"))
 
 
 # Mount frontend static files at root LAST (catch-all)
