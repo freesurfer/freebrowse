@@ -35,6 +35,14 @@ function generateSessionId(): string {
   return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+async function deleteSession(sessionId: string): Promise<void> {
+  try {
+    await fetch(`/session/${sessionId}`, { method: "DELETE" });
+  } catch {
+    // Best-effort cleanup; ignore network errors
+  }
+}
+
 function getVolumeDims(volume: NVImage): [number, number, number] {
   if (!volume.hdr?.dims) {
     throw new Error("volume.hdr.dims is not available.");
@@ -153,6 +161,11 @@ export function useSegmentation(
       setSegState((prev) => ({ ...prev, uploading: true, error: null }));
 
       try {
+        // Free the old session's volume tensor (50-200MB) on the backend
+        // before creating a new one, so memory doesn't accumulate.
+        if (segState.sessionId) {
+          deleteSession(segState.sessionId);
+        }
         const sessionId = generateSessionId();
         const float32Data = new Float32Array(volume.img);
         const volumeDataBase64 = encodeFloat32ArrayToBase64(float32Data);
@@ -193,7 +206,7 @@ export function useSegmentation(
         }));
       }
     },
-    [serverlessMode],
+    [serverlessMode, segState.sessionId],
   );
 
   const initSegModel = useCallback(async () => {

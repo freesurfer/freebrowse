@@ -135,6 +135,9 @@ class RatingSession:
 # Active sessions keyed by session_id
 sessions: dict[str, SessionState] = {}
 
+# Cached models keyed by model_name -> (model, config)
+_model_cache: dict[str, tuple[torch.nn.Module, dict]] = {}
+
 # Define API routes BEFORE static file mounts to prevent catch-all behavior
 @app.get("/nvd")
 def list_niivue_documents():
@@ -478,6 +481,42 @@ def load_model(
     return model.to(device).eval()
 
 
+def get_model(
+    model_name: str,
+    device: torch.device,
+) -> tuple[torch.nn.Module, dict]:
+    """
+    Return cached model and config, loading from disk on first access.
+
+    Parameters
+    ----------
+    model_name
+        Directory name under MODELS_DIR.
+    device
+        Target device for the model.
+
+    Returns
+    -------
+    tuple[torch.nn.Module, dict]
+        The model (on device, in eval mode) and its parsed config.
+    """
+    if model_name in _model_cache:
+        return _model_cache[model_name]
+
+    models_path = Path(models_dir)
+    model_dir = models_path / model_name
+    module_file = model_dir / 'model.py'
+    checkpoint_file = model_dir / 'weights.pt'
+    config_file = model_dir / 'config.yml'
+
+    model = load_model(module_file, checkpoint_file, device)
+    config = load_model_config(config_file) if config_file.exists() else {}
+
+    _model_cache[model_name] = (model, config)
+    logger.info(f"Cached model '{model_name}' on {device}")
+    return model, config
+
+
 def create_mask_nifti(mask: np.ndarray, affine: np.ndarray) -> nib.Nifti1Image:
     """
     Create NIfTI image from binary mask.
@@ -687,6 +726,21 @@ def upload_volume(request: UploadVolumeRequest):
     return {"session_id": request.session_id, "success": True}
 
 
+@app.delete('/session/{session_id}')
+def delete_session(session_id: str):
+    """Remove a session and free its memory.
+
+    Each session holds a volume tensor (50-200MB) in RAM. Called by the
+    frontend before creating a new session so the old volume data doesn't
+    accumulate on the server.
+    """
+    removed = sessions.pop(session_id, None)
+    if removed is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    logger.info(f"Deleted session '{session_id}'")
+    return {"success": True}
+
+
 @app.post('/scribbleprompt3d_inference')
 def run_scribbleprompt3d_inference(request: InferenceRequest):
     """
@@ -700,14 +754,8 @@ def run_scribbleprompt3d_inference(request: InferenceRequest):
     """
     input_tensor, session = prepare_inference_input(request)
 
-    models_path = Path(models_dir)
-    model_dir = models_path / request.model_name
-    module_file = model_dir / 'model.py'
-    checkpoint_file = model_dir / 'weights.pt'
-
-    # Load config to determine how to handle previous prediction
-    config_file = model_dir / 'config.yml'
-    config = load_model_config(config_file) if config_file.exists() else {}
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model, config = get_model(request.model_name, device)
     prompts_config = config.get('prompts', {})
 
     prev_pred = decode_previous_prediction(
@@ -725,9 +773,6 @@ def run_scribbleprompt3d_inference(request: InferenceRequest):
 
     if prev_pred is not None:
         input_tensor[0, 1] = prev_pred
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_model(module_file, checkpoint_file, device)
 
     with torch.no_grad():
         output = model(input_tensor.to(device))
