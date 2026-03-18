@@ -15,6 +15,7 @@ import base64
 import gzip
 import torch
 import yaml
+import utils
 import numpy as np
 from pathlib import Path
 
@@ -632,8 +633,8 @@ def _decode_and_store_volume(
     ras_dims = volume_ras.shape
     volume_tensor = torch.from_numpy(volume_ras).float()
 
-    vmin, vmax = volume_tensor.min(), volume_tensor.max()
-    volume_tensor = (volume_tensor - vmin) / (vmax - vmin)
+    volume_tensor = utils.clip_volume(volume_tensor, "percentile", [0.5, 99.5])
+    volume_tensor = utils.relative_norm(volume_tensor)
 
     shape_before_pad = volume_tensor.shape
     volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=16)
