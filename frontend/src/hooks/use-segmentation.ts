@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Niivue, NVImage } from "@niivue/niivue";
 
@@ -74,8 +74,8 @@ function collectClicksFromDrawBitmap(
 
   if (drawBitmap) {
     for (let i = 0; i < drawBitmap.length; i++) {
-      if (drawBitmap[i] === 1) positive.push(i);
-      else if (drawBitmap[i] === 2) negative.push(i);
+      if (drawBitmap[i] === 2) positive.push(i);
+      else if (drawBitmap[i] === 1) negative.push(i);
     }
   }
   return { positive, negative };
@@ -371,12 +371,17 @@ export function useSegmentation(
     });
   }
 
-  function handleClickModeChange(mode: "positive" | "negative") {
-    setSegState((prev) => ({ ...prev, clickMode: mode }));
-    if (nvRef.current) {
-      const penValue = mode === "positive" ? 1 : 2;
+  // handleClickModeChange only fires on button clicks, so without this
+  // the default "positive" mode would keep the drawing layer's pen value (1=red).
+  useEffect(() => {
+    if (nvRef.current && segState.modelsLoaded) {
+      const penValue = segState.clickMode === "positive" ? 2 : 1;
       nvRef.current.setPenValue(penValue, drawingOptions.penFill);
     }
+  }, [nvRef, segState.clickMode, segState.modelsLoaded, drawingOptions.penFill]);
+
+  function handleClickModeChange(mode: "positive" | "negative") {
+    setSegState((prev) => ({ ...prev, clickMode: mode }));
   }
 
   function handleResetSession() {
