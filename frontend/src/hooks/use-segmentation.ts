@@ -114,12 +114,22 @@ async function loadMaskAsNVImage(maskBytes: Uint8Array): Promise<NVImage> {
 
   return await NVImage.loadFromFile({
     file: maskFile,
-    colormap: "red",
+    colormap: "sky_blue",
     opacity: 0.5,
   });
 }
 
+// #5BA3C9 — lighter than navy, darker than sky blue
+const SKY_BLUE_CMAP = {
+  R: [0, 91, 91],
+  G: [0, 163, 163],
+  B: [0, 201, 201],
+  A: [0, 64, 128],
+  I: [0, 128, 255],
+};
+
 function displayMaskOverlay(nv: Niivue, maskImage: NVImage): void {
+  nv.addColormap("sky_blue", SKY_BLUE_CMAP);
   if (nv.volumes.length > 1) {
     nv.removeVolume(nv.volumes[1]);
   }
