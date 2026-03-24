@@ -8,16 +8,17 @@ interface CanvasAreaProps {
   nvInstance: Niivue;
   viewMode: ViewMode;
   onFileUpload: (files: File[]) => Promise<void>;
+  nvCanvasEmptyState?: React.ReactNode;
 }
 
-export default function CanvasArea({ nvInstance, viewMode, onFileUpload }: CanvasAreaProps) {
+export default function CanvasArea({ nvInstance, viewMode, onFileUpload, nvCanvasEmptyState }: CanvasAreaProps) {
   const showUploader = useFreeBrowseStore((s) => s.showUploader);
 
   return (
     <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
       {showUploader ? (
         <div className="flex flex-1 items-center justify-center">
-          <ImageUploader onUpload={onFileUpload} />
+          {nvCanvasEmptyState ?? <ImageUploader onUpload={onFileUpload} />}
         </div>
       ) : (
         <div className="flex flex-1">
