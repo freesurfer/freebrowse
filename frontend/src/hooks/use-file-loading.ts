@@ -99,6 +99,26 @@ export function useFileLoading(
       if (jsonData.meshes && jsonData.meshes.length > 0) {
         console.log("Loading meshes:", jsonData.meshes);
         await nv.loadMeshes(jsonData.meshes);
+
+        // WORKAROUND: NiiVue's loadLayer doesn't persist layer names on the
+        // layer objects it creates. Backfill from the original JSON URLs.
+        // Remove after niivue PR that adds `newLayer.name = layerName` is merged.
+        for (const meshJson of jsonData.meshes) {
+          if (!meshJson.layers || meshJson.layers.length === 0) continue;
+
+          // Match the loaded mesh by name (extracted from URL basename)
+          const meshName = meshJson.name || meshJson.url?.split("/").pop() || "";
+          const mesh = nv.meshes.find((m: any) => m.name === meshName);
+          if (!mesh?.layers) continue;
+
+          for (let li = 0; li < mesh.layers.length && li < meshJson.layers.length; li++) {
+            const layerJson = meshJson.layers[li];
+            const layerName = layerJson.name || layerJson.url?.split("/").pop() || "";
+            if (layerName && !mesh.layers[li].name) {
+              mesh.layers[li].name = layerName;
+            }
+          }
+        }
       }
 
       setCurrentImageIndex(0);

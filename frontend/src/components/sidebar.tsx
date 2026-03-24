@@ -42,6 +42,15 @@ interface SidebarProps {
   onSurfaceColorChange: (hexColor: string) => void;
   onMeshShaderChange: (shaderName: string) => void;
   getMeshShaderName: (index: number) => string;
+  // Layer operations
+  getLayers: () => any[];
+  onAddLayerFiles: () => void;
+  onRemoveLayer: (index: number) => void;
+  onLayerOpacityChange: (value: number) => void;
+  onLayerCalMinChange: (value: number) => void;
+  onLayerCalMaxChange: (value: number) => void;
+  onLayerColormapChange: (colormap: string) => void;
+  onLayerUseNegativeCmapChange: (checked: boolean) => void;
   // Drawing operations
   onCreateDrawingLayer: () => void;
   onDrawModeChange: (mode: "none" | "pen" | "wand") => void;
@@ -157,6 +166,14 @@ export default function Sidebar(props: SidebarProps) {
             onColorChange={props.onSurfaceColorChange}
             onShaderChange={props.onMeshShaderChange}
             getMeshShaderName={props.getMeshShaderName}
+            getLayers={props.getLayers}
+            onAddLayerFiles={props.onAddLayerFiles}
+            onRemoveLayer={props.onRemoveLayer}
+            onLayerOpacityChange={props.onLayerOpacityChange}
+            onLayerCalMinChange={props.onLayerCalMinChange}
+            onLayerCalMaxChange={props.onLayerCalMaxChange}
+            onLayerColormapChange={props.onLayerColormapChange}
+            onLayerUseNegativeCmapChange={props.onLayerUseNegativeCmapChange}
           />
         </TabsContent>
 

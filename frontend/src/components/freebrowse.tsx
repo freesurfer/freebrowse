@@ -3,6 +3,7 @@ import { useViewerOptions } from "@/hooks/use-viewer-options";
 import { useLocation } from "@/hooks/use-location";
 import { useVolumes } from "@/hooks/use-volumes";
 import { useSurfaces } from "@/hooks/use-surfaces";
+import { useMeshLayers } from "@/hooks/use-mesh-layers";
 import { useDrawing } from "@/hooks/use-drawing";
 import { useSave } from "@/hooks/use-save";
 import { useFileLoading } from "@/hooks/use-file-loading";
@@ -44,6 +45,18 @@ export default function FreeBrowse() {
     handleMeshShaderChange,
     getMeshShaderName,
   } = useSurfaces(nvRef, debouncedGLUpdate);
+  const {
+    layerFileInputRef,
+    getLayers,
+    removeLayer: removeLayerFromMesh,
+    handleLayerOpacityChange,
+    handleLayerCalMinChange,
+    handleLayerCalMaxChange,
+    handleLayerColormapChange,
+    handleLayerUseNegativeCmapChange,
+    handleAddLayerFiles,
+    handleLayerFileChange,
+  } = useMeshLayers(nvRef);
   const {
     updateImageDetails,
     toggleImageVisibility,
@@ -132,6 +145,14 @@ export default function FreeBrowse() {
           onSurfaceColorChange={handleSurfaceColorChange}
           onMeshShaderChange={handleMeshShaderChange}
           getMeshShaderName={getMeshShaderName}
+          getLayers={getLayers}
+          onAddLayerFiles={handleAddLayerFiles}
+          onRemoveLayer={removeLayerFromMesh}
+          onLayerOpacityChange={handleLayerOpacityChange}
+          onLayerCalMinChange={handleLayerCalMinChange}
+          onLayerCalMaxChange={handleLayerCalMaxChange}
+          onLayerColormapChange={handleLayerColormapChange}
+          onLayerUseNegativeCmapChange={handleLayerUseNegativeCmapChange}
           onCreateDrawingLayer={handleCreateDrawingLayer}
           onDrawModeChange={handleDrawModeChange}
           onPenFillChange={handlePenFillChange}
@@ -177,6 +198,13 @@ export default function FreeBrowse() {
             type="file"
             ref={surfaceFileInputRef}
             onChange={handleSurfaceFileChange}
+            multiple
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={layerFileInputRef}
+            onChange={handleLayerFileChange}
             multiple
             className="hidden"
           />
