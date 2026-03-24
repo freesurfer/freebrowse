@@ -48,6 +48,12 @@ export default function SaveDialog({
               ? "Select the files you want to download."
               : "Enter the location where you want to save the scene."}
           </DialogDescription>
+          {nvRef.current?.meshes && nvRef.current.meshes.length > 0 && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Note: Saving scenes with meshes is currently not supported. Mesh
+              data will not be included in the saved file.
+            </p>
+          )}
         </DialogHeader>
 
         <div className="mt-4">

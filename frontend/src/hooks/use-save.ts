@@ -45,6 +45,9 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
       // Download mode
       if (saveState.document.enabled && saveState.document.location.trim()) {
         const jsonData = nvRef.current.document.json(true, false);
+        delete jsonData.meshes;
+        delete jsonData.meshOptionsArray;
+        delete jsonData.meshesString;
 
         if (jsonData.imageOptionsArray && nvRef.current.volumes) {
           for (
@@ -117,6 +120,9 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
           const jsonData = nvRef.current.document.json(false, false);
 
           const finalJsonData = { ...jsonData };
+          delete finalJsonData.meshes;
+          delete finalJsonData.meshOptionsArray;
+          delete finalJsonData.meshesString;
           finalJsonData.imageOptionsArray = finalJsonData.imageOptionsArray.map(
             (imageOption: any, index: number) => {
               const volumeState = saveState.volumes[index];
