@@ -89,6 +89,7 @@ export default function FreeBrowse() {
     voxelPromptText,
     setVoxelPromptText,
     uploadVolumeToBackend,
+    loadServerVolume,
     initSegModel,
     runSegmentation,
     sendVoxelPrompt,
@@ -115,6 +116,7 @@ export default function FreeBrowse() {
     handleLocationChange,
     syncDrawingOptionsFromNiivue,
     uploadVolumeToBackend,
+    loadServerVolume,
   );
 
   return (
