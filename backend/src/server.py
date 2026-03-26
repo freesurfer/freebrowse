@@ -7,6 +7,7 @@ import random
 import mimetypes
 import logging
 import tempfile
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Union, List, Tuple, Any
@@ -19,11 +20,13 @@ import utils
 import numpy as np
 from pathlib import Path
 
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import nibabel as nib
 from pydantic import BaseModel
+from thunderpack import ThunderReader
 
 # Configure logging.  Possible logging levels are:
 #   - logging.DEBUG
@@ -43,6 +46,7 @@ imaging_extensions_str = os.getenv('IMAGING_EXTENSIONS', '["*.nii", "*.nii.gz"]'
 imaging_extensions = json.loads(imaging_extensions_str)
 serverless_mode = os.getenv('SERVERLESS_MODE', 'false').lower() == 'true'
 master_json = os.getenv('MASTER_JSON')
+megamedical_base_dir = os.getenv('MEGAMEDICAL_BASE_DIR')
 
 logger.info(f"NIIVUE_BUILD_DIR: {static_dir}")
 logger.info(f"DATA_DIR: {data_dir}")
@@ -51,6 +55,7 @@ logger.info(f"MODELS_DIR: {models_dir}")
 logger.info(f"IMAGING_EXTENSIONS: {imaging_extensions}")
 logger.info(f"SERVERLESS_MODE: {serverless_mode}")
 logger.info(f"MASTER_JSON: {master_json}")
+logger.info(f"MEGAMEDICAL_BASE_DIR: {megamedical_base_dir}")
 
 # Register the MIME type so that .gz files (or .nii.gz files) are served correctly.
 mimetypes.add_type("application/gzip", ".nii.gz", strict=True)
@@ -92,6 +97,11 @@ class UploadVolumeRequest(BaseModel):
     niivue_dims: list[int]
 
 
+class LoadVolumeFromPathRequest(BaseModel):
+    session_id: str
+    volume_path: str
+
+
 class VoxelPromptRequest(InferenceRequest):
     text: str
 
@@ -107,6 +117,20 @@ class RatingSubmitRequest(BaseModel):
 
 
 class RatingNextRequest(BaseModel):
+    session_id: str
+
+
+class QCInitRequest(BaseModel):
+    name: str
+    seed: int
+
+
+class QCRateRequest(BaseModel):
+    session_id: str
+    rating: int
+
+
+class QCNextRequest(BaseModel):
     session_id: str
 
 
@@ -133,11 +157,50 @@ class RatingSession:
     total_volumes: int
 
 
+@dataclass
+class QCSession:
+    """State for a MegaMedical QC session. Persisted to disk as JSON."""
+    name: str
+    seed: int
+    current_index: int
+    current_metadata: dict | None = None
+    rng_state: list | None = None
+
+
+@dataclass
+class QCTask:
+    """One (database, label) combination -- the unit of QC sampling."""
+    db_path: str
+    dataset: str
+    group: str
+    modality: str
+    vol_file: str
+    seg_file: str
+    task_name: str
+    label_idx: int
+    label_name: str
+    n_labels: int
+    samples: list[str]
+    original_label_type: str
+    overlapping_labels: bool
+
+
 # Active sessions keyed by session_id
 sessions: dict[str, SessionState] = {}
 
 # Cached models keyed by model_name -> (model, config)
 _model_cache: dict[str, tuple[torch.nn.Module, dict]] = {}
+
+_MM5_QC_CONFIG_FILE = Path(__file__).parent.parent.parent / "data" / "megamedical5-qc.yml"
+_mm5_qc_config: dict = yaml.safe_load(_MM5_QC_CONFIG_FILE.read_text())
+QC_DATASETS: list[str] = _mm5_qc_config["datasets"]
+MIN_LABEL_DENSITY: float = _mm5_qc_config["min_label_density"]
+blind_rating: bool = _mm5_qc_config["blind_rating"]
+_QC_HIERARCHY: tuple[str, ...] = tuple(_mm5_qc_config["hierarchy"])
+_qc_index: list[QCTask] | None = None
+_qc_index_lock = threading.Lock()
+_session_locks: dict[str, threading.Lock] = {}
+_session_locks_lock = threading.Lock()
 
 # Define API routes BEFORE static file mounts to prevent catch-all behavior
 @app.get("/nvd")
@@ -533,12 +596,12 @@ def encode_nifti(nii: nib.Nifti1Image) -> str:
     """
     Encode NIfTI as gzipped base64 string.
     """
-    return base64.b64encode(gzip.compress(nii.to_bytes())).decode("utf-8")
+    return base64.b64encode(gzip.compress(nii.to_bytes(), compresslevel=1)).decode("utf-8")
 
 
 def get_rating_dir() -> Path:
     """Return the rating sessions directory, creating it if needed."""
-    rating_dir = Path(data_dir) / "rating_sessions"
+    rating_dir = Path(data_dir) / "rating_sessions" / "qa"
     rating_dir.mkdir(parents=True, exist_ok=True)
     return rating_dir
 
@@ -724,6 +787,57 @@ def upload_volume(request: UploadVolumeRequest):
         affine=request.affine,
         niivue_dims=request.niivue_dims,
     )
+    return {"session_id": request.session_id, "success": True}
+
+
+def _load_and_store_volume_from_path(
+    session_id: str,
+    volume_path: str,
+) -> SessionState:
+    """
+    Load a server-resident NIfTI, reorient to RAS, normalize, pad, and cache.
+
+    Parameters
+    ----------
+    session_id
+        Key for the session store.
+    volume_path
+        Path relative to DATA_DIR.
+    """
+    full_path = (Path(data_dir) / volume_path).resolve()
+    if not str(full_path).startswith(str(Path(data_dir).resolve())):
+        raise HTTPException(status_code=400, detail="Invalid volume path")
+    if not full_path.exists():
+        raise HTTPException(status_code=404, detail=f"Volume not found: {volume_path}")
+
+    img = nib.load(str(full_path))
+    img_ras = nib.as_closest_canonical(img)
+    volume_ras = img_ras.get_fdata().astype(np.float32)
+    affine_ras = img_ras.affine
+
+    ras_dims = volume_ras.shape
+    volume_tensor = torch.from_numpy(volume_ras).float()
+
+    volume_tensor = utils.clip_volume(volume_tensor, "percentile", [0.5, 99.5])
+    volume_tensor = utils.relative_norm(volume_tensor)
+
+    shape_before_pad = volume_tensor.shape
+    volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=16)
+
+    session = SessionState(
+        volume_tensor=volume_tensor,
+        affine_ras=affine_ras,
+        ras_dims=ras_dims,
+        shape_before_pad=shape_before_pad,
+    )
+    sessions[session_id] = session
+    return session
+
+
+@app.post('/session/from_path')
+def load_volume_from_path(request: LoadVolumeFromPathRequest):
+    """Load a server-resident volume into a session without uploading."""
+    _load_and_store_volume_from_path(session_id=request.session_id, volume_path=request.volume_path)
     return {"session_id": request.session_id, "success": True}
 
 
@@ -949,6 +1063,468 @@ def rating_next(request: RatingNextRequest):
     }
 
 
+def build_qc_index() -> list[QCTask]:
+    """
+    Scan MegaMedical LMDB databases and build a flat task index.
+
+    Each entry is one (database, label) pair. Cached after first call.
+    """
+    global _qc_index
+    if _qc_index is not None:
+        return _qc_index
+    with _qc_index_lock:
+        if _qc_index is not None:
+            return _qc_index
+
+        base = Path(megamedical_base_dir)
+
+        db_infos: list[dict] = []
+
+        for dataset_spec in QC_DATASETS:
+            dataset_path = base / dataset_spec
+            if not dataset_path.exists():
+                logger.warning(f"QC dataset not found: {dataset_path}")
+                continue
+
+            for mdb_file in dataset_path.rglob("data.mdb"):
+                db_dir = mdb_file.parent
+                rel = db_dir.relative_to(base)
+                parts = rel.parts
+                modality = parts[-1]
+                task_prefix = parts[-2] if len(parts) >= 2 else ""
+                proc_version = parts[2] if len(parts) >= 5 else ""
+                group = parts[1] if len(parts) >= 4 else parts[0]
+
+                db_infos.append({
+                    "db_dir": db_dir,
+                    "rel": rel,
+                    "dataset": dataset_spec,
+                    "group": group,
+                    "proc_version": proc_version,
+                    "task_prefix": task_prefix,
+                    "modality": modality,
+                })
+
+        latest_versions: dict[tuple[str, str], str] = {}
+        for info in db_infos:
+            key = (info["dataset"], info["group"])
+            cur = latest_versions.get(key, "")
+            if info["proc_version"] > cur:
+                latest_versions[key] = info["proc_version"]
+
+        entries: list[QCTask] = []
+        for info in db_infos:
+            key = (info["dataset"], info["group"])
+            if info["proc_version"] != latest_versions[key]:
+                continue
+
+            task_prefix = info["task_prefix"]
+            if "_seg" in task_prefix:
+                a, b = task_prefix.split("_seg", 1)
+                vol_file, seg_file = a, "seg" + b
+            elif "_prob" in task_prefix:
+                a, b = task_prefix.split("_prob", 1)
+                vol_file, seg_file = a, "prob" + b
+            else:
+                logger.warning(
+                    f"Unrecognized task_prefix: {task_prefix!r} in {info['db_dir']}"
+                )
+                vol_file, seg_file = task_prefix, task_prefix
+
+            reader = None
+            try:
+                reader = ThunderReader(str(info["db_dir"]))
+                attrs = reader["_attrs"]
+                subject_df = reader["_subject_df"]
+                try:
+                    label_densities = reader["_label_densities"]
+                except Exception:
+                    label_densities = None
+            except Exception as e:
+                logger.warning(f"Failed to read {info['db_dir']}: {e}")
+                continue
+            finally:
+                if reader is not None and hasattr(reader, 'close'):
+                    try:
+                        reader.close()
+                    except Exception:
+                        pass
+
+            labelled_df = subject_df[subject_df["labelled"]].reset_index(
+                drop=True)
+            if labelled_df.empty:
+                continue
+
+            n_labels = attrs.get("n_labels", 1)
+            label_names = attrs.get("label_names", {})
+            original_label_type = attrs.get("original_label_type", "hard")
+            overlapping_labels = attrs.get("overlapping_labels", False)
+            task_name = str(info["rel"])
+
+            for label_idx in range(n_labels):
+                if (label_densities is not None
+                        and MIN_LABEL_DENSITY > 0):
+                    densities = label_densities[
+                        :len(labelled_df), label_idx]
+                    mask = densities >= MIN_LABEL_DENSITY
+                    label_samples = labelled_df[mask][
+                        "sample"].tolist()
+                else:
+                    label_samples = labelled_df["sample"].tolist()
+
+                if not label_samples:
+                    continue
+
+                entries.append(QCTask(
+                    db_path=str(info["db_dir"]),
+                    dataset=info["dataset"],
+                    group=info["group"],
+                    modality=info["modality"],
+                    vol_file=vol_file,
+                    seg_file=seg_file,
+                    task_name=task_name,
+                    label_idx=label_idx,
+                    label_name=label_names.get(label_idx, ""),
+                    n_labels=n_labels,
+                    samples=label_samples,
+                    original_label_type=original_label_type,
+                    overlapping_labels=overlapping_labels,
+                ))
+
+        logger.info(f"QC index built: {len(entries)} task-label combinations")
+        _qc_index = entries
+        return entries
+
+
+def sample_qc_item(
+    index: list[QCTask],
+    rng: random.Random,
+) -> tuple[QCTask, str]:
+    """Draw one (task, sample_key) using hierarchical sampling.
+
+    Gives equal probability to each dataset regardless of size.
+    Consumes exactly 7 RNG calls per invocation (6 hierarchy + 1 sample).
+    """
+    candidates = index
+    for attr in _QC_HIERARCHY:
+        unique_vals = sorted(set(getattr(t, attr) for t in candidates))
+        val = rng.choice(unique_vals)
+        candidates = [t for t in candidates if getattr(t, attr) == val]
+
+    task = candidates[0]
+    sample_key = rng.choice(task.samples)
+    return task, sample_key
+
+
+def _select_label_for_qc(
+    seg: np.ndarray,
+    label_idx: int,
+    original_label_type: str,
+    overlapping_labels: bool,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Select a binary label from a segmentation volume."""
+    if original_label_type == 'instance-hard':
+        seg_ch = seg[label_idx]
+        instance_labels = np.delete(
+            np.unique(seg_ch).astype(int), [0])
+        if len(instance_labels) > 0:
+            idx = rng.choice(instance_labels, 1)[0]
+            return (seg_ch == idx).astype(np.uint8)
+        return np.zeros_like(seg_ch, dtype=np.uint8)
+    if original_label_type == 'instance-soft':
+        raise NotImplementedError(
+            "instance-soft label type not supported")
+    if overlapping_labels or original_label_type == 'multi-annotator':
+        return seg[label_idx].astype(np.uint8)
+    return (seg == label_idx + 1).astype(np.uint8)
+
+
+def set_percentile_cal(
+    nii: nib.Nifti1Image,
+    lower: float = 3.0,
+    upper: float = 97.0,
+) -> nib.Nifti1Image:
+    """Set cal_min/cal_max to intensity percentiles."""
+    data = nii.get_fdata(dtype=np.float32)
+    nii.header['cal_min'] = float(np.percentile(data, lower))
+    nii.header['cal_max'] = float(np.percentile(data, upper))
+    return nii
+
+
+def read_qc_sample(
+    task: QCTask,
+    sample_key: str,
+) -> tuple[str, str, dict]:
+    """Read vol+seg from LMDB and return as base64 gzipped NIfTI."""
+    reader = ThunderReader(task.db_path)
+    try:
+        vol = reader[f"{sample_key}/vol"].astype(np.float32)
+        seg = reader[f"{sample_key}/seg"]
+        affine = reader[f"{sample_key}/affine"]
+    finally:
+        if hasattr(reader, 'close'):
+            try:
+                reader.close()
+            except Exception:
+                pass
+
+    rng = np.random.default_rng(hash(sample_key) % (2**32))
+    seg_binary = _select_label_for_qc(
+        seg, task.label_idx, task.original_label_type,
+        task.overlapping_labels, rng,
+    )
+
+    vol_nii = set_percentile_cal(nib.Nifti1Image(vol, affine))
+    seg_nii = nib.Nifti1Image(seg_binary, affine)
+
+    metadata = {
+        "dataset": task.dataset,
+        "modality": task.modality,
+        "task": task.task_name,
+        "sample": sample_key,
+        "label_index": task.label_idx,
+        "label_name": task.label_name,
+    }
+
+    return encode_nifti(vol_nii), encode_nifti(seg_nii), metadata
+
+
+def get_qc_dir() -> Path:
+    qc_dir = Path(data_dir) / "rating_sessions" / "mm5-qa"
+    qc_dir.mkdir(parents=True, exist_ok=True)
+    return qc_dir
+
+
+def _get_session_lock(session_id: str) -> threading.Lock:
+    with _session_locks_lock:
+        if session_id not in _session_locks:
+            _session_locks[session_id] = threading.Lock()
+        return _session_locks[session_id]
+
+
+def _serialize_rng_state(state: tuple) -> list:
+    """Convert random.Random.getstate() to JSON-serializable list."""
+    version, internalstate, gauss = state
+    return [version, list(internalstate), gauss]
+
+
+def _deserialize_rng_state(data: list) -> tuple:
+    """Convert JSON list back to random.Random.setstate() format."""
+    version, internalstate, gauss = data
+    return (version, tuple(internalstate), gauss)
+
+
+def make_qc_session_id(name: str, seed: int) -> str:
+    safe_name = name.strip().lower().replace(" ", "_")
+    return f"qc_{safe_name}_{seed}"
+
+
+def save_qc_session(session_id: str, session: QCSession) -> None:
+    path = get_qc_dir() / f"{session_id}.json"
+    with open(path, "w") as f:
+        json.dump({
+            "name": session.name,
+            "seed": session.seed,
+            "current_index": session.current_index,
+            "current_metadata": session.current_metadata,
+            "rng_state": session.rng_state,
+        }, f)
+
+
+def load_qc_session(session_id: str) -> QCSession | None:
+    path = get_qc_dir() / f"{session_id}.json"
+    if not path.exists():
+        return None
+    with open(path, "r") as f:
+        data = json.load(f)
+    return QCSession(**data)
+
+
+def append_qc_rating_to_csv(
+    session_id: str,
+    metadata: dict,
+    rating: int,
+) -> None:
+    csv_path = get_qc_dir() / f"{session_id}_ratings.csv"
+    file_exists = csv_path.exists()
+    with open(csv_path, "a", newline="") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow([
+                "timestamp", "dataset", "modality", "task",
+                "sample", "label_index", "label_name", "rating",
+            ])
+        writer.writerow([
+            datetime.now(timezone.utc).isoformat(),
+            metadata.get("dataset", ""),
+            metadata.get("modality", ""),
+            metadata.get("task", ""),
+            metadata.get("sample", ""),
+            metadata.get("label_index", ""),
+            metadata.get("label_name", ""),
+            False if rating == 0 else rating,
+        ])
+
+
+@app.post("/qc/init")
+def qc_init(request: QCInitRequest):
+    """Initialize or resume a MegaMedical QC session."""
+    if not megamedical_base_dir:
+        raise HTTPException(
+            status_code=500,
+            detail="MEGAMEDICAL_BASE_DIR not configured",
+        )
+
+    session_id = make_qc_session_id(request.name, request.seed)
+    existing = load_qc_session(session_id)
+
+    if existing is not None:
+        if existing.rng_state is None:
+            qc_index = build_qc_index()
+            rng = random.Random(existing.seed)
+            for _ in range(existing.current_index):
+                sample_qc_item(qc_index, rng)
+            existing.rng_state = _serialize_rng_state(rng.getstate())
+            save_qc_session(session_id, existing)
+        logger.info(
+            f"Resuming QC session: {session_id} at index "
+            f"{existing.current_index}"
+        )
+        return {
+            "session_id": session_id,
+            "current_index": existing.current_index,
+            "blinded": blind_rating,
+        }
+
+    build_qc_index()
+
+    rng = random.Random(request.seed)
+    session = QCSession(
+        name=request.name,
+        seed=request.seed,
+        current_index=0,
+        rng_state=_serialize_rng_state(rng.getstate()),
+    )
+    save_qc_session(session_id, session)
+    logger.info(f"Created QC session: {session_id}")
+
+    return {"session_id": session_id, "current_index": 0, "blinded": blind_rating}
+
+
+@app.get("/qc/sample")
+def qc_sample(session_id: str, index: int | None = None):
+    """Return vol + seg as base64 gzipped NIfTI + metadata."""
+    session = load_qc_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    qc_index = build_qc_index()
+    if not qc_index:
+        raise HTTPException(status_code=500, detail="No QC databases found")
+
+    target_index = index if index is not None else session.current_index
+
+    if target_index < 0:
+        raise HTTPException(status_code=400, detail="index must be non-negative")
+
+    if session.rng_state and target_index >= session.current_index:
+        rng = random.Random()
+        rng.setstate(_deserialize_rng_state(session.rng_state))
+        k = target_index - session.current_index
+        for _ in range(k):
+            sample_qc_item(qc_index, rng)
+        task, sample_key = sample_qc_item(qc_index, rng)
+    else:
+        rng = random.Random(session.seed)
+        for _ in range(target_index):
+            sample_qc_item(qc_index, rng)
+        task, sample_key = sample_qc_item(qc_index, rng)
+
+    vol_b64, seg_b64, metadata = read_qc_sample(task, sample_key)
+
+    if target_index == session.current_index:
+        with _get_session_lock(session_id):
+            session = load_qc_session(session_id)
+            session.current_metadata = metadata
+            save_qc_session(session_id, session)
+
+    return {
+        "volume_nifti": vol_b64,
+        "seg_nifti": seg_b64,
+        "metadata": None if blind_rating else metadata,
+        "current_index": target_index,
+    }
+
+
+@app.post("/qc/rate")
+def qc_rate(request: QCRateRequest):
+    """Record a QC rating for the current sample."""
+    with _get_session_lock(request.session_id):
+        session = load_qc_session(request.session_id)
+        if session is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        if request.rating < 0 or request.rating > 5:
+            raise HTTPException(
+                status_code=400,
+                detail="Rating must be 0 (N/A) or between 1 and 5",
+            )
+
+        if session.current_metadata is None:
+            raise HTTPException(
+                status_code=400, detail="No current sample to rate",
+            )
+
+        append_qc_rating_to_csv(
+            request.session_id, session.current_metadata, request.rating,
+        )
+    logger.info(
+        f"QC rating recorded: session={request.session_id}, "
+        f"rating={request.rating}"
+    )
+    return {"success": True}
+
+
+@app.post("/qc/next")
+def qc_next(request: QCNextRequest):
+    """Advance to next QC sample."""
+    with _get_session_lock(request.session_id):
+        session = load_qc_session(request.session_id)
+        if session is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        qc_index = build_qc_index()
+
+        rng = random.Random()
+        if session.rng_state:
+            rng.setstate(_deserialize_rng_state(session.rng_state))
+            sample_qc_item(qc_index, rng)
+        else:
+            rng = random.Random(session.seed)
+            for _ in range(session.current_index + 1):
+                sample_qc_item(qc_index, rng)
+
+        new_rng_state = _serialize_rng_state(rng.getstate())
+        task, sample_key = sample_qc_item(qc_index, rng)
+
+        metadata = {
+            "dataset": task.dataset,
+            "modality": task.modality,
+            "task": task.task_name,
+            "sample": sample_key,
+            "label_index": task.label_idx,
+            "label_name": task.label_name,
+        }
+
+        session.current_index += 1
+        session.rng_state = new_rng_state
+        session.current_metadata = metadata
+        save_qc_session(request.session_id, session)
+
+    return {"current_index": session.current_index}
+
+
 # Only mount data directory if not in serverless mode
 if not serverless_mode:
     app.mount("/data", StaticFiles(directory=data_dir, html=False), name="data")
@@ -957,6 +1533,11 @@ if not serverless_mode:
 # SPA fallback: serve index.html for client-side routes so React Router handles them
 @app.get("/qa")
 async def serve_qa():
+    return FileResponse(os.path.join(static_dir, "index.html"))
+
+
+@app.get("/mm5-qa")
+async def serve_mm5_qa():
     return FileResponse(os.path.join(static_dir, "index.html"))
 
 
