@@ -219,6 +219,54 @@ export function useSegmentation(
     [serverlessMode, segState.sessionId],
   );
 
+  const loadServerVolume = useCallback(
+    async (volumeUrl: string) => {
+      if (serverlessMode) return;
+
+      setSegState((prev) => ({ ...prev, uploading: true, error: null }));
+
+      try {
+        if (segState.sessionId) {
+          deleteSession(segState.sessionId);
+        }
+        const sessionId = generateSessionId();
+        const volumePath = volumeUrl.replace(/^data\//, "");
+
+        const response = await fetch("/session/from_path", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: sessionId,
+            volume_path: volumePath,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.detail || `Volume load failed: ${response.statusText}`,
+          );
+        }
+
+        setSegState((prev) => ({
+          ...prev,
+          uploading: false,
+          sessionId,
+          previousLogits: null,
+          error: null,
+        }));
+      } catch (err) {
+        console.error("Server volume load failed:", err);
+        setSegState((prev) => ({
+          ...prev,
+          uploading: false,
+          error: (err as Error).message,
+        }));
+      }
+    },
+    [serverlessMode, segState.sessionId],
+  );
+
   const initSegModel = useCallback(async () => {
     setSegState((prev) => ({ ...prev, loading: true, error: null }));
 
@@ -400,6 +448,7 @@ export function useSegmentation(
     voxelPromptText,
     setVoxelPromptText,
     uploadVolumeToBackend,
+    loadServerVolume,
     initSegModel,
     runSegmentation,
     sendVoxelPrompt,

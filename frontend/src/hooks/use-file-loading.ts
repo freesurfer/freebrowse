@@ -12,6 +12,7 @@ export function useFileLoading(
   handleLocationChange: (locationObject: any) => void,
   syncDrawingOptionsFromNiivue: () => void,
   onVolumeLoadedToBackend?: (volume: NVImage) => void,
+  onServerVolumeSelected?: (volumeUrl: string) => void,
 ) {
   const images = useFreeBrowseStore((s) => s.images);
   const setImages = useFreeBrowseStore((s) => s.setImages);
@@ -252,14 +253,14 @@ export function useFileLoading(
 
         console.log("Imaging file loaded successfully");
 
-        if (nv.volumes.length > 0 && onVolumeLoadedToBackend) {
-          onVolumeLoadedToBackend(nv.volumes[0]);
+        if (onServerVolumeSelected) {
+          onServerVolumeSelected(file.url);
         }
       } catch (error) {
         console.error("Error loading imaging file:", error);
       }
     },
-    [nvRef, showUploader, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex, onVolumeLoadedToBackend],
+    [nvRef, showUploader, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex, onServerVolumeSelected],
   );
 
   const handleNvdFileSelect = useCallback(
