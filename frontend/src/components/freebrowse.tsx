@@ -6,6 +6,7 @@ import { useSurfaces } from "@/hooks/use-surfaces";
 import { useDrawing } from "@/hooks/use-drawing";
 import { useSave } from "@/hooks/use-save";
 import { useFileLoading } from "@/hooks/use-file-loading";
+import { useSegmentation } from "@/hooks/use-segmentation";
 import { Niivue } from "@niivue/niivue";
 import "../App.css";
 import ViewerShell from "./viewer-shell";
@@ -83,6 +84,19 @@ export default function FreeBrowse() {
     handleDocumentCheckboxChange,
   } = useSave(nvRef);
   const {
+    segState,
+    setSegState,
+    voxelPromptText,
+    setVoxelPromptText,
+    uploadVolumeToBackend,
+    loadServerVolume,
+    initSegModel,
+    runSegmentation,
+    sendVoxelPrompt,
+    handleClickModeChange,
+    handleResetSession,
+  } = useSegmentation(nvRef, updateImageDetails);
+  const {
     serverlessMode,
     fileInputRef,
     surfaceFileInputRef,
@@ -101,6 +115,8 @@ export default function FreeBrowse() {
     updateSurfaceDetails,
     handleLocationChange,
     syncDrawingOptionsFromNiivue,
+    uploadVolumeToBackend,
+    loadServerVolume,
   );
 
   return (
@@ -144,6 +160,17 @@ export default function FreeBrowse() {
           onDrawUndo={handleDrawUndo}
           onSaveDrawing={handleSaveDrawing}
           onSaveScene={handleSaveScene}
+          segState={segState}
+          voxelPromptText={voxelPromptText}
+          onSendVoxelPrompt={sendVoxelPrompt}
+          onInitSegModel={initSegModel}
+          onModelSelect={(name) =>
+            setSegState((prev) => ({ ...prev, selectedModel: name }))
+          }
+          onClickModeChange={handleClickModeChange}
+          onRunSegmentation={runSegmentation}
+          onResetSession={handleResetSession}
+          onVoxelPromptTextChange={setVoxelPromptText}
         />
       }
       dialogs={

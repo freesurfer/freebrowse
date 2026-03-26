@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { Niivue } from "@niivue/niivue";
 import type { FileItem } from "@/components/file-list";
+import type { SegState } from "@/hooks/use-segmentation";
 import NvdTab from "@/components/tabs/nvd-tab";
 import DataTab from "@/components/tabs/data-tab";
 import SceneDetailsTab from "@/components/tabs/scene-details-tab";
@@ -56,6 +57,16 @@ interface SidebarProps {
   onSaveDrawing: () => void;
   // Save operations
   onSaveScene: (isDownload: boolean) => void;
+  // Segmentation
+  segState: SegState;
+  voxelPromptText: string;
+  onSendVoxelPrompt: () => void;
+  onInitSegModel: () => void;
+  onModelSelect: (modelName: string) => void;
+  onClickModeChange: (mode: "positive" | "negative") => void;
+  onRunSegmentation: () => void;
+  onResetSession: () => void;
+  onVoxelPromptTextChange: (text: string) => void;
 }
 
 export default function Sidebar(props: SidebarProps) {
@@ -172,8 +183,18 @@ export default function Sidebar(props: SidebarProps) {
             onMagicWandThresholdChange={props.onMagicWandThresholdChange}
             onDrawUndo={props.onDrawUndo}
             onSaveDrawing={props.onSaveDrawing}
+            segState={props.segState}
+            voxelPromptText={props.voxelPromptText}
+            onSendVoxelPrompt={props.onSendVoxelPrompt}
+            onInitSegModel={props.onInitSegModel}
+            onModelSelect={props.onModelSelect}
+            onClickModeChange={props.onClickModeChange}
+            onRunSegmentation={props.onRunSegmentation}
+            onResetSession={props.onResetSession}
+            onVoxelPromptTextChange={props.onVoxelPromptTextChange}
           />
         </TabsContent>
+
       </Tabs>
     </aside>
   );

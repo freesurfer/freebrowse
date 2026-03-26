@@ -3,6 +3,7 @@ import { useViewerOptions } from "@/hooks/use-viewer-options";
 import { useLocation } from "@/hooks/use-location";
 import { useVolumes } from "@/hooks/use-volumes";
 import { useFileLoading } from "@/hooks/use-file-loading";
+import { useRating } from "@/hooks/use-rating";
 import { Niivue } from "@niivue/niivue";
 import { PanelRight } from "lucide-react";
 import "../App.css";
@@ -52,13 +53,30 @@ export default function QaViewer() {
     handleLocationChange,
     () => {},
   );
+  const {
+    ratingState,
+    setRatingState,
+    initRatingSession,
+    submitRating,
+    advanceToNextVolume,
+    handleEndSession,
+  } = useRating(nvRef);
 
   return (
     <ViewerShell
       nvInstance={nv}
       viewMode={viewerOptions.viewMode}
       onFileUpload={handleFileUpload}
-      sidebar={<QaSidebar />}
+      sidebar={
+        <QaSidebar
+          ratingState={ratingState}
+          onRatingStateChange={setRatingState}
+          onInitSession={initRatingSession}
+          onSubmitRating={submitRating}
+          onAdvance={advanceToNextVolume}
+          onEndSession={handleEndSession}
+        />
+      }
       dialogs={<SettingsDialog nvRef={nvRef} />}
       nvCanvasEmptyState={
         <div className="flex flex-col items-center justify-center gap-4 text-center max-w-xl mx-auto">
