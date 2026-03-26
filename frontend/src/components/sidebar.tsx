@@ -25,6 +25,7 @@ interface SidebarProps {
   onAddMoreFiles: () => void;
   onAddSurfaceFiles: () => void;
   // Volume operations
+  getVolumes: () => any[];
   onToggleImageVisibility: (id: string) => void;
   onEditVolume: (index: number) => void;
   canEditVolume: (index: number) => boolean;
@@ -140,6 +141,7 @@ export default function Sidebar(props: SidebarProps) {
           <SceneDetailsTab
             nvRef={props.nvRef}
             serverlessMode={props.serverlessMode}
+            getVolumes={props.getVolumes}
             onToggleVisibility={props.onToggleImageVisibility}
             onEditVolume={props.onEditVolume}
             canEditVolume={props.canEditVolume}

@@ -5,13 +5,12 @@ import type { Niivue } from "@niivue/niivue";
 export function useVolumes(
   nvRef: React.RefObject<Niivue | null>,
   debouncedGLUpdate: () => void,
-  handleLocationChange: (locationObject: any) => void,
   removeSurface: (surfaceIndex: number) => void,
 ) {
-  const images = useFreeBrowseStore((s) => s.images);
-  const setImages = useFreeBrowseStore((s) => s.setImages);
   const currentImageIndex = useFreeBrowseStore((s) => s.currentImageIndex);
   const setCurrentImageIndex = useFreeBrowseStore((s) => s.setCurrentImageIndex);
+  const volumeVersion = useFreeBrowseStore((s) => s.volumeVersion);
+  const incrementVolumeVersion = useFreeBrowseStore((s) => s.incrementVolumeVersion);
   const volumeToRemove = useFreeBrowseStore((s) => s.volumeToRemove);
   const setVolumeToRemove = useFreeBrowseStore((s) => s.setVolumeToRemove);
   const skipRemoveConfirmation = useFreeBrowseStore((s) => s.skipRemoveConfirmation);
@@ -22,250 +21,128 @@ export function useVolumes(
   const setDrawingOptions = useFreeBrowseStore((s) => s.setDrawingOptions);
   const setActiveTab = useFreeBrowseStore((s) => s.setActiveTab);
 
-  const updateImageDetails = useCallback(() => {
+  const getVolumes = useCallback(() => {
+    // Consume volumeVersion to trigger re-renders on mutation
+    void volumeVersion;
     const nv = nvRef.current;
-    if (nv) {
-      const loadedImages = nv.volumes.map((vol: any, index: number) => {
-        const is4D = vol.nFrame4D && vol.nFrame4D > 1;
-        return {
-          id: vol.id,
-          name: vol.name || `Volume ${index + 1}`,
-          visible: vol.opacity > 0,
-          colormap: vol.colormap,
-          opacity: vol.opacity,
-          contrastMin: vol.cal_min ?? 0,
-          contrastMax: vol.cal_max ?? 100,
-          globalMin: vol.global_min ?? 0,
-          globalMax: is4D ? 150000 : (vol.global_max ?? 150000),
-          frame4D: vol.frame4D ?? 0,
-          nFrame4D: vol.nFrame4D ?? 1,
-          isLabelVolume: vol.hdr?.intent_code === 1002,
-        };
-      });
-      setImages(loadedImages);
-      console.log("updateImageDetails() loadedImages:", loadedImages);
-
-      if (nv.scene && nv.scene.crosshairPos) {
-        handleLocationChange({ mm: nv.scene.crosshairPos });
-      }
-    } else {
-      console.log("updateImageDetails(): nvRef is ", nvRef);
-    }
-  }, [nvRef, setImages, handleLocationChange]);
+    if (!nv) return [];
+    return nv.volumes || [];
+  }, [nvRef, volumeVersion]);
 
   const toggleImageVisibility = useCallback(
     (id: string) => {
-      setImages(
-        images.map((img) => {
-          if (img.id === id) {
-            const newVisible = !img.visible;
-            const newOpacity = img.opacity === 0 ? 1.0 : img.opacity;
-            if (nvRef.current) {
-              const volumeIndex = nvRef.current.getVolumeIndexByID(id);
-              if (volumeIndex >= 0) {
-                nvRef.current.setOpacity(
-                  volumeIndex,
-                  newVisible ? newOpacity : 0,
-                );
-                if (newVisible) {
-                  nvRef.current.volumes[volumeIndex].opacity = newOpacity;
-                }
-              }
-            }
-            return { ...img, visible: newVisible };
-          }
-          return img;
-        }),
-      );
-      if (nvRef.current) {
-        nvRef.current.updateGLVolume();
+      const nv = nvRef.current;
+      if (!nv) return;
+      const volumeIndex = nv.getVolumeIndexByID(id);
+      if (volumeIndex < 0) return;
+
+      const volume = nv.volumes[volumeIndex];
+      const isCurrentlyVisible = volume.opacity > 0;
+      const newOpacity = isCurrentlyVisible ? 0 : (volume.opacity === 0 ? 1.0 : volume.opacity);
+
+      nv.setOpacity(volumeIndex, newOpacity);
+      if (!isCurrentlyVisible) {
+        volume.opacity = newOpacity;
       }
+      nv.updateGLVolume();
+      incrementVolumeVersion();
     },
-    [images, nvRef, setImages],
+    [nvRef, incrementVolumeVersion],
   );
 
   const handleOpacityChange = useCallback(
     (newOpacity: number) => {
-      if (
-        currentImageIndex !== null &&
-        nvRef.current &&
-        images[currentImageIndex]
-      ) {
-        const currentImageId = images[currentImageIndex].id;
-        const volumeIndex = nvRef.current.getVolumeIndexByID(currentImageId);
-        if (volumeIndex >= 0) {
-          nvRef.current.setOpacity(volumeIndex, newOpacity);
-          debouncedGLUpdate();
-          setImages((prevImages) =>
-            prevImages.map((img, index) =>
-              index === currentImageIndex
-                ? { ...img, opacity: newOpacity }
-                : img,
-            ),
-          );
-        }
-      }
+      const nv = nvRef.current;
+      if (currentImageIndex === null || !nv || !nv.volumes[currentImageIndex]) return;
+      nv.setOpacity(currentImageIndex, newOpacity);
+      debouncedGLUpdate();
+      incrementVolumeVersion();
     },
-    [currentImageIndex, images, nvRef, debouncedGLUpdate, setImages],
+    [currentImageIndex, nvRef, debouncedGLUpdate, incrementVolumeVersion],
   );
 
   const handleFrameChange = useCallback(
     (newFrame: number) => {
-      if (
-        currentImageIndex !== null &&
-        nvRef.current &&
-        images[currentImageIndex]
-      ) {
-        const currentImageId = images[currentImageIndex].id;
-        nvRef.current.setFrame4D(currentImageId, newFrame);
-        setImages((prevImages) =>
-          prevImages.map((img, index) =>
-            index === currentImageIndex
-              ? { ...img, frame4D: newFrame }
-              : img,
-          ),
-        );
-      }
+      const nv = nvRef.current;
+      if (currentImageIndex === null || !nv || !nv.volumes[currentImageIndex]) return;
+      nv.setFrame4D(nv.volumes[currentImageIndex].id, newFrame);
+      incrementVolumeVersion();
     },
-    [currentImageIndex, images, nvRef, setImages],
+    [currentImageIndex, nvRef, incrementVolumeVersion],
   );
 
   const handleContrastMinChange = useCallback(
     (newContrastMin: number) => {
-      if (
-        currentImageIndex !== null &&
-        nvRef.current &&
-        images[currentImageIndex]
-      ) {
-        const currentImageId = images[currentImageIndex].id;
-        const volumeIndex = nvRef.current.getVolumeIndexByID(currentImageId);
-        if (volumeIndex >= 0) {
-          const volume = nvRef.current.volumes[volumeIndex];
-          volume.cal_min = newContrastMin;
-          debouncedGLUpdate();
-          setImages((prevImages) =>
-            prevImages.map((img, index) =>
-              index === currentImageIndex
-                ? { ...img, contrastMin: newContrastMin }
-                : img,
-            ),
-          );
-        }
-      }
+      const nv = nvRef.current;
+      if (currentImageIndex === null || !nv || !nv.volumes[currentImageIndex]) return;
+      nv.volumes[currentImageIndex].cal_min = newContrastMin;
+      debouncedGLUpdate();
+      incrementVolumeVersion();
     },
-    [currentImageIndex, images, nvRef, debouncedGLUpdate, setImages],
+    [currentImageIndex, nvRef, debouncedGLUpdate, incrementVolumeVersion],
   );
 
   const handleContrastMaxChange = useCallback(
     (newContrastMax: number) => {
-      if (
-        currentImageIndex !== null &&
-        nvRef.current &&
-        images[currentImageIndex]
-      ) {
-        const currentImageId = images[currentImageIndex].id;
-        const volumeIndex = nvRef.current.getVolumeIndexByID(currentImageId);
-        if (volumeIndex >= 0) {
-          const volume = nvRef.current.volumes[volumeIndex];
-          volume.cal_max = newContrastMax;
-          debouncedGLUpdate();
-          setImages((prevImages) =>
-            prevImages.map((img, index) =>
-              index === currentImageIndex
-                ? { ...img, contrastMax: newContrastMax }
-                : img,
-            ),
-          );
-        }
-      }
+      const nv = nvRef.current;
+      if (currentImageIndex === null || !nv || !nv.volumes[currentImageIndex]) return;
+      nv.volumes[currentImageIndex].cal_max = newContrastMax;
+      debouncedGLUpdate();
+      incrementVolumeVersion();
     },
-    [currentImageIndex, images, nvRef, debouncedGLUpdate, setImages],
+    [currentImageIndex, nvRef, debouncedGLUpdate, incrementVolumeVersion],
   );
 
   const handleLabelVolumeChange = useCallback(
     (checked: boolean) => {
-      if (
-        currentImageIndex !== null &&
-        nvRef.current &&
-        images[currentImageIndex]
-      ) {
-        const currentImageId = images[currentImageIndex].id;
-        const volumeIndex = nvRef.current.getVolumeIndexByID(currentImageId);
-        if (volumeIndex >= 0) {
-          const volume = nvRef.current.volumes[volumeIndex];
-          if (!volume.hdr) return;
-          volume.hdr.intent_code = checked ? 1002 : 0;
-          nvRef.current.updateGLVolume();
-          setImages((prevImages) =>
-            prevImages.map((img, index) =>
-              index === currentImageIndex
-                ? { ...img, isLabelVolume: checked }
-                : img,
-            ),
-          );
-        }
-      }
+      const nv = nvRef.current;
+      if (currentImageIndex === null || !nv || !nv.volumes[currentImageIndex]) return;
+      const volume = nv.volumes[currentImageIndex];
+      if (!volume.hdr) return;
+      volume.hdr.intent_code = checked ? 1002 : 0;
+      nv.updateGLVolume();
+      incrementVolumeVersion();
     },
-    [currentImageIndex, images, nvRef, setImages],
+    [currentImageIndex, nvRef, incrementVolumeVersion],
   );
 
   const handleColormapChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       const newColormap = event.target.value;
-      if (
-        currentImageIndex !== null &&
-        nvRef.current &&
-        images[currentImageIndex]
-      ) {
-        const volumeIndex = nvRef.current.getVolumeIndexByID(
-          images[currentImageIndex].id,
-        );
-        if (volumeIndex >= 0 && nvRef.current.volumes[volumeIndex]) {
-          const currentVolume = nvRef.current.volumes[volumeIndex];
-          if (currentVolume.colormap === newColormap) {
-            return;
-          }
-          currentVolume.colormap = newColormap;
-          setImages((prevImages) =>
-            prevImages.map((img, index) =>
-              index === currentImageIndex
-                ? { ...img, colormap: newColormap }
-                : img,
-            ),
-          );
-          debouncedGLUpdate();
-        }
-      }
+      const nv = nvRef.current;
+      if (currentImageIndex === null || !nv || !nv.volumes[currentImageIndex]) return;
+      const volume = nv.volumes[currentImageIndex];
+      if (volume.colormap === newColormap) return;
+      volume.colormap = newColormap;
+      debouncedGLUpdate();
+      incrementVolumeVersion();
     },
-    [currentImageIndex, images, nvRef, debouncedGLUpdate, setImages],
+    [currentImageIndex, nvRef, debouncedGLUpdate, incrementVolumeVersion],
   );
 
   const removeVolume = useCallback(
     (imageIndex: number) => {
-      if (nvRef.current && images[imageIndex]) {
-        const imageId = images[imageIndex].id;
-        const volumeIndex = nvRef.current.getVolumeIndexByID(imageId);
-        if (volumeIndex >= 0) {
-          nvRef.current.removeVolumeByIndex(volumeIndex);
-          updateImageDetails();
-          if (currentImageIndex === imageIndex) {
-            if (imageIndex > 0) {
-              setCurrentImageIndex(imageIndex - 1);
-            } else if (images.length > 1) {
-              setCurrentImageIndex(0);
-            } else {
-              setCurrentImageIndex(null);
-            }
-          } else if (
-            currentImageIndex !== null &&
-            currentImageIndex > imageIndex
-          ) {
-            setCurrentImageIndex(currentImageIndex - 1);
-          }
+      const nv = nvRef.current;
+      if (!nv || !nv.volumes[imageIndex]) return;
+      nv.removeVolumeByIndex(imageIndex);
+      incrementVolumeVersion();
+
+      if (currentImageIndex === imageIndex) {
+        if (imageIndex > 0) {
+          setCurrentImageIndex(imageIndex - 1);
+        } else if (nv.volumes.length > 0) {
+          setCurrentImageIndex(0);
+        } else {
+          setCurrentImageIndex(null);
         }
+      } else if (
+        currentImageIndex !== null &&
+        currentImageIndex > imageIndex
+      ) {
+        setCurrentImageIndex(currentImageIndex - 1);
       }
     },
-    [images, currentImageIndex, nvRef, updateImageDetails, setCurrentImageIndex],
+    [currentImageIndex, nvRef, incrementVolumeVersion, setCurrentImageIndex],
   );
 
   const handleRemoveVolumeClick = useCallback(
@@ -282,12 +159,10 @@ export function useVolumes(
 
   const handleEditVolume = useCallback(
     async (imageIndex: number) => {
-      if (!nvRef.current || !images[imageIndex]) return;
-
       const nv = nvRef.current;
-      const imageId = images[imageIndex].id;
-      const volumeIndex = nv.getVolumeIndexByID(imageId);
-      if (volumeIndex < 0) return;
+      if (!nv || !nv.volumes[imageIndex]) return;
+
+      const volumeIndex = imageIndex;
 
       try {
         const volumeData = (await nv.saveImage({
@@ -296,11 +171,11 @@ export function useVolumes(
           volumeByIndex: volumeIndex,
         })) as Uint8Array;
 
-        const volumeName = images[imageIndex].name;
+        const volumeName = nv.volumes[imageIndex].name || `Volume ${imageIndex + 1}`;
         const drawingImage = await nv.niftiArray2NVImage(volumeData);
 
         nv.removeVolumeByIndex(volumeIndex);
-        updateImageDetails();
+        incrementVolumeVersion();
 
         if (nv.volumes.length > 0 && !nv.back) {
           console.log("Setting background to first remaining volume");
@@ -310,7 +185,7 @@ export function useVolumes(
         if (currentImageIndex === imageIndex) {
           if (imageIndex > 0) {
             setCurrentImageIndex(imageIndex - 1);
-          } else if (images.length > 1) {
+          } else if (nv.volumes.length > 0) {
             setCurrentImageIndex(0);
           } else {
             setCurrentImageIndex(null);
@@ -347,19 +222,15 @@ export function useVolumes(
         console.error("Error converting volume to drawing:", error);
       }
     },
-    [images, currentImageIndex, drawingOptions, nvRef, updateImageDetails, setCurrentImageIndex, setDrawingOptions, setActiveTab],
+    [currentImageIndex, drawingOptions, nvRef, incrementVolumeVersion, setCurrentImageIndex, setDrawingOptions, setActiveTab],
   );
 
   const canEditVolume = useCallback(
     (imageIndex: number): boolean => {
-      if (!nvRef.current || !images[imageIndex]) return false;
-
       const nv = nvRef.current;
-      const imageId = images[imageIndex].id;
-      const volumeIndex = nv.getVolumeIndexByID(imageId);
-      if (volumeIndex < 0) return false;
+      if (!nv || !nv.volumes[imageIndex]) return false;
 
-      const volume = nv.volumes[volumeIndex];
+      const volume = nv.volumes[imageIndex];
       const background = nv.back;
 
       if (!background) return false;
@@ -395,7 +266,7 @@ export function useVolumes(
 
       return true;
     },
-    [images, nvRef],
+    [nvRef],
   );
 
   const handleConfirmRemove = useCallback(() => {
@@ -417,7 +288,7 @@ export function useVolumes(
   }, [setRemoveDialogOpen, setVolumeToRemove, setSurfaceToRemove]);
 
   return {
-    updateImageDetails,
+    getVolumes,
     toggleImageVisibility,
     handleOpacityChange,
     handleFrameChange,

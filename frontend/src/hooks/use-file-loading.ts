@@ -7,19 +7,16 @@ export function useFileLoading(
   nvRef: React.RefObject<Niivue | null>,
   applyViewerOptions: () => void,
   syncViewerOptionsFromNiivue: () => void,
-  updateImageDetails: () => void,
   updateSurfaceDetails: () => void,
   handleLocationChange: (locationObject: any) => void,
   syncDrawingOptionsFromNiivue: () => void,
 ) {
-  const images = useFreeBrowseStore((s) => s.images);
-  const setImages = useFreeBrowseStore((s) => s.setImages);
   const showUploader = useFreeBrowseStore((s) => s.showUploader);
   const setShowUploader = useFreeBrowseStore((s) => s.setShowUploader);
   const currentImageIndex = useFreeBrowseStore((s) => s.currentImageIndex);
   const setCurrentImageIndex = useFreeBrowseStore((s) => s.setCurrentImageIndex);
-  const surfaces = useFreeBrowseStore((s) => s.surfaces);
-  const setSurfaces = useFreeBrowseStore((s) => s.setSurfaces);
+  const volumeVersion = useFreeBrowseStore((s) => s.volumeVersion);
+  const incrementVolumeVersion = useFreeBrowseStore((s) => s.incrementVolumeVersion);
   const currentSurfaceIndex = useFreeBrowseStore((s) => s.currentSurfaceIndex);
   const setCurrentSurfaceIndex = useFreeBrowseStore((s) => s.setCurrentSurfaceIndex);
   const setActiveTab = useFreeBrowseStore((s) => s.setActiveTab);
@@ -34,7 +31,6 @@ export function useFileLoading(
       if (!nvRef.current) return;
       const nv = nvRef.current;
 
-      setImages([]);
       setCurrentImageIndex(null);
 
       console.log("loadNvdData() -- jsonData: ", jsonData);
@@ -122,11 +118,11 @@ export function useFileLoading(
       }
 
       setCurrentImageIndex(0);
-      updateImageDetails();
+      incrementVolumeVersion();
       updateSurfaceDetails();
       nv.setCrosshairColor([0, 1, 0, 0.1]);
     },
-    [nvRef, setImages, setCurrentImageIndex, syncViewerOptionsFromNiivue, updateImageDetails, updateSurfaceDetails],
+    [nvRef, setCurrentImageIndex, syncViewerOptionsFromNiivue, incrementVolumeVersion, updateSurfaceDetails],
   );
 
   // Add uploaded files to Niivue
@@ -181,14 +177,14 @@ export function useFileLoading(
         await Promise.all(promises);
 
         applyViewerOptions();
-        updateImageDetails();
+        incrementVolumeVersion();
 
         if (currentImageIndex === null && files.length > 0) {
           setCurrentImageIndex(0);
         }
       }
     },
-    [nvRef, showUploader, currentImageIndex, loadNvdData, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex],
+    [nvRef, showUploader, currentImageIndex, loadNvdData, applyViewerOptions, incrementVolumeVersion, setShowUploader, setCurrentImageIndex],
   );
 
   const handleImagingFileSelect = useCallback(
@@ -224,7 +220,7 @@ export function useFileLoading(
         await nv.addVolumeFromUrl(volume);
 
         applyViewerOptions();
-        updateImageDetails();
+        incrementVolumeVersion();
 
         if (nv.volumes.length > 0) {
           setCurrentImageIndex(nv.volumes.length - 1);
@@ -235,7 +231,7 @@ export function useFileLoading(
         console.error("Error loading imaging file:", error);
       }
     },
-    [nvRef, showUploader, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex],
+    [nvRef, showUploader, applyViewerOptions, incrementVolumeVersion, setShowUploader, setCurrentImageIndex],
   );
 
   const handleNvdFileSelect = useCallback(
@@ -343,21 +339,22 @@ export function useFileLoading(
     if (nvRef.current) {
       nvRef.current.onDragRelease = async () => {
         await new Promise((resolve) => requestAnimationFrame(resolve));
-        updateImageDetails();
+        incrementVolumeVersion();
       };
 
       nvRef.current.onLocationChange = handleLocationChange;
       nvRef.current.onOptsChange = syncDrawingOptionsFromNiivue;
     }
-  }, [nvRef, handleLocationChange, syncDrawingOptionsFromNiivue, updateImageDetails]);
+  }, [nvRef, handleLocationChange, syncDrawingOptionsFromNiivue, incrementVolumeVersion]);
 
-  // Enable/disable drag-and-drop based on whether images are loaded
+  // Enable/disable drag-and-drop based on whether volumes are loaded
   useEffect(() => {
+    void volumeVersion;
     if (nvRef.current) {
       nvRef.current.opts.dragAndDropEnabled =
-        showUploader && images.length === 0;
+        showUploader && (nvRef.current.volumes?.length ?? 0) === 0;
     }
-  }, [nvRef, images.length, showUploader]);
+  }, [nvRef, volumeVersion, showUploader]);
 
   // If in serverless mode, switch to sceneDetails tab by default
   useEffect(() => {

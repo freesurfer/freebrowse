@@ -58,7 +58,7 @@ export default function FreeBrowse() {
     handleLayerFileChange,
   } = useMeshLayers(nvRef);
   const {
-    updateImageDetails,
+    getVolumes,
     toggleImageVisibility,
     handleOpacityChange,
     handleFrameChange,
@@ -71,7 +71,7 @@ export default function FreeBrowse() {
     canEditVolume,
     handleConfirmRemove,
     handleCancelRemove,
-  } = useVolumes(nvRef, debouncedGLUpdate, handleLocationChange, removeSurface);
+  } = useVolumes(nvRef, debouncedGLUpdate, removeSurface);
   const {
     syncDrawingOptionsFromNiivue,
     handleCreateDrawingLayer,
@@ -85,7 +85,7 @@ export default function FreeBrowse() {
     handleMagicWandThresholdChange,
     handleDrawUndo,
     handleSaveDrawing,
-  } = useDrawing(nvRef, debouncedGLUpdate, updateImageDetails);
+  } = useDrawing(nvRef, debouncedGLUpdate);
   const {
     handleSaveScene,
     handleConfirmSave,
@@ -110,7 +110,6 @@ export default function FreeBrowse() {
     nvRef,
     applyViewerOptions,
     syncViewerOptionsFromNiivue,
-    updateImageDetails,
     updateSurfaceDetails,
     handleLocationChange,
     syncDrawingOptionsFromNiivue,
@@ -129,6 +128,7 @@ export default function FreeBrowse() {
           onImagingFileSelect={handleImagingFileSelect}
           onAddMoreFiles={handleAddMoreFiles}
           onAddSurfaceFiles={handleAddSurfaceFiles}
+          getVolumes={getVolumes}
           onToggleImageVisibility={toggleImageVisibility}
           onEditVolume={handleEditVolume}
           canEditVolume={canEditVolume}
