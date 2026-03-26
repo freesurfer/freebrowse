@@ -26,6 +26,20 @@ export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
     nv.attachToCanvas(canvas)
     nv.setSliceType(sliceTypeMap[viewMode]?.sliceType || 0) // Default to axial if viewMode is invalid;
     setImageLoaded(true)
+
+    return () => {
+      // Release the WebGL context so the browser doesn't hit its limit.
+      // Do this because rating tabs hot-swap views
+      try {
+        const gl = nv.gl
+        if (gl) {
+          const ext = gl.getExtension("WEBGL_lose_context")
+          if (ext) ext.loseContext()
+        }
+      } catch {
+        // _gl not set -- canvas never attached
+      }
+    }
   }, [])
 
   const renderMultiView = () => {
@@ -63,7 +77,7 @@ export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
 
   return (
     <div ref={containerRef} className="niivue-canvas w-full h-full relative bg-[#111]">
-        <canvas ref={canvasRef}></canvas>
+      <canvas ref={canvasRef}></canvas>
       {getViewLabel()}
       {renderMultiView()}
       {!imageLoaded && (
