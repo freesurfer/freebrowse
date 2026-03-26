@@ -4,8 +4,8 @@
 
 FreeBrowse is a full-stack, web-based neuroimaging viewer and editor.  It
 aspires to be a web-based version of the
-[FreeSurfer](surfer.nmr.mgh.harvard.edu) tool
-[FreeView](surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide).
+[FreeSurfer](https://surfer.nmr.mgh.harvard.edu) tool
+[FreeView](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide).
 
 Try out the 'serverless' version: [https://freesurfer.github.io/freebrowse/](https://freesurfer.github.io/freebrowse/)
 
