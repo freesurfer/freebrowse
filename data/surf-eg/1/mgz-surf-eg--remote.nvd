@@ -1,0 +1,45 @@
+{
+  "title": "Volumes + Surfaces example -- remote",
+  "imageOptionsArray": [
+    {
+      "url": "https://niivue.com/demos/images/fs/brainmask.mgz",
+      "name": "brainmask.mgz",
+      "colormap": "gray",
+      "visible": false,
+      "opacity": 1
+    },
+    {
+      "url": "https://niivue.com/demos/images/fs/wm.mgz",
+      "name": "wm.mgz",
+      "colormap": "freesurfer",
+      "visible": false,
+      "opacity": 0.7
+    }
+  ],
+  "meshes": [
+    {
+      "url": "https://niivue.com/demos/images/fs/lh.white",
+      "name": "lh.white",
+      "rgba255": [255, 255, 0, 255],
+      "meshShaderIndex": 14
+    },
+    {
+      "url": "https://niivue.com/demos/images/fs/rh.white",
+      "name": "rh.white",
+      "rgba255": [255, 255, 0, 255],
+      "meshShaderIndex": 14
+    },
+    {
+      "url": "https://niivue.com/demos/images/fs/lh.pial",
+      "name": "lh.white",
+      "rgba255": [255, 255, 255, 255],
+      "meshShaderIndex": 14
+    },
+    {
+      "url": "https://niivue.com/demos/images/fs/rh.pial",
+      "name": "rh.white",
+      "rgba255": [255, 255, 255, 255],
+      "meshShaderIndex": 14
+    }
+  ]
+}

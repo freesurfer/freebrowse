@@ -22,6 +22,7 @@ import type { Niivue } from "@niivue/niivue";
 interface SceneDetailsTabProps {
   nvRef: React.RefObject<Niivue | null>;
   serverlessMode: boolean;
+  getVolumes: () => any[];
   onToggleVisibility: (id: string) => void;
   onEditVolume: (index: number) => void;
   canEditVolume: (index: number) => boolean;
@@ -40,6 +41,7 @@ interface SceneDetailsTabProps {
 export default function SceneDetailsTab({
   nvRef,
   serverlessMode,
+  getVolumes,
   onToggleVisibility,
   onEditVolume,
   canEditVolume,
@@ -54,10 +56,12 @@ export default function SceneDetailsTab({
   onColormapChange,
   onLabelVolumeChange,
 }: SceneDetailsTabProps) {
-  const images = useFreeBrowseStore((s) => s.images);
   const currentImageIndex = useFreeBrowseStore((s) => s.currentImageIndex);
   const setCurrentImageIndex = useFreeBrowseStore((s) => s.setCurrentImageIndex);
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
+
+  const volumes = getVolumes();
+  const currentVolume = currentImageIndex !== null ? volumes[currentImageIndex] : null;
 
   return (
     <>
@@ -69,11 +73,11 @@ export default function SceneDetailsTab({
       </div>
       <div className="flex flex-col h-full">
         <ScrollArea className="max-h-[50%] min-h-0">
-          {images.length > 0 ? (
+          {volumes.length > 0 ? (
             <div className="grid gap-2 p-4">
-              {images.map((image, index) => (
+              {volumes.map((volume: any, index: number) => (
                 <div
-                  key={image.id}
+                  key={volume.id}
                   className={cn(
                     "flex items-center gap-2 p-2 rounded-md cursor-pointer",
                     currentImageIndex === index
@@ -89,10 +93,10 @@ export default function SceneDetailsTab({
                       className="h-6 w-6 p-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onToggleVisibility(image.id);
+                        onToggleVisibility(volume.id);
                       }}
                     >
-                      {image.visible ? (
+                      {volume.opacity > 0 ? (
                         <Eye className="h-3 w-3" />
                       ) : (
                         <EyeOff className="h-3 w-3 opacity-50" />
@@ -101,7 +105,7 @@ export default function SceneDetailsTab({
                   </div>
                   <div className="flex-1 w-0">
                     <p className="text-sm font-medium break-words">
-                      {image.name}
+                      {volume.name || `Volume ${index + 1}`}
                     </p>
                   </div>
                   <div className="flex-shrink-0 flex gap-1">
@@ -159,7 +163,7 @@ export default function SceneDetailsTab({
               size="sm"
               className="w-full"
               onClick={onCreateDrawingLayer}
-              disabled={drawingOptions.enabled || images.length === 0}
+              disabled={drawingOptions.enabled || volumes.length === 0}
             >
               <Pencil className="mr-2 h-4 w-4" />
               Create empty drawing layer
@@ -171,7 +175,7 @@ export default function SceneDetailsTab({
                 className="flex-1"
                 onClick={() => onSaveScene(false)}
                 disabled={
-                  images.length === 0 ||
+                  volumes.length === 0 ||
                   drawingOptions.enabled ||
                   serverlessMode
                 }
@@ -185,7 +189,7 @@ export default function SceneDetailsTab({
                 className="flex-1"
                 onClick={() => onSaveScene(true)}
                 disabled={
-                  images.length === 0 || drawingOptions.enabled
+                  volumes.length === 0 || drawingOptions.enabled
                 }
               >
                 <Download className="mr-2 h-4 w-4" />
@@ -195,22 +199,22 @@ export default function SceneDetailsTab({
           </div>
         </ScrollArea>
         <ScrollArea className="flex-1 min-h-0">
-          {currentImageIndex != null ? (
+          {currentVolume ? (
             <div className="grid gap-4 p-4 pb-20">
-              {(images[currentImageIndex]?.nFrame4D || 1) > 1 && (
+              {(currentVolume.nFrame4D || 1) > 1 && (
                 <LabeledSliderWithInput
                   label="Frame"
-                  value={images[currentImageIndex]?.frame4D || 0}
+                  value={currentVolume.frame4D ?? 0}
                   onValueChange={onFrameChange}
                   min={0}
-                  max={(images[currentImageIndex]?.nFrame4D || 1) - 1}
+                  max={(currentVolume.nFrame4D || 1) - 1}
                   step={1}
                 />
               )}
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="label-volume"
-                  checked={images[currentImageIndex]?.isLabelVolume ?? false}
+                  checked={currentVolume.hdr?.intent_code === 1002}
                   onCheckedChange={(checked) =>
                     onLabelVolumeChange(checked === true)
                   }
@@ -221,7 +225,7 @@ export default function SceneDetailsTab({
               </div>
               <LabeledSliderWithInput
                 label="Opacity"
-                value={images[currentImageIndex]?.opacity || 1}
+                value={currentVolume.opacity ?? 1}
                 onValueChange={onOpacityChange}
                 min={0}
                 max={1}
@@ -229,19 +233,19 @@ export default function SceneDetailsTab({
               />
               <LabeledSliderWithInput
                 label="Contrast Min"
-                value={images[currentImageIndex]?.contrastMin || 0}
+                value={currentVolume.cal_min ?? 0}
                 onValueChange={onContrastMinChange}
-                min={images[currentImageIndex]?.globalMin ?? 0}
-                max={images[currentImageIndex]?.globalMax ?? 255}
+                min={currentVolume.global_min ?? 0}
+                max={currentVolume.global_max ?? 255}
                 step={0.1}
                 decimalPlaces={1}
               />
               <LabeledSliderWithInput
                 label="Contrast Max"
-                value={images[currentImageIndex]?.contrastMax || 100}
+                value={currentVolume.cal_max ?? 100}
                 onValueChange={onContrastMaxChange}
-                min={images[currentImageIndex]?.globalMin ?? 0}
-                max={images[currentImageIndex]?.globalMax ?? 255}
+                min={currentVolume.global_min ?? 0}
+                max={currentVolume.global_max ?? 255}
                 step={0.1}
                 decimalPlaces={1}
               />
@@ -250,9 +254,7 @@ export default function SceneDetailsTab({
                   Colormap
                 </Label>
                 <Select
-                  value={
-                    images[currentImageIndex]?.colormap || "gray"
-                  }
+                  value={currentVolume.colormap || "gray"}
                   onChange={onColormapChange}
                 >
                   {nvRef.current?.colormaps().map((colormap: string) => (

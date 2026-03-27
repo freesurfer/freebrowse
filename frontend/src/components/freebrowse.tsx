@@ -3,6 +3,7 @@ import { useViewerOptions } from "@/hooks/use-viewer-options";
 import { useLocation } from "@/hooks/use-location";
 import { useVolumes } from "@/hooks/use-volumes";
 import { useSurfaces } from "@/hooks/use-surfaces";
+import { useMeshLayers } from "@/hooks/use-mesh-layers";
 import { useDrawing } from "@/hooks/use-drawing";
 import { useSave } from "@/hooks/use-save";
 import { useFileLoading } from "@/hooks/use-file-loading";
@@ -45,7 +46,19 @@ export default function FreeBrowse() {
     getMeshShaderName,
   } = useSurfaces(nvRef, debouncedGLUpdate);
   const {
-    updateImageDetails,
+    layerFileInputRef,
+    getLayers,
+    removeLayer: removeLayerFromMesh,
+    handleLayerOpacityChange,
+    handleLayerCalMinChange,
+    handleLayerCalMaxChange,
+    handleLayerColormapChange,
+    handleLayerUseNegativeCmapChange,
+    handleAddLayerFiles,
+    handleLayerFileChange,
+  } = useMeshLayers(nvRef);
+  const {
+    getVolumes,
     toggleImageVisibility,
     handleOpacityChange,
     handleFrameChange,
@@ -58,7 +71,7 @@ export default function FreeBrowse() {
     canEditVolume,
     handleConfirmRemove,
     handleCancelRemove,
-  } = useVolumes(nvRef, debouncedGLUpdate, handleLocationChange, removeSurface);
+  } = useVolumes(nvRef, debouncedGLUpdate, removeSurface);
   const {
     syncDrawingOptionsFromNiivue,
     handleCreateDrawingLayer,
@@ -72,7 +85,7 @@ export default function FreeBrowse() {
     handleMagicWandThresholdChange,
     handleDrawUndo,
     handleSaveDrawing,
-  } = useDrawing(nvRef, debouncedGLUpdate, updateImageDetails);
+  } = useDrawing(nvRef, debouncedGLUpdate);
   const {
     handleSaveScene,
     handleConfirmSave,
@@ -97,7 +110,6 @@ export default function FreeBrowse() {
     nvRef,
     applyViewerOptions,
     syncViewerOptionsFromNiivue,
-    updateImageDetails,
     updateSurfaceDetails,
     handleLocationChange,
     syncDrawingOptionsFromNiivue,
@@ -116,6 +128,7 @@ export default function FreeBrowse() {
           onImagingFileSelect={handleImagingFileSelect}
           onAddMoreFiles={handleAddMoreFiles}
           onAddSurfaceFiles={handleAddSurfaceFiles}
+          getVolumes={getVolumes}
           onToggleImageVisibility={toggleImageVisibility}
           onEditVolume={handleEditVolume}
           canEditVolume={canEditVolume}
@@ -132,6 +145,14 @@ export default function FreeBrowse() {
           onSurfaceColorChange={handleSurfaceColorChange}
           onMeshShaderChange={handleMeshShaderChange}
           getMeshShaderName={getMeshShaderName}
+          getLayers={getLayers}
+          onAddLayerFiles={handleAddLayerFiles}
+          onRemoveLayer={removeLayerFromMesh}
+          onLayerOpacityChange={handleLayerOpacityChange}
+          onLayerCalMinChange={handleLayerCalMinChange}
+          onLayerCalMaxChange={handleLayerCalMaxChange}
+          onLayerColormapChange={handleLayerColormapChange}
+          onLayerUseNegativeCmapChange={handleLayerUseNegativeCmapChange}
           onCreateDrawingLayer={handleCreateDrawingLayer}
           onDrawModeChange={handleDrawModeChange}
           onPenFillChange={handlePenFillChange}
@@ -177,6 +198,13 @@ export default function FreeBrowse() {
             type="file"
             ref={surfaceFileInputRef}
             onChange={handleSurfaceFileChange}
+            multiple
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={layerFileInputRef}
+            onChange={handleLayerFileChange}
             multiple
             className="hidden"
           />

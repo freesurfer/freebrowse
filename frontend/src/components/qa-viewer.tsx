@@ -33,10 +33,9 @@ export default function QaViewer() {
     debouncedGLUpdate,
   } = useViewerOptions(nvRef);
   const { handleLocationChange } = useLocation(nvRef);
-  const { updateImageDetails } = useVolumes(
+  useVolumes(
     nvRef,
     debouncedGLUpdate,
-    handleLocationChange,
     noopSurface,
   );
   const {
@@ -47,7 +46,6 @@ export default function QaViewer() {
     nvRef,
     applyViewerOptions,
     syncViewerOptionsFromNiivue,
-    updateImageDetails,
     () => {},
     handleLocationChange,
     () => {},

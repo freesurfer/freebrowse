@@ -5,9 +5,9 @@ import { NVImage, type Niivue } from "@niivue/niivue";
 export function useDrawing(
   nvRef: React.RefObject<Niivue | null>,
   debouncedGLUpdate: () => void,
-  updateImageDetails: () => void,
 ) {
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
+  const incrementVolumeVersion = useFreeBrowseStore((s) => s.incrementVolumeVersion);
   const setDrawingOptions = useFreeBrowseStore((s) => s.setDrawingOptions);
   const setActiveTab = useFreeBrowseStore((s) => s.setActiveTab);
 
@@ -233,12 +233,12 @@ export function useDrawing(
         }));
 
         setActiveTab("sceneDetails");
-        updateImageDetails();
+        incrementVolumeVersion();
       } catch (error) {
         console.error("Error saving drawing:", error);
       }
     }
-  }, [nvRef, drawingOptions, setDrawingOptions, setActiveTab, updateImageDetails]);
+  }, [nvRef, drawingOptions, setDrawingOptions, setActiveTab, incrementVolumeVersion]);
 
   return {
     syncDrawingOptionsFromNiivue,

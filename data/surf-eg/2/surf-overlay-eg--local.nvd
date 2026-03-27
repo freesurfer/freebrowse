@@ -1,0 +1,21 @@
+{
+  "title": "Surface overlay example -- local",
+  "meshes": [
+    {
+      "url": "data/surf-eg/2/lh.white",
+      "name": "lh.white",
+      "rgba255": [255, 255, 255, 255],
+      "meshShaderIndex": 1,
+      "layers": [
+        {
+          "url": "data/surf-eg/2/lh.curv",
+          "cal_min": -0.75,
+          "cal_max": 0.75,
+          "colormap": "nih",
+          "useNegativeCmap": false,
+          "opacity": 1.0    
+        }
+      ]
+    }
+  ]
+}

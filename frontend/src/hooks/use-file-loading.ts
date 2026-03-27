@@ -7,20 +7,16 @@ export function useFileLoading(
   nvRef: React.RefObject<Niivue | null>,
   applyViewerOptions: () => void,
   syncViewerOptionsFromNiivue: () => void,
-  updateImageDetails: () => void,
   updateSurfaceDetails: () => void,
   handleLocationChange: (locationObject: any) => void,
   syncDrawingOptionsFromNiivue: () => void,
 ) {
-  const images = useFreeBrowseStore((s) => s.images);
-  const setImages = useFreeBrowseStore((s) => s.setImages);
   const showUploader = useFreeBrowseStore((s) => s.showUploader);
   const setShowUploader = useFreeBrowseStore((s) => s.setShowUploader);
-  const loadViaNvd = useFreeBrowseStore((s) => s.loadViaNvd);
   const currentImageIndex = useFreeBrowseStore((s) => s.currentImageIndex);
   const setCurrentImageIndex = useFreeBrowseStore((s) => s.setCurrentImageIndex);
-  const surfaces = useFreeBrowseStore((s) => s.surfaces);
-  const setSurfaces = useFreeBrowseStore((s) => s.setSurfaces);
+  const volumeVersion = useFreeBrowseStore((s) => s.volumeVersion);
+  const incrementVolumeVersion = useFreeBrowseStore((s) => s.incrementVolumeVersion);
   const currentSurfaceIndex = useFreeBrowseStore((s) => s.currentSurfaceIndex);
   const setCurrentSurfaceIndex = useFreeBrowseStore((s) => s.setCurrentSurfaceIndex);
   const setActiveTab = useFreeBrowseStore((s) => s.setActiveTab);
@@ -35,109 +31,98 @@ export function useFileLoading(
       if (!nvRef.current) return;
       const nv = nvRef.current;
 
-      setImages([]);
       setCurrentImageIndex(null);
 
       console.log("loadNvdData() -- jsonData: ", jsonData);
 
-      if (loadViaNvd) {
-        const document = await NVDocument.loadFromJSON(jsonData);
-        await document.fetchLinkedData();
-        console.log("loadNvdData() document: ", document);
+      const document = await NVDocument.loadFromJSON(jsonData);
+      await document.fetchLinkedData();
+      console.log("loadNvdData() document: ", document);
 
-        try {
-          await nv.loadDocument(document);
+      try {
+        await nv.loadDocument(document);
 
-          if (
-            jsonData.encodedImageBlobs &&
-            jsonData.encodedImageBlobs.length > 0
-          ) {
-            console.log(
-              "Loading encoded image blobs:",
-              jsonData.encodedImageBlobs.length,
-            );
-            for (let i = 0; i < jsonData.encodedImageBlobs.length; i++) {
-              const blob = jsonData.encodedImageBlobs[i];
-              if (blob) {
-                try {
-                  const imageOptions = jsonData.imageOptionsArray?.[i] || {};
-                  const nvimage = await NVImage.loadFromBase64({
-                    base64: blob,
-                    ...imageOptions,
-                  });
-                  nv.addVolume(nvimage);
-                  console.log(
-                    `Loaded encoded image blob ${i + 1}/${jsonData.encodedImageBlobs.length}`,
-                  );
-                } catch (error) {
-                  console.error(`Failed to load encoded image blob ${i}:`, error);
-                }
+        if (
+          jsonData.encodedImageBlobs &&
+          jsonData.encodedImageBlobs.length > 0
+        ) {
+          console.log(
+            "Loading encoded image blobs:",
+            jsonData.encodedImageBlobs.length,
+          );
+          for (let i = 0; i < jsonData.encodedImageBlobs.length; i++) {
+            const blob = jsonData.encodedImageBlobs[i];
+            if (blob) {
+              try {
+                const imageOptions = jsonData.imageOptionsArray?.[i] || {};
+                const nvimage = await NVImage.loadFromBase64({
+                  base64: blob,
+                  ...imageOptions,
+                });
+                nv.addVolume(nvimage);
+                console.log(
+                  `Loaded encoded image blob ${i + 1}/${jsonData.encodedImageBlobs.length}`,
+                );
+              } catch (error) {
+                console.error(`Failed to load encoded image blob ${i}:`, error);
               }
             }
           }
-
-          syncViewerOptionsFromNiivue();
-        } catch (error) {
-          console.error("nv.loadDocument failed:", error);
-          console.log("Current nv.volumes:", nv.volumes);
-          console.log("Current nv.meshes:", nv.meshes);
-          console.log("Current nv.drawBitmap:", nv.drawBitmap);
-          throw error;
         }
 
-        if (jsonData.imageOptionsArray && nv.volumes) {
-          for (
-            let i = 0;
-            i < nv.volumes.length && i < jsonData.imageOptionsArray.length;
-            i++
-          ) {
-            const imageOption = jsonData.imageOptionsArray[i];
-            if (imageOption.url) {
-              nv.volumes[i].url = imageOption.url;
-            }
+        syncViewerOptionsFromNiivue();
+      } catch (error) {
+        console.error("nv.loadDocument failed:", error);
+        console.log("Current nv.volumes:", nv.volumes);
+        console.log("Current nv.meshes:", nv.meshes);
+        console.log("Current nv.drawBitmap:", nv.drawBitmap);
+        throw error;
+      }
+
+      if (jsonData.imageOptionsArray && nv.volumes) {
+        for (
+          let i = 0;
+          i < nv.volumes.length && i < jsonData.imageOptionsArray.length;
+          i++
+        ) {
+          const imageOption = jsonData.imageOptionsArray[i];
+          if (imageOption.url) {
+            nv.volumes[i].url = imageOption.url;
           }
         }
-      } else {
-        console.log("Loading directly without NVDocument");
-
-        while (nv.volumes.length > 0) {
-          nv.removeVolumeByIndex(0);
-        }
-        while (nv.meshes && nv.meshes.length > 0) {
-          nv.removeMesh(nv.meshes[0]);
-        }
-        nv.drawBitmap = null;
-        nv.setDrawingEnabled(false);
-
-        if (jsonData.imageOptionsArray && jsonData.imageOptionsArray.length > 0) {
-          console.log("Loading volumes directly:", jsonData.imageOptionsArray);
-          await nv.loadVolumes(jsonData.imageOptionsArray);
-        }
-
-        if (jsonData.meshOptionsArray && jsonData.meshOptionsArray.length > 0) {
-          console.log("Loading meshes:", jsonData.meshOptionsArray);
-          await nv.loadMeshes(jsonData.meshOptionsArray);
-        }
-
-        nv.setDefaults();
-        if (jsonData.opts) {
-          console.log("Applying options:", jsonData.opts);
-          nv.setDefaults(jsonData.opts);
-        }
-        syncViewerOptionsFromNiivue();
       }
 
       if (jsonData.meshes && jsonData.meshes.length > 0) {
         console.log("Loading meshes:", jsonData.meshes);
         await nv.loadMeshes(jsonData.meshes);
+
+        // WORKAROUND: NiiVue's loadLayer doesn't persist layer names on the
+        // layer objects it creates. Backfill from the original JSON URLs.
+        // Remove after niivue PR that adds `newLayer.name = layerName` is merged.
+        for (const meshJson of jsonData.meshes) {
+          if (!meshJson.layers || meshJson.layers.length === 0) continue;
+
+          // Match the loaded mesh by name (extracted from URL basename)
+          const meshName = meshJson.name || meshJson.url?.split("/").pop() || "";
+          const mesh = nv.meshes.find((m: any) => m.name === meshName);
+          if (!mesh?.layers) continue;
+
+          for (let li = 0; li < mesh.layers.length && li < meshJson.layers.length; li++) {
+            const layerJson = meshJson.layers[li];
+            const layerName = layerJson.name || layerJson.url?.split("/").pop() || "";
+            if (layerName && !mesh.layers[li].name) {
+              mesh.layers[li].name = layerName;
+            }
+          }
+        }
       }
 
       setCurrentImageIndex(0);
-      updateImageDetails();
+      incrementVolumeVersion();
       updateSurfaceDetails();
       nv.setCrosshairColor([0, 1, 0, 0.1]);
     },
-    [nvRef, loadViaNvd, setImages, setCurrentImageIndex, syncViewerOptionsFromNiivue, updateImageDetails, updateSurfaceDetails],
+    [nvRef, setCurrentImageIndex, syncViewerOptionsFromNiivue, incrementVolumeVersion, updateSurfaceDetails],
   );
 
   // Add uploaded files to Niivue
@@ -192,14 +177,14 @@ export function useFileLoading(
         await Promise.all(promises);
 
         applyViewerOptions();
-        updateImageDetails();
+        incrementVolumeVersion();
 
         if (currentImageIndex === null && files.length > 0) {
           setCurrentImageIndex(0);
         }
       }
     },
-    [nvRef, showUploader, currentImageIndex, loadNvdData, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex],
+    [nvRef, showUploader, currentImageIndex, loadNvdData, applyViewerOptions, incrementVolumeVersion, setShowUploader, setCurrentImageIndex],
   );
 
   const handleImagingFileSelect = useCallback(
@@ -235,7 +220,7 @@ export function useFileLoading(
         await nv.addVolumeFromUrl(volume);
 
         applyViewerOptions();
-        updateImageDetails();
+        incrementVolumeVersion();
 
         if (nv.volumes.length > 0) {
           setCurrentImageIndex(nv.volumes.length - 1);
@@ -246,7 +231,7 @@ export function useFileLoading(
         console.error("Error loading imaging file:", error);
       }
     },
-    [nvRef, showUploader, applyViewerOptions, updateImageDetails, setShowUploader, setCurrentImageIndex],
+    [nvRef, showUploader, applyViewerOptions, incrementVolumeVersion, setShowUploader, setCurrentImageIndex],
   );
 
   const handleNvdFileSelect = useCallback(
@@ -354,21 +339,22 @@ export function useFileLoading(
     if (nvRef.current) {
       nvRef.current.onDragRelease = async () => {
         await new Promise((resolve) => requestAnimationFrame(resolve));
-        updateImageDetails();
+        incrementVolumeVersion();
       };
 
       nvRef.current.onLocationChange = handleLocationChange;
       nvRef.current.onOptsChange = syncDrawingOptionsFromNiivue;
     }
-  }, [nvRef, handleLocationChange, syncDrawingOptionsFromNiivue, updateImageDetails]);
+  }, [nvRef, handleLocationChange, syncDrawingOptionsFromNiivue, incrementVolumeVersion]);
 
-  // Enable/disable drag-and-drop based on whether images are loaded
+  // Enable/disable drag-and-drop based on whether volumes are loaded
   useEffect(() => {
+    void volumeVersion;
     if (nvRef.current) {
       nvRef.current.opts.dragAndDropEnabled =
-        showUploader && images.length === 0;
+        showUploader && (nvRef.current.volumes?.length ?? 0) === 0;
     }
-  }, [nvRef, images.length, showUploader]);
+  }, [nvRef, volumeVersion, showUploader]);
 
   // If in serverless mode, switch to sceneDetails tab by default
   useEffect(() => {

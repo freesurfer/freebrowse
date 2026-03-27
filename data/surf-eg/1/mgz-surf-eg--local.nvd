@@ -1,0 +1,45 @@
+{
+  "title": "Volumes + Surfaces example -- local",
+  "imageOptionsArray": [
+    {
+      "url": "data/surf-eg/1/brainmask.mgz",
+      "name": "brainmask.mgz",
+      "colormap": "gray",
+      "visible": false,
+      "opacity": 1
+    },
+    {
+      "url": "data/surf-eg/1/wm.mgz",
+      "name": "wm.mgz",
+      "colormap": "freesurfer",
+      "visible": false,
+      "opacity": 0.7
+    }
+  ],
+  "meshes": [
+    {
+      "url": "data/surf-eg/1/lh.white",
+      "name": "lh.white",
+      "rgba255": [255, 255, 0, 255],
+      "meshShaderIndex": 14
+    },
+    {
+      "url": "data/surf-eg/1/rh.white",
+      "name": "rh.white",
+      "rgba255": [255, 255, 0, 255],
+      "meshShaderIndex": 14
+    },
+    {
+      "url": "data/surf-eg/1/lh.pial",
+      "name": "lh.white",
+      "rgba255": [255, 255, 255, 255],
+      "meshShaderIndex": 14
+    },
+    {
+      "url": "data/surf-eg/1/rh.pial",
+      "name": "rh.white",
+      "rgba255": [255, 255, 255, 255],
+      "meshShaderIndex": 14
+    }
+  ]
+}

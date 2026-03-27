@@ -1,20 +1,5 @@
 import type { DragMode } from "@/components/drag-mode-selector";
 
-export type ImageDetails = {
-  id: string;
-  name: string;
-  visible: boolean;
-  colormap: string;
-  opacity: number;
-  contrastMin: number;
-  contrastMax: number;
-  globalMin: number;
-  globalMax: number;
-  frame4D: number;
-  nFrame4D: number;
-  isLabelVolume: boolean;
-};
-
 export type SurfaceDetails = {
   id: string;
   name: string;
