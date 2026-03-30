@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Niivue, NVImage } from "@niivue/niivue";
+import { base64ToBytes } from "@/lib/niivue-helpers";
 
 type SegModelInfo = {
   name: string;
@@ -99,14 +100,6 @@ function buildInferenceRequest(params: {
   };
 }
 
-function decodeBase64ToBytes(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
 
 async function loadMaskAsNVImage(maskBytes: Uint8Array): Promise<NVImage> {
   const maskBlob = new Blob([maskBytes], { type: "application/gzip" });
@@ -377,7 +370,7 @@ export function useSegmentation(
       }
 
       const result = await response.json();
-      const maskBytes = decodeBase64ToBytes(result.mask_nifti);
+      const maskBytes = base64ToBytes(result.mask_nifti);
       const maskImage = await loadMaskAsNVImage(maskBytes);
       displayMaskOverlay(nv, maskImage);
 

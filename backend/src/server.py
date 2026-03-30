@@ -106,31 +106,31 @@ class VoxelPromptRequest(InferenceRequest):
     text: str
 
 
-class RatingInitRequest(BaseModel):
+class ElucidQaInitRequest(BaseModel):
     name: str
     seed: int
 
 
-class RatingSubmitRequest(BaseModel):
+class ElucidQaSubmitRequest(BaseModel):
     session_id: str
     rating: int
 
 
-class RatingNextRequest(BaseModel):
+class ElucidQaNextRequest(BaseModel):
     session_id: str
 
 
-class QCInitRequest(BaseModel):
+class MM5QaInitRequest(BaseModel):
     name: str
     seed: int
 
 
-class QCRateRequest(BaseModel):
+class MM5QaRateRequest(BaseModel):
     session_id: str
     rating: int
 
 
-class QCNextRequest(BaseModel):
+class MM5QaNextRequest(BaseModel):
     session_id: str
 
 
@@ -149,8 +149,8 @@ class SessionState:
 
 
 @dataclass
-class RatingSession:
-    """State for a volume rating session. Persisted to disk as JSON."""
+class ElucidQaSession:
+    """State for an Elucid QA session. Persisted to disk as JSON."""
     name: str
     seed: int
     current_index: int
@@ -158,8 +158,8 @@ class RatingSession:
 
 
 @dataclass
-class QCSession:
-    """State for a MegaMedical QC session. Persisted to disk as JSON."""
+class MM5QaSession:
+    """State for an MM5 QA session. Persisted to disk as JSON."""
     name: str
     seed: int
     current_index: int
@@ -168,8 +168,8 @@ class QCSession:
 
 
 @dataclass
-class QCTask:
-    """One (database, label) combination -- the unit of QC sampling."""
+class MM5QaTask:
+    """One (database, label) pair -- the unit of MM5 QA sampling."""
     db_path: str
     dataset: str
     group: str
@@ -193,12 +193,12 @@ _model_cache: dict[str, tuple[torch.nn.Module, dict]] = {}
 
 _MM5_QC_CONFIG_FILE = Path(__file__).parent.parent.parent / "data" / "megamedical5-qc.yml"
 _mm5_qc_config: dict = yaml.safe_load(_MM5_QC_CONFIG_FILE.read_text())
-QC_DATASETS: list[str] = _mm5_qc_config["datasets"]
+MM5_QA_DATASETS: list[str] = _mm5_qc_config["datasets"]
 MIN_LABEL_DENSITY: float = _mm5_qc_config["min_label_density"]
 blind_rating: bool = _mm5_qc_config["blind_rating"]
-_QC_HIERARCHY: tuple[str, ...] = tuple(_mm5_qc_config["hierarchy"])
-_qc_index: list[QCTask] | None = None
-_qc_index_lock = threading.Lock()
+_MM5_QA_HIERARCHY: tuple[str, ...] = tuple(_mm5_qc_config["hierarchy"])
+_mm5_qa_index: list[MM5QaTask] | None = None
+_mm5_qa_index_lock = threading.Lock()
 _session_locks: dict[str, threading.Lock] = {}
 _session_locks_lock = threading.Lock()
 
@@ -599,19 +599,19 @@ def encode_nifti(nii: nib.Nifti1Image) -> str:
     return base64.b64encode(gzip.compress(nii.to_bytes(), compresslevel=1)).decode("utf-8")
 
 
-def get_rating_dir() -> Path:
-    """Return the rating sessions directory, creating it if needed."""
-    rating_dir = Path(data_dir) / "rating_sessions" / "qa"
-    rating_dir.mkdir(parents=True, exist_ok=True)
-    return rating_dir
+def get_elucid_qa_dir() -> Path:
+    """Return the Elucid QA sessions directory, creating it if needed."""
+    elucid_qa_dir = Path(data_dir) / "elucid_qa_sessions"
+    elucid_qa_dir.mkdir(parents=True, exist_ok=True)
+    return elucid_qa_dir
 
 
-def make_rating_session_id(name: str, seed: int) -> str:
+def make_elucid_qa_session_id(name: str, seed: int) -> str:
     """
     Deterministic session ID from name + seed. Same inputs = same session.
     """
     safe_name = name.strip().lower().replace(" ", "_")
-    return f"rating_{safe_name}_{seed}"
+    return f"elucid_qa_{safe_name}_{seed}"
 
 
 def load_shuffled_paths(seed: int) -> list[str]:
@@ -625,9 +625,9 @@ def load_shuffled_paths(seed: int) -> list[str]:
     return paths
 
 
-def save_rating_session(session_id: str, session: RatingSession) -> None:
-    """Persist rating session state to JSON on disk."""
-    path = get_rating_dir() / f"{session_id}.json"
+def save_elucid_qa_session(session_id: str, session: ElucidQaSession) -> None:
+    """Persist Elucid QA session state to JSON on disk."""
+    path = get_elucid_qa_dir() / f"{session_id}.json"
     with open(path, "w") as f:
         json.dump({
             "name": session.name,
@@ -637,19 +637,19 @@ def save_rating_session(session_id: str, session: RatingSession) -> None:
         }, f)
 
 
-def load_rating_session(session_id: str) -> RatingSession | None:
-    """Load rating session from disk, or return None if not found."""
-    path = get_rating_dir() / f"{session_id}.json"
+def load_elucid_qa_session(session_id: str) -> ElucidQaSession | None:
+    """Load Elucid QA session from disk, or return None if not found."""
+    path = get_elucid_qa_dir() / f"{session_id}.json"
     if not path.exists():
         return None
     with open(path, "r") as f:
         data = json.load(f)
-    return RatingSession(**data)
+    return ElucidQaSession(**data)
 
 
-def append_rating_to_csv(session_id: str, nifti_path: str, rating: int) -> None:
+def append_elucid_qa_rating_to_csv(session_id: str, nifti_path: str, rating: int) -> None:
     """Append a single rating row to the session CSV."""
-    csv_path = get_rating_dir() / f"{session_id}_ratings.csv"
+    csv_path = get_elucid_qa_dir() / f"{session_id}_ratings.csv"
     file_exists = csv_path.exists()
     with open(csv_path, "a", newline="") as f:
         writer = csv.writer(f)
@@ -924,21 +924,21 @@ def voxelprompt(request: VoxelPromptRequest):
     }
 
 
-@app.post("/rating/init")
-def rating_init(request: RatingInitRequest):
-    """Initialize or resume a rating session."""
+@app.post("/elucid-qa/init")
+def elucid_qa_init(request: ElucidQaInitRequest):
+    """Initialize or resume an Elucid QA session."""
     if not master_json or not Path(master_json).exists():
         raise HTTPException(
             status_code=500,
             detail="MASTER_JSON not configured or file not found",
         )
 
-    session_id = make_rating_session_id(request.name, request.seed)
-    existing = load_rating_session(session_id)
+    session_id = make_elucid_qa_session_id(request.name, request.seed)
+    existing = load_elucid_qa_session(session_id)
 
     if existing is not None:
         logger.info(
-            f"Resuming rating session: {session_id} at index "
+            f"Resuming Elucid QA session: {session_id} at index "
             f"{existing.current_index}"
         )
 
@@ -949,16 +949,16 @@ def rating_init(request: RatingInitRequest):
         }
 
     paths = load_shuffled_paths(request.seed)
-    session = RatingSession(
+    session = ElucidQaSession(
         name=request.name,
         seed=request.seed,
         current_index=0,
         total_volumes=len(paths),
     )
 
-    save_rating_session(session_id, session)
+    save_elucid_qa_session(session_id, session)
     logger.info(
-        f"Created rating session: {session_id} with "
+        f"Created Elucid QA session: {session_id} with "
         f"{len(paths)} volumes"
     )
 
@@ -969,21 +969,21 @@ def rating_init(request: RatingInitRequest):
     }
 
 
-@app.get("/rating/volume")
-def rating_volume(session_id: str, index: int | None = None):
+@app.get("/elucid-qa/volume")
+def elucid_qa_volume(session_id: str, index: int | None = None):
     """
     Return a volume as base64-encoded gzipped NIfTI.
 
     Parameters
     ----------
     session_id : str
-        The rating session ID.
+        The Elucid QA session ID.
     index : int | None
         Volume index to fetch. Defaults to session's current_index.
         Allows frontend to prefetch upcoming volumes without advancing
         the session pointer.
     """
-    session = load_rating_session(session_id)
+    session = load_elucid_qa_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -1012,10 +1012,10 @@ def rating_volume(session_id: str, index: int | None = None):
     }
 
 
-@app.post("/rating/rate")
-def rating_rate(request: RatingSubmitRequest):
+@app.post("/elucid-qa/rate")
+def elucid_qa_rate(request: ElucidQaSubmitRequest):
     """Record a rating for the current volume. Every click is recorded."""
-    session = load_rating_session(request.session_id)
+    session = load_elucid_qa_session(request.session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -1033,7 +1033,7 @@ def rating_rate(request: RatingSubmitRequest):
         )
 
     current_path = paths[session.current_index]
-    append_rating_to_csv(request.session_id, current_path, request.rating)
+    append_elucid_qa_rating_to_csv(request.session_id, current_path, request.rating)
     logger.info(
         f"Rating recorded: session={request.session_id}, "
         f"path={current_path}, rating={request.rating}"
@@ -1041,20 +1041,20 @@ def rating_rate(request: RatingSubmitRequest):
     return {"success": True}
 
 
-@app.post("/rating/next")
-def rating_next(request: RatingNextRequest):
+@app.post("/elucid-qa/next")
+def elucid_qa_next(request: ElucidQaNextRequest):
     """Advance to the next volume. Does not return volume data.
 
-    Volume data is fetched separately via GET /rating/volume. This keeps
+    Volume data is fetched separately via GET /elucid-qa/volume. This keeps
     mutation (advancing) separate from reading (fetching NIfTI data), so
     the client has a single code path for loading volumes.
     """
-    session = load_rating_session(request.session_id)
+    session = load_elucid_qa_session(request.session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     session.current_index += 1
-    save_rating_session(request.session_id, session)
+    save_elucid_qa_session(request.session_id, session)
 
     return {
         "done": session.current_index >= session.total_volumes,
@@ -1063,27 +1063,27 @@ def rating_next(request: RatingNextRequest):
     }
 
 
-def build_qc_index() -> list[QCTask]:
+def build_mm5_qa_index() -> list[MM5QaTask]:
     """
     Scan MegaMedical LMDB databases and build a flat task index.
 
     Each entry is one (database, label) pair. Cached after first call.
     """
-    global _qc_index
-    if _qc_index is not None:
-        return _qc_index
-    with _qc_index_lock:
-        if _qc_index is not None:
-            return _qc_index
+    global _mm5_qa_index
+    if _mm5_qa_index is not None:
+        return _mm5_qa_index
+    with _mm5_qa_index_lock:
+        if _mm5_qa_index is not None:
+            return _mm5_qa_index
 
         base = Path(megamedical_base_dir)
 
         db_infos: list[dict] = []
 
-        for dataset_spec in QC_DATASETS:
+        for dataset_spec in MM5_QA_DATASETS:
             dataset_path = base / dataset_spec
             if not dataset_path.exists():
-                logger.warning(f"QC dataset not found: {dataset_path}")
+                logger.warning(f"MM5 QA dataset not found: {dataset_path}")
                 continue
 
             for mdb_file in dataset_path.rglob("data.mdb"):
@@ -1112,7 +1112,7 @@ def build_qc_index() -> list[QCTask]:
             if info["proc_version"] > cur:
                 latest_versions[key] = info["proc_version"]
 
-        entries: list[QCTask] = []
+        entries: list[MM5QaTask] = []
         for info in db_infos:
             key = (info["dataset"], info["group"])
             if info["proc_version"] != latest_versions[key]:
@@ -1175,7 +1175,7 @@ def build_qc_index() -> list[QCTask]:
                 if not label_samples:
                     continue
 
-                entries.append(QCTask(
+                entries.append(MM5QaTask(
                     db_path=str(info["db_dir"]),
                     dataset=info["dataset"],
                     group=info["group"],
@@ -1191,22 +1191,22 @@ def build_qc_index() -> list[QCTask]:
                     overlapping_labels=overlapping_labels,
                 ))
 
-        logger.info(f"QC index built: {len(entries)} task-label combinations")
-        _qc_index = entries
+        logger.info(f"MM5 QA index built: {len(entries)} task-label combinations")
+        _mm5_qa_index = entries
         return entries
 
 
-def sample_qc_item(
-    index: list[QCTask],
+def sample_mm5_qa_item(
+    index: list[MM5QaTask],
     rng: random.Random,
-) -> tuple[QCTask, str]:
+) -> tuple[MM5QaTask, str]:
     """Draw one (task, sample_key) using hierarchical sampling.
 
     Gives equal probability to each dataset regardless of size.
     Consumes exactly 7 RNG calls per invocation (6 hierarchy + 1 sample).
     """
     candidates = index
-    for attr in _QC_HIERARCHY:
+    for attr in _MM5_QA_HIERARCHY:
         unique_vals = sorted(set(getattr(t, attr) for t in candidates))
         val = rng.choice(unique_vals)
         candidates = [t for t in candidates if getattr(t, attr) == val]
@@ -1216,7 +1216,7 @@ def sample_qc_item(
     return task, sample_key
 
 
-def _select_label_for_qc(
+def _select_label_for_mm5_qa(
     seg: np.ndarray,
     label_idx: int,
     original_label_type: str,
@@ -1252,8 +1252,8 @@ def set_percentile_cal(
     return nii
 
 
-def read_qc_sample(
-    task: QCTask,
+def read_mm5_qa_sample(
+    task: MM5QaTask,
     sample_key: str,
 ) -> tuple[str, str, dict]:
     """Read vol+seg from LMDB and return as base64 gzipped NIfTI."""
@@ -1270,7 +1270,7 @@ def read_qc_sample(
                 pass
 
     rng = np.random.default_rng(hash(sample_key) % (2**32))
-    seg_binary = _select_label_for_qc(
+    seg_binary = _select_label_for_mm5_qa(
         seg, task.label_idx, task.original_label_type,
         task.overlapping_labels, rng,
     )
@@ -1290,10 +1290,10 @@ def read_qc_sample(
     return encode_nifti(vol_nii), encode_nifti(seg_nii), metadata
 
 
-def get_qc_dir() -> Path:
-    qc_dir = Path(data_dir) / "rating_sessions" / "mm5-qa"
-    qc_dir.mkdir(parents=True, exist_ok=True)
-    return qc_dir
+def get_mm5_qa_dir() -> Path:
+    mm5_qa_dir = Path(data_dir) / "mm5_qa_sessions"
+    mm5_qa_dir.mkdir(parents=True, exist_ok=True)
+    return mm5_qa_dir
 
 
 def _get_session_lock(session_id: str) -> threading.Lock:
@@ -1315,13 +1315,13 @@ def _deserialize_rng_state(data: list) -> tuple:
     return (version, tuple(internalstate), gauss)
 
 
-def make_qc_session_id(name: str, seed: int) -> str:
+def make_mm5_qa_session_id(name: str, seed: int) -> str:
     safe_name = name.strip().lower().replace(" ", "_")
-    return f"qc_{safe_name}_{seed}"
+    return f"mm5_qa_{safe_name}_{seed}"
 
 
-def save_qc_session(session_id: str, session: QCSession) -> None:
-    path = get_qc_dir() / f"{session_id}.json"
+def save_mm5_qa_session(session_id: str, session: MM5QaSession) -> None:
+    path = get_mm5_qa_dir() / f"{session_id}.json"
     with open(path, "w") as f:
         json.dump({
             "name": session.name,
@@ -1332,21 +1332,21 @@ def save_qc_session(session_id: str, session: QCSession) -> None:
         }, f)
 
 
-def load_qc_session(session_id: str) -> QCSession | None:
-    path = get_qc_dir() / f"{session_id}.json"
+def load_mm5_qa_session(session_id: str) -> MM5QaSession | None:
+    path = get_mm5_qa_dir() / f"{session_id}.json"
     if not path.exists():
         return None
     with open(path, "r") as f:
         data = json.load(f)
-    return QCSession(**data)
+    return MM5QaSession(**data)
 
 
-def append_qc_rating_to_csv(
+def append_mm5_qa_rating_to_csv(
     session_id: str,
     metadata: dict,
     rating: int,
 ) -> None:
-    csv_path = get_qc_dir() / f"{session_id}_ratings.csv"
+    csv_path = get_mm5_qa_dir() / f"{session_id}_ratings.csv"
     file_exists = csv_path.exists()
     with open(csv_path, "a", newline="") as f:
         writer = csv.writer(f)
@@ -1367,28 +1367,28 @@ def append_qc_rating_to_csv(
         ])
 
 
-@app.post("/qc/init")
-def qc_init(request: QCInitRequest):
-    """Initialize or resume a MegaMedical QC session."""
+@app.post("/mm5-qa/init")
+def mm5_qa_init(request: MM5QaInitRequest):
+    """Initialize or resume an MM5 QA session."""
     if not megamedical_base_dir:
         raise HTTPException(
             status_code=500,
             detail="MEGAMEDICAL_BASE_DIR not configured",
         )
 
-    session_id = make_qc_session_id(request.name, request.seed)
-    existing = load_qc_session(session_id)
+    session_id = make_mm5_qa_session_id(request.name, request.seed)
+    existing = load_mm5_qa_session(session_id)
 
     if existing is not None:
         if existing.rng_state is None:
-            qc_index = build_qc_index()
+            mm5_qa_index = build_mm5_qa_index()
             rng = random.Random(existing.seed)
             for _ in range(existing.current_index):
-                sample_qc_item(qc_index, rng)
+                sample_mm5_qa_item(mm5_qa_index, rng)
             existing.rng_state = _serialize_rng_state(rng.getstate())
-            save_qc_session(session_id, existing)
+            save_mm5_qa_session(session_id, existing)
         logger.info(
-            f"Resuming QC session: {session_id} at index "
+            f"Resuming MM5 QA session: {session_id} at index "
             f"{existing.current_index}"
         )
         return {
@@ -1397,31 +1397,31 @@ def qc_init(request: QCInitRequest):
             "blinded": blind_rating,
         }
 
-    build_qc_index()
+    build_mm5_qa_index()
 
     rng = random.Random(request.seed)
-    session = QCSession(
+    session = MM5QaSession(
         name=request.name,
         seed=request.seed,
         current_index=0,
         rng_state=_serialize_rng_state(rng.getstate()),
     )
-    save_qc_session(session_id, session)
-    logger.info(f"Created QC session: {session_id}")
+    save_mm5_qa_session(session_id, session)
+    logger.info(f"Created MM5 QA session: {session_id}")
 
     return {"session_id": session_id, "current_index": 0, "blinded": blind_rating}
 
 
-@app.get("/qc/sample")
-def qc_sample(session_id: str, index: int | None = None):
+@app.get("/mm5-qa/sample")
+def mm5_qa_sample(session_id: str, index: int | None = None):
     """Return vol + seg as base64 gzipped NIfTI + metadata."""
-    session = load_qc_session(session_id)
+    session = load_mm5_qa_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    qc_index = build_qc_index()
-    if not qc_index:
-        raise HTTPException(status_code=500, detail="No QC databases found")
+    mm5_qa_index = build_mm5_qa_index()
+    if not mm5_qa_index:
+        raise HTTPException(status_code=500, detail="No MM5 QA databases found")
 
     target_index = index if index is not None else session.current_index
 
@@ -1433,21 +1433,21 @@ def qc_sample(session_id: str, index: int | None = None):
         rng.setstate(_deserialize_rng_state(session.rng_state))
         k = target_index - session.current_index
         for _ in range(k):
-            sample_qc_item(qc_index, rng)
-        task, sample_key = sample_qc_item(qc_index, rng)
+            sample_mm5_qa_item(mm5_qa_index, rng)
+        task, sample_key = sample_mm5_qa_item(mm5_qa_index, rng)
     else:
         rng = random.Random(session.seed)
         for _ in range(target_index):
-            sample_qc_item(qc_index, rng)
-        task, sample_key = sample_qc_item(qc_index, rng)
+            sample_mm5_qa_item(mm5_qa_index, rng)
+        task, sample_key = sample_mm5_qa_item(mm5_qa_index, rng)
 
-    vol_b64, seg_b64, metadata = read_qc_sample(task, sample_key)
+    vol_b64, seg_b64, metadata = read_mm5_qa_sample(task, sample_key)
 
     if target_index == session.current_index:
         with _get_session_lock(session_id):
-            session = load_qc_session(session_id)
+            session = load_mm5_qa_session(session_id)
             session.current_metadata = metadata
-            save_qc_session(session_id, session)
+            save_mm5_qa_session(session_id, session)
 
     return {
         "volume_nifti": vol_b64,
@@ -1457,11 +1457,11 @@ def qc_sample(session_id: str, index: int | None = None):
     }
 
 
-@app.post("/qc/rate")
-def qc_rate(request: QCRateRequest):
-    """Record a QC rating for the current sample."""
+@app.post("/mm5-qa/rate")
+def mm5_qa_rate(request: MM5QaRateRequest):
+    """Record an MM5 QA rating for the current sample."""
     with _get_session_lock(request.session_id):
-        session = load_qc_session(request.session_id)
+        session = load_mm5_qa_session(request.session_id)
         if session is None:
             raise HTTPException(status_code=404, detail="Session not found")
 
@@ -1476,37 +1476,37 @@ def qc_rate(request: QCRateRequest):
                 status_code=400, detail="No current sample to rate",
             )
 
-        append_qc_rating_to_csv(
+        append_mm5_qa_rating_to_csv(
             request.session_id, session.current_metadata, request.rating,
         )
     logger.info(
-        f"QC rating recorded: session={request.session_id}, "
+        f"MM5 QA rating recorded: session={request.session_id}, "
         f"rating={request.rating}"
     )
     return {"success": True}
 
 
-@app.post("/qc/next")
-def qc_next(request: QCNextRequest):
-    """Advance to next QC sample."""
+@app.post("/mm5-qa/next")
+def mm5_qa_next(request: MM5QaNextRequest):
+    """Advance to next MM5 QA sample."""
     with _get_session_lock(request.session_id):
-        session = load_qc_session(request.session_id)
+        session = load_mm5_qa_session(request.session_id)
         if session is None:
             raise HTTPException(status_code=404, detail="Session not found")
 
-        qc_index = build_qc_index()
+        mm5_qa_index = build_mm5_qa_index()
 
         rng = random.Random()
         if session.rng_state:
             rng.setstate(_deserialize_rng_state(session.rng_state))
-            sample_qc_item(qc_index, rng)
+            sample_mm5_qa_item(mm5_qa_index, rng)
         else:
             rng = random.Random(session.seed)
             for _ in range(session.current_index + 1):
-                sample_qc_item(qc_index, rng)
+                sample_mm5_qa_item(mm5_qa_index, rng)
 
         new_rng_state = _serialize_rng_state(rng.getstate())
-        task, sample_key = sample_qc_item(qc_index, rng)
+        task, sample_key = sample_mm5_qa_item(mm5_qa_index, rng)
 
         metadata = {
             "dataset": task.dataset,
@@ -1520,7 +1520,7 @@ def qc_next(request: QCNextRequest):
         session.current_index += 1
         session.rng_state = new_rng_state
         session.current_metadata = metadata
-        save_qc_session(request.session_id, session)
+        save_mm5_qa_session(request.session_id, session)
 
     return {"current_index": session.current_index}
 
@@ -1531,8 +1531,8 @@ if not serverless_mode:
 
 
 # SPA fallback: serve index.html for client-side routes so React Router handles them
-@app.get("/qa")
-async def serve_qa():
+@app.get("/elucid-qa")
+async def serve_elucid_qa():
     return FileResponse(os.path.join(static_dir, "index.html"))
 
 

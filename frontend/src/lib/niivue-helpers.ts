@@ -1,4 +1,4 @@
-import { SHOW_RENDER } from "@niivue/niivue";
+import { SHOW_RENDER, NVImage } from "@niivue/niivue";
 
 /**
  * Map from view mode name to Niivue slice type and render settings.
@@ -24,6 +24,36 @@ export function rgba255ToHex(
   const g = rgba255[1].toString(16).padStart(2, "0");
   const b = rgba255[2].toString(16).padStart(2, "0");
   return `#${r}${g}${b}`;
+}
+
+/**
+ * Decode a base64 string to a Uint8Array.
+ */
+export function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+/**
+ * Decode a base64-encoded NIfTI into an NVImage ready for Niivue.
+ */
+export async function base64NiftiToNVImage(
+  niftiBase64: string,
+  filename: string = "volume.nii.gz",
+  opts: { colormap?: string; opacity?: number } = {},
+): Promise<NVImage> {
+  const niftiBytes = base64ToBytes(niftiBase64);
+  const blob = new Blob([niftiBytes], { type: "application/gzip" });
+  const file = new File([blob], filename);
+  return await NVImage.loadFromFile({
+    file,
+    colormap: opts.colormap,
+    opacity: opts.opacity,
+  });
 }
 
 /**
