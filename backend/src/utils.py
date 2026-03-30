@@ -1,5 +1,8 @@
+import base64
+import gzip
 from typing import List, Literal
 
+import nibabel as nib
 import torch
 
 
@@ -46,3 +49,21 @@ def relative_norm(tensor: torch.Tensor) -> torch.Tensor:
     """
     vmin, vmax = tensor.min(), tensor.max()
     return (tensor - vmin) / (vmax - vmin)
+
+
+def encode_nifti(nii: nib.Nifti1Image) -> str:
+    """Encode NIfTI as gzipped base64 string.
+
+    Parameters
+    ----------
+    nii : nib.Nifti1Image
+        NIfTI image to encode.
+
+    Returns
+    -------
+    str
+        Base64-encoded gzipped NIfTI bytes.
+    """
+    return base64.b64encode(
+        gzip.compress(nii.to_bytes(), compresslevel=1)
+    ).decode("utf-8")
