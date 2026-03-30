@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { useFreeBrowseStore } from "@/store";
 import { Niivue, NVImage } from "@niivue/niivue";
+import { base64NiftiToNVImage } from "@/lib/niivue-helpers";
+import { ensureGLContext } from "@/lib/gl-context";
 
-export type RatingState = {
+export type ElucidQaState = {
   name: string;
   seed: string;
   sessionId: string | null;
@@ -17,34 +18,18 @@ export type RatingState = {
 
 // --- Pure helpers ---
 
-function decodeBase64ToBytes(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
-async function decodeNiftiToNVImage(niftiBase64: string): Promise<NVImage> {
-  const niftiBytes = decodeBase64ToBytes(niftiBase64);
-  const blob = new Blob([niftiBytes], { type: "application/gzip" });
-  const file = new File([blob], "rating_volume.nii.gz");
-  return await NVImage.loadFromFile({ file });
-}
-
 async function fetchAndDecodeVolume(
   sessionId: string,
   index: number,
 ): Promise<{ nvimage: NVImage; path: string }> {
-  const url = `/rating/volume?session_id=${sessionId}&index=${index}`;
+  const url = `/elucid-qa/volume?session_id=${sessionId}&index=${index}`;
   const response = await fetch(url);
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to load volume");
   }
   const data = await response.json();
-  const nvimage = await decodeNiftiToNVImage(data.volume_nifti);
+  const nvimage = await base64NiftiToNVImage(data.volume_nifti, "elucid_qa_volume.nii.gz");
   return { nvimage, path: data.path };
 }
 
@@ -52,15 +37,12 @@ async function fetchAndDecodeVolume(
 
 const PREFETCH_AHEAD = 5;
 
-export function useRating(nvRef: React.RefObject<Niivue | null>) {
-  const showUploader = useFreeBrowseStore((s) => s.showUploader);
-  const setShowUploader = useFreeBrowseStore((s) => s.setShowUploader);
-
-  const preloadedRatingVolumeRef = useRef<
+export function useElucidQa(nvRef: React.RefObject<Niivue | null>) {
+  const preloadedVolumeRef = useRef<
     Map<number, { nvimage: NVImage; path: string }>
   >(new Map());
 
-  const [ratingState, setRatingState] = useState<RatingState>({
+  const [elucidQaState, setElucidQaState] = useState<ElucidQaState>({
     name: "",
     seed: "",
     sessionId: null,
@@ -73,10 +55,10 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
     error: null,
   });
 
-  function showNVImageInViewer(nvimage: NVImage): void {
+  async function showNVImageInViewer(nvimage: NVImage): Promise<void> {
     const nv = nvRef.current;
     if (!nv) return;
-    if (showUploader) setShowUploader(false);
+    await ensureGLContext(nv);
     while (nv.volumes.length > 0) {
       nv.removeVolumeByIndex(0);
     }
@@ -89,7 +71,7 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
     currentIndex: number,
     totalVolumes: number,
   ): void {
-    const preloadedVolumes = preloadedRatingVolumeRef.current;
+    const preloadedVolumes = preloadedVolumeRef.current;
     for (let i = 1; i <= PREFETCH_AHEAD; i++) {
       const idx = currentIndex + i;
 
@@ -98,21 +80,21 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
 
       fetchAndDecodeVolume(sessionId, idx)
         .then((result) => {
-          preloadedRatingVolumeRef.current.set(idx, result);
+          preloadedVolumeRef.current.set(idx, result);
         })
         .catch(() => {});
     }
   }
 
-  async function loadRatingVolume(
+  async function loadVolume(
     sessionId: string,
     index: number,
     totalVolumes: number,
   ): Promise<void> {
-    setRatingState((prev) => ({ ...prev, loading: true, error: null }));
+    setElucidQaState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const prefetchedVolumes = preloadedRatingVolumeRef.current;
+      const prefetchedVolumes = preloadedVolumeRef.current;
       let nvimage: NVImage;
       let path: string;
 
@@ -129,7 +111,7 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
 
       showNVImageInViewer(nvimage);
 
-      setRatingState((prev) => ({
+      setElucidQaState((prev) => ({
         ...prev,
         currentPath: path,
         currentIndex: index,
@@ -139,7 +121,7 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
 
       prefetchVolumes(sessionId, index, totalVolumes);
     } catch (err) {
-      setRatingState((prev) => ({
+      setElucidQaState((prev) => ({
         ...prev,
         loading: false,
         error: (err as Error).message,
@@ -147,32 +129,32 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
     }
   }
 
-  async function initRatingSession(): Promise<void> {
-    if (!ratingState.name.trim() || !ratingState.seed.trim()) {
-      setRatingState((prev) => ({
+  async function initSession(): Promise<void> {
+    if (!elucidQaState.name.trim() || !elucidQaState.seed.trim()) {
+      setElucidQaState((prev) => ({
         ...prev,
         error: "Name and seed are required",
       }));
       return;
     }
 
-    const seedNum = parseInt(ratingState.seed, 10);
+    const seedNum = parseInt(elucidQaState.seed, 10);
     if (isNaN(seedNum)) {
-      setRatingState((prev) => ({
+      setElucidQaState((prev) => ({
         ...prev,
         error: "Seed must be a number",
       }));
       return;
     }
 
-    preloadedRatingVolumeRef.current.clear();
-    setRatingState((prev) => ({ ...prev, loading: true, error: null }));
+    preloadedVolumeRef.current.clear();
+    setElucidQaState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const response = await fetch("/rating/init", {
+      const response = await fetch("/elucid-qa/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: ratingState.name.trim(), seed: seedNum }),
+        body: JSON.stringify({ name: elucidQaState.name.trim(), seed: seedNum }),
       });
 
       if (!response.ok) {
@@ -183,7 +165,7 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
       const data = await response.json();
       const done = data.current_index >= data.total_volumes;
 
-      setRatingState((prev) => ({
+      setElucidQaState((prev) => ({
         ...prev,
         sessionId: data.session_id,
         currentIndex: data.current_index,
@@ -193,14 +175,14 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
       }));
 
       if (!done) {
-        await loadRatingVolume(
+        await loadVolume(
           data.session_id,
           data.current_index,
           data.total_volumes,
         );
       }
     } catch (err) {
-      setRatingState((prev) => ({
+      setElucidQaState((prev) => ({
         ...prev,
         loading: false,
         error: (err as Error).message,
@@ -209,16 +191,16 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
   }
 
   async function submitRating(rating: number): Promise<void> {
-    if (!ratingState.sessionId) return;
+    if (!elucidQaState.sessionId) return;
 
-    setRatingState((prev) => ({ ...prev, selectedRating: rating }));
+    setElucidQaState((prev) => ({ ...prev, selectedRating: rating }));
 
     try {
-      const response = await fetch("/rating/rate", {
+      const response = await fetch("/elucid-qa/rate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          session_id: ratingState.sessionId,
+          session_id: elucidQaState.sessionId,
           rating,
         }),
       });
@@ -228,7 +210,7 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
         throw new Error(err.detail || "Failed to submit rating");
       }
     } catch (err) {
-      setRatingState((prev) => ({
+      setElucidQaState((prev) => ({
         ...prev,
         error: (err as Error).message,
       }));
@@ -236,15 +218,15 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
   }
 
   async function advanceToNextVolume(): Promise<void> {
-    if (!ratingState.sessionId) return;
+    if (!elucidQaState.sessionId) return;
 
-    setRatingState((prev) => ({ ...prev, loading: true, error: null }));
+    setElucidQaState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const response = await fetch("/rating/next", {
+      const response = await fetch("/elucid-qa/next", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: ratingState.sessionId }),
+        body: JSON.stringify({ session_id: elucidQaState.sessionId }),
       });
 
       if (!response.ok) {
@@ -255,7 +237,7 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
       const data = await response.json();
 
       if (data.done) {
-        setRatingState((prev) => ({
+        setElucidQaState((prev) => ({
           ...prev,
           done: true,
           loading: false,
@@ -264,13 +246,13 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
         return;
       }
 
-      await loadRatingVolume(
-        ratingState.sessionId,
+      await loadVolume(
+        elucidQaState.sessionId,
         data.current_index,
         data.total_volumes,
       );
     } catch (err) {
-      setRatingState((prev) => ({
+      setElucidQaState((prev) => ({
         ...prev,
         loading: false,
         error: (err as Error).message,
@@ -279,9 +261,9 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
   }
 
   function handleEndSession() {
-    setRatingState({
-      name: ratingState.name,
-      seed: ratingState.seed,
+    setElucidQaState({
+      name: elucidQaState.name,
+      seed: elucidQaState.seed,
       sessionId: null,
       currentIndex: 0,
       totalVolumes: 0,
@@ -294,9 +276,9 @@ export function useRating(nvRef: React.RefObject<Niivue | null>) {
   }
 
   return {
-    ratingState,
-    setRatingState,
-    initRatingSession,
+    elucidQaState,
+    setElucidQaState,
+    initSession,
     submitRating,
     advanceToNextVolume,
     handleEndSession,

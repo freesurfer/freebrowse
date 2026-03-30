@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import type { RatingState } from "@/hooks/use-rating";
+import type { ElucidQaState } from "@/hooks/use-elucid-qa";
 
-interface RatingTabProps {
-  ratingState: RatingState;
-  onRatingStateChange: (
-    updater: (prev: RatingState) => RatingState,
+interface ElucidQaTabProps {
+  elucidQaState: ElucidQaState;
+  onElucidQaStateChange: (
+    updater: (prev: ElucidQaState) => ElucidQaState,
   ) => void;
   onInitSession: () => void;
   onSubmitRating: (rating: number) => void;
@@ -16,33 +16,33 @@ interface RatingTabProps {
   onEndSession: () => void;
 }
 
-export default function RatingTab({
-  ratingState,
-  onRatingStateChange,
+export default function ElucidQaTab({
+  elucidQaState,
+  onElucidQaStateChange,
   onInitSession,
   onSubmitRating,
   onAdvance,
   onEndSession,
-}: RatingTabProps) {
+}: ElucidQaTabProps) {
   return (
     <>
       <div className="border-b px-4 py-3">
-        <h2 className="text-lg font-semibold">Rating</h2>
+        <h2 className="text-lg font-semibold">Elucid QA</h2>
         <p className="text-sm text-muted-foreground">
           Rate neuroimaging volumes
         </p>
       </div>
       <ScrollArea className="h-full">
         <div className="p-4 space-y-4">
-          {!ratingState.sessionId ? (
+          {!elucidQaState.sessionId ? (
             <>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Name</Label>
                 <Input
                   type="text"
-                  value={ratingState.name}
+                  value={elucidQaState.name}
                   onChange={(e) =>
-                    onRatingStateChange((prev) => ({
+                    onElucidQaStateChange((prev) => ({
                       ...prev,
                       name: e.target.value,
                     }))
@@ -54,9 +54,9 @@ export default function RatingTab({
                 <Label className="text-sm font-medium">Seed</Label>
                 <Input
                   type="number"
-                  value={ratingState.seed}
+                  value={elucidQaState.seed}
                   onChange={(e) =>
-                    onRatingStateChange((prev) => ({
+                    onElucidQaStateChange((prev) => ({
                       ...prev,
                       seed: e.target.value,
                     }))
@@ -68,28 +68,28 @@ export default function RatingTab({
               <Button
                 className="w-full"
                 onClick={onInitSession}
-                disabled={ratingState.loading}
+                disabled={elucidQaState.loading}
               >
-                {ratingState.loading && (
+                {elucidQaState.loading && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Start Session
               </Button>
             </>
-          ) : ratingState.done ? (
+          ) : elucidQaState.done ? (
             <div className="text-center text-muted-foreground py-8">
               <Star className="h-8 w-8 mx-auto mb-2" />
               <p className="font-medium">All volumes rated!</p>
               <p className="text-sm">
-                {ratingState.totalVolumes} / {ratingState.totalVolumes}{" "}
+                {elucidQaState.totalVolumes} / {elucidQaState.totalVolumes}{" "}
                 complete
               </p>
             </div>
           ) : (
             <>
               <div className="text-sm text-muted-foreground">
-                Volume {ratingState.currentIndex + 1} of{" "}
-                {ratingState.totalVolumes}
+                Volume {elucidQaState.currentIndex + 1} of{" "}
+                {elucidQaState.totalVolumes}
               </div>
 
               <div className="space-y-2">
@@ -99,13 +99,13 @@ export default function RatingTab({
                     <Button
                       key={n}
                       variant={
-                        ratingState.selectedRating === n
+                        elucidQaState.selectedRating === n
                           ? "default"
                           : "outline"
                       }
                       size="sm"
                       onClick={() => onSubmitRating(n)}
-                      disabled={ratingState.loading}
+                      disabled={elucidQaState.loading}
                     >
                       {n}
                     </Button>
@@ -116,9 +116,9 @@ export default function RatingTab({
               <Button
                 className="w-full"
                 onClick={onAdvance}
-                disabled={ratingState.loading}
+                disabled={elucidQaState.loading}
               >
-                {ratingState.loading && (
+                {elucidQaState.loading && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Next Volume
@@ -135,8 +135,8 @@ export default function RatingTab({
             </>
           )}
 
-          {ratingState.error && (
-            <p className="text-sm text-destructive">{ratingState.error}</p>
+          {elucidQaState.error && (
+            <p className="text-sm text-destructive">{elucidQaState.error}</p>
           )}
         </div>
       </ScrollArea>

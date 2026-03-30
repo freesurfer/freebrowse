@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import FreeBrowse from './components/freebrowse.tsx';
-import QaViewer from './components/qa-viewer.tsx';
+import ElucidQaViewer from './components/elucid-qa-viewer.tsx';
 import Mm5QaViewer from './components/mm5-qa-viewer.tsx';
 
 // Get base path from Vite's base config (import.meta.env.BASE_URL)
@@ -28,10 +28,10 @@ createRoot(document.getElementById('root')!).render(
          </div>
       } />
       {!isServerless && (
-        <Route path="/qa" element={
+        <Route path="/elucid-qa" element={
           <div className="app-container">
             <div className="main-content">
-              <QaViewer />
+              <ElucidQaViewer />
             </div>
           </div>
         } />
