@@ -14,10 +14,7 @@ import nibabel as nib
 import yaml
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-try:
-    from thunderpack import ThunderReader
-except ImportError:
-    ThunderReader = None
+from thunderpack import ThunderReader
 
 from utils import encode_nifti
 
@@ -188,11 +185,6 @@ def build_mm5_qa_index() -> list[MM5QaTask]:
     Each entry is one (database, label) pair. Cached after first call.
     """
     global _mm5_qa_index
-    if ThunderReader is None:
-        raise HTTPException(
-            status_code=501,
-            detail="MM5 QA requires thunderpack (not installed)",
-        )
     if _mm5_qa_index is not None:
         return _mm5_qa_index
     with _mm5_qa_index_lock:
@@ -382,7 +374,6 @@ def read_mm5_qa_sample(
     sample_key: str,
 ) -> tuple[str, str, dict]:
     """Read vol+seg from LMDB and return as base64 gzipped NIfTI."""
-    assert ThunderReader is not None, "thunderpack not installed"
     reader = ThunderReader(task.db_path)
     try:
         vol = reader[f"{sample_key}/vol"].astype(np.float32)

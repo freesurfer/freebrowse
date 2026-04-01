@@ -10,8 +10,16 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from ml_inference import router as ml_inference_router
-from qa import router as qa_router
+try:
+    from ml_inference import router as ml_inference_router
+except Exception as e:
+    ml_inference_router = None
+    logging.getLogger(__name__).warning(f"ML inference routes disabled: {e}")
+try:
+    from qa import router as qa_router
+except Exception as e:
+    qa_router = None
+    logging.getLogger(__name__).warning(f"QA routes disabled: {e}")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,8 +60,10 @@ class SaveVolumeRequest(BaseModel):
 
 
 app = FastAPI()
-app.include_router(ml_inference_router)
-app.include_router(qa_router)
+if ml_inference_router is not None:
+    app.include_router(ml_inference_router)
+if qa_router is not None:
+    app.include_router(qa_router)
 
 
 @app.get("/nvd")
