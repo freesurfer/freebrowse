@@ -18,6 +18,12 @@ import utils
 
 logger = logging.getLogger(__name__)
 
+if not torch.cuda.is_available():
+    logger.warning(
+        "CUDA not available — ML inference will run on CPU"
+        " (install CUDA-enabled pytorch for GPU acceleration)"
+    )
+
 data_dir = os.getenv('DATA_DIR')
 models_dir = os.getenv('MODELS_DIR')
 
