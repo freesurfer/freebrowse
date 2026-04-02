@@ -70,6 +70,20 @@ cd backend
 pixi install
 ```
 
+Pixi supports feature environments for optional dependencies:
+
+```bash
+pixi install -e <env>
+pixi install -e ml
+pixi install -e qa
+```
+
+| Environment | Features | Key dependencies |
+|-------------|----------|------------------|
+| `ml` | ML inference | pytorch, monai, neurite |
+| `qa` | QA rating | thunderpack |
+| `full` | everything | all of the above |
+
 ## Build
 
 The frontend has several build targets:
@@ -145,7 +159,8 @@ This hot reloads the backend when changes are made to the code.
 
 ```bash
 cd backend
-pixi run dev
+pixi run dev              # default (no ML, no QA)
+pixi run -e <env> dev     # with a feature environment (see table above)
 ```
 
 ### Run the frontend in development mode
