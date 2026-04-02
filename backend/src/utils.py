@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import base64
 import gzip
-from typing import List, Literal
+from typing import List, Literal, TYPE_CHECKING
 
 import nibabel as nib
-import torch
+
+if TYPE_CHECKING:
+    import torch
 
 
 def clip_volume(
@@ -27,6 +31,8 @@ def clip_volume(
     torch.Tensor
         Tensor with values clipped to [p_low, p_high].
     """
+    import torch
+
     assert mode == "percentile", f"Unsupported clip mode: {mode}"
     assert len(percentiles) == 2, "percentiles must be [low, high]"
 
