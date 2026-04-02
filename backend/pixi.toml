@@ -19,11 +19,9 @@ cmd = """
 [tasks.dev.env]
 NIIVUE_BUILD_DIR = "../frontend/dist"
 DATA_DIR = "../data"
-MODELS_DIR = "../models"
 SCENE_SCHEMA_ID = "freebrowse"
 IMAGING_EXTENSIONS = '["*.nii", "*.nii.gz"]'
 SERVERLESS_MODE = "false"
-MASTER_JSON = "../data/master_rating_json_elucid.txt"
 
 [tasks.dev-serverless]
 # See tasks.dev comment re: npm install
@@ -44,13 +42,35 @@ SERVERLESS_MODE = "true"
 
 [dependencies]
 fastapi = ">=0.115.5,<0.116"
-pytorch = ">=2.0"
 nibabel = ">=5.0"
 numpy = ">=1.24"
-monai = ">=1.3"
 pyyaml = ">=6.0"
 # Ensures consistent node/npm rather than relying on system install
 nodejs = ">=20"
 
-[pypi-dependencies]
+# --- ML feature: pytorch + monai + neurite ---------------------------------
+[feature.ml.dependencies]
+pytorch = ">=2.0"
+monai = ">=1.3"
+
+[feature.ml.pypi-dependencies]
 neurite = { git = "https://github.com/adalca/neurite.git" }
+
+[feature.ml.activation.env]
+ENABLE_ML = "true"
+MODELS_DIR = "../models"
+
+# --- QA feature: thunderpack ------------------------------------------------
+[feature.qa.pypi-dependencies]
+thunderpack = { git = "https://github.com/JJGO/thunderpack.git" }
+
+[feature.qa.activation.env]
+ENABLE_QA = "true"
+MASTER_JSON = "../data/master_rating_json_elucid.txt"
+
+# --- Environments -----------------------------------------------------------
+[environments]
+default = []
+ml = ["ml"]
+qa = ["qa"]
+full = ["ml", "qa"]

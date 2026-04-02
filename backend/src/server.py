@@ -10,41 +10,34 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-try:
-    from ml_inference import router as ml_inference_router
-except Exception as e:
-    ml_inference_router = None
-    logging.getLogger(__name__).warning(f"ML inference routes disabled: {e}")
-try:
-    from qa import router as qa_router
-except Exception as e:
-    qa_router = None
-    logging.getLogger(__name__).warning(f"QA routes disabled: {e}")
-
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
 )
 logger = logging.getLogger(__name__)
 
+enable_ml = os.getenv("ENABLE_ML", "false").lower() == "true"
+enable_qa = os.getenv("ENABLE_QA", "false").lower() == "true"
+
+if enable_ml:
+    from ml_inference import router as ml_inference_router
+if enable_qa:
+    from qa import router as qa_router
+
 static_dir = os.getenv('NIIVUE_BUILD_DIR')
 data_dir = os.getenv('DATA_DIR')
 scene_schema_id = os.getenv('SCENE_SCHEMA_ID')
-models_dir = os.getenv('MODELS_DIR')
 imaging_extensions_str = os.getenv('IMAGING_EXTENSIONS', '["*.nii", "*.nii.gz"]')
 imaging_extensions = json.loads(imaging_extensions_str)
 serverless_mode = os.getenv('SERVERLESS_MODE', 'false').lower() == 'true'
-master_json = os.getenv('MASTER_JSON')
-megamedical_base_dir = os.getenv('MEGAMEDICAL_BASE_DIR')
 
 logger.info(f"NIIVUE_BUILD_DIR: {static_dir}")
 logger.info(f"DATA_DIR: {data_dir}")
 logger.info(f"SCENE_SCHEMA_ID: {scene_schema_id}")
-logger.info(f"MODELS_DIR: {models_dir}")
 logger.info(f"IMAGING_EXTENSIONS: {imaging_extensions}")
 logger.info(f"SERVERLESS_MODE: {serverless_mode}")
-logger.info(f"MASTER_JSON: {master_json}")
-logger.info(f"MEGAMEDICAL_BASE_DIR: {megamedical_base_dir}")
+logger.info(f"ENABLE_ML: {enable_ml}")
+logger.info(f"ENABLE_QA: {enable_qa}")
 
 mimetypes.add_type("application/gzip", ".nii.gz", strict=True)
 
@@ -60,9 +53,9 @@ class SaveVolumeRequest(BaseModel):
 
 
 app = FastAPI()
-if ml_inference_router is not None:
+if enable_ml:
     app.include_router(ml_inference_router)
-if qa_router is not None:
+if enable_qa:
     app.include_router(qa_router)
 
 
@@ -208,14 +201,14 @@ if not serverless_mode:
     )
 
 
-@app.get("/elucid-qa")
-async def serve_elucid_qa():
-    return FileResponse(os.path.join(static_dir, "index.html"))
+if enable_qa:
+    @app.get("/elucid-qa")
+    async def serve_elucid_qa():
+        return FileResponse(os.path.join(static_dir, "index.html"))
 
-
-@app.get("/mm5-qa")
-async def serve_mm5_qa():
-    return FileResponse(os.path.join(static_dir, "index.html"))
+    @app.get("/mm5-qa")
+    async def serve_mm5_qa():
+        return FileResponse(os.path.join(static_dir, "index.html"))
 
 
 # Mount frontend static files at root LAST (catch-all)
