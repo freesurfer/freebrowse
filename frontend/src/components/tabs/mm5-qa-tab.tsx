@@ -101,6 +101,15 @@ export default function MM5QaTab({
                     <span className="font-medium">Label:</span>{" "}
                     {mm5QaState.metadata.labelName || `#${mm5QaState.metadata.labelIndex}`}
                   </div>
+                  {mm5QaState.metadata.voxelSpacing && (
+                    <div>
+                      <span className="font-medium">Spacing:</span>{" "}
+                      {mm5QaState.metadata.voxelSpacing
+                        .map((v) => v.toFixed(2))
+                        .join(" \u00d7 ")}{" "}
+                      mm
+                    </div>
+                  )}
                 </div>
               )}
 

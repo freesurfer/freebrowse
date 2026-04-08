@@ -11,6 +11,7 @@ export type MM5QaMetadata = {
   sample: string;
   labelIndex: number;
   labelName: string;
+  voxelSpacing?: number[];
 };
 
 export type MM5QaState = {
@@ -64,6 +65,7 @@ async function fetchAndDecodeSample(
         sample: data.metadata.sample,
         labelIndex: data.metadata.label_index,
         labelName: data.metadata.label_name,
+        voxelSpacing: data.metadata.voxel_spacing,
       }
     : null;
 

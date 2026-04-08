@@ -388,6 +388,7 @@ def read_mm5_qa_sample(
     vol_nii = set_percentile_cal(nib.Nifti1Image(vol, affine))
     seg_nii = nib.Nifti1Image(seg_binary, affine)
 
+    zooms = vol_nii.header.get_zooms()[:3]
     metadata = {
         "dataset": task.dataset,
         "modality": task.modality,
@@ -395,6 +396,7 @@ def read_mm5_qa_sample(
         "sample": sample_key,
         "label_index": task.label_idx,
         "label_name": task.label_name,
+        "voxel_spacing": [float(z) for z in zooms],
     }
 
     return encode_nifti(vol_nii), encode_nifti(seg_nii), metadata
