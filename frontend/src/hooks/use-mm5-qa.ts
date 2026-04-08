@@ -27,6 +27,7 @@ export type MM5QaState = {
   globalMin: number;
   globalMax: number;
   blinded: boolean;
+  segVisible: boolean;
 };
 
 // --- Pure helpers ---
@@ -93,6 +94,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     globalMin: 0,
     globalMax: 100,
     blinded: false,
+    segVisible: true,
   });
 
   // Refs to avoid stale closures in async functions
@@ -172,6 +174,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
         contrastMax: sample.volImage.cal_max ?? 100,
         globalMin: sample.volImage.global_min ?? 0,
         globalMax: sample.volImage.global_max ?? 100,
+        segVisible: true,
       }));
 
       prefetchSamples(sessionId, index);
@@ -307,6 +310,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     const newOpacity = seg.opacity > 0 ? 0 : 0.5;
     nv.setOpacity(1, newOpacity);
     nv.drawScene();
+    setMM5QaState((prev) => ({ ...prev, segVisible: newOpacity > 0 }));
   }
 
   // Press spacebar to toggle segmentation overlay
@@ -368,6 +372,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
       globalMin: 0,
       globalMax: 100,
       blinded: false,
+      segVisible: true,
     }));
   }
 

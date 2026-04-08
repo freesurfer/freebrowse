@@ -1,4 +1,4 @@
-import { Loader2, Eye } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
@@ -111,13 +111,19 @@ export default function MM5QaTab({
               )}
 
               <Button
-                variant="outline"
+                variant={mm5QaState.segVisible ? "default" : "outline"}
                 size="sm"
                 className="w-full"
                 onClick={onToggleSegOverlay}
               >
-                <Eye className="mr-2 h-4 w-4" />
-                Toggle Segmentation
+                {mm5QaState.segVisible ? (
+                  <EyeOff className="mr-2 h-4 w-4" />
+                ) : (
+                  <Eye className="mr-2 h-4 w-4" />
+                )}
+                {mm5QaState.segVisible
+                  ? "Hide Segmentation"
+                  : "Show Segmentation"}
               </Button>
 
               <div className="space-y-2">
