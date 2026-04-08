@@ -1,9 +1,11 @@
 import os
 import sys
+import json
 import importlib
 import base64
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 from pathlib import Path
 
@@ -26,6 +28,7 @@ if not torch.cuda.is_available():
 
 data_dir = os.getenv('DATA_DIR')
 models_dir = os.getenv('MODELS_DIR')
+debug_inference = os.getenv('FB_DEBUG_INFERENCE', '').lower() in ('1', 'true', 'yes')
 
 router = APIRouter()
 
@@ -78,8 +81,10 @@ class SessionState:
     affine_ras: np.ndarray
     ras_dims: tuple[int, int, int]
     shape_before_pad: tuple[int, int, int]
+    volume_name: str = ''
     positive_clicks: list[int] = field(default_factory=list)
     negative_clicks: list[int] = field(default_factory=list)
+    debug_dir: Path | None = None
 
 
 sessions: dict[str, SessionState] = {}
@@ -303,7 +308,7 @@ def _decode_and_store_volume(
     volume_tensor = utils.relative_norm(volume_tensor)
 
     shape_before_pad = volume_tensor.shape
-    volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=16)
+    volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=32)
 
     session = SessionState(
         volume_tensor=volume_tensor,
@@ -346,13 +351,14 @@ def _load_and_store_volume_from_path(
     volume_tensor = utils.relative_norm(volume_tensor)
 
     shape_before_pad = volume_tensor.shape
-    volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=16)
+    volume_tensor = pad_to_multiple(tensor=volume_tensor, multiple=32)
 
     session = SessionState(
         volume_tensor=volume_tensor,
         affine_ras=affine_ras,
         ras_dims=ras_dims,
         shape_before_pad=shape_before_pad,
+        volume_name=Path(volume_path).stem,
     )
     sessions[session_id] = session
     return session
@@ -398,10 +404,10 @@ def prepare_inference_input(
     session.negative_clicks = request.negative_clicks
 
     pos_mask = clicks_to_mask(clicks=session.positive_clicks, original_shape=session.ras_dims)
-    pos_mask = pad_to_multiple(tensor=pos_mask, multiple=16)
+    pos_mask = pad_to_multiple(tensor=pos_mask, multiple=32)
 
     neg_mask = clicks_to_mask(clicks=session.negative_clicks, original_shape=session.ras_dims)
-    neg_mask = pad_to_multiple(tensor=neg_mask, multiple=16)
+    neg_mask = pad_to_multiple(tensor=neg_mask, multiple=32)
 
     input_tensor = torch.zeros((1, 5, *session.volume_tensor.shape), dtype=torch.float32)
     input_tensor[0, 0] = session.volume_tensor
@@ -410,6 +416,58 @@ def prepare_inference_input(
 
     return input_tensor, session
 
+
+
+CHANNEL_NAMES = ['volume', 'previous_pred', 'positive', 'negative', 'unused']
+
+_debug_output_dir = Path(__file__).resolve().parents[2] / 'debug_output'
+
+
+def save_debug_tensors(
+    input_tensor: torch.Tensor,
+    session: SessionState,
+    model_name: str,
+) -> None:
+    """Save each channel of the input tensor as a .nii.gz for inspection.
+
+    Only called when ``FB_DEBUG_INFERENCE`` is truthy. All prompt iterations
+    for a session are grouped under one folder named
+    ``<timestamp>_<model>_<volume>/``. Each call writes into a new
+    ``prompt_iter_NNN/`` subfolder within it.
+
+    Parameters
+    ----------
+    input_tensor : torch.Tensor
+        Model input with shape ``(1, C, D, H, W)``.
+    session : SessionState
+        Active session (provides affine, volume name, and debug dir).
+    model_name : str
+        Name of the model being run.
+    """
+    if session.debug_dir is None:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        folder_name = f'{timestamp}_{model_name}_{session.volume_name}'
+        session.debug_dir = _debug_output_dir / folder_name
+        session.debug_dir.mkdir(parents=True, exist_ok=True)
+
+    iter_idx = sum(1 for p in session.debug_dir.iterdir() if p.is_dir())
+    out_dir = session.debug_dir / f'prompt_iter_{iter_idx:03d}'
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    tensor = input_tensor[0].cpu().numpy()
+    for ch_idx, name in enumerate(CHANNEL_NAMES[:tensor.shape[0]]):
+        nii = nib.Nifti1Image(tensor[ch_idx].astype(np.float32), session.affine_ras)
+        nib.save(nii, str(out_dir / f'{ch_idx}_{name}.nii.gz'))
+
+    metadata = {
+        'model_name': model_name,
+        'volume_name': session.volume_name,
+        'timestamp': datetime.now().strftime('%Y%m%d_%H%M%S_%f'),
+        'input_shape': list(input_tensor.shape),
+        'channel_names': CHANNEL_NAMES[:tensor.shape[0]],
+    }
+    (out_dir / 'metadata.json').write_text(json.dumps(metadata, indent=2))
+    logger.info(f"Debug tensors saved to {out_dir}")
 
 
 @router.get('/available_seg_models')
@@ -514,7 +572,7 @@ def run_scribbleprompt3d_inference(request: InferenceRequest):
 
     prev_pred = decode_previous_prediction(
         logits_b64=request.previous_logits,
-        shape=session.volume_tensor.shape,
+        shape=session.shape_before_pad,
         include_previous_prediction=prompts_config.get(
             'include_previous_prediction', False,
         ),
@@ -524,7 +582,10 @@ def run_scribbleprompt3d_inference(request: InferenceRequest):
     )
 
     if prev_pred is not None:
-        input_tensor[0, 1] = prev_pred
+        input_tensor[0, 1] = pad_to_multiple(prev_pred, multiple=32)
+
+    if debug_inference:
+        save_debug_tensors(input_tensor, session, request.model_name)
 
     with torch.no_grad():
         output = model(input_tensor.to(device))
@@ -540,7 +601,7 @@ def run_scribbleprompt3d_inference(request: InferenceRequest):
         "success": True,
         "mask_nifti": utils.encode_nifti(create_mask_nifti(mask, session.affine_ras)),
         "logits": base64.b64encode(logit_bytes).decode("utf-8"),
-        "logits_shape": list(session.volume_tensor.shape),
+        "logits_shape": list(session.shape_before_pad),
     }
 
 

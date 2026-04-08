@@ -36,7 +36,10 @@ def clip_volume(
     assert mode == "percentile", f"Unsupported clip mode: {mode}"
     assert len(percentiles) == 2, "percentiles must be [low, high]"
 
-    low, high = torch.quantile(tensor.float(), torch.tensor(percentiles) / 100.0)
+    flat = tensor.float().flatten()
+    if flat.numel() > 2 ** 24:
+        flat = flat[torch.randperm(flat.numel())[:2 ** 24]]
+    low, high = torch.quantile(flat, torch.tensor(percentiles) / 100.0)
     return tensor.clamp(low.item(), high.item())
 
 
