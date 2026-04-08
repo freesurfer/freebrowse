@@ -20,9 +20,17 @@ enable_ml = os.getenv("ENABLE_ML", "false").lower() == "true"
 enable_qa = os.getenv("ENABLE_QA", "false").lower() == "true"
 
 if enable_ml:
-    from ml_inference import router as ml_inference_router
+    try:
+        from ml_inference import router as ml_inference_router
+    except Exception as e:
+        logger.error(f"ML module failed to load, disabling: {e}")
+        enable_ml = False
 if enable_qa:
-    from qa import router as qa_router
+    try:
+        from qa import router as qa_router
+    except Exception as e:
+        logger.error(f"QA module failed to load, disabling: {e}")
+        enable_qa = False
 
 static_dir = os.getenv('NIIVUE_BUILD_DIR')
 data_dir = os.getenv('DATA_DIR')
