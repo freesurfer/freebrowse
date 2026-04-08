@@ -136,7 +136,7 @@ export default function MM5QaTab({
               </Button>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Contrast</Label>
+                <Label className="text-sm font-medium">Contrast (percentile)</Label>
                 <LabeledSliderWithInput
                   key={`contrast-min-${mm5QaState.currentIndex}`}
                   label="Min"
