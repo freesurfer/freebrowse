@@ -138,6 +138,7 @@ export default function MM5QaTab({
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Contrast</Label>
                 <LabeledSliderWithInput
+                  key={`contrast-min-${mm5QaState.currentIndex}`}
                   label="Min"
                   value={mm5QaState.contrastMin}
                   onValueChange={onContrastMinChange}
@@ -147,6 +148,7 @@ export default function MM5QaTab({
                   decimalPlaces={2}
                 />
                 <LabeledSliderWithInput
+                  key={`contrast-max-${mm5QaState.currentIndex}`}
                   label="Max"
                   value={mm5QaState.contrastMax}
                   onValueChange={onContrastMaxChange}
