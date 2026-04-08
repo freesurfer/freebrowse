@@ -12,3 +12,9 @@ frontend/dist-jupyter/
 
 # Vite temp files
 *.timestamp-*.mjs
+
+# Debug inference output
+/debug_output/
+
+# Git worktrees
+/worktrees/
