@@ -317,18 +317,11 @@ def sample_mm5_qa_item(
     index: list[MM5QaTask],
     rng: random.Random,
 ) -> tuple[MM5QaTask, str]:
-    """Draw one (task, sample_key) using hierarchical sampling.
+    """Draw one (task, sample_key) using flat uniform sampling.
 
-    Gives equal probability to each dataset regardless of size.
-    Consumes exactly 7 RNG calls per invocation (6 hierarchy + 1 sample).
+    Every task has equal probability regardless of dataset size.
     """
-    candidates = index
-    for attr in _MM5_QA_HIERARCHY:
-        unique_vals = sorted(set(getattr(t, attr) for t in candidates))
-        val = rng.choice(unique_vals)
-        candidates = [t for t in candidates if getattr(t, attr) == val]
-
-    task = candidates[0]
+    task = rng.choice(index)
     sample_key = rng.choice(task.samples)
     return task, sample_key
 
