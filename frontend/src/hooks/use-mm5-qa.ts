@@ -120,6 +120,36 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     }
     nv.addVolume(volImage);
     nv.addVolume(segImage);
+
+    // Center crosshair on segmentation center of mass
+    const seg = nv.volumes[1];
+    if (seg?.img && seg?.hdr?.dims) {
+      const nx = seg.hdr.dims[1];
+      const ny = seg.hdr.dims[2];
+      const nz = seg.hdr.dims[3];
+      const data = seg.img;
+      let sumX = 0, sumY = 0, sumZ = 0, count = 0;
+      for (let i = 0; i < data.length; i++) {
+        if (data[i] > 0) {
+          const z = Math.floor(i / (nx * ny));
+          const rem = i % (nx * ny);
+          const y = Math.floor(rem / nx);
+          const x = rem % nx;
+          sumX += x;
+          sumY += y;
+          sumZ += z;
+          count++;
+        }
+      }
+      if (count > 0) {
+        nv.scene.crosshairPos = [
+          sumX / (count * nx),
+          sumY / (count * ny),
+          sumZ / (count * nz),
+        ];
+      }
+    }
+
     nv.updateGLVolume();
     nv.drawScene();
   }
