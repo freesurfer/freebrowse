@@ -27,7 +27,7 @@ megamedical_base_dir = os.getenv('MEGAMEDICAL_BASE_DIR')
 _MM5_QC_CONFIG_FILE = Path(__file__).parent.parent.parent / "data" / "megamedical5-qc.yml"
 _mm5_qc_config: dict = yaml.safe_load(_MM5_QC_CONFIG_FILE.read_text())
 MM5_QA_DATASETS: list[str] = _mm5_qc_config["datasets"]
-MIN_LABEL_DENSITY: float = _mm5_qc_config["min_label_density"]
+MIN_LABEL_VOXELS: float = _mm5_qc_config["min_label_voxels"]
 blind_rating: bool = _mm5_qc_config["blind_rating"]
 _MM5_QA_HIERARCHY: tuple[str, ...] = tuple(_mm5_qc_config["hierarchy"])
 
@@ -278,10 +278,10 @@ def build_mm5_qa_index() -> list[MM5QaTask]:
 
             for label_idx in range(n_labels):
                 if (label_densities is not None
-                        and MIN_LABEL_DENSITY > 0):
-                    densities = label_densities[
+                        and MIN_LABEL_VOXELS > 0):
+                    counts = label_densities[
                         :len(labelled_df), label_idx]
-                    mask = densities >= MIN_LABEL_DENSITY
+                    mask = counts >= MIN_LABEL_VOXELS
                     label_samples = labelled_df[mask][
                         "sample"].tolist()
                 else:
