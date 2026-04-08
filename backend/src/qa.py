@@ -729,10 +729,10 @@ def mm5_qa_rate(request: MM5QaRateRequest):
                 status_code=404, detail="Session not found",
             )
 
-        if request.rating < 0 or request.rating > 5:
+        if request.rating < 0 or request.rating > 4:
             raise HTTPException(
                 status_code=400,
-                detail="Rating must be 0 (N/A) or between 1 and 5",
+                detail="Rating must be 0 (N/A) or between 1 and 4",
             )
 
         if session.current_metadata is None:

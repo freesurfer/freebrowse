@@ -158,19 +158,26 @@ export default function MM5QaTab({
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Rating</Label>
-                <div className="grid grid-cols-5 gap-2">
-                  {Array.from({ length: 5 }, (_, i) => i + 1).map((n) => (
+                <Label className="text-sm font-medium">Difficulty</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { value: 1, label: "Very Easy" },
+                    { value: 2, label: "Easy" },
+                    { value: 3, label: "Hard" },
+                    { value: 4, label: "Very Hard" },
+                  ] as const).map(({ value, label }) => (
                     <Button
-                      key={n}
+                      key={value}
                       variant={
-                        mm5QaState.selectedRating === n ? "default" : "outline"
+                        mm5QaState.selectedRating === value
+                          ? "default"
+                          : "outline"
                       }
                       size="sm"
-                      onClick={() => onSubmitRating(n)}
+                      onClick={() => onSubmitRating(value)}
                       disabled={mm5QaState.loading}
                     >
-                      {n}
+                      {label}
                     </Button>
                   ))}
                 </div>
