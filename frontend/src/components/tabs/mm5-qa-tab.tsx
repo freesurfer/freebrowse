@@ -130,6 +130,7 @@ export default function MM5QaTab({
                   max={mm5QaState.globalMax}
                   step={0.01}
                   decimalPlaces={2}
+                  scaleTo100={true}
                 />
                 <LabeledSliderWithInput
                   label="Max"
@@ -139,6 +140,7 @@ export default function MM5QaTab({
                   max={mm5QaState.globalMax}
                   step={0.01}
                   decimalPlaces={2}
+                  scaleTo100={true}
                 />
               </div>
 
