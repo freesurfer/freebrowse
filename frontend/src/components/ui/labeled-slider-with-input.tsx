@@ -34,21 +34,28 @@ const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWit
     ...props 
   }, ref) => {
     
-    const [localValue, setLocalValue] = React.useState(value)
-    const timeoutRef = React.useRef<NodeJS.Timeout>(undefined)
-    
-    // Helper function to format the displayed value
-    const formatValue = (val: number) => {
-      const scaledVal = scaleTo100 ? val * 100 : val
-      return Number(scaledVal.toFixed(decimalPlaces))
+    const toDisplay = (v: number) => {
+      if (!scaleTo100) return v
+      const range = max - min
+      return range > 0 ? ((v - min) / range) * 100 : 0
     }
-    
-    // Sync local value when external value changes
+
+    const toInternal = (d: number) => {
+      if (!scaleTo100) return d
+      const range = max - min
+      return range > 0 ? min + (d / 100) * range : min
+    }
+
+    const [localValue, setLocalValue] = React.useState(toDisplay(value))
+    const timeoutRef = React.useRef<NodeJS.Timeout>(undefined)
+
+    const formatValue = (val: number) => {
+      return Number(val.toFixed(decimalPlaces))
+    }
+
     React.useEffect(() => {
-      // Convert from internal (0-1) to display (0-100) when needed
-      const displayValue = scaleTo100 ? value * 100 : value
-      setLocalValue(displayValue)
-    }, [value, scaleTo100])
+      setLocalValue(toDisplay(value))
+    }, [value, scaleTo100, min, max])
     
     const debouncedOnValueChange = React.useCallback((newValue: number) => {
       if (timeoutRef.current) {
@@ -61,31 +68,27 @@ const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWit
     }, [onValueChange])
     
     const handleSliderChange = (values: number[]) => {
-      const newValue = values[0]
-      // Convert display value back to internal value if scaled
-      const internalValue = scaleTo100 ? newValue / 100 : newValue
-      setLocalValue(newValue)
-      debouncedOnValueChange(internalValue)
+      const displayValue = values[0]
+      setLocalValue(displayValue)
+      debouncedOnValueChange(toInternal(displayValue))
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const inputValue = parseFloat(e.target.value)
-      if (!isNaN(inputValue)) {
-        // Clamp the value between min and max
-        const clampedValue = Math.min(Math.max(inputValue, min), max)
-        // If scaling to 100, adjust the clamped value to internal representation
-        const internalValue = scaleTo100 ? clampedValue / 100 : clampedValue
-        setLocalValue(clampedValue)
-        debouncedOnValueChange(internalValue)
+      const parsed = parseFloat(e.target.value)
+      if (!isNaN(parsed)) {
+        const displayMin = scaleTo100 ? 0 : min
+        const displayMax = scaleTo100 ? 100 : max
+        const clamped = Math.min(Math.max(parsed, displayMin), displayMax)
+        setLocalValue(clamped)
+        debouncedOnValueChange(toInternal(clamped))
       }
     }
 
     const handleInputBlur = (e: React.ChangeEvent<HTMLInputElement>) => {
-      // Ensure the input shows the clamped value if user entered something out of range
-      const inputValue = parseFloat(e.target.value)
+      const parsed = parseFloat(e.target.value)
+      const displayMin = scaleTo100 ? 0 : min
       const displayMax = scaleTo100 ? 100 : max
-      if (isNaN(inputValue) || inputValue < min || inputValue > displayMax) {
-        // Reset to current valid value
+      if (isNaN(parsed) || parsed < displayMin || parsed > displayMax) {
         setLocalValue(localValue)
         e.target.value = localValue.toString()
       }
@@ -103,21 +106,21 @@ const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWit
           <Slider
             value={[localValue]}
             onValueChange={handleSliderChange}
-            min={min}
-            max={max}
-            step={step}
+            min={scaleTo100 ? 0 : min}
+            max={scaleTo100 ? 100 : max}
+            step={scaleTo100 ? 0.1 : step}
             disabled={disabled}
             className="flex-1"
           />
-          
+
           <Input
             type="number"
             value={formatValue(localValue)}
             onChange={handleInputChange}
             onBlur={handleInputBlur}
-            min={min}
-            max={max}
-            step={step}
+            min={scaleTo100 ? 0 : min}
+            max={scaleTo100 ? 100 : max}
+            step={scaleTo100 ? 0.1 : step}
             disabled={disabled}
             className="w-20 text-center"
           />

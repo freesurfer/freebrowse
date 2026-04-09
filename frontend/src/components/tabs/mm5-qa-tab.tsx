@@ -149,8 +149,8 @@ export default function MM5QaTab({
                   onValueChange={onContrastMinChange}
                   min={mm5QaState.globalMin}
                   max={mm5QaState.globalMax}
-                  step={0.01}
-                  decimalPlaces={2}
+                  step={0.1}
+                  decimalPlaces={1}
                   scaleTo100={true}
                 />
                 <LabeledSliderWithInput
@@ -160,8 +160,8 @@ export default function MM5QaTab({
                   onValueChange={onContrastMaxChange}
                   min={mm5QaState.globalMin}
                   max={mm5QaState.globalMax}
-                  step={0.01}
-                  decimalPlaces={2}
+                  step={0.1}
+                  decimalPlaces={1}
                   scaleTo100={true}
                 />
               </div>
