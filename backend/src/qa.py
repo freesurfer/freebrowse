@@ -714,7 +714,7 @@ def mm5_qa_sample(session_id: str, index: int | None = None):
     return {
         "volume_nifti": vol_b64,
         "seg_nifti": seg_b64,
-        "metadata": None if blind_rating else metadata,
+        "metadata": {"voxel_spacing": metadata["voxel_spacing"]} if blind_rating else metadata,
         "current_index": target_index,
     }
 

@@ -59,12 +59,12 @@ async function fetchAndDecodeSample(
 
   const metadata: MM5QaMetadata | null = data.metadata
     ? {
-        dataset: data.metadata.dataset,
-        modality: data.metadata.modality,
-        task: data.metadata.task,
-        sample: data.metadata.sample,
-        labelIndex: data.metadata.label_index,
-        labelName: data.metadata.label_name,
+        dataset: data.metadata.dataset ?? "",
+        modality: data.metadata.modality ?? "",
+        task: data.metadata.task ?? "",
+        sample: data.metadata.sample ?? "",
+        labelIndex: data.metadata.label_index ?? 0,
+        labelName: data.metadata.label_name ?? "",
         voxelSpacing: data.metadata.voxel_spacing,
       }
     : null;

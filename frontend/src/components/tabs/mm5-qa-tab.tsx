@@ -89,18 +89,24 @@ export default function MM5QaTab({
 
               {mm5QaState.metadata && (
                 <div className="space-y-1 text-xs text-muted-foreground bg-muted p-2 rounded">
-                  <div>
-                    <span className="font-medium">Dataset:</span>{" "}
-                    {mm5QaState.metadata.dataset}
-                  </div>
-                  <div>
-                    <span className="font-medium">Modality:</span>{" "}
-                    {mm5QaState.metadata.modality}
-                  </div>
-                  <div>
-                    <span className="font-medium">Label:</span>{" "}
-                    {mm5QaState.metadata.labelName || `#${mm5QaState.metadata.labelIndex}`}
-                  </div>
+                  {mm5QaState.metadata.dataset && (
+                    <div>
+                      <span className="font-medium">Dataset:</span>{" "}
+                      {mm5QaState.metadata.dataset}
+                    </div>
+                  )}
+                  {mm5QaState.metadata.modality && (
+                    <div>
+                      <span className="font-medium">Modality:</span>{" "}
+                      {mm5QaState.metadata.modality}
+                    </div>
+                  )}
+                  {!mm5QaState.blinded && (
+                    <div>
+                      <span className="font-medium">Label:</span>{" "}
+                      {mm5QaState.metadata.labelName || `#${mm5QaState.metadata.labelIndex}`}
+                    </div>
+                  )}
                   {mm5QaState.metadata.voxelSpacing && (
                     <div>
                       <span className="font-medium">Spacing:</span>{" "}
@@ -110,12 +116,11 @@ export default function MM5QaTab({
                       mm
                     </div>
                   )}
-                </div>
-              )}
-
-              {mm5QaState.blinded && !mm5QaState.metadata && (
-                <div className="text-xs text-muted-foreground bg-muted p-2 rounded italic">
-                  Blinded session — dataset info hidden
+                  {mm5QaState.blinded && !mm5QaState.metadata.dataset && (
+                    <div className="italic">
+                      Blinded session — dataset info hidden
+                    </div>
+                  )}
                 </div>
               )}
 
