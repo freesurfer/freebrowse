@@ -16,6 +16,7 @@ export interface LabeledSliderWithInputProps {
   decimalPlaces?: number
   className?: string
   disabled?: boolean
+  scaleTo100?: boolean
 }
 
 const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWithInputProps>(
@@ -29,6 +30,7 @@ const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWit
     decimalPlaces = 2,
     className,
     disabled = false,
+    scaleTo100 = false,
     ...props 
   }, ref) => {
     
@@ -37,13 +39,16 @@ const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWit
     
     // Helper function to format the displayed value
     const formatValue = (val: number) => {
-      return Number(val.toFixed(decimalPlaces))
+      const scaledVal = scaleTo100 ? val * 100 : val
+      return Number(scaledVal.toFixed(decimalPlaces))
     }
     
     // Sync local value when external value changes
     React.useEffect(() => {
-      setLocalValue(value)
-    }, [value])
+      // Convert from internal (0-1) to display (0-100) when needed
+      const displayValue = scaleTo100 ? value * 100 : value
+      setLocalValue(displayValue)
+    }, [value, scaleTo100])
     
     const debouncedOnValueChange = React.useCallback((newValue: number) => {
       if (timeoutRef.current) {
@@ -57,8 +62,10 @@ const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWit
     
     const handleSliderChange = (values: number[]) => {
       const newValue = values[0]
+      // Convert display value back to internal value if scaled
+      const internalValue = scaleTo100 ? newValue / 100 : newValue
       setLocalValue(newValue)
-      debouncedOnValueChange(newValue)
+      debouncedOnValueChange(internalValue)
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,18 +73,21 @@ const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWit
       if (!isNaN(inputValue)) {
         // Clamp the value between min and max
         const clampedValue = Math.min(Math.max(inputValue, min), max)
+        // If scaling to 100, adjust the clamped value to internal representation
+        const internalValue = scaleTo100 ? clampedValue / 100 : clampedValue
         setLocalValue(clampedValue)
-        debouncedOnValueChange(clampedValue)
+        debouncedOnValueChange(internalValue)
       }
     }
 
     const handleInputBlur = (e: React.ChangeEvent<HTMLInputElement>) => {
       // Ensure the input shows the clamped value if user entered something out of range
       const inputValue = parseFloat(e.target.value)
-      if (isNaN(inputValue) || inputValue < min || inputValue > max) {
+      const displayMax = scaleTo100 ? 100 : max
+      if (isNaN(inputValue) || inputValue < min || inputValue > displayMax) {
         // Reset to current valid value
-        setLocalValue(value)
-        e.target.value = value.toString()
+        setLocalValue(localValue)
+        e.target.value = localValue.toString()
       }
     }
 
