@@ -47,7 +47,7 @@ class SaveVolumeRequest(BaseModel):
 app = FastAPI()
 
 # Define API routes BEFORE static file mounts to prevent catch-all behavior
-@app.get("/nvd")
+@app.get("/data/nvd")
 def list_niivue_documents():
     if serverless_mode:
         raise HTTPException(status_code=404, detail="Endpoint not available in serverless mode")
@@ -66,7 +66,7 @@ def list_niivue_documents():
         return {"error": str(e)}
     return sorted(nvd_files, key=lambda x: x["url"])
 
-@app.get("/imaging")
+@app.get("/data/vol")
 def list_imaging_files():
     if serverless_mode:
         raise HTTPException(status_code=404, detail="Endpoint not available in serverless mode")
@@ -86,7 +86,7 @@ def list_imaging_files():
         return {"error": str(e)}
     return sorted(imaging_files, key=lambda x: x["url"])
 
-@app.post("/nvd")
+@app.post("/data/nvd")
 def save_scene(request: SaveSceneRequest):
     """
     Save scene data to a file in the DATA_DIR directory.
@@ -132,7 +132,7 @@ def save_scene(request: SaveSceneRequest):
         logger.error(f"Error saving scene: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save scene: {str(e)}")
 
-@app.post("/nii")
+@app.post("/data/nii")
 def save_volume(request: SaveVolumeRequest):
     """
     Save volume data to a file in the DATA_DIR directory.

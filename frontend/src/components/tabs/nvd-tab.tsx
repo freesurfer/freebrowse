@@ -17,7 +17,7 @@ export default function NvdTab({ onFileSelect }: NvdTabProps) {
       <ScrollArea className="h-full">
         <div className="p-4 pb-6">
           <FileList
-            endpoint="/nvd"
+            endpoint="/data/nvd"
             onFileSelect={onFileSelect}
             emptyMessage="No niivue documents available."
           />

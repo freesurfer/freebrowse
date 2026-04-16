@@ -28,9 +28,6 @@ export default defineConfig({
     proxy: {
       '/scene': backendUrl,
       '/data': backendUrl,
-      '/nvd': backendUrl,
-      '/nii': backendUrl,
-      '/imaging': backendUrl
     }
   }
 })

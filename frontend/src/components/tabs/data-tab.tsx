@@ -17,7 +17,7 @@ export default function DataTab({ onFileSelect }: DataTabProps) {
       <ScrollArea className="h-full">
         <div className="p-4 pb-6">
           <FileList
-            endpoint="/imaging"
+            endpoint="/data/vol"
             onFileSelect={onFileSelect}
             emptyMessage="No imaging files available."
           />

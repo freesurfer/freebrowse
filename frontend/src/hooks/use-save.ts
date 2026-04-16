@@ -133,7 +133,7 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
             },
           );
 
-          const response = await fetch("/nvd", {
+          const response = await fetch("/data/nvd", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -180,7 +180,7 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
               const uint8Array = await volume.saveToUint8Array(filename);
               const base64Data = uint8ArrayToBase64(uint8Array);
 
-              const volumeResponse = await fetch("/nii", {
+              const volumeResponse = await fetch("/data/nii", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
