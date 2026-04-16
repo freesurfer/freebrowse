@@ -18,6 +18,9 @@ cmd = """
 NIIVUE_BUILD_DIR = "../frontend/dist"
 DATA_DIR = "../data"
 DL_DIR = "../data/dl-sessions"
+MODELS_DIR = "../models"
+ENABLE_DL = "true"
+DL_SESSION_CACHE_TTL_SECONDS = "1800"
 SCENE_SCHEMA_ID = "freebrowse"
 IMAGING_EXTENSIONS = '["*.nii", "*.nii.gz"]'
 SERVERLESS_MODE = "false"
@@ -39,3 +42,4 @@ SERVERLESS_MODE = "true"
 
 [dependencies]
 fastapi = ">=0.115.5,<0.116"
+pyyaml = ">=6.0"

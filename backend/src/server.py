@@ -10,6 +10,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from dl_session import build_router as build_dl_router
+
 # Configure logging.  Possible logging levels are:
 #   - logging.DEBUG
 #   - logging.INFO
@@ -26,12 +28,20 @@ scene_schema_id = os.getenv('SCENE_SCHEMA_ID')
 imaging_extensions_str = os.getenv('IMAGING_EXTENSIONS', '["*.nii", "*.nii.gz"]')
 imaging_extensions = json.loads(imaging_extensions_str)
 serverless_mode = os.getenv('SERVERLESS_MODE', 'false').lower() == 'true'
+dl_dir = os.getenv('DL_DIR')
+models_dir = os.getenv('MODELS_DIR')
+enable_dl = os.getenv('ENABLE_DL', 'false').lower() == 'true' and not serverless_mode
+dl_cache_ttl_seconds = int(os.getenv('DL_SESSION_CACHE_TTL_SECONDS', '1800'))
 
 logger.info(f"NIIVUE_BUILD_DIR: {static_dir}")
 logger.info(f"DATA_DIR: {data_dir}")
 logger.info(f"SCENE_SCHEMA_ID: {scene_schema_id}")
 logger.info(f"IMAGING_EXTENSIONS: {imaging_extensions}")
 logger.info(f"SERVERLESS_MODE: {serverless_mode}")
+logger.info(f"DL_DIR: {dl_dir}")
+logger.info(f"MODELS_DIR: {models_dir}")
+logger.info(f"ENABLE_DL: {enable_dl}")
+logger.info(f"DL_SESSION_CACHE_TTL_SECONDS: {dl_cache_ttl_seconds}")
 
 # Register the MIME type so that .gz files (or .nii.gz files) are served correctly.
 mimetypes.add_type("application/gzip", ".nii.gz", strict=True)
@@ -186,6 +196,16 @@ def save_volume(request: SaveVolumeRequest):
     except Exception as e:
         logger.error(f"Error saving volume: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save volume: {str(e)}")
+
+# Register the DL router before the /data static mount so explicit routes win.
+if enable_dl:
+    app.include_router(build_dl_router(
+        dl_dir=Path(dl_dir) if dl_dir else Path('./dl-sessions'),
+        data_dir=Path(data_dir) if data_dir else Path('./data'),
+        models_dir=Path(models_dir) if models_dir else Path('./models'),
+        ttl_seconds=dl_cache_ttl_seconds,
+        enabled=True,
+    ))
 
 # Mount static directories AFTER all API routes
 app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")
