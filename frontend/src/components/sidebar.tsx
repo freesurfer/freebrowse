@@ -15,6 +15,8 @@ import DataTab from "@/components/tabs/data-tab";
 import SceneDetailsTab from "@/components/tabs/scene-details-tab";
 import SurfaceDetailsTab from "@/components/tabs/surface-details-tab";
 import DrawingTab from "@/components/tabs/drawing-tab";
+import DlAnnotationTab from "@/components/tabs/dl-annotation-tab";
+import { Sparkles } from "lucide-react";
 
 interface SidebarProps {
   nvRef: React.RefObject<Niivue | null>;
@@ -66,12 +68,20 @@ interface SidebarProps {
   onSaveDrawing: () => void;
   // Save operations
   onSaveScene: (isDownload: boolean) => void;
+  // DL annotation operations
+  onDlNewSession: (sessionName: string) => Promise<void>;
+  onDlLoadSession: (sessionId: string) => Promise<void>;
+  onDlExitAndSaveSession: () => void;
+  onDlExitAndDeleteSession: () => Promise<void>;
+  onDlRefreshSessions: () => Promise<void>;
 }
 
 export default function Sidebar(props: SidebarProps) {
   const activeTab = useFreeBrowseStore((s) => s.activeTab);
   const setActiveTab = useFreeBrowseStore((s) => s.setActiveTab);
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
+  const dlEnabled = useFreeBrowseStore((s) => s.dlEnabled);
+  const showDlTab = !props.serverlessMode && dlEnabled === true;
 
   return (
     <aside
@@ -123,6 +133,14 @@ export default function Sidebar(props: SidebarProps) {
           >
             <Pencil className="h-4 w-4 mr-2" />
           </TabsTrigger>
+          {showDlTab && (
+            <TabsTrigger
+              value="dlAnnotation"
+              className="data-[state=active]:bg-muted"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
@@ -193,6 +211,28 @@ export default function Sidebar(props: SidebarProps) {
             onSaveDrawing={props.onSaveDrawing}
           />
         </TabsContent>
+
+        {showDlTab && (
+          <TabsContent value="dlAnnotation" className="flex-1 min-h-0 p-0">
+            <DlAnnotationTab
+              volumesCount={props.getVolumes().length}
+              onNewSession={props.onDlNewSession}
+              onLoadSession={props.onDlLoadSession}
+              onExitAndSaveSession={props.onDlExitAndSaveSession}
+              onExitAndDeleteSession={props.onDlExitAndDeleteSession}
+              onRefreshSessions={props.onDlRefreshSessions}
+              onDrawModeChange={props.onDrawModeChange}
+              onDrawingOpacityChange={props.onDrawingOpacityChange}
+              onPenValueChange={props.onPenValueChange}
+              onPenFillChange={props.onPenFillChange}
+              onPenErasesChange={props.onPenErasesChange}
+              onMagicWand2dOnlyChange={props.onMagicWand2dOnlyChange}
+              onMagicWandMaxDistanceChange={props.onMagicWandMaxDistanceChange}
+              onMagicWandThresholdChange={props.onMagicWandThresholdChange}
+              onDrawUndo={props.onDrawUndo}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </aside>
   );

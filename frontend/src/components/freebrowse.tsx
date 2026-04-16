@@ -7,6 +7,12 @@ import { useMeshLayers } from "@/hooks/use-mesh-layers";
 import { useDrawing } from "@/hooks/use-drawing";
 import { useSave } from "@/hooks/use-save";
 import { useFileLoading } from "@/hooks/use-file-loading";
+import { useDlCapabilities } from "@/hooks/use-dl-capabilities";
+import { useDlSession } from "@/hooks/use-dl-session";
+import {
+  resolveImagingUploadConfirmation,
+  resolveSessionDeleteConfirmation,
+} from "@/lib/confirmations";
 import { Niivue } from "@niivue/niivue";
 import "../App.css";
 import ViewerShell from "./viewer-shell";
@@ -14,6 +20,8 @@ import Sidebar from "./sidebar";
 import RemoveDialog from "./dialogs/remove-dialog";
 import SaveDialog from "./dialogs/save-dialog";
 import SettingsDialog from "./dialogs/settings-dialog";
+import ImagingUploadConfirmationDialog from "./dialogs/imaging-upload-confirmation-dialog";
+import SessionDeleteConfirmationDialog from "./dialogs/session-delete-confirmation-dialog";
 
 const nv = new Niivue({
   loadingText: "Drag-drop images",
@@ -115,6 +123,15 @@ export default function FreeBrowse() {
     syncDrawingOptionsFromNiivue,
   );
 
+  useDlCapabilities();
+  const {
+    refreshSessions: handleDlRefreshSessions,
+    handleNewSession: handleDlNewSession,
+    handleLoadSession: handleDlLoadSession,
+    handleExitAndSaveSession: handleDlExitAndSaveSession,
+    handleExitAndDeleteSession: handleDlExitAndDeleteSession,
+  } = useDlSession(nvRef);
+
   return (
     <ViewerShell
       nvInstance={nv}
@@ -165,6 +182,11 @@ export default function FreeBrowse() {
           onDrawUndo={handleDrawUndo}
           onSaveDrawing={handleSaveDrawing}
           onSaveScene={handleSaveScene}
+          onDlNewSession={handleDlNewSession}
+          onDlLoadSession={handleDlLoadSession}
+          onDlExitAndSaveSession={handleDlExitAndSaveSession}
+          onDlExitAndDeleteSession={handleDlExitAndDeleteSession}
+          onDlRefreshSessions={handleDlRefreshSessions}
         />
       }
       dialogs={
@@ -183,6 +205,14 @@ export default function FreeBrowse() {
             onDocumentCheckboxChange={handleDocumentCheckboxChange}
           />
           <SettingsDialog nvRef={nvRef} />
+          <ImagingUploadConfirmationDialog
+            onConfirm={() => resolveImagingUploadConfirmation(true)}
+            onCancel={() => resolveImagingUploadConfirmation(false)}
+          />
+          <SessionDeleteConfirmationDialog
+            onConfirm={() => resolveSessionDeleteConfirmation(true)}
+            onCancel={() => resolveSessionDeleteConfirmation(false)}
+          />
         </>
       }
       hiddenInputs={

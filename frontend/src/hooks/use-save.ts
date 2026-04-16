@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { uint8ArrayToBase64 } from "@/lib/niivue-helpers";
+import { requestImagingUploadConfirmation } from "@/lib/confirmations";
 import type { Niivue } from "@niivue/niivue";
 
 export function useSave(nvRef: React.RefObject<Niivue | null>) {
@@ -10,28 +11,33 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
   const setSaveState = useFreeBrowseStore((s) => s.setSaveState);
 
   const handleSaveScene = useCallback(
-    (isDownload: boolean = false) => {
-      if (nvRef.current) {
-        const volumeStates = nvRef.current.volumes.map((volume: any) => {
-          const isExternal = !!(volume.url && volume.url.startsWith("http"));
-          return {
-            enabled: !isExternal,
-            isExternal,
-            url: isDownload ? volume.name || "" : volume.url || "",
-          };
-        });
+    async (isDownload: boolean = false) => {
+      if (!nvRef.current) return;
 
-        setSaveState({
-          isDownloadMode: isDownload,
-          document: {
-            enabled: false,
-            location: "",
-          },
-          volumes: volumeStates,
-        });
-
-        setSaveDialogOpen(true);
+      if (!isDownload && nvRef.current.volumes.length > 0) {
+        const ok = await requestImagingUploadConfirmation();
+        if (!ok) return;
       }
+
+      const volumeStates = nvRef.current.volumes.map((volume: any) => {
+        const isExternal = !!(volume.url && volume.url.startsWith("http"));
+        return {
+          enabled: !isExternal,
+          isExternal,
+          url: isDownload ? volume.name || "" : volume.url || "",
+        };
+      });
+
+      setSaveState({
+        isDownloadMode: isDownload,
+        document: {
+          enabled: false,
+          location: "",
+        },
+        volumes: volumeStates,
+      });
+
+      setSaveDialogOpen(true);
     },
     [nvRef, setSaveState, setSaveDialogOpen],
   );
