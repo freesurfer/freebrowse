@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+import base64
+import gzip
+from typing import List, Literal, TYPE_CHECKING
+
+import nibabel as nib
+
+if TYPE_CHECKING:
+    import torch
+
+
+def clip_volume(
+    tensor: "torch.Tensor",
+    mode: Literal["percentile"],
+    percentiles: List[float],
+) -> "torch.Tensor":
+    """Clip tensor intensities to the given percentile bounds."""
+    import torch
+
+    assert mode == "percentile", f"Unsupported clip mode: {mode}"
+    assert len(percentiles) == 2, "percentiles must be [low, high]"
+
+    flat = tensor.float().flatten()
+    if flat.numel() > 2 ** 24:
+        flat = flat[torch.randperm(flat.numel())[:2 ** 24]]
+    low, high = torch.quantile(flat, torch.tensor(percentiles) / 100.0)
+    return tensor.clamp(low.item(), high.item())
+
+
+def relative_norm(tensor: "torch.Tensor") -> "torch.Tensor":
+    """Linearly rescale tensor values to [0, 1]."""
+    vmin, vmax = tensor.min(), tensor.max()
+    return (tensor - vmin) / (vmax - vmin)
+
+
+def encode_nifti(nii: nib.Nifti1Image) -> str:
+    """Encode NIfTI as gzipped base64 string."""
+    return base64.b64encode(
+        gzip.compress(nii.to_bytes(), compresslevel=1)
+    ).decode("utf-8")

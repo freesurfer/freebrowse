@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Brain, Trash2, LogOut, Undo } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,8 @@ interface DlAnnotationTabProps {
   volumesCount: number;
   onNewSession: (sessionName: string) => Promise<void>;
   onLoadSession: (sessionId: string) => Promise<void>;
-  onExitAndSaveSession: () => void;
+  onRunSegmentation: (mlId: string, labelValue: number) => Promise<void>;
+  onExitAndSaveSession: () => Promise<void>;
   onExitAndDeleteSession: () => Promise<void>;
   onRefreshSessions: () => Promise<void>;
   onDrawModeChange: (mode: "none" | "pen" | "wand") => void;
@@ -39,6 +40,7 @@ export default function DlAnnotationTab({
   volumesCount,
   onNewSession,
   onLoadSession,
+  onRunSegmentation,
   onExitAndSaveSession,
   onExitAndDeleteSession,
   onRefreshSessions,
@@ -63,10 +65,34 @@ export default function DlAnnotationTab({
 
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [selectedMlId, setSelectedMlId] = useState<string>("");
+  const [labelValue, setLabelValue] = useState<number>(1);
+  const [inferring, setInferring] = useState<boolean>(false);
+  const [inferError, setInferError] = useState<string | null>(null);
+  const [exitBusy, setExitBusy] = useState<boolean>(false);
 
   useEffect(() => {
     void onRefreshSessions();
   }, [onRefreshSessions]);
+
+  const fetchModels = useCallback(async () => {
+    try {
+      const res = await fetch("/dl/model/list");
+      if (!res.ok) throw new Error(`GET /dl/model/list failed: ${res.status}`);
+      const body: ModelInfo[] = await res.json();
+      setModels(body);
+      setSelectedMlId((prev) =>
+        prev && body.some((m) => m.ml_id === prev)
+          ? prev
+          : body[0]?.ml_id ?? "",
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchModels();
+  }, [fetchModels]);
 
   const sessionsById = useMemo(() => {
     const map: Record<string, DlSessionSummary> = {};
@@ -93,29 +119,52 @@ export default function DlAnnotationTab({
     try {
       await onLoadSession(selectedSessionId);
     } catch (err) {
+      console.error("Load Session failed:", err);
       setNewError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLoadModels = async () => {
+  const handleLoadModels = () => {
+    void fetchModels();
+  };
+
+  const handleRunSegmentation = async () => {
+    if (!activeSession || !selectedMlId) return;
+    setInferError(null);
+    setInferring(true);
     try {
-      const res = await fetch("/dl/model/list");
-      if (!res.ok) throw new Error(`GET /dl/model/list failed: ${res.status}`);
-      const body: ModelInfo[] = await res.json();
-      setModels(body);
-      if (body.length > 0 && !selectedMlId) setSelectedMlId(body[0].ml_id);
+      await onRunSegmentation(selectedMlId, labelValue);
     } catch (err) {
-      console.error(err);
+      setInferError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setInferring(false);
     }
   };
 
-  const handleRunSegmentation = () => {
-    if (!activeSession || !selectedMlId) return;
-    console.log(
-      `TODO: POST /dl/session/${activeSession.session_id}/infer/${selectedMlId}`,
-    );
+  const handleExitAndSave = async () => {
+    setInferError(null);
+    setExitBusy(true);
+    try {
+      await onExitAndSaveSession();
+    } catch (err) {
+      setInferError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExitBusy(false);
+    }
+  };
+
+  const handleExitAndDelete = async () => {
+    setInferError(null);
+    setExitBusy(true);
+    try {
+      await onExitAndDeleteSession();
+    } catch (err) {
+      setInferError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExitBusy(false);
+    }
   };
 
   const handleClickMode = (mode: "positive" | "negative") => {
@@ -205,7 +254,8 @@ export default function DlAnnotationTab({
           variant="outline"
           size="sm"
           className="w-full"
-          onClick={onExitAndSaveSession}
+          onClick={() => void handleExitAndSave()}
+          disabled={inferring || exitBusy}
         >
           <LogOut className="mr-2 h-4 w-4" />
           Exit and Save Session
@@ -214,7 +264,8 @@ export default function DlAnnotationTab({
           variant="destructive"
           size="sm"
           className="w-full"
-          onClick={() => void onExitAndDeleteSession()}
+          onClick={() => void handleExitAndDelete()}
+          disabled={inferring || exitBusy}
         >
           <Trash2 className="mr-2 h-4 w-4" />
           Exit and Delete Session
@@ -225,10 +276,9 @@ export default function DlAnnotationTab({
           <Select
             value={selectedMlId}
             onChange={(e) => setSelectedMlId(e.target.value)}
-            disabled={models.length === 0}
           >
             {models.length === 0 ? (
-              <option value="">(click Load Model)</option>
+              <option value="">(no models available)</option>
             ) : (
               models.map((m) => (
                 <option key={m.ml_id} value={m.ml_id}>
@@ -238,7 +288,7 @@ export default function DlAnnotationTab({
             )}
           </Select>
           <Button variant="outline" className="w-full" onClick={handleLoadModels}>
-            Load Model
+            Reload Models
           </Button>
         </div>
 
@@ -358,14 +408,31 @@ export default function DlAnnotationTab({
           </div>
         </div>
 
+        <LabeledSliderWithInput
+          label="Result label value"
+          value={labelValue}
+          onValueChange={setLabelValue}
+          min={0}
+          max={255}
+          step={1}
+          decimalPlaces={0}
+        />
+        <p className="text-xs text-muted-foreground -mt-2">
+          Foreground voxel value in the returned mask.
+        </p>
+
         <Button
           className="w-full"
-          onClick={handleRunSegmentation}
-          disabled={!selectedMlId}
+          onClick={() => void handleRunSegmentation()}
+          disabled={!selectedMlId || inferring || exitBusy}
         >
           <Brain className="mr-2 h-4 w-4" />
-          Run Segmentation
+          {inferring ? "Running segmentation…" : "Run Segmentation"}
         </Button>
+
+        {inferError && (
+          <p className="text-xs text-destructive">{inferError}</p>
+        )}
       </div>
     );
   };

@@ -128,6 +128,7 @@ export default function FreeBrowse() {
     refreshSessions: handleDlRefreshSessions,
     handleNewSession: handleDlNewSession,
     handleLoadSession: handleDlLoadSession,
+    handleRunSegmentation: handleDlRunSegmentation,
     handleExitAndSaveSession: handleDlExitAndSaveSession,
     handleExitAndDeleteSession: handleDlExitAndDeleteSession,
   } = useDlSession(nvRef);
@@ -184,6 +185,7 @@ export default function FreeBrowse() {
           onSaveScene={handleSaveScene}
           onDlNewSession={handleDlNewSession}
           onDlLoadSession={handleDlLoadSession}
+          onDlRunSegmentation={handleDlRunSegmentation}
           onDlExitAndSaveSession={handleDlExitAndSaveSession}
           onDlExitAndDeleteSession={handleDlExitAndDeleteSession}
           onDlRefreshSessions={handleDlRefreshSessions}

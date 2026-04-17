@@ -71,7 +71,8 @@ interface SidebarProps {
   // DL annotation operations
   onDlNewSession: (sessionName: string) => Promise<void>;
   onDlLoadSession: (sessionId: string) => Promise<void>;
-  onDlExitAndSaveSession: () => void;
+  onDlRunSegmentation: (mlId: string, labelValue: number) => Promise<void>;
+  onDlExitAndSaveSession: () => Promise<void>;
   onDlExitAndDeleteSession: () => Promise<void>;
   onDlRefreshSessions: () => Promise<void>;
 }
@@ -218,6 +219,7 @@ export default function Sidebar(props: SidebarProps) {
               volumesCount={props.getVolumes().length}
               onNewSession={props.onDlNewSession}
               onLoadSession={props.onDlLoadSession}
+              onRunSegmentation={props.onDlRunSegmentation}
               onExitAndSaveSession={props.onDlExitAndSaveSession}
               onExitAndDeleteSession={props.onDlExitAndDeleteSession}
               onRefreshSessions={props.onDlRefreshSessions}

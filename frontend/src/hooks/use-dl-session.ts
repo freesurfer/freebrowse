@@ -34,6 +34,49 @@ async function fetchArrayBuffer(url: string): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer());
 }
 
+async function exportAndUploadDrawing(
+  nv: Niivue,
+  sessionName: string,
+): Promise<string | null> {
+  if (!nv.drawBitmap || nv.volumes.length === 0) return null;
+  // NVImage.saveToUint8Array(filename, drawing8) returns the drawing as a
+  // gzipped NIfTI (when filename ends in .gz), without triggering a download.
+  const annotRel = "annotations.nii.gz";
+  const bytes = await nv.volumes[0].saveToUint8Array(annotRel, nv.drawBitmap);
+  const targetPath = `dl-sessions/${sessionName}/${annotRel}`;
+  const res = await fetch("/data/nii", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      filename: targetPath,
+      data: uint8ArrayToBase64(bytes),
+    }),
+  });
+  if (!res.ok)
+    throw new Error(`annotations upload failed: ${res.status} ${res.statusText}`);
+  return annotRel;
+}
+
+async function postSetAnnots(
+  sessionId: string,
+  annotationRelPath: string,
+): Promise<void> {
+  const res = await fetch(
+    `/dl/session/${encodeURIComponent(sessionId)}/set_annots`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ annotation_path: annotationRelPath }),
+    },
+  );
+  if (!res.ok) {
+    const msg = await res.text();
+    throw new Error(`set_annots failed (${res.status}): ${msg}`);
+  }
+}
+
+const RESULT_FILENAME = "result.nii.gz";
+
 export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
   const dlEnabled = useFreeBrowseStore((s) => s.dlEnabled);
   const setDlSessions = useFreeBrowseStore((s) => s.setDlSessions);
@@ -42,6 +85,7 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
   const setDrawingOptions = useFreeBrowseStore((s) => s.setDrawingOptions);
   const setActiveTab = useFreeBrowseStore((s) => s.setActiveTab);
+  const setShowUploader = useFreeBrowseStore((s) => s.setShowUploader);
   const incrementVolumeVersion = useFreeBrowseStore(
     (s) => s.incrementVolumeVersion,
   );
@@ -164,14 +208,6 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
     [nvRef, setDlActiveSession, enterDrawMode, refreshSessions],
   );
 
-  const clearAllVolumes = useCallback(() => {
-    const nv = nvRef.current;
-    if (!nv) return;
-    while (nv.volumes.length > 0) {
-      nv.removeVolumeByIndex(0);
-    }
-  }, [nvRef]);
-
   const handleLoadSession = useCallback(
     async (sessionId: string): Promise<void> => {
       const nv = nvRef.current;
@@ -184,15 +220,17 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
       if (!summary.volume_path)
         throw new Error("Session has no volume set; cannot load");
 
-      nv.closeDrawing();
-      clearAllVolumes();
-
       const volumeUrl =
         summary.volume_path_root === "session"
           ? `/data/dl-sessions/${summary.session_name}/${summary.volume_path}`
           : `/data/${summary.volume_path}`;
 
-      await nv.addVolumeFromUrl({ url: volumeUrl });
+      // Ensure the niivue canvas is mounted + attached (first-load-in-session path).
+      // Same trick use-file-loading.ts:196 uses before addVolumeFromUrl.
+      setShowUploader(false);
+
+      // Atomic scene swap \u2014 niivue manages the teardown internally.
+      await nv.loadVolumes([{ url: volumeUrl }]);
       incrementVolumeVersion();
 
       if (summary.annotation_path) {
@@ -216,12 +254,74 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
       });
       enterDrawMode();
     },
-    [nvRef, clearAllVolumes, incrementVolumeVersion, setDlActiveSession, enterDrawMode],
+    [nvRef, setShowUploader, incrementVolumeVersion, setDlActiveSession, enterDrawMode],
   );
 
-  const handleExitAndSaveSession = useCallback((): void => {
+  const handleRunSegmentation = useCallback(
+    async (mlId: string, labelValue: number): Promise<void> => {
+      const nv = nvRef.current;
+      const active = useFreeBrowseStore.getState().dlActiveSession;
+      if (!nv || !active || nv.volumes.length === 0)
+        throw new Error("No active session or volume");
+
+      const annotRel = await exportAndUploadDrawing(nv, active.session_name);
+      if (!annotRel)
+        throw new Error("No drawing layer to send as annotations");
+
+      await postSetAnnots(active.session_id, annotRel);
+
+      const inferRes = await fetch(
+        `/dl/session/${encodeURIComponent(active.session_id)}/infer/${encodeURIComponent(mlId)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ label_value: labelValue }),
+        },
+      );
+      if (!inferRes.ok) {
+        const msg = await inferRes.text();
+        throw new Error(`inference failed (${inferRes.status}): ${msg}`);
+      }
+      await inferRes.json();
+
+      // Replace any prior result overlay before loading the fresh one.
+      const lastIdx = nv.volumes.length - 1;
+      if (lastIdx > 0) {
+        const last = nv.volumes[lastIdx];
+        const lastName = last?.name ?? "";
+        const lastUrl = last?.url ?? "";
+        if (lastName === RESULT_FILENAME || lastUrl.includes(`/${RESULT_FILENAME}`)) {
+          nv.removeVolumeByIndex(lastIdx);
+        }
+      }
+
+      const resultUrl =
+        `/data/dl-sessions/${active.session_name}/${RESULT_FILENAME}` +
+        `?t=${Date.now()}`;
+      await nv.addVolumeFromUrl({
+        url: resultUrl,
+        name: RESULT_FILENAME,
+        colormap: "red",
+        opacity: 0.5,
+      });
+      incrementVolumeVersion();
+    },
+    [nvRef, incrementVolumeVersion],
+  );
+
+  const handleExitAndSaveSession = useCallback(async (): Promise<void> => {
+    const nv = nvRef.current;
+    const active = useFreeBrowseStore.getState().dlActiveSession;
+    if (nv && active) {
+      try {
+        const annotRel = await exportAndUploadDrawing(nv, active.session_name);
+        if (annotRel) await postSetAnnots(active.session_id, annotRel);
+      } catch (err) {
+        console.error("Failed to save annotations on exit:", err);
+      }
+    }
     exitDrawModeLocal();
-  }, [exitDrawModeLocal]);
+  }, [nvRef, exitDrawModeLocal]);
 
   const handleExitAndDeleteSession = useCallback(async (): Promise<void> => {
     if (!dlActiveSession) return;
@@ -249,6 +349,7 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
     refreshSessions,
     handleNewSession,
     handleLoadSession,
+    handleRunSegmentation,
     handleExitAndSaveSession,
     handleExitAndDeleteSession,
   };

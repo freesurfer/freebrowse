@@ -43,6 +43,10 @@ class SetAnnotsRequest(BaseModel):
     annotation_path: str
 
 
+class InferRequest(BaseModel):
+    label_value: int = 1
+
+
 @dataclass
 class _SessionCacheEntry:
     last_touched: float = field(default_factory=time.monotonic)
@@ -345,17 +349,44 @@ def build_router(
         return {"success": True, "annotation_path": manifest["annotation_path"]}
 
     @router.post("/session/{session_id}/infer/{ml_id}")
-    def session_infer(session_id: str, ml_id: str):
+    def session_infer(
+        session_id: str,
+        ml_id: str,
+        request: InferRequest | None = None,
+    ):
         _require_enabled()
-        _session_dir, manifest = manager.find_by_id(session_id)
+        session_dir, manifest = manager.find_by_id(session_id)
         _require_ml_id(ml_id)
         if not manifest.get("volume_path"):
             raise HTTPException(status_code=400, detail="Session has no volume set")
         if not manifest.get("annotation_path"):
             raise HTTPException(status_code=400, detail="Session has no annotations set")
-        raise HTTPException(
-            status_code=501,
-            detail="ml_inference not yet ported; /infer endpoint is stubbed",
+        label_value = 1 if request is None else max(0, min(255, request.label_value))
+
+        from ml_inference import run_inference  # lazy; only when DL is enabled
+        import nibabel as nib
+
+        cache_entry = manager.touch(session_id)
+        nii, _affine = run_inference(
+            session_id=session_id,
+            ml_id=ml_id,
+            label_value=label_value,
+            cache_entry=cache_entry,
+            session_dir=session_dir,
+            manifest=manifest,
+            data_dir=manager.data_dir,
+            models_dir=models_dir,
         )
+
+        result_rel = "result.nii.gz"
+        nib.save(nii, str(session_dir / result_rel))
+        manager.record_inference(session_id, ml_id, result_rel)
+
+        return {
+            "success": True,
+            "ml_id": ml_id,
+            "result_path": result_rel,
+            "label_value": label_value,
+        }
 
     return router
