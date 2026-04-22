@@ -68,10 +68,17 @@ class SessionManager:
     disk I/O and preprocessing inside an active editing session.
     """
 
-    def __init__(self, dl_dir: Path, data_dir: Path, ttl_seconds: int):
+    def __init__(
+        self,
+        dl_dir: Path,
+        data_dir: Path,
+        ttl_seconds: int,
+        enable_history: bool = False,
+    ):
         self.dl_dir = dl_dir
         self.data_dir = data_dir
         self.ttl_seconds = ttl_seconds
+        self.enable_history = enable_history
         self._cache: dict[str, _SessionCacheEntry] = {}
         self._lock = threading.Lock()
 
@@ -157,7 +164,7 @@ class SessionManager:
             )
         self.dl_dir.mkdir(parents=True, exist_ok=True)
         session_dir.mkdir(parents=True, exist_ok=False)
-        manifest = {
+        manifest: dict[str, Any] = {
             "session_id": uuid.uuid4().hex,
             "session_name": session_name,
             "created_at": _now_iso(),
@@ -168,6 +175,9 @@ class SessionManager:
             "last_inference_ml_id": None,
             "last_inference_at": None,
         }
+        if self.enable_history:
+            manifest["iteration_count"] = 0
+            manifest["iterations"] = []
         self._write_manifest(session_dir / _MANIFEST_FILENAME, manifest)
         logger.info(f"DL session created: {session_name} ({manifest['session_id']})")
         return manifest
@@ -246,6 +256,24 @@ class SessionManager:
         self._write_manifest(session_dir / _MANIFEST_FILENAME, manifest)
         return manifest
 
+    def record_iteration(
+        self,
+        session_id: str,
+        ml_id: str,
+        result_rel_path: str,
+        iteration_entry: dict[str, Any],
+    ) -> dict[str, Any]:
+        session_dir, manifest = self.find_by_id(session_id)
+        manifest["result_path"] = result_rel_path
+        manifest["last_inference_ml_id"] = ml_id
+        manifest["last_inference_at"] = _now_iso()
+        iterations = manifest.get("iterations") or []
+        iterations.append(iteration_entry)
+        manifest["iterations"] = iterations
+        manifest["iteration_count"] = manifest.get("iteration_count", 0) + 1
+        self._write_manifest(session_dir / _MANIFEST_FILENAME, manifest)
+        return manifest
+
 
 def _load_yaml(path: Path) -> dict[str, Any] | None:
     try:
@@ -290,11 +318,15 @@ def build_router(
     models_dir: Path,
     ttl_seconds: int,
     enabled: bool,
+    enable_history: bool = False,
 ) -> APIRouter:
     """Build the /dl/* router. When `enabled` is False, every route returns 404."""
     router = APIRouter(prefix="/dl")
     manager = SessionManager(
-        dl_dir=dl_dir, data_dir=data_dir, ttl_seconds=ttl_seconds,
+        dl_dir=dl_dir,
+        data_dir=data_dir,
+        ttl_seconds=ttl_seconds,
+        enable_history=enable_history,
     )
 
     def _require_enabled() -> None:
@@ -379,8 +411,37 @@ def build_router(
         )
 
         result_rel = "result.nii.gz"
-        nib.save(nii, str(session_dir / result_rel))
-        manager.record_inference(session_id, ml_id, result_rel)
+        result_abs = session_dir / result_rel
+        nib.save(nii, str(result_abs))
+
+        if manager.enable_history:
+            n = manifest.get("iteration_count", 0)
+            numbered_result = f"result_{n:03d}.nii.gz"
+            numbered_annot = f"annotations_{n:03d}.nii.gz"
+
+            annot_rel = manifest["annotation_path"]
+            annot_abs, _root = manager.resolve_path_for_session(
+                rel=annot_rel, session_dir=session_dir, allow_data_root=False,
+            )
+            annotated_at = datetime.fromtimestamp(
+                annot_abs.stat().st_mtime, tz=timezone.utc,
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            shutil.copy2(result_abs, session_dir / numbered_result)
+            shutil.copy2(annot_abs, session_dir / numbered_annot)
+
+            iteration_entry = {
+                "iteration": n,
+                "annotation_path": numbered_annot,
+                "result_path": numbered_result,
+                "ml_id": ml_id,
+                "label_value": label_value,
+                "annotated_at": annotated_at,
+                "inferred_at": _now_iso(),
+            }
+            manager.record_iteration(session_id, ml_id, result_rel, iteration_entry)
+        else:
+            manager.record_inference(session_id, ml_id, result_rel)
 
         return {
             "success": True,

@@ -20,6 +20,7 @@ DATA_DIR = "../data"
 DL_DIR = "../data/dl-sessions"
 MODELS_DIR = "../models"
 ENABLE_DL = "true"
+ENABLE_DL_HISTORY = "true"
 DL_SESSION_CACHE_TTL_SECONDS = "1800"
 SCENE_SCHEMA_ID = "freebrowse"
 IMAGING_EXTENSIONS = '["*.nii", "*.nii.gz"]'

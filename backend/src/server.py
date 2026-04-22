@@ -31,6 +31,7 @@ serverless_mode = os.getenv('SERVERLESS_MODE', 'false').lower() == 'true'
 dl_dir = os.getenv('DL_DIR')
 models_dir = os.getenv('MODELS_DIR')
 enable_dl = os.getenv('ENABLE_DL', 'false').lower() == 'true' and not serverless_mode
+enable_dl_history = os.getenv('ENABLE_DL_HISTORY', 'false').lower() == 'true' and enable_dl
 dl_cache_ttl_seconds = int(os.getenv('DL_SESSION_CACHE_TTL_SECONDS', '1800'))
 
 logger.info(f"NIIVUE_BUILD_DIR: {static_dir}")
@@ -41,6 +42,7 @@ logger.info(f"SERVERLESS_MODE: {serverless_mode}")
 logger.info(f"DL_DIR: {dl_dir}")
 logger.info(f"MODELS_DIR: {models_dir}")
 logger.info(f"ENABLE_DL: {enable_dl}")
+logger.info(f"ENABLE_DL_HISTORY: {enable_dl_history}")
 logger.info(f"DL_SESSION_CACHE_TTL_SECONDS: {dl_cache_ttl_seconds}")
 
 # Register the MIME type so that .gz files (or .nii.gz files) are served correctly.
@@ -205,6 +207,7 @@ if enable_dl:
         models_dir=Path(models_dir) if models_dir else Path('./models'),
         ttl_seconds=dl_cache_ttl_seconds,
         enabled=True,
+        enable_history=enable_dl_history,
     ))
 
 # Mount static directories AFTER all API routes
