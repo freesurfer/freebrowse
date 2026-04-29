@@ -14,12 +14,22 @@ export type MM5QaMetadata = {
   voxelSpacing?: number[];
 };
 
+export type MM5QaRating =
+  | "very_easy"
+  | "easy"
+  | "hard"
+  | "very_hard"
+  | "incorrect"
+  | "low_quality"
+  | "not_present"
+  | "not_applicable";
+
 export type MM5QaState = {
   name: string;
   seed: string;
   sessionId: string | null;
   currentIndex: number;
-  selectedRating: number | null;
+  selectedRating: MM5QaRating | null;
   loading: boolean;
   error: string | null;
   metadata: MM5QaMetadata | null;
@@ -275,7 +285,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     }
   }
 
-  async function submitRating(rating: number): Promise<void> {
+  async function submitRating(rating: MM5QaRating): Promise<void> {
     const sessionId = sessionIdRef.current;
     if (!sessionId) return;
 

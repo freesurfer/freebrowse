@@ -50,6 +50,18 @@ class ElucidQaNextRequest(BaseModel):
     session_id: str
 
 
+MM5QaRating = Literal[
+    "very_easy",
+    "easy",
+    "hard",
+    "very_hard",
+    "incorrect",
+    "low_quality",
+    "not_present",
+    "not_applicable",
+]
+
+
 class MM5QaInitRequest(BaseModel):
     name: str
     seed: int
@@ -58,7 +70,7 @@ class MM5QaInitRequest(BaseModel):
 
 class MM5QaRateRequest(BaseModel):
     session_id: str
-    rating: int
+    rating: MM5QaRating
 
 
 class MM5QaNextRequest(BaseModel):
@@ -479,7 +491,7 @@ def load_mm5_qa_session(session_id: str) -> MM5QaSession | None:
 def append_mm5_qa_rating_to_csv(
     session_id: str,
     metadata: dict,
-    rating: int,
+    rating: MM5QaRating,
 ) -> None:
     csv_path = get_mm5_qa_dir() / f"{session_id}_ratings.csv"
     file_exists = csv_path.exists()
@@ -498,7 +510,7 @@ def append_mm5_qa_rating_to_csv(
             metadata.get("sample", ""),
             metadata.get("label_index", ""),
             metadata.get("label_name", ""),
-            False if rating == 0 else rating,
+            rating,
         ])
 
 
@@ -756,12 +768,6 @@ def mm5_qa_rate(request: MM5QaRateRequest):
         if session is None:
             raise HTTPException(
                 status_code=404, detail="Session not found",
-            )
-
-        if request.rating < 0 or request.rating > 4:
-            raise HTTPException(
-                status_code=400,
-                detail="Rating must be 0 (N/A) or between 1 and 4",
             )
 
         if session.current_metadata is None:

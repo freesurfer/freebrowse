@@ -1,14 +1,14 @@
 import { ClipboardCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import type { MM5QaState } from "@/hooks/use-mm5-qa";
+import type { MM5QaRating, MM5QaState } from "@/hooks/use-mm5-qa";
 import MM5QaTab from "@/components/tabs/mm5-qa-tab";
 
 interface MM5QaSidebarProps {
   mm5QaState: MM5QaState;
   onMM5QaStateChange: (updater: (prev: MM5QaState) => MM5QaState) => void;
   onInitSession: () => void;
-  onSubmitRating: (rating: number) => void;
+  onSubmitRating: (rating: MM5QaRating) => void;
   onAdvance: () => void;
   onToggleSegOverlay: () => void;
   onEndSession: () => void;

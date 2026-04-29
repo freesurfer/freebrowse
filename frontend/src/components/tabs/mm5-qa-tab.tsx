@@ -5,13 +5,27 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { MM5QaState } from "@/hooks/use-mm5-qa";
+import type { MM5QaRating, MM5QaState } from "@/hooks/use-mm5-qa";
+
+const MM5_QA_RATING_OPTIONS: ReadonlyArray<{
+  value: MM5QaRating;
+  label: string;
+}> = [
+  { value: "very_easy", label: "Very Easy" },
+  { value: "easy", label: "Easy" },
+  { value: "hard", label: "Hard" },
+  { value: "very_hard", label: "Very Hard" },
+  { value: "incorrect", label: "Incorrect" },
+  { value: "low_quality", label: "Low Quality" },
+  { value: "not_present", label: "Not Present" },
+  { value: "not_applicable", label: "N/A" },
+];
 
 interface MM5QaTabProps {
   mm5QaState: MM5QaState;
   onMM5QaStateChange: (updater: (prev: MM5QaState) => MM5QaState) => void;
   onInitSession: () => void;
-  onSubmitRating: (rating: number) => void;
+  onSubmitRating: (rating: MM5QaRating) => void;
   onAdvance: () => void;
   onToggleSegOverlay: () => void;
   onEndSession: () => void;
@@ -193,14 +207,9 @@ export default function MM5QaTab({
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Difficulty</Label>
+                <Label className="text-sm font-medium">Rating</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {([
-                    { value: 1, label: "Very Easy" },
-                    { value: 2, label: "Easy" },
-                    { value: 3, label: "Hard" },
-                    { value: 4, label: "Very Hard" },
-                  ] as const).map(({ value, label }) => (
+                  {MM5_QA_RATING_OPTIONS.map(({ value, label }) => (
                     <Button
                       key={value}
                       variant={
@@ -216,17 +225,6 @@ export default function MM5QaTab({
                     </Button>
                   ))}
                 </div>
-                <Button
-                  variant={
-                    mm5QaState.selectedRating === 0 ? "default" : "outline"
-                  }
-                  size="sm"
-                  className="w-full"
-                  onClick={() => onSubmitRating(0)}
-                  disabled={mm5QaState.loading}
-                >
-                  N/A
-                </Button>
               </div>
 
               <Button
