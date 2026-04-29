@@ -1,4 +1,4 @@
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ interface MM5QaTabProps {
   onInitSession: () => void;
   onSubmitRating: (rating: MM5QaRating) => void;
   onAdvance: () => void;
+  onResetView: () => void;
   onToggleSegOverlay: () => void;
   onEndSession: () => void;
   onContrastMinChange: (value: number) => void;
@@ -39,6 +40,7 @@ export default function MM5QaTab({
   onInitSession,
   onSubmitRating,
   onAdvance,
+  onResetView,
   onToggleSegOverlay,
   onEndSession,
   onContrastMinChange,
@@ -163,6 +165,16 @@ export default function MM5QaTab({
                   )}
                 </div>
               )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={onResetView}
+              >
+                <Home className="mr-2 h-4 w-4" />
+                Reset View
+              </Button>
 
               <Button
                 variant={mm5QaState.segVisible ? "default" : "outline"}

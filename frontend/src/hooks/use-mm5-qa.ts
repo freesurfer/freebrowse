@@ -123,6 +123,37 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     sessionIdRef.current = mm5QaState.sessionId;
   }, [mm5QaState.sessionId]);
 
+  function centerCrosshairOnSegmentation(): void {
+    const nv = nvRef.current;
+    if (!nv) return;
+    const seg = nv.volumes[1];
+    if (!seg?.img || !seg?.hdr?.dims) return;
+
+    const nx = seg.hdr.dims[1];
+    const ny = seg.hdr.dims[2];
+    const nz = seg.hdr.dims[3];
+    const data = seg.img;
+    let sumX = 0, sumY = 0, sumZ = 0, count = 0;
+    for (let i = 0; i < data.length; i++) {
+      if (data[i] <= 0) continue;
+      const z = Math.floor(i / (nx * ny));
+      const rem = i % (nx * ny);
+      const y = Math.floor(rem / nx);
+      const x = rem % nx;
+      sumX += x;
+      sumY += y;
+      sumZ += z;
+      count++;
+    }
+    if (count === 0) return;
+
+    nv.scene.crosshairPos = [
+      sumX / (count * nx),
+      sumY / (count * ny),
+      sumZ / (count * nz),
+    ];
+  }
+
   async function showSampleInViewer(
     volImage: NVImage,
     segImage: NVImage,
@@ -138,35 +169,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     nv.addVolume(volImage);
     nv.addVolume(segImage);
     resetNiivueSceneGeometry(nv);
-
-    // Center crosshair on segmentation center of mass
-    const seg = nv.volumes[1];
-    if (seg?.img && seg?.hdr?.dims) {
-      const nx = seg.hdr.dims[1];
-      const ny = seg.hdr.dims[2];
-      const nz = seg.hdr.dims[3];
-      const data = seg.img;
-      let sumX = 0, sumY = 0, sumZ = 0, count = 0;
-      for (let i = 0; i < data.length; i++) {
-        if (data[i] > 0) {
-          const z = Math.floor(i / (nx * ny));
-          const rem = i % (nx * ny);
-          const y = Math.floor(rem / nx);
-          const x = rem % nx;
-          sumX += x;
-          sumY += y;
-          sumZ += z;
-          count++;
-        }
-      }
-      if (count > 0) {
-        nv.scene.crosshairPos = [
-          sumX / (count * nx),
-          sumY / (count * ny),
-          sumZ / (count * nz),
-        ];
-      }
-    }
+    centerCrosshairOnSegmentation();
 
     nv.updateGLVolume();
     nv.drawScene();
@@ -355,6 +358,15 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     }
   }
 
+  function resetView(): void {
+    const nv = nvRef.current;
+    if (!nv) return;
+    resetNiivueSceneGeometry(nv);
+    centerCrosshairOnSegmentation();
+    nv.updateGLVolume();
+    nv.drawScene();
+  }
+
   function toggleSegOverlay(): void {
     const nv = nvRef.current;
     if (!nv || nv.volumes.length < 2) return;
@@ -435,6 +447,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     initSession,
     submitRating,
     advanceToNextSample,
+    resetView,
     toggleSegOverlay,
     handleEndSession,
     handleContrastMinChange,

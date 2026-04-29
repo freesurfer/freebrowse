@@ -57,6 +57,7 @@ export default function MM5QaViewer() {
     initSession,
     submitRating,
     advanceToNextSample,
+    resetView,
     toggleSegOverlay,
     handleEndSession,
     handleContrastMinChange,
@@ -75,6 +76,7 @@ export default function MM5QaViewer() {
           onInitSession={initSession}
           onSubmitRating={submitRating}
           onAdvance={advanceToNextSample}
+          onResetView={resetView}
           onToggleSegOverlay={toggleSegOverlay}
           onEndSession={handleEndSession}
           onContrastMinChange={handleContrastMinChange}

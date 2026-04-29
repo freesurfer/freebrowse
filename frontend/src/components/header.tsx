@@ -1,6 +1,5 @@
 import { useFreeBrowseStore } from "@/store";
 import { useViewerOptions } from "@/hooks/use-viewer-options";
-import { resetNiivueSceneGeometry } from "@/lib/niivue-helpers";
 import {
   PanelLeft,
   PanelRight,
@@ -9,7 +8,6 @@ import {
   Moon,
   Sun,
   Brain,
-  Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ViewSelector from "@/components/view-selector";
@@ -35,14 +33,6 @@ export default function Header({ nvRef }: HeaderProps) {
     setViewerOptions,
     handleViewMode,
   } = useViewerOptions(nvRef);
-
-  function handleResetView(): void {
-    const nv = nvRef.current;
-    if (!nv) return;
-    resetNiivueSceneGeometry(nv);
-    nv.updateGLVolume();
-    nv.drawScene();
-  }
 
   return (
     <header className="border-b bg-background px-6 py-3">
@@ -98,15 +88,6 @@ export default function Header({ nvRef }: HeaderProps) {
             <span className="ml-2 sr-only md:not-sr-only md:inline-block">
               {/*footerOpen ? "Hide Footer" : "Show Footer"*/}
             </span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleResetView}
-            className="h-8 w-8 p-0"
-            title="Reset view"
-          >
-            <Home className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"

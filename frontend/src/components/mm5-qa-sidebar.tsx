@@ -10,6 +10,7 @@ interface MM5QaSidebarProps {
   onInitSession: () => void;
   onSubmitRating: (rating: MM5QaRating) => void;
   onAdvance: () => void;
+  onResetView: () => void;
   onToggleSegOverlay: () => void;
   onEndSession: () => void;
   onContrastMinChange: (value: number) => void;
@@ -44,6 +45,7 @@ export default function MM5QaSidebar(props: MM5QaSidebarProps) {
             onInitSession={props.onInitSession}
             onSubmitRating={props.onSubmitRating}
             onAdvance={props.onAdvance}
+            onResetView={props.onResetView}
             onToggleSegOverlay={props.onToggleSegOverlay}
             onEndSession={props.onEndSession}
             onContrastMinChange={props.onContrastMinChange}
