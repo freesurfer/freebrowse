@@ -5,6 +5,10 @@ import {
   base64NiftiToNVImage,
   resetNiivueSceneGeometry,
 } from "@/lib/niivue-helpers";
+import {
+  percentileFromSortedIntensities,
+  sortedFiniteIntensities,
+} from "@/lib/intensity-percentiles";
 import { ensureGLContext } from "@/lib/gl-context";
 
 export type MM5QaMetadata = {
@@ -36,10 +40,12 @@ export type MM5QaState = {
   loading: boolean;
   error: string | null;
   metadata: MM5QaMetadata | null;
-  contrastMin: number;
-  contrastMax: number;
-  globalMin: number;
-  globalMax: number;
+  contrastMinPercentile: number;
+  contrastMaxPercentile: number;
+  contrastMinIntensity: number;
+  contrastMaxIntensity: number;
+  globalMinIntensity: number;
+  globalMaxIntensity: number;
   blinded: boolean;
   segVisible: boolean;
   samplingStrategy: "hierarchical" | "random";
@@ -47,7 +53,25 @@ export type MM5QaState = {
 
 // --- Pure helpers ---
 
-type MM5QaSample = { volImage: NVImage; segImage: NVImage; metadata: MM5QaMetadata | null };
+type MM5QaSample = {
+  volImage: NVImage;
+  segImage: NVImage;
+  metadata: MM5QaMetadata | null;
+};
+type NVImageWithIntensityData = NVImage & {
+  img?: ArrayLike<number>;
+  cal_min?: number;
+  cal_max?: number;
+  global_min?: number;
+  global_max?: number;
+  robust_min?: number;
+  robust_max?: number;
+};
+
+type ContrastState = {
+  minIntensity: number;
+  maxIntensity: number;
+};
 
 async function fetchAndDecodeSample(
   sessionId: string,
@@ -89,12 +113,17 @@ async function fetchAndDecodeSample(
 // --- Hook ---
 
 const PREFETCH_AHEAD = 5;
+const DEFAULT_CONTRAST_MIN_PERCENTILE = 2;
+const DEFAULT_CONTRAST_MAX_PERCENTILE = 98;
 
 export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
   const setShowUploader = useFreeBrowseStore((s) => s.setShowUploader);
 
   const preloadedRef = useRef<Map<number, MM5QaSample>>(new Map());
   const pendingRatingRef = useRef<Promise<void> | null>(null);
+  const sortedIntensityCacheRef = useRef<WeakMap<NVImage, Float32Array>>(
+    new WeakMap(),
+  );
 
   const [mm5QaState, setMM5QaState] = useState<MM5QaState>({
     name: "",
@@ -105,10 +134,12 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     loading: false,
     error: null,
     metadata: null,
-    contrastMin: 0,
-    contrastMax: 100,
-    globalMin: 0,
-    globalMax: 100,
+    contrastMinPercentile: DEFAULT_CONTRAST_MIN_PERCENTILE,
+    contrastMaxPercentile: DEFAULT_CONTRAST_MAX_PERCENTILE,
+    contrastMinIntensity: 0,
+    contrastMaxIntensity: 100,
+    globalMinIntensity: 0,
+    globalMaxIntensity: 100,
     blinded: false,
     segVisible: true,
     samplingStrategy: "random",
@@ -122,6 +153,57 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
   useEffect(() => {
     sessionIdRef.current = mm5QaState.sessionId;
   }, [mm5QaState.sessionId]);
+
+  function getSortedIntensities(volume: NVImage): Float32Array | null {
+    const cachedValues = sortedIntensityCacheRef.current.get(volume);
+    if (cachedValues) return cachedValues;
+
+    const values = (volume as NVImageWithIntensityData).img;
+    if (!values) return null;
+
+    const sortedValues = sortedFiniteIntensities(values);
+    sortedIntensityCacheRef.current.set(volume, sortedValues);
+    return sortedValues;
+  }
+
+  function getVolumeIntensityAtPercentile(
+    volume: NVImage,
+    percentile: number,
+    fallback: number,
+  ): number {
+    const sortedValues = getSortedIntensities(volume);
+    if (!sortedValues) return fallback;
+
+    const intensity = percentileFromSortedIntensities(sortedValues, percentile);
+    return Number.isFinite(intensity) ? intensity : fallback;
+  }
+
+  function getFiniteNumber(value: number | undefined, fallback: number): number {
+    const isFiniteNumber = typeof value === "number" && Number.isFinite(value);
+    return isFiniteNumber ? value : fallback;
+  }
+
+  function applyDefaultContrast(volume: NVImage): ContrastState {
+    const image = volume as NVImageWithIntensityData;
+    const minIntensity = getFiniteNumber(
+      image.cal_min,
+      getVolumeIntensityAtPercentile(volume, DEFAULT_CONTRAST_MIN_PERCENTILE, 0),
+    );
+    const maxIntensity = getFiniteNumber(
+      image.cal_max,
+      getVolumeIntensityAtPercentile(
+        volume,
+        DEFAULT_CONTRAST_MAX_PERCENTILE,
+        100,
+      ),
+    );
+
+    image.cal_min = minIntensity;
+    image.cal_max = maxIntensity;
+    image.robust_min = minIntensity;
+    image.robust_max = maxIntensity;
+    return { minIntensity, maxIntensity };
+  }
 
   function centerCrosshairOnSegmentation(): void {
     const nv = nvRef.current;
@@ -213,6 +295,8 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
         sample = await fetchAndDecodeSample(sessionId, index);
       }
 
+      const contrast = applyDefaultContrast(sample.volImage);
+      const volImage = sample.volImage as NVImageWithIntensityData;
       await showSampleInViewer(sample.volImage, sample.segImage);
 
       setMM5QaState((prev) => ({
@@ -221,10 +305,12 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
         metadata: sample.metadata,
         selectedRating: null,
         loading: false,
-        contrastMin: sample.volImage.cal_min ?? 0,
-        contrastMax: sample.volImage.cal_max ?? 100,
-        globalMin: sample.volImage.global_min ?? 0,
-        globalMax: sample.volImage.global_max ?? 100,
+        contrastMinPercentile: DEFAULT_CONTRAST_MIN_PERCENTILE,
+        contrastMaxPercentile: DEFAULT_CONTRAST_MAX_PERCENTILE,
+        contrastMinIntensity: contrast.minIntensity,
+        contrastMaxIntensity: contrast.maxIntensity,
+        globalMinIntensity: volImage.global_min ?? 0,
+        globalMaxIntensity: volImage.global_max ?? 100,
         segVisible: true,
       }));
 
@@ -255,6 +341,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
 
     preloadedRef.current.clear();
     inflightPrefetchRef.current.clear();
+    sortedIntensityCacheRef.current = new WeakMap();
     setMM5QaState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
@@ -390,26 +477,47 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  function handleContrastMinChange(value: number): void {
-    const vol = nvRef.current?.volumes[0];
+  function handleContrastMinChange(percentile: number): void {
+    const vol = nvRef.current?.volumes[0] as NVImage | undefined;
     if (!vol) return;
-    vol.cal_min = value;
+
+    const intensity = getVolumeIntensityAtPercentile(
+      vol,
+      percentile,
+      mm5QaState.contrastMinIntensity,
+    );
+    (vol as NVImageWithIntensityData).cal_min = intensity;
     nvRef.current?.updateGLVolume();
-    setMM5QaState((prev) => ({ ...prev, contrastMin: value }));
+    setMM5QaState((prev) => ({
+      ...prev,
+      contrastMinPercentile: percentile,
+      contrastMinIntensity: intensity,
+    }));
   }
 
-  function handleContrastMaxChange(value: number): void {
-    const vol = nvRef.current?.volumes[0];
+  function handleContrastMaxChange(percentile: number): void {
+    const vol = nvRef.current?.volumes[0] as NVImage | undefined;
     if (!vol) return;
-    vol.cal_max = value;
+
+    const intensity = getVolumeIntensityAtPercentile(
+      vol,
+      percentile,
+      mm5QaState.contrastMaxIntensity,
+    );
+    (vol as NVImageWithIntensityData).cal_max = intensity;
     nvRef.current?.updateGLVolume();
-    setMM5QaState((prev) => ({ ...prev, contrastMax: value }));
+    setMM5QaState((prev) => ({
+      ...prev,
+      contrastMaxPercentile: percentile,
+      contrastMaxIntensity: intensity,
+    }));
   }
 
   function handleEndSession() {
     abortRef.current = null;
     inflightPrefetchRef.current.clear();
     preloadedRef.current.clear();
+    sortedIntensityCacheRef.current = new WeakMap();
     pendingRatingRef.current = null;
 
     const nv = nvRef.current;
@@ -431,10 +539,12 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
       loading: false,
       error: null,
       metadata: null,
-      contrastMin: 0,
-      contrastMax: 100,
-      globalMin: 0,
-      globalMax: 100,
+      contrastMinPercentile: DEFAULT_CONTRAST_MIN_PERCENTILE,
+      contrastMaxPercentile: DEFAULT_CONTRAST_MAX_PERCENTILE,
+      contrastMinIntensity: 0,
+      contrastMaxIntensity: 100,
+      globalMinIntensity: 0,
+      globalMaxIntensity: 100,
       blinded: false,
       segVisible: true,
       samplingStrategy: "random",

@@ -385,8 +385,8 @@ def _select_label_for_mm5_qa(
 
 def set_percentile_cal(
     nii: nib.Nifti1Image,
-    lower: float = 3.0,
-    upper: float = 97.0,
+    lower: float = 2.0,
+    upper: float = 98.0,
 ) -> nib.Nifti1Image:
     """Set cal_min/cal_max to intensity percentiles."""
     data = nii.get_fdata(dtype=np.float32)

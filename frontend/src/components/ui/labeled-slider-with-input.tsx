@@ -34,28 +34,39 @@ const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWit
     ...props 
   }, ref) => {
     
-    const toDisplay = (v: number) => {
+    const toDisplay = React.useCallback((v: number) => {
       if (!scaleTo100) return v
       const range = max - min
       return range > 0 ? ((v - min) / range) * 100 : 0
-    }
+    }, [scaleTo100, min, max])
 
-    const toInternal = (d: number) => {
+    const toInternal = React.useCallback((d: number) => {
       if (!scaleTo100) return d
       const range = max - min
       return range > 0 ? min + (d / 100) * range : min
-    }
+    }, [scaleTo100, min, max])
 
     const [localValue, setLocalValue] = React.useState(toDisplay(value))
-    const timeoutRef = React.useRef<NodeJS.Timeout>(undefined)
+    const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+    const onValueChangeRef = React.useRef(onValueChange)
 
     const formatValue = (val: number) => {
       return Number(val.toFixed(decimalPlaces))
     }
 
     React.useEffect(() => {
+      onValueChangeRef.current = onValueChange
+    }, [onValueChange])
+
+    React.useEffect(() => {
       setLocalValue(toDisplay(value))
-    }, [value, scaleTo100, min, max])
+    }, [value, toDisplay])
+
+    React.useEffect(() => {
+      return () => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      }
+    }, [])
     
     const debouncedOnValueChange = React.useCallback((newValue: number) => {
       if (timeoutRef.current) {
@@ -63,9 +74,9 @@ const LabeledSliderWithInput = React.forwardRef<HTMLDivElement, LabeledSliderWit
       }
       
       timeoutRef.current = setTimeout(() => {
-        onValueChange(newValue)
+        onValueChangeRef.current(newValue)
       }, 50) // 50ms debounce
-    }, [onValueChange])
+    }, [])
     
     const handleSliderChange = (values: number[]) => {
       const displayValue = values[0]

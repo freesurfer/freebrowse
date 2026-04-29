@@ -197,24 +197,24 @@ export default function MM5QaTab({
                 <LabeledSliderWithInput
                   key={`contrast-min-${mm5QaState.currentIndex}`}
                   label="Min"
-                  value={mm5QaState.contrastMin}
+                  value={mm5QaState.contrastMinPercentile}
                   onValueChange={onContrastMinChange}
-                  min={mm5QaState.globalMin}
-                  max={mm5QaState.globalMax}
+                  min={0}
+                  max={100}
                   step={0.1}
                   decimalPlaces={1}
-                  scaleTo100={true}
+                  disabled={mm5QaState.loading}
                 />
                 <LabeledSliderWithInput
                   key={`contrast-max-${mm5QaState.currentIndex}`}
                   label="Max"
-                  value={mm5QaState.contrastMax}
+                  value={mm5QaState.contrastMaxPercentile}
                   onValueChange={onContrastMaxChange}
-                  min={mm5QaState.globalMin}
-                  max={mm5QaState.globalMax}
+                  min={0}
+                  max={100}
                   step={0.1}
                   decimalPlaces={1}
-                  scaleTo100={true}
+                  disabled={mm5QaState.loading}
                 />
               </div>
 
