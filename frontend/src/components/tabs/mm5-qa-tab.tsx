@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { MM5QaState } from "@/hooks/use-mm5-qa";
 
 interface MM5QaTabProps {
@@ -70,6 +71,27 @@ export default function MM5QaTab({
                   placeholder="Random seed (integer)"
                 />
               </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Sampling</Label>
+                <ToggleGroup
+                  type="single"
+                  variant="outline"
+                  className="w-full"
+                  value={mm5QaState.samplingStrategy}
+                  onValueChange={(value) => {
+                    if (value !== "random" && value !== "hierarchical") return;
+                    onMM5QaStateChange((prev) => ({
+                      ...prev,
+                      samplingStrategy: value,
+                    }));
+                  }}
+                >
+                  <ToggleGroupItem value="random">Random</ToggleGroupItem>
+                  <ToggleGroupItem value="hierarchical">
+                    Hierarchical
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
               <Button
                 className="w-full"
                 onClick={onInitSession}
@@ -116,6 +138,10 @@ export default function MM5QaTab({
                       mm
                     </div>
                   )}
+                  <div className="font-mono">
+                    <span className="font-medium font-sans">Sampling:</span>{" "}
+                    {mm5QaState.samplingStrategy}
+                  </div>
                   {mm5QaState.blinded && !mm5QaState.metadata.dataset && (
                     <div className="italic">
                       Blinded session — dataset info hidden

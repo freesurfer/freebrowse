@@ -29,6 +29,7 @@ export type MM5QaState = {
   globalMax: number;
   blinded: boolean;
   segVisible: boolean;
+  samplingStrategy: "hierarchical" | "random";
 };
 
 // --- Pure helpers ---
@@ -97,6 +98,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     globalMax: 100,
     blinded: false,
     segVisible: true,
+    samplingStrategy: "random",
   });
 
   // Refs to avoid stale closures in async functions
@@ -242,7 +244,11 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
       const response = await fetch("/mm5-qa/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: mm5QaState.name.trim(), seed: seedNum }),
+        body: JSON.stringify({
+          name: mm5QaState.name.trim(),
+          seed: seedNum,
+          sampling_strategy: mm5QaState.samplingStrategy,
+        }),
       });
 
       if (!response.ok) {
@@ -405,6 +411,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
       globalMax: 100,
       blinded: false,
       segVisible: true,
+      samplingStrategy: "random",
     }));
   }
 

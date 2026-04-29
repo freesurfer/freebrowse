@@ -8,6 +8,7 @@ import base64
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import nibabel as nib
@@ -52,6 +53,7 @@ class ElucidQaNextRequest(BaseModel):
 class MM5QaInitRequest(BaseModel):
     name: str
     seed: int
+    sampling_strategy: Literal["hierarchical", "random"] = "random"
 
 
 class MM5QaRateRequest(BaseModel):
@@ -83,6 +85,7 @@ class MM5QaSession:
     current_index: int
     current_metadata: dict | None = None
     rng_state: list | None = None
+    sampling_strategy: str = "random"
 
 
 @dataclass
@@ -316,12 +319,30 @@ def build_mm5_qa_index() -> list[MM5QaTask]:
 def sample_mm5_qa_item(
     index: list[MM5QaTask],
     rng: random.Random,
+    strategy: Literal["hierarchical", "random"] = "random",
 ) -> tuple[MM5QaTask, str]:
-    """Draw one (task, sample_key) using flat uniform sampling.
+    """Draw one (task, sample_key) using the given sampling strategy.
 
-    Every task has equal probability regardless of dataset size.
+    When ``strategy == "random"``, every task in the index has equal
+    probability regardless of dataset size (one ``rng.choice`` over the
+    flat index, plus one over the task's samples).
+
+    When ``strategy == "hierarchical"``, walk ``_MM5_QA_HIERARCHY`` and
+    at each level choose uniformly among the distinct values present in
+    the remaining candidates, filtering down to that value. This gives
+    equal probability to each value at each hierarchy level (e.g. each
+    dataset is equally likely regardless of its size). Consumes exactly
+    ``len(_MM5_QA_HIERARCHY) + 1`` RNG calls per invocation.
     """
-    task = rng.choice(index)
+    if strategy == "hierarchical":
+        candidates = index
+        for attr in _MM5_QA_HIERARCHY:
+            unique_vals = sorted(set(getattr(t, attr) for t in candidates))
+            val = rng.choice(unique_vals)
+            candidates = [t for t in candidates if getattr(t, attr) == val]
+        task = candidates[0]
+    else:
+        task = rng.choice(index)
     sample_key = rng.choice(task.samples)
     return task, sample_key
 
@@ -441,6 +462,7 @@ def save_mm5_qa_session(session_id: str, session: MM5QaSession) -> None:
             "current_index": session.current_index,
             "current_metadata": session.current_metadata,
             "rng_state": session.rng_state,
+            "sampling_strategy": session.sampling_strategy,
         }, f)
 
 
@@ -450,6 +472,7 @@ def load_mm5_qa_session(session_id: str) -> MM5QaSession | None:
         return None
     with open(path, "r") as f:
         data = json.load(f)
+    data.setdefault("sampling_strategy", "random")
     return MM5QaSession(**data)
 
 
@@ -638,7 +661,8 @@ def mm5_qa_init(request: MM5QaInitRequest):
             mm5_qa_index = build_mm5_qa_index()
             rng = random.Random(existing.seed)
             for _ in range(existing.current_index):
-                sample_mm5_qa_item(mm5_qa_index, rng)
+                sample_mm5_qa_item(
+                    mm5_qa_index, rng, existing.sampling_strategy)
             existing.rng_state = _serialize_rng_state(rng.getstate())
             save_mm5_qa_session(session_id, existing)
         logger.info(
@@ -659,6 +683,7 @@ def mm5_qa_init(request: MM5QaInitRequest):
         seed=request.seed,
         current_index=0,
         rng_state=_serialize_rng_state(rng.getstate()),
+        sampling_strategy=request.sampling_strategy,
     )
     save_mm5_qa_session(session_id, session)
     logger.info(f"Created MM5 QA session: {session_id}")
@@ -695,13 +720,17 @@ def mm5_qa_sample(session_id: str, index: int | None = None):
         rng.setstate(_deserialize_rng_state(session.rng_state))
         k = target_index - session.current_index
         for _ in range(k):
-            sample_mm5_qa_item(mm5_qa_index, rng)
-        task, sample_key = sample_mm5_qa_item(mm5_qa_index, rng)
+            sample_mm5_qa_item(
+                mm5_qa_index, rng, session.sampling_strategy)
+        task, sample_key = sample_mm5_qa_item(
+            mm5_qa_index, rng, session.sampling_strategy)
     else:
         rng = random.Random(session.seed)
         for _ in range(target_index):
-            sample_mm5_qa_item(mm5_qa_index, rng)
-        task, sample_key = sample_mm5_qa_item(mm5_qa_index, rng)
+            sample_mm5_qa_item(
+                mm5_qa_index, rng, session.sampling_strategy)
+        task, sample_key = sample_mm5_qa_item(
+            mm5_qa_index, rng, session.sampling_strategy)
 
     vol_b64, seg_b64, metadata = read_mm5_qa_sample(task, sample_key)
 
@@ -765,14 +794,17 @@ def mm5_qa_next(request: MM5QaNextRequest):
         rng = random.Random()
         if session.rng_state:
             rng.setstate(_deserialize_rng_state(session.rng_state))
-            sample_mm5_qa_item(mm5_qa_index, rng)
+            sample_mm5_qa_item(
+                mm5_qa_index, rng, session.sampling_strategy)
         else:
             rng = random.Random(session.seed)
             for _ in range(session.current_index + 1):
-                sample_mm5_qa_item(mm5_qa_index, rng)
+                sample_mm5_qa_item(
+                    mm5_qa_index, rng, session.sampling_strategy)
 
         new_rng_state = _serialize_rng_state(rng.getstate())
-        task, sample_key = sample_mm5_qa_item(mm5_qa_index, rng)
+        task, sample_key = sample_mm5_qa_item(
+            mm5_qa_index, rng, session.sampling_strategy)
 
         metadata = {
             "dataset": task.dataset,
