@@ -1,4 +1,5 @@
 import { SHOW_RENDER, NVImage } from "@niivue/niivue";
+import type { Niivue } from "@niivue/niivue";
 
 /**
  * Map from view mode name to Niivue slice type and render settings.
@@ -13,6 +14,15 @@ export const sliceTypeMap: {
   ACSR: { sliceType: 3, showRender: SHOW_RENDER.ALWAYS },
   render: { sliceType: 4, showRender: SHOW_RENDER.ALWAYS },
 };
+
+/**
+ * Reset Niivue pan, zoom, and scene orientation without moving the crosshair.
+ */
+export function resetNiivueSceneGeometry(nv: Niivue): void {
+  const crosshairPos = [...nv.scene.crosshairPos] as [number, number, number];
+  nv.setDefaults({ ...nv.opts }, false);
+  nv.scene.crosshairPos = crosshairPos;
+}
 
 /**
  * Convert an RGBA [0-255] tuple to a hex color string (ignoring alpha).

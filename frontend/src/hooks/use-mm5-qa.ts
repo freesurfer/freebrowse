@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Niivue, NVImage } from "@niivue/niivue";
-import { base64NiftiToNVImage } from "@/lib/niivue-helpers";
+import {
+  base64NiftiToNVImage,
+  resetNiivueSceneGeometry,
+} from "@/lib/niivue-helpers";
 import { ensureGLContext } from "@/lib/gl-context";
 
 export type MM5QaMetadata = {
@@ -134,6 +137,7 @@ export function useMM5Qa(nvRef: React.RefObject<Niivue | null>) {
     }
     nv.addVolume(volImage);
     nv.addVolume(segImage);
+    resetNiivueSceneGeometry(nv);
 
     // Center crosshair on segmentation center of mass
     const seg = nv.volumes[1];

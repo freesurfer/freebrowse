@@ -2,7 +2,13 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@niivue/niivue", () => import("@/__mocks__/niivue"));
 
-import { rgba255ToHex, uint8ArrayToBase64, sliceTypeMap } from "./niivue-helpers";
+import type { Niivue } from "@niivue/niivue";
+import {
+  resetNiivueSceneGeometry,
+  rgba255ToHex,
+  uint8ArrayToBase64,
+  sliceTypeMap,
+} from "./niivue-helpers";
 
 describe("rgba255ToHex", () => {
   it("converts RGBA [0-255] to hex string", () => {
@@ -22,6 +28,22 @@ describe("uint8ArrayToBase64", () => {
   it("handles empty array", () => {
     const arr = new Uint8Array([]);
     expect(uint8ArrayToBase64(arr)).toBe("");
+  });
+});
+
+describe("resetNiivueSceneGeometry", () => {
+  it("resets scene defaults without moving the crosshair", () => {
+    const opts = { dragAndDropEnabled: false };
+    const nv = {
+      opts,
+      scene: { crosshairPos: [0.2, 0.3, 0.4] },
+      setDefaults: vi.fn(),
+    } as unknown as Niivue;
+
+    resetNiivueSceneGeometry(nv);
+
+    expect(nv.setDefaults).toHaveBeenCalledWith(opts, false);
+    expect(nv.scene.crosshairPos).toEqual([0.2, 0.3, 0.4]);
   });
 });
 
