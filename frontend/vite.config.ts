@@ -27,7 +27,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/data': backendUrl,
-      '/dl': backendUrl,
+      '/ai': backendUrl,
     }
   }
 })
