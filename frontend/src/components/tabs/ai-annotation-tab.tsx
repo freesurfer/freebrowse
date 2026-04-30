@@ -9,9 +9,9 @@ import { Select } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input";
 import { randomSessionName } from "@/lib/random-session-name";
-import type { DlSessionSummary } from "@/store/dl-slice";
+import type { AiSessionSummary } from "@/store/ai-slice";
 
-interface DlAnnotationTabProps {
+interface AiAnnotationTabProps {
   volumesCount: number;
   onNewSession: (sessionName: string) => Promise<void>;
   onLoadSession: (sessionId: string) => Promise<void>;
@@ -36,7 +36,7 @@ type ModelInfo = {
   config_path: string | null;
 };
 
-export default function DlAnnotationTab({
+export default function AiAnnotationTab({
   volumesCount,
   onNewSession,
   onLoadSession,
@@ -53,9 +53,9 @@ export default function DlAnnotationTab({
   onMagicWandMaxDistanceChange,
   onMagicWandThresholdChange,
   onDrawUndo,
-}: DlAnnotationTabProps) {
-  const dlSessions = useFreeBrowseStore((s) => s.dlSessions);
-  const activeSession = useFreeBrowseStore((s) => s.dlActiveSession);
+}: AiAnnotationTabProps) {
+  const aiSessions = useFreeBrowseStore((s) => s.aiSessions);
+  const activeSession = useFreeBrowseStore((s) => s.aiActiveSession);
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
 
   const [sessionName, setSessionName] = useState<string>(() => randomSessionName());
@@ -76,8 +76,8 @@ export default function DlAnnotationTab({
 
   const fetchModels = useCallback(async () => {
     try {
-      const res = await fetch("/dl/model/list");
-      if (!res.ok) throw new Error(`GET /dl/model/list failed: ${res.status}`);
+      const res = await fetch("/ai/model/list");
+      if (!res.ok) throw new Error(`GET /ai/model/list failed: ${res.status}`);
       const body: ModelInfo[] = await res.json();
       setModels(body);
       setSelectedMlId((prev) =>
@@ -95,10 +95,10 @@ export default function DlAnnotationTab({
   }, [fetchModels]);
 
   const sessionsById = useMemo(() => {
-    const map: Record<string, DlSessionSummary> = {};
-    for (const s of dlSessions) map[s.session_id] = s;
+    const map: Record<string, AiSessionSummary> = {};
+    for (const s of aiSessions) map[s.session_id] = s;
     return map;
-  }, [dlSessions]);
+  }, [aiSessions]);
 
   const handleClickNewSession = async () => {
     setNewError(null);
@@ -203,14 +203,14 @@ export default function DlAnnotationTab({
         <Select
           value={selectedSessionId}
           onChange={(e) => setSelectedSessionId(e.target.value)}
-          disabled={dlSessions.length === 0 || loading}
+          disabled={aiSessions.length === 0 || loading}
         >
           <option value="">
-            {dlSessions.length === 0
+            {aiSessions.length === 0
               ? "(no sessions)"
               : "Select a session..."}
           </option>
-          {dlSessions.map((s) => (
+          {aiSessions.map((s) => (
             <option key={s.session_id} value={s.session_id}>
               {s.session_name}
             </option>
@@ -272,7 +272,7 @@ export default function DlAnnotationTab({
         </Button>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Select DL model</Label>
+          <Label className="text-sm font-medium">Select AI model</Label>
           <Select
             value={selectedMlId}
             onChange={(e) => setSelectedMlId(e.target.value)}
@@ -331,21 +331,21 @@ export default function DlAnnotationTab({
           <>
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="dl-pen-fill"
+                id="ai-pen-fill"
                 checked={drawingOptions.penFill}
                 onCheckedChange={onPenFillChange}
               />
-              <Label htmlFor="dl-pen-fill" className="text-sm font-medium">
+              <Label htmlFor="ai-pen-fill" className="text-sm font-medium">
                 Pen Fill
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="dl-pen-erases"
+                id="ai-pen-erases"
                 checked={drawingOptions.penErases}
                 onCheckedChange={onPenErasesChange}
               />
-              <Label htmlFor="dl-pen-erases" className="text-sm font-medium">
+              <Label htmlFor="ai-pen-erases" className="text-sm font-medium">
                 Pen Erases
               </Label>
             </div>
@@ -356,12 +356,12 @@ export default function DlAnnotationTab({
           <>
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="dl-magic-wand-2d-only"
+                id="ai-magic-wand-2d-only"
                 checked={drawingOptions.magicWand2dOnly}
                 onCheckedChange={onMagicWand2dOnlyChange}
               />
               <Label
-                htmlFor="dl-magic-wand-2d-only"
+                htmlFor="ai-magic-wand-2d-only"
                 className="text-sm font-medium"
               >
                 2D Only
@@ -440,9 +440,9 @@ export default function DlAnnotationTab({
   return (
     <div className="flex flex-col h-full">
       <div className="border-b px-4 py-3">
-        <h2 className="text-lg font-semibold">DL annotation (backend)</h2>
+        <h2 className="text-lg font-semibold">AI annotation (experimental)</h2>
         <p className="text-sm text-muted-foreground">
-          Guide a deep-learning model with positive and negative seed voxels.
+          Guide an AI model with positive and negative seed voxels.
         </p>
       </div>
       <ScrollArea className="flex-1 min-h-0">

@@ -5,7 +5,7 @@ import { createDrawingSlice, type DrawingSlice } from "./drawing-slice";
 import { createViewerSlice, type ViewerSlice } from "./viewer-slice";
 import { createSaveSlice, type SaveSlice } from "./save-slice";
 import { createLocationSlice, type LocationSlice } from "./location-slice";
-import { createDlSlice, type DlSlice } from "./dl-slice";
+import { createAiSlice, type AiSlice } from "./ai-slice";
 
 export type FreeBrowseStore = VolumeSlice &
   SurfaceSlice &
@@ -13,7 +13,7 @@ export type FreeBrowseStore = VolumeSlice &
   ViewerSlice &
   SaveSlice &
   LocationSlice &
-  DlSlice;
+  AiSlice;
 
 export const useFreeBrowseStore = create<FreeBrowseStore>()((...a) => ({
   ...createVolumeSlice(...a),
@@ -22,5 +22,5 @@ export const useFreeBrowseStore = create<FreeBrowseStore>()((...a) => ({
   ...createViewerSlice(...a),
   ...createSaveSlice(...a),
   ...createLocationSlice(...a),
-  ...createDlSlice(...a),
+  ...createAiSlice(...a),
 }));

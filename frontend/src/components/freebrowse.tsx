@@ -7,8 +7,8 @@ import { useMeshLayers } from "@/hooks/use-mesh-layers";
 import { useDrawing } from "@/hooks/use-drawing";
 import { useSave } from "@/hooks/use-save";
 import { useFileLoading } from "@/hooks/use-file-loading";
-import { useDlCapabilities } from "@/hooks/use-dl-capabilities";
-import { useDlSession } from "@/hooks/use-dl-session";
+import { useAiCapabilities } from "@/hooks/use-ai-capabilities";
+import { useAiSession } from "@/hooks/use-ai-session";
 import {
   resolveImagingUploadConfirmation,
   resolveSessionDeleteConfirmation,
@@ -123,15 +123,15 @@ export default function FreeBrowse() {
     syncDrawingOptionsFromNiivue,
   );
 
-  useDlCapabilities();
+  useAiCapabilities();
   const {
-    refreshSessions: handleDlRefreshSessions,
-    handleNewSession: handleDlNewSession,
-    handleLoadSession: handleDlLoadSession,
-    handleRunSegmentation: handleDlRunSegmentation,
-    handleExitAndSaveSession: handleDlExitAndSaveSession,
-    handleExitAndDeleteSession: handleDlExitAndDeleteSession,
-  } = useDlSession(nvRef);
+    refreshSessions: handleAiRefreshSessions,
+    handleNewSession: handleAiNewSession,
+    handleLoadSession: handleAiLoadSession,
+    handleRunSegmentation: handleAiRunSegmentation,
+    handleExitAndSaveSession: handleAiExitAndSaveSession,
+    handleExitAndDeleteSession: handleAiExitAndDeleteSession,
+  } = useAiSession(nvRef);
 
   return (
     <ViewerShell
@@ -183,12 +183,12 @@ export default function FreeBrowse() {
           onDrawUndo={handleDrawUndo}
           onSaveDrawing={handleSaveDrawing}
           onSaveScene={handleSaveScene}
-          onDlNewSession={handleDlNewSession}
-          onDlLoadSession={handleDlLoadSession}
-          onDlRunSegmentation={handleDlRunSegmentation}
-          onDlExitAndSaveSession={handleDlExitAndSaveSession}
-          onDlExitAndDeleteSession={handleDlExitAndDeleteSession}
-          onDlRefreshSessions={handleDlRefreshSessions}
+          onAiNewSession={handleAiNewSession}
+          onAiLoadSession={handleAiLoadSession}
+          onAiRunSegmentation={handleAiRunSegmentation}
+          onAiExitAndSaveSession={handleAiExitAndSaveSession}
+          onAiExitAndDeleteSession={handleAiExitAndDeleteSession}
+          onAiRefreshSessions={handleAiRefreshSessions}
         />
       }
       dialogs={

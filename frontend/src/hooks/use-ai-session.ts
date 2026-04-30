@@ -6,13 +6,13 @@ import {
   requestSessionDeleteConfirmation,
 } from "@/lib/confirmations";
 import { uint8ArrayToBase64 } from "@/lib/niivue-helpers";
-import type { DlSessionSummary } from "@/store/dl-slice";
+import type { AiSessionSummary } from "@/store/ai-slice";
 
 const SESSION_NAME_RE = /^[A-Za-z0-9_-]+$/;
 
-async function fetchSessionList(): Promise<DlSessionSummary[]> {
-  const res = await fetch("/dl/session/list");
-  if (!res.ok) throw new Error(`GET /dl/session/list failed: ${res.status}`);
+async function fetchSessionList(): Promise<AiSessionSummary[]> {
+  const res = await fetch("/ai/session/list");
+  if (!res.ok) throw new Error(`GET /ai/session/list failed: ${res.status}`);
   return res.json();
 }
 
@@ -43,7 +43,7 @@ async function exportAndUploadDrawing(
   // gzipped NIfTI (when filename ends in .gz), without triggering a download.
   const annotRel = "annotations.nii.gz";
   const bytes = await nv.volumes[0].saveToUint8Array(annotRel, nv.drawBitmap);
-  const targetPath = `dl-sessions/${sessionName}/${annotRel}`;
+  const targetPath = `ai-sessions/${sessionName}/${annotRel}`;
   const res = await fetch("/data/nii", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -62,7 +62,7 @@ async function postSetAnnots(
   annotationRelPath: string,
 ): Promise<void> {
   const res = await fetch(
-    `/dl/session/${encodeURIComponent(sessionId)}/set_annots`,
+    `/ai/session/${encodeURIComponent(sessionId)}/set_annots`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -77,11 +77,11 @@ async function postSetAnnots(
 
 const RESULT_FILENAME = "result.nii.gz";
 
-export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
-  const dlEnabled = useFreeBrowseStore((s) => s.dlEnabled);
-  const setDlSessions = useFreeBrowseStore((s) => s.setDlSessions);
-  const setDlActiveSession = useFreeBrowseStore((s) => s.setDlActiveSession);
-  const dlActiveSession = useFreeBrowseStore((s) => s.dlActiveSession);
+export function useAiSession(nvRef: React.RefObject<Niivue | null>) {
+  const aiEnabled = useFreeBrowseStore((s) => s.aiEnabled);
+  const setAiSessions = useFreeBrowseStore((s) => s.setAiSessions);
+  const setAiActiveSession = useFreeBrowseStore((s) => s.setAiActiveSession);
+  const aiActiveSession = useFreeBrowseStore((s) => s.aiActiveSession);
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
   const setDrawingOptions = useFreeBrowseStore((s) => s.setDrawingOptions);
   const setActiveTab = useFreeBrowseStore((s) => s.setActiveTab);
@@ -93,15 +93,15 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
   const refreshSessions = useCallback(async () => {
     try {
       const sessions = await fetchSessionList();
-      setDlSessions(sessions);
+      setAiSessions(sessions);
     } catch (err) {
-      console.error("Failed to refresh DL sessions:", err);
+      console.error("Failed to refresh AI sessions:", err);
     }
-  }, [setDlSessions]);
+  }, [setAiSessions]);
 
   useEffect(() => {
-    if (dlEnabled) void refreshSessions();
-  }, [dlEnabled, refreshSessions]);
+    if (aiEnabled) void refreshSessions();
+  }, [aiEnabled, refreshSessions]);
 
   const enterDrawMode = useCallback(() => {
     const nv = nvRef.current;
@@ -117,7 +117,7 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
       opacity: 1.0,
       penValue,
     }));
-    setActiveTab("dlAnnotation");
+    setActiveTab("aiAnnotation");
   }, [nvRef, drawingOptions.penValue, drawingOptions.penFill, setDrawingOptions, setActiveTab]);
 
   const exitDrawModeLocal = useCallback(() => {
@@ -128,9 +128,9 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
       nv.closeDrawing();
     }
     setDrawingOptions((prev) => ({ ...prev, enabled: false, mode: "none" }));
-    setDlActiveSession(null);
+    setAiActiveSession(null);
     incrementVolumeVersion();
-  }, [nvRef, setDrawingOptions, setDlActiveSession, incrementVolumeVersion]);
+  }, [nvRef, setDrawingOptions, setAiActiveSession, incrementVolumeVersion]);
 
   const handleNewSession = useCallback(
     async (sessionName: string): Promise<void> => {
@@ -155,7 +155,7 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
         if (!ok) throw new Error("Upload cancelled");
       }
 
-      const newRes = await fetch("/dl/session/new", {
+      const newRes = await fetch("/ai/session/new", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_name: trimmed }),
@@ -169,7 +169,7 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
       let volumePathForSetVolume: string;
       if (needsUpload) {
         const basename = ensureNiiName(volume.name);
-        const targetPath = `dl-sessions/${trimmed}/${basename}`;
+        const targetPath = `ai-sessions/${trimmed}/${basename}`;
         const uint8Array = await volume.saveToUint8Array(basename);
         const base64Data = uint8ArrayToBase64(uint8Array);
 
@@ -189,7 +189,7 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
       }
 
       const setVolRes = await fetch(
-        `/dl/session/${encodeURIComponent(session_id)}/set_volume`,
+        `/ai/session/${encodeURIComponent(session_id)}/set_volume`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -201,11 +201,11 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
         throw new Error(`set_volume failed (${setVolRes.status}): ${msg}`);
       }
 
-      setDlActiveSession({ session_id, session_name });
+      setAiActiveSession({ session_id, session_name });
       enterDrawMode();
       await refreshSessions();
     },
-    [nvRef, setDlActiveSession, enterDrawMode, refreshSessions],
+    [nvRef, setAiActiveSession, enterDrawMode, refreshSessions],
   );
 
   const handleLoadSession = useCallback(
@@ -215,52 +215,52 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
 
       const summary = useFreeBrowseStore
         .getState()
-        .dlSessions.find((s) => s.session_id === sessionId);
+        .aiSessions.find((s) => s.session_id === sessionId);
       if (!summary) throw new Error(`Unknown session: ${sessionId}`);
       if (!summary.volume_path)
         throw new Error("Session has no volume set; cannot load");
 
       const volumeUrl =
         summary.volume_path_root === "session"
-          ? `/data/dl-sessions/${summary.session_name}/${summary.volume_path}`
+          ? `/data/ai-sessions/${summary.session_name}/${summary.volume_path}`
           : `/data/${summary.volume_path}`;
 
       // Ensure the niivue canvas is mounted + attached (first-load-in-session path).
       // Same trick use-file-loading.ts:196 uses before addVolumeFromUrl.
       setShowUploader(false);
 
-      // Atomic scene swap \u2014 niivue manages the teardown internally.
+      // Atomic scene swap — niivue manages the teardown internally.
       await nv.loadVolumes([{ url: volumeUrl }]);
       incrementVolumeVersion();
 
       if (summary.annotation_path) {
         try {
-          const annotUrl = `/data/dl-sessions/${summary.session_name}/${summary.annotation_path}`;
+          const annotUrl = `/data/ai-sessions/${summary.session_name}/${summary.annotation_path}`;
           const bytes = await fetchArrayBuffer(annotUrl);
           const nvimage = await nv.niftiArray2NVImage(bytes);
           const ok = nv.loadDrawing(nvimage);
           if (!ok)
             console.warn(
-              "loadDrawing returned false \u2014 annotation dimensions may not match the volume",
+              "loadDrawing returned false — annotation dimensions may not match the volume",
             );
         } catch (err) {
           console.error("Failed to load existing annotations:", err);
         }
       }
 
-      setDlActiveSession({
+      setAiActiveSession({
         session_id: summary.session_id,
         session_name: summary.session_name,
       });
       enterDrawMode();
     },
-    [nvRef, setShowUploader, incrementVolumeVersion, setDlActiveSession, enterDrawMode],
+    [nvRef, setShowUploader, incrementVolumeVersion, setAiActiveSession, enterDrawMode],
   );
 
   const handleRunSegmentation = useCallback(
     async (mlId: string, labelValue: number): Promise<void> => {
       const nv = nvRef.current;
-      const active = useFreeBrowseStore.getState().dlActiveSession;
+      const active = useFreeBrowseStore.getState().aiActiveSession;
       if (!nv || !active || nv.volumes.length === 0)
         throw new Error("No active session or volume");
 
@@ -271,7 +271,7 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
       await postSetAnnots(active.session_id, annotRel);
 
       const inferRes = await fetch(
-        `/dl/session/${encodeURIComponent(active.session_id)}/infer/${encodeURIComponent(mlId)}`,
+        `/ai/session/${encodeURIComponent(active.session_id)}/infer/${encodeURIComponent(mlId)}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -296,7 +296,7 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
       }
 
       const resultUrl =
-        `/data/dl-sessions/${active.session_name}/${RESULT_FILENAME}` +
+        `/data/ai-sessions/${active.session_name}/${RESULT_FILENAME}` +
         `?t=${Date.now()}`;
       await nv.addVolumeFromUrl({
         url: resultUrl,
@@ -311,7 +311,7 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
 
   const handleExitAndSaveSession = useCallback(async (): Promise<void> => {
     const nv = nvRef.current;
-    const active = useFreeBrowseStore.getState().dlActiveSession;
+    const active = useFreeBrowseStore.getState().aiActiveSession;
     if (nv && active) {
       try {
         const annotRel = await exportAndUploadDrawing(nv, active.session_name);
@@ -324,13 +324,13 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
   }, [nvRef, exitDrawModeLocal]);
 
   const handleExitAndDeleteSession = useCallback(async (): Promise<void> => {
-    if (!dlActiveSession) return;
+    if (!aiActiveSession) return;
     const ok = await requestSessionDeleteConfirmation();
     if (!ok) return;
 
-    const id = dlActiveSession.session_id;
+    const id = aiActiveSession.session_id;
     try {
-      const res = await fetch(`/dl/session/${encodeURIComponent(id)}`, {
+      const res = await fetch(`/ai/session/${encodeURIComponent(id)}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -343,7 +343,7 @@ export function useDlSession(nvRef: React.RefObject<Niivue | null>) {
 
     exitDrawModeLocal();
     await refreshSessions();
-  }, [dlActiveSession, exitDrawModeLocal, refreshSessions]);
+  }, [aiActiveSession, exitDrawModeLocal, refreshSessions]);
 
   return {
     refreshSessions,

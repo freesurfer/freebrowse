@@ -1,4 +1,4 @@
-"""Deep-learning inference engine for the /dl/session/{id}/infer/{ml_id} endpoint.
+"""AI inference engine for the /ai/session/{id}/infer/{ml_id} endpoint.
 
 Adapted from freebrowse-eti/backend/src/ml_inference.py:
 - Sessions are on-disk (SessionManager-owned); inference reads paths from the
@@ -222,7 +222,7 @@ def run_inference(
     session_id: str,
     ml_id: str,
     label_value: int,
-    cache_entry: Any,  # SessionCacheEntry from dl_session
+    cache_entry: Any,  # SessionCacheEntry from ai_session
     session_dir: Path,
     manifest: dict,
     data_dir: Path,

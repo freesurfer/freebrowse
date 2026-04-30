@@ -1,6 +1,6 @@
-"""Deep-learning session router.
+"""AI session router.
 
-Persistent, server-keyed sessions backed by a folder under DL_DIR. Each session
+Persistent, server-keyed sessions backed by a folder under AI_DIR. Each session
 carries a reference to a volume and (optionally) an annotation mask and a result
 mask. A RAM cache with a TTL keeps the preprocessed volume tensor and last
 inference logits available across rapid successive calls; the manifest on disk
@@ -70,12 +70,12 @@ class SessionManager:
 
     def __init__(
         self,
-        dl_dir: Path,
+        ai_dir: Path,
         data_dir: Path,
         ttl_seconds: int,
         enable_history: bool = False,
     ):
-        self.dl_dir = dl_dir
+        self.ai_dir = ai_dir
         self.data_dir = data_dir
         self.ttl_seconds = ttl_seconds
         self.enable_history = enable_history
@@ -89,7 +89,7 @@ class SessionManager:
                  if now - e.last_touched > self.ttl_seconds]
         for sid in stale:
             self._cache.pop(sid, None)
-            logger.info(f"DL session cache: evicted {sid} (TTL)")
+            logger.info(f"AI session cache: evicted {sid} (TTL)")
 
     def touch(self, session_id: str) -> _SessionCacheEntry:
         with self._lock:
@@ -114,7 +114,7 @@ class SessionManager:
 
     # ----- manifest I/O -----
     def _session_dir_by_name(self, session_name: str) -> Path:
-        return self.dl_dir / session_name
+        return self.ai_dir / session_name
 
     def _read_manifest(self, manifest_path: Path) -> dict[str, Any]:
         with open(manifest_path, "r") as f:
@@ -127,9 +127,9 @@ class SessionManager:
         os.replace(tmp, manifest_path)
 
     def _iter_session_manifests(self):
-        if not self.dl_dir.exists():
+        if not self.ai_dir.exists():
             return
-        for entry in sorted(self.dl_dir.iterdir()):
+        for entry in sorted(self.ai_dir.iterdir()):
             if not entry.is_dir():
                 continue
             manifest = entry / _MANIFEST_FILENAME
@@ -162,7 +162,7 @@ class SessionManager:
                 status_code=409,
                 detail=f"Session '{session_name}' already exists",
             )
-        self.dl_dir.mkdir(parents=True, exist_ok=True)
+        self.ai_dir.mkdir(parents=True, exist_ok=True)
         session_dir.mkdir(parents=True, exist_ok=False)
         manifest: dict[str, Any] = {
             "session_id": uuid.uuid4().hex,
@@ -179,14 +179,14 @@ class SessionManager:
             manifest["iteration_count"] = 0
             manifest["iterations"] = []
         self._write_manifest(session_dir / _MANIFEST_FILENAME, manifest)
-        logger.info(f"DL session created: {session_name} ({manifest['session_id']})")
+        logger.info(f"AI session created: {session_name} ({manifest['session_id']})")
         return manifest
 
     def delete(self, session_id: str) -> None:
         session_dir, _manifest = self.find_by_id(session_id)
         shutil.rmtree(session_dir)
         self.invalidate_all(session_id)
-        logger.info(f"DL session deleted: {session_id}")
+        logger.info(f"AI session deleted: {session_id}")
 
     # ----- path resolution -----
     def _resolve_under(self, root: Path, rel: str) -> Path | None:
@@ -313,17 +313,17 @@ def _list_models(models_dir: Path) -> list[dict[str, Any]]:
 
 def build_router(
     *,
-    dl_dir: Path,
+    ai_dir: Path,
     data_dir: Path,
     models_dir: Path,
     ttl_seconds: int,
     enabled: bool,
     enable_history: bool = False,
 ) -> APIRouter:
-    """Build the /dl/* router. When `enabled` is False, every route returns 404."""
-    router = APIRouter(prefix="/dl")
+    """Build the /ai/* router. When `enabled` is False, every route returns 404."""
+    router = APIRouter(prefix="/ai")
     manager = SessionManager(
-        dl_dir=dl_dir,
+        ai_dir=ai_dir,
         data_dir=data_dir,
         ttl_seconds=ttl_seconds,
         enable_history=enable_history,
@@ -331,7 +331,7 @@ def build_router(
 
     def _require_enabled() -> None:
         if not enabled:
-            raise HTTPException(status_code=404, detail="DL endpoints disabled")
+            raise HTTPException(status_code=404, detail="AI endpoints disabled")
 
     def _require_ml_id(ml_id: str) -> dict[str, Any]:
         for m in _list_models(models_dir):
@@ -395,7 +395,7 @@ def build_router(
             raise HTTPException(status_code=400, detail="Session has no annotations set")
         label_value = 1 if request is None else max(0, min(255, request.label_value))
 
-        from ml_inference import run_inference  # lazy; only when DL is enabled
+        from ml_inference import run_inference  # lazy; only when AI is enabled
         import nibabel as nib
 
         cache_entry = manager.touch(session_id)
