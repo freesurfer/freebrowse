@@ -46,7 +46,7 @@ export const createViewerSlice: StateCreator<ViewerSlice> = (set) => ({
   darkMode: true,
   sidebarOpen: true,
   footerOpen: true,
-  activeTab: "nvds",
+  activeTab: "sceneDetails",
   settingsDialogOpen: false,
   removeDialogOpen: false,
   volumeToRemove: null,
