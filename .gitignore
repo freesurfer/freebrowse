@@ -18,3 +18,9 @@ frontend/dist-jupyter/
 
 # Git worktrees
 /worktrees/
+.ontomics
+models
+th_*
+*_debug
+*debug*
+.claude
