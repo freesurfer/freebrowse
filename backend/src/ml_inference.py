@@ -479,6 +479,9 @@ def list_models():
         - weights.pt: PyTorch state_dict checkpoint
         - config.yml: (optional) Model configuration
 
+    Subdirectories whose name starts with `.` are skipped, so renaming a
+    model directory to `.<name>` hides it from the UI without deleting it.
+
     Returns
     -------
     list[dict]
@@ -490,6 +493,9 @@ def list_models():
 
     for model_dir in models_path.iterdir():
         if not model_dir.is_dir():
+            continue
+
+        if model_dir.name.startswith('.'):
             continue
 
         model_file = model_dir / 'model.py'
