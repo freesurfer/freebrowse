@@ -1,0 +1,20 @@
+[project]
+name = "freebrowse-backend"
+version = "2.0.0"
+description = "Re-write of initial FreeBrowse implementation"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.5,<0.116",
+    "torch>=2.0",
+    "nibabel>=5.0",
+    "numpy>=1.24",
+    "monai>=1.3",
+    "pyyaml>=6.0",
+    "uvicorn[standard]",
+    "neurite @ git+https://github.com/adalca/neurite.git",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
