@@ -25,6 +25,10 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
   const setSettingsDialogOpen = useFreeBrowseStore((s) => s.setSettingsDialogOpen);
   const skipRemoveConfirmation = useFreeBrowseStore((s) => s.skipRemoveConfirmation);
   const setSkipRemoveConfirmation = useFreeBrowseStore((s) => s.setSkipRemoveConfirmation);
+  const skipImagingUploadConfirmation = useFreeBrowseStore((s) => s.skipImagingUploadConfirmation);
+  const setSkipImagingUploadConfirmation = useFreeBrowseStore((s) => s.setSkipImagingUploadConfirmation);
+  const skipSessionDeleteConfirmation = useFreeBrowseStore((s) => s.skipSessionDeleteConfirmation);
+  const setSkipSessionDeleteConfirmation = useFreeBrowseStore((s) => s.setSkipSessionDeleteConfirmation);
 
   const {
     viewerOptions,
@@ -185,6 +189,38 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
               className="text-sm font-medium"
             >
               Don't ask me to confirm removals
+            </Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="skip-imaging-upload-confirmation-settings"
+              checked={skipImagingUploadConfirmation}
+              onCheckedChange={(checked) =>
+                setSkipImagingUploadConfirmation(checked as boolean)
+              }
+            />
+            <Label
+              htmlFor="skip-imaging-upload-confirmation-settings"
+              className="text-sm font-medium"
+            >
+              Don't ask me to confirm imaging data uploads
+            </Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="skip-session-delete-confirmation-settings"
+              checked={skipSessionDeleteConfirmation}
+              onCheckedChange={(checked) =>
+                setSkipSessionDeleteConfirmation(checked as boolean)
+              }
+            />
+            <Label
+              htmlFor="skip-session-delete-confirmation-settings"
+              className="text-sm font-medium"
+            >
+              Don't ask me to confirm session deletions
             </Label>
           </div>
         </div>

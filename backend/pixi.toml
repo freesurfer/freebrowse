@@ -4,7 +4,7 @@ channels = ["conda-forge"]
 description = "Re-write of initial FreeBrowse implementation, based off of github.com/niivue/fullstack-niivue-demo/"
 name = "FreeBrowse backend"
 platforms = ["linux-64", "osx-arm64"]
-version = "2.0.0"
+version = "2.1.0"
 
 [tasks.dev]
 cmd = """
@@ -17,6 +17,11 @@ cmd = """
 [tasks.dev.env]
 NIIVUE_BUILD_DIR = "../frontend/dist"
 DATA_DIR = "../data"
+AI_DIR = "../data/ai-sessions"
+MODELS_DIR = "../models"
+ENABLE_AI = "true"
+ENABLE_AI_HISTORY = "true"
+AI_SESSION_CACHE_TTL_SECONDS = "1800"
 SCENE_SCHEMA_ID = "freebrowse"
 IMAGING_EXTENSIONS = '["*.nii", "*.nii.gz"]'
 SERVERLESS_MODE = "false"
@@ -38,3 +43,10 @@ SERVERLESS_MODE = "true"
 
 [dependencies]
 fastapi = ">=0.115.5,<0.116"
+pyyaml = ">=6.0"
+pytorch = ">=2.0"
+monai = ">=1.3"
+nibabel = ">=5.0"
+
+[pypi-dependencies]
+neurite = { git = "https://github.com/adalca/neurite.git" }

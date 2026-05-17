@@ -1,7 +1,7 @@
 {
   "name": "@freebrowse/frontend",
   "private": true,
-  "version": "2.3.2",
+  "version": "2.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,7 @@
     "build:singlefile": "tsc -b && vite build --config vite.config.singlefile.ts && node scripts/rename-singlefile.mjs",
     "build:serverless": "tsc -b && VITE_SERVERLESS=true vite build",
     "build:github": "VITE_BASE_PATH=/freebrowse/ npm run build:serverless && mv dist dist-github",
-    "build:jupyter": "VITE_BASE_PATH=./ npm run build:serverless && rm -rf dist-jupyter && mv dist dist-jupyter && cp -r dist-jupyter/* ../jupyter/jupyterlab_freebrowse/static/freebrowse/",
+    "build:jupyter": "VITE_BASE_PATH=./ npm run build:serverless && rm -rf dist-jupyter && mv dist dist-jupyter && rm -rf ../jupyter/jupyterlab_freebrowse/static/freebrowse/assets && cp -r dist-jupyter/* ../jupyter/jupyterlab_freebrowse/static/freebrowse/",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",

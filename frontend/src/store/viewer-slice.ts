@@ -11,6 +11,10 @@ export interface ViewerSlice {
   removeDialogOpen: boolean;
   volumeToRemove: number | null;
   skipRemoveConfirmation: boolean;
+  imagingUploadConfirmDialogOpen: boolean;
+  skipImagingUploadConfirmation: boolean;
+  sessionDeleteConfirmDialogOpen: boolean;
+  skipSessionDeleteConfirmation: boolean;
   setViewerOptions: (options: ViewerOptions | ((prev: ViewerOptions) => ViewerOptions)) => void;
   setDarkMode: (dark: boolean) => void;
   setSidebarOpen: (open: boolean) => void;
@@ -20,6 +24,10 @@ export interface ViewerSlice {
   setRemoveDialogOpen: (open: boolean) => void;
   setVolumeToRemove: (index: number | null) => void;
   setSkipRemoveConfirmation: (skip: boolean) => void;
+  setImagingUploadConfirmDialogOpen: (open: boolean) => void;
+  setSkipImagingUploadConfirmation: (skip: boolean) => void;
+  setSessionDeleteConfirmDialogOpen: (open: boolean) => void;
+  setSkipSessionDeleteConfirmation: (skip: boolean) => void;
 }
 
 export const createViewerSlice: StateCreator<ViewerSlice> = (set) => ({
@@ -43,6 +51,10 @@ export const createViewerSlice: StateCreator<ViewerSlice> = (set) => ({
   removeDialogOpen: false,
   volumeToRemove: null,
   skipRemoveConfirmation: false,
+  imagingUploadConfirmDialogOpen: false,
+  skipImagingUploadConfirmation: false,
+  sessionDeleteConfirmDialogOpen: false,
+  skipSessionDeleteConfirmation: false,
   setViewerOptions: (options) =>
     set((state) => ({
       viewerOptions:
@@ -57,4 +69,12 @@ export const createViewerSlice: StateCreator<ViewerSlice> = (set) => ({
   setVolumeToRemove: (volumeToRemove) => set({ volumeToRemove }),
   setSkipRemoveConfirmation: (skipRemoveConfirmation) =>
     set({ skipRemoveConfirmation }),
+  setImagingUploadConfirmDialogOpen: (imagingUploadConfirmDialogOpen) =>
+    set({ imagingUploadConfirmDialogOpen }),
+  setSkipImagingUploadConfirmation: (skipImagingUploadConfirmation) =>
+    set({ skipImagingUploadConfirmation }),
+  setSessionDeleteConfirmDialogOpen: (sessionDeleteConfirmDialogOpen) =>
+    set({ sessionDeleteConfirmDialogOpen }),
+  setSkipSessionDeleteConfirmation: (skipSessionDeleteConfirmation) =>
+    set({ skipSessionDeleteConfirmation }),
 });

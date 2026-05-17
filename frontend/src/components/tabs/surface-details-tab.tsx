@@ -64,15 +64,14 @@ export default function SurfaceDetailsTab({
   const selectedLayer = selectedLayerIndex !== null ? layers[selectedLayerIndex] : null;
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <div className="border-b px-4 py-3">
         <h2 className="text-lg font-semibold">Surface Details</h2>
         <p className="text-sm text-muted-foreground">
           Manage surfaces and adjust properties
         </p>
       </div>
-      <div className="flex flex-col h-full">
-        <ScrollArea className="max-h-[50%] min-h-0">
+      <ScrollArea className="max-h-[50%] min-h-0">
           {surfaces.length > 0 ? (
             <div className="grid gap-2 p-4">
               {surfaces.map((surface, index) => (
@@ -145,7 +144,7 @@ export default function SurfaceDetailsTab({
         </ScrollArea>
         <ScrollArea className="flex-1 min-h-0">
           {currentSurfaceIndex != null && surfaces[currentSurfaceIndex] ? (
-            <div className="grid gap-4 p-4 pb-20">
+            <div className="grid gap-4 p-4">
               <LabeledSliderWithInput
                 label="Opacity"
                 value={surfaces[currentSurfaceIndex]?.opacity || 1}
@@ -299,7 +298,6 @@ export default function SurfaceDetailsTab({
             <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground"></div>
           )}
         </ScrollArea>
-      </div>
-    </>
+    </div>
   );
 }

@@ -15,6 +15,8 @@ import DataTab from "@/components/tabs/data-tab";
 import SceneDetailsTab from "@/components/tabs/scene-details-tab";
 import SurfaceDetailsTab from "@/components/tabs/surface-details-tab";
 import DrawingTab from "@/components/tabs/drawing-tab";
+import AiAnnotationTab from "@/components/tabs/ai-annotation-tab";
+import { Sparkles } from "lucide-react";
 
 interface SidebarProps {
   nvRef: React.RefObject<Niivue | null>;
@@ -66,12 +68,21 @@ interface SidebarProps {
   onSaveDrawing: () => void;
   // Save operations
   onSaveScene: (isDownload: boolean) => void;
+  // AI annotation operations
+  onAiNewSession: (sessionName: string) => Promise<void>;
+  onAiLoadSession: (sessionId: string) => Promise<void>;
+  onAiRunSegmentation: (mlId: string, labelValue: number) => Promise<void>;
+  onAiExitAndSaveSession: () => Promise<void>;
+  onAiExitAndDeleteSession: () => Promise<void>;
+  onAiRefreshSessions: () => Promise<void>;
 }
 
 export default function Sidebar(props: SidebarProps) {
   const activeTab = useFreeBrowseStore((s) => s.activeTab);
   const setActiveTab = useFreeBrowseStore((s) => s.setActiveTab);
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
+  const aiEnabled = useFreeBrowseStore((s) => s.aiEnabled);
+  const showAiTab = !props.serverlessMode && aiEnabled === true;
 
   return (
     <aside
@@ -123,6 +134,14 @@ export default function Sidebar(props: SidebarProps) {
           >
             <Pencil className="h-4 w-4 mr-2" />
           </TabsTrigger>
+          {showAiTab && (
+            <TabsTrigger
+              value="aiAnnotation"
+              className="data-[state=active]:bg-muted"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
@@ -193,6 +212,29 @@ export default function Sidebar(props: SidebarProps) {
             onSaveDrawing={props.onSaveDrawing}
           />
         </TabsContent>
+
+        {showAiTab && (
+          <TabsContent value="aiAnnotation" className="flex-1 min-h-0 p-0">
+            <AiAnnotationTab
+              volumesCount={props.getVolumes().length}
+              onNewSession={props.onAiNewSession}
+              onLoadSession={props.onAiLoadSession}
+              onRunSegmentation={props.onAiRunSegmentation}
+              onExitAndSaveSession={props.onAiExitAndSaveSession}
+              onExitAndDeleteSession={props.onAiExitAndDeleteSession}
+              onRefreshSessions={props.onAiRefreshSessions}
+              onDrawModeChange={props.onDrawModeChange}
+              onDrawingOpacityChange={props.onDrawingOpacityChange}
+              onPenValueChange={props.onPenValueChange}
+              onPenFillChange={props.onPenFillChange}
+              onPenErasesChange={props.onPenErasesChange}
+              onMagicWand2dOnlyChange={props.onMagicWand2dOnlyChange}
+              onMagicWandMaxDistanceChange={props.onMagicWandMaxDistanceChange}
+              onMagicWandThresholdChange={props.onMagicWandThresholdChange}
+              onDrawUndo={props.onDrawUndo}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </aside>
   );
