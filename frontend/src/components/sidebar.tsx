@@ -96,22 +96,6 @@ export default function Sidebar(props: SidebarProps) {
         className="flex flex-col flex-1 min-h-0"
       >
         <TabsList className="w-full justify-start border-b rounded-none px-2 h-12 flex-shrink-0">
-          {!props.serverlessMode && (
-            <TabsTrigger
-              value="nvds"
-              className="data-[state=active]:bg-muted"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-            </TabsTrigger>
-          )}
-          {!props.serverlessMode && (
-            <TabsTrigger
-              value="data"
-              className="data-[state=active]:bg-muted"
-            >
-              <Database className="h-4 w-4 mr-2" />
-            </TabsTrigger>
-          )}
           <TabsTrigger
             value="sceneDetails"
             className="data-[state=active]:bg-muted"
@@ -142,19 +126,23 @@ export default function Sidebar(props: SidebarProps) {
               <Sparkles className="h-4 w-4 mr-2" />
             </TabsTrigger>
           )}
+          {!props.serverlessMode && (
+            <TabsTrigger
+              value="nvds"
+              className="data-[state=active]:bg-muted"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+            </TabsTrigger>
+          )}
+          {!props.serverlessMode && (
+            <TabsTrigger
+              value="data"
+              className="data-[state=active]:bg-muted"
+            >
+              <Database className="h-4 w-4 mr-2" />
+            </TabsTrigger>
+          )}
         </TabsList>
-
-        <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
-          {!props.serverlessMode && (
-            <NvdTab onFileSelect={props.onNvdFileSelect} />
-          )}
-        </TabsContent>
-
-        <TabsContent value="data" className="flex-1 min-h-0 p-0">
-          {!props.serverlessMode && (
-            <DataTab onFileSelect={props.onImagingFileSelect} />
-          )}
-        </TabsContent>
 
         <TabsContent value="sceneDetails" className="flex-1 min-h-0 p-0">
           <SceneDetailsTab
@@ -235,6 +223,18 @@ export default function Sidebar(props: SidebarProps) {
             />
           </TabsContent>
         )}
+
+        <TabsContent value="nvds" className="flex-1 min-h-0 p-0">
+          {!props.serverlessMode && (
+            <NvdTab onFileSelect={props.onNvdFileSelect} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="data" className="flex-1 min-h-0 p-0">
+          {!props.serverlessMode && (
+            <DataTab onFileSelect={props.onImagingFileSelect} />
+          )}
+        </TabsContent>
       </Tabs>
     </aside>
   );
