@@ -7,6 +7,12 @@ import { useMeshLayers } from "@/hooks/use-mesh-layers";
 import { useDrawing } from "@/hooks/use-drawing";
 import { useSave } from "@/hooks/use-save";
 import { useFileLoading } from "@/hooks/use-file-loading";
+import { useAiCapabilities } from "@/hooks/use-ai-capabilities";
+import { useAiSession } from "@/hooks/use-ai-session";
+import {
+  resolveImagingUploadConfirmation,
+  resolveSessionDeleteConfirmation,
+} from "@/lib/confirmations";
 import { Niivue } from "@niivue/niivue";
 import "../App.css";
 import ViewerShell from "./viewer-shell";
@@ -14,6 +20,8 @@ import Sidebar from "./sidebar";
 import RemoveDialog from "./dialogs/remove-dialog";
 import SaveDialog from "./dialogs/save-dialog";
 import SettingsDialog from "./dialogs/settings-dialog";
+import ImagingUploadConfirmationDialog from "./dialogs/imaging-upload-confirmation-dialog";
+import SessionDeleteConfirmationDialog from "./dialogs/session-delete-confirmation-dialog";
 
 const nv = new Niivue({
   loadingText: "Drag-drop images",
@@ -115,6 +123,16 @@ export default function FreeBrowse() {
     syncDrawingOptionsFromNiivue,
   );
 
+  useAiCapabilities();
+  const {
+    refreshSessions: handleAiRefreshSessions,
+    handleNewSession: handleAiNewSession,
+    handleLoadSession: handleAiLoadSession,
+    handleRunSegmentation: handleAiRunSegmentation,
+    handleExitAndSaveSession: handleAiExitAndSaveSession,
+    handleExitAndDeleteSession: handleAiExitAndDeleteSession,
+  } = useAiSession(nvRef);
+
   return (
     <ViewerShell
       nvInstance={nv}
@@ -165,6 +183,12 @@ export default function FreeBrowse() {
           onDrawUndo={handleDrawUndo}
           onSaveDrawing={handleSaveDrawing}
           onSaveScene={handleSaveScene}
+          onAiNewSession={handleAiNewSession}
+          onAiLoadSession={handleAiLoadSession}
+          onAiRunSegmentation={handleAiRunSegmentation}
+          onAiExitAndSaveSession={handleAiExitAndSaveSession}
+          onAiExitAndDeleteSession={handleAiExitAndDeleteSession}
+          onAiRefreshSessions={handleAiRefreshSessions}
         />
       }
       dialogs={
@@ -183,6 +207,14 @@ export default function FreeBrowse() {
             onDocumentCheckboxChange={handleDocumentCheckboxChange}
           />
           <SettingsDialog nvRef={nvRef} />
+          <ImagingUploadConfirmationDialog
+            onConfirm={() => resolveImagingUploadConfirmation(true)}
+            onCancel={() => resolveImagingUploadConfirmation(false)}
+          />
+          <SessionDeleteConfirmationDialog
+            onConfirm={() => resolveSessionDeleteConfirmation(true)}
+            onCancel={() => resolveSessionDeleteConfirmation(false)}
+          />
         </>
       }
       hiddenInputs={

@@ -41,14 +41,14 @@ export default function DrawingTab({
   const setDrawingOptions = useFreeBrowseStore((s) => s.setDrawingOptions);
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <div className="border-b px-4 py-3">
         <h2 className="text-lg font-semibold">Drawing Tools</h2>
         <p className="text-sm text-muted-foreground">
           Edit annotations
         </p>
       </div>
-      <ScrollArea className="h-full">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-4">
           {drawingOptions.enabled ? (
             <>
@@ -227,6 +227,6 @@ export default function DrawingTab({
           )}
         </div>
       </ScrollArea>
-    </>
+    </div>
   );
 }

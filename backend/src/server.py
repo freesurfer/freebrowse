@@ -10,6 +10,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from ai_session import build_router as build_ai_router
+
 # Configure logging.  Possible logging levels are:
 #   - logging.DEBUG
 #   - logging.INFO
@@ -26,12 +28,22 @@ scene_schema_id = os.getenv('SCENE_SCHEMA_ID')
 imaging_extensions_str = os.getenv('IMAGING_EXTENSIONS', '["*.nii", "*.nii.gz"]')
 imaging_extensions = json.loads(imaging_extensions_str)
 serverless_mode = os.getenv('SERVERLESS_MODE', 'false').lower() == 'true'
+ai_dir = os.getenv('AI_DIR')
+models_dir = os.getenv('MODELS_DIR')
+enable_ai = os.getenv('ENABLE_AI', 'false').lower() == 'true' and not serverless_mode
+enable_ai_history = os.getenv('ENABLE_AI_HISTORY', 'false').lower() == 'true' and enable_ai
+ai_cache_ttl_seconds = int(os.getenv('AI_SESSION_CACHE_TTL_SECONDS', '1800'))
 
 logger.info(f"NIIVUE_BUILD_DIR: {static_dir}")
 logger.info(f"DATA_DIR: {data_dir}")
 logger.info(f"SCENE_SCHEMA_ID: {scene_schema_id}")
 logger.info(f"IMAGING_EXTENSIONS: {imaging_extensions}")
 logger.info(f"SERVERLESS_MODE: {serverless_mode}")
+logger.info(f"AI_DIR: {ai_dir}")
+logger.info(f"MODELS_DIR: {models_dir}")
+logger.info(f"ENABLE_AI: {enable_ai}")
+logger.info(f"ENABLE_AI_HISTORY: {enable_ai_history}")
+logger.info(f"AI_SESSION_CACHE_TTL_SECONDS: {ai_cache_ttl_seconds}")
 
 # Register the MIME type so that .gz files (or .nii.gz files) are served correctly.
 mimetypes.add_type("application/gzip", ".nii.gz", strict=True)
@@ -47,7 +59,7 @@ class SaveVolumeRequest(BaseModel):
 app = FastAPI()
 
 # Define API routes BEFORE static file mounts to prevent catch-all behavior
-@app.get("/nvd")
+@app.get("/data/nvd")
 def list_niivue_documents():
     if serverless_mode:
         raise HTTPException(status_code=404, detail="Endpoint not available in serverless mode")
@@ -66,7 +78,7 @@ def list_niivue_documents():
         return {"error": str(e)}
     return sorted(nvd_files, key=lambda x: x["url"])
 
-@app.get("/imaging")
+@app.get("/data/vol")
 def list_imaging_files():
     if serverless_mode:
         raise HTTPException(status_code=404, detail="Endpoint not available in serverless mode")
@@ -86,7 +98,7 @@ def list_imaging_files():
         return {"error": str(e)}
     return sorted(imaging_files, key=lambda x: x["url"])
 
-@app.post("/nvd")
+@app.post("/data/nvd")
 def save_scene(request: SaveSceneRequest):
     """
     Save scene data to a file in the DATA_DIR directory.
@@ -132,7 +144,7 @@ def save_scene(request: SaveSceneRequest):
         logger.error(f"Error saving scene: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save scene: {str(e)}")
 
-@app.post("/nii")
+@app.post("/data/nii")
 def save_volume(request: SaveVolumeRequest):
     """
     Save volume data to a file in the DATA_DIR directory.
@@ -186,6 +198,17 @@ def save_volume(request: SaveVolumeRequest):
     except Exception as e:
         logger.error(f"Error saving volume: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save volume: {str(e)}")
+
+# Register the AI router before the /data static mount so explicit routes win.
+if enable_ai:
+    app.include_router(build_ai_router(
+        ai_dir=Path(ai_dir) if ai_dir else Path('./ai-sessions'),
+        data_dir=Path(data_dir) if data_dir else Path('./data'),
+        models_dir=Path(models_dir) if models_dir else Path('./models'),
+        ttl_seconds=ai_cache_ttl_seconds,
+        enabled=True,
+        enable_history=enable_ai_history,
+    ))
 
 # Mount static directories AFTER all API routes
 app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")

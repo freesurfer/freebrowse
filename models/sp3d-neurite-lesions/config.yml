@@ -1,0 +1,131 @@
+data:
+  _class: interseg3d.datasets.thunderpack_with_context.multisegment3d.MultiBinarySegment3D
+  version: v5.3
+  samples_per_epoch: 1000
+  sampling: hierarchical
+  min_label_density: 100
+  label_type: hard
+  train_datasets:
+  - ARC
+  - BHSD
+  - BONBID_HIE
+  - BrainMetShare
+  - CT_ICH
+  - FOMO25
+  - FeTA
+  - ISLES
+  - MSSEG
+  - Open_MS_Data
+  - PediMS
+  - SOOP
+  - ShiftsChallenge
+  - TopBrain
+  - UCSF_BMSR
+  - UltraCortex
+  - Valdo
+  - WMH
+  val_datasets:
+  - LGGFlair
+  generator:
+    _class: interseg3d.datasets.collate.CollateTaskWithContext
+    include_task_name: true
+    target_transform:
+      _class: monai.transforms.Compose
+      lazy: true
+      transforms:
+      - _class: monai.transforms.CropForegroundd
+        keys:
+        - vol
+        - seg
+        source_key: vol
+      - _class: monai.transforms.DivisiblePadd
+        keys:
+        - vol
+        - seg
+        k: 32
+dataloader:
+  context_size: 0
+  batch_sampler:
+    _class: interseg3d.datasets.batch_samplers.UniformBatchSampler
+    batch_size: 1
+    samples_per_epoch: 1000
+    drop_last: false
+  num_workers: 12
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 2
+callbacks:
+  epoch:
+  - pylot.callbacks.PrintLogged
+  - pylot.callbacks.JobProgress
+  - pylot.callbacks.ETA
+  - pylot.callbacks.TerminateOnNaN
+  - pylot.callbacks.ModelCheckpoint:
+      monitor: dice_score
+      phase: val_id
+  - pylot.callbacks.ModelCheckpoint:
+      monitor: dice_score
+      phase: val_od
+  - interseg3d.callbacks.WandbLogger:
+      project: 2026-01-20_overfitting
+      entity: interseg3d
+      group: sp3d-ne-deeper_lesions-vessels
+loss_func:
+  _class: pylot.loss.SoftDiceLoss
+  batch_reduction: null
+  from_logits: true
+  mode: binary
+experiment:
+  seed: 43
+log:
+  checkpoint_freq: 10
+  metrics:
+    dice_score:
+      _fn: pylot.metrics.dice_score
+      batch_reduction: null
+      from_logits: true
+      mode: binary
+  root: /cluster/dalcalab2/users/epc28/projects/interseg3d/output/2026-01-20_overfitting
+  save_freq: 100
+model:
+  _class: interseg3d.models.neurite.BasicUNet
+  ndim: 3
+  in_channels: 5
+  out_channels: 1
+  nb_features:
+  - 4
+  - 16
+  - 64
+  - 256
+  - 256
+  compile: false
+  final_activation: null
+  order: ca
+optim:
+  _class: torch.optim.Adam
+  lr: 0.0001
+prompts:
+  _class: interseg3d.prompts3d.prompt_generator_v3.RandomVariableClickGenerator
+  do_initial_click_prob: 1.0
+  do_click_prob: 1.0
+  init_pos_clicks:
+  - 1
+  - 3
+  init_neg_clicks:
+  - 0
+  - 3
+  correction_clicks:
+  - 1
+  - 3
+  include_previous_prediction: false
+  include_previous_logits: true
+  from_logits: true
+  pos_click_channel: 2
+  neg_click_channel: 3
+train:
+  epochs: 10000
+  eval_freq: 10
+  prompt_iter: 2
+  bf16: true
+  grad_accumulation: true
+  repeat_batch_elements: false

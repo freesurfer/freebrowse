@@ -64,15 +64,14 @@ export default function SceneDetailsTab({
   const currentVolume = currentImageIndex !== null ? volumes[currentImageIndex] : null;
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <div className="border-b px-4 py-3">
         <h2 className="text-lg font-semibold">Volumetric Details</h2>
         <p className="text-sm text-muted-foreground">
           Manage volumes and adjust properties
         </p>
       </div>
-      <div className="flex flex-col h-full">
-        <ScrollArea className="max-h-[50%] min-h-0">
+      <ScrollArea className="max-h-[50%] min-h-0">
           {volumes.length > 0 ? (
             <div className="grid gap-2 p-4">
               {volumes.map((volume: any, index: number) => (
@@ -200,7 +199,7 @@ export default function SceneDetailsTab({
         </ScrollArea>
         <ScrollArea className="flex-1 min-h-0">
           {currentVolume ? (
-            <div className="grid gap-4 p-4 pb-20">
+            <div className="grid gap-4 p-4">
               {(currentVolume.nFrame4D || 1) > 1 && (
                 <LabeledSliderWithInput
                   label="Frame"
@@ -269,7 +268,6 @@ export default function SceneDetailsTab({
             <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground"></div>
           )}
         </ScrollArea>
-      </div>
-    </>
+    </div>
   );
 }

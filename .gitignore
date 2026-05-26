@@ -12,3 +12,9 @@ frontend/dist-jupyter/
 
 # Vite temp files
 *.timestamp-*.mjs
+
+# Ignore __pychage__ directories
+__pycache__/
+
+# Ignore model weights
+/models/**/*.pt
