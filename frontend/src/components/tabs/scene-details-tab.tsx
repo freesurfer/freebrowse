@@ -155,7 +155,7 @@ export default function SceneDetailsTab({
               onClick={onAddMoreFiles}
             >
               <Upload className="mr-2 h-4 w-4" />
-              Upload files
+              Load volumes
             </Button>
             <Button
               variant="outline"
