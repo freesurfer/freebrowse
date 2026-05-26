@@ -76,6 +76,24 @@ async function postSetAnnots(
 }
 
 const RESULT_FILENAME = "result.nii.gz";
+const AI_RESULT_COLORMAP_NAME = "sky_blue";
+
+const AI_RESULT_COLORMAP = {
+  R: [0, 91, 91],
+  G: [0, 163, 163],
+  B: [0, 201, 201],
+  A: [0, 64, 128],
+  I: [0, 128, 255],
+};
+
+const AI_PROMPT_COLORMAP = {
+  R: [0, 0, 255],
+  G: [0, 255, 0],
+  B: [0, 0, 0],
+  A: [0, 255, 255],
+  I: [0, 1, 2],
+  labels: ["background", "positive", "negative"],
+};
 
 export function useAiSession(nvRef: React.RefObject<Niivue | null>) {
   const aiEnabled = useFreeBrowseStore((s) => s.aiEnabled);
@@ -108,6 +126,8 @@ export function useAiSession(nvRef: React.RefObject<Niivue | null>) {
     if (!nv) return;
     nv.setDrawingEnabled(false);
     const penValue = drawingOptions.penValue === 2 ? 2 : 1;
+    // NiiVue accepts a ColorMap object here, but its type signature only exposes names.
+    nv.setDrawColormap(AI_PROMPT_COLORMAP as unknown as string);
     nv.setPenValue(penValue, drawingOptions.penFill);
     nv.setDrawOpacity(1.0);
     setDrawingOptions((prev) => ({
@@ -298,10 +318,11 @@ export function useAiSession(nvRef: React.RefObject<Niivue | null>) {
       const resultUrl =
         `/data/ai-sessions/${active.session_name}/${RESULT_FILENAME}` +
         `?t=${Date.now()}`;
+      nv.addColormap(AI_RESULT_COLORMAP_NAME, AI_RESULT_COLORMAP);
       await nv.addVolumeFromUrl({
         url: resultUrl,
         name: RESULT_FILENAME,
-        colormap: "red",
+        colormap: AI_RESULT_COLORMAP_NAME,
         opacity: 0.5,
       });
       incrementVolumeVersion();
