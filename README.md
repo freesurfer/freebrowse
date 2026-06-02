@@ -7,7 +7,24 @@ aspires to be a web-based version of the
 [FreeSurfer](https://surfer.nmr.mgh.harvard.edu) tool
 [FreeView](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide).
 
+This is a re-write of the initial FreeBrowse implementation, based off of the
+[niivue fullstack demo](https://github.com/niivue/fullstack-niivue-demo/).
+
+Are you looking for the original FreeBrowse codebase?  That now lives on the
+branch [`v1`](https://github.com/freesurfer/freebrowse/tree/v1).
+
+## Examples:
+
 Try out the 'serverless' version: [https://freesurfer.github.io/freebrowse/](https://freesurfer.github.io/freebrowse/)
+
+- [A FreeSurfer segmentation overlayed on a t1-weighted anatomical MRI; from openneuro.org](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/refs/heads/main/openneuro/ds004731/sub-SM07.nvd)
+- [FreeSurfer surfaces overlayed on a t1-weighted anatomical MRI showing volume/surface intersections](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/mgz-surf-eg.nvd)
+- [A FreeSurfer surface with a curvature overlay](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/refs/heads/main/freesurfer/surfaces/surf-overlay-eg.nvd)
+- [PET total volume of distribution (VT) overlaid on an MNI template](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/pet/petsurfer-bids/petsurfer-km.nvd)
+- [4D PET data](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/pet/4d-eg.nvd)
+  - This one may take some time to load.  Niivue has optimizations for 4d data which have yet to be implemented
+
+## Architecture
 
 **Frontend:**
 - [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
@@ -18,12 +35,6 @@ Try out the 'serverless' version: [https://freesurfer.github.io/freebrowse/](htt
 **Backend:**
 - [FastAPI](https://fastapi.tiangolo.com) (Python web framework)
 - [Pixi](https://pixi.sh) (package manager)
-
-This is a re-write of the initial FreeBrowse implementation, based off of the
-[niivue fullstack demo](https://github.com/niivue/fullstack-niivue-demo/).
-
-Are you looking for the original FreeBrowse codebase?  That now lives on the
-branch [`v1`](https://github.com/freesurfer/freebrowse/tree/v1).
 
 ## Install
 
@@ -54,6 +65,13 @@ If you want to use the example data, run `get-example-volumes.sh` in the `data/`
 ```bash
 cd freebrowse/data
 ./get-example-volumes.sh
+```
+
+If you want to perform AI assisted annotations, run `get-model-weights.sh` in the `models/` folder:
+
+```bash
+cd freebrowse/models
+./get-model-weights.sh
 ```
 
 ### Frontend Setup
