@@ -38,11 +38,17 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
     handleCrosshairVisibleChange,
     handleCrosshairColorChange,
     handleOverlayOutlineWidthChange,
+    handleColorbarChange,
+    handleRadiologicalChange,
+    handleSagittalNoseLeftChange,
   } = useViewerOptions(nvRef);
 
   return (
     <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-      <DialogContent onClose={() => setSettingsDialogOpen(false)}>
+      <DialogContent
+        onClose={() => setSettingsDialogOpen(false)}
+        className="max-w-2xl"
+      >
         <DialogHeader>
           <DialogTitle>FreeBrowse Settings</DialogTitle>
           <DialogDescription>
@@ -50,178 +56,246 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Crosshair Width</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() =>
-                  handleCrosshairVisibleChange(
-                    !viewerOptions.crosshairVisible,
-                  )
-                }
-              >
-                {viewerOptions.crosshairVisible ? (
-                  <Eye className="h-4 w-4" />
-                ) : (
-                  <EyeOff className="h-4 w-4 opacity-50" />
-                )}
-              </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 py-4">
+          {/* Left column: appearance controls */}
+          <div className="space-y-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Appearance
+            </h3>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Crosshair Width</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() =>
+                    handleCrosshairVisibleChange(
+                      !viewerOptions.crosshairVisible,
+                    )
+                  }
+                >
+                  {viewerOptions.crosshairVisible ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 opacity-50" />
+                  )}
+                </Button>
+              </div>
+              <LabeledSliderWithInput
+                label=""
+                value={viewerOptions.crosshairWidth}
+                onValueChange={handleCrosshairWidthChange}
+                min={0.0}
+                max={5}
+                step={0.1}
+                decimalPlaces={1}
+                disabled={!viewerOptions.crosshairVisible}
+              />
             </div>
-            <LabeledSliderWithInput
-              label=""
-              value={viewerOptions.crosshairWidth}
-              onValueChange={handleCrosshairWidthChange}
-              min={0.0}
-              max={5}
-              step={0.1}
-              decimalPlaces={1}
-              disabled={!viewerOptions.crosshairVisible}
-            />
-          </div>
 
-          <div className="space-y-2">
-            <LabeledSliderWithInput
-              label="Crosshair Gap"
-              value={viewerOptions.crosshairGap}
-              onValueChange={handleCrosshairGapChange}
-              min={0.0}
-              max={10.0}
-              step={0.5}
-              decimalPlaces={1}
-              disabled={!viewerOptions.crosshairVisible}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Crosshair Color</Label>
-            <Input
-              type="color"
-              value={`#${Math.round(viewerOptions.crosshairColor[0] * 255)
-                .toString(16)
-                .padStart(2, "0")}${Math.round(
-                viewerOptions.crosshairColor[1] * 255,
-              )
-                .toString(16)
-                .padStart(2, "0")}${Math.round(
-                viewerOptions.crosshairColor[2] * 255,
-              )
-                .toString(16)
-                .padStart(2, "0")}`}
-              onChange={(e) => handleCrosshairColorChange(e.target.value)}
-              className="w-full h-10"
-            />
-          </div>
-          {/*
-          // PW 20251210: Ruler UI elements commented out for now.  Only shows
-          //              in first panel and unclear what the scale is
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Ruler Width</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() =>
-                  handleRulerVisibleChange(!viewerOptions.rulerVisible)
-                }
-              >
-                {viewerOptions.rulerVisible ? (
-                  <Eye className="h-4 w-4" />
-                ) : (
-                  <EyeOff className="h-4 w-4 opacity-50" />
-                )}
-              </Button>
+            <div className="space-y-2">
+              <LabeledSliderWithInput
+                label="Crosshair Gap"
+                value={viewerOptions.crosshairGap}
+                onValueChange={handleCrosshairGapChange}
+                min={0.0}
+                max={10.0}
+                step={0.5}
+                decimalPlaces={1}
+                disabled={!viewerOptions.crosshairVisible}
+              />
             </div>
-            <LabeledSliderWithInput
-              label=""
-              value={viewerOptions.rulerWidth}
-              onValueChange={handleRulerWidthChange}
-              min={0.0}
-              max={10.0}
-              step={0.1}
-              decimalPlaces={1}
-              disabled={!viewerOptions.rulerVisible}
-            />
-          </div>
-          */}
-          <div className="space-y-2">
-            <LabeledSliderWithInput
-              label="Overlay Outline Width"
-              value={viewerOptions.overlayOutlineWidth}
-              onValueChange={handleOverlayOutlineWidthChange}
-              min={0.0}
-              max={2.0}
-              step={0.1}
-              decimalPlaces={1}
-            />
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Crosshair Color</Label>
+              <Input
+                type="color"
+                value={`#${Math.round(viewerOptions.crosshairColor[0] * 255)
+                  .toString(16)
+                  .padStart(2, "0")}${Math.round(
+                  viewerOptions.crosshairColor[1] * 255,
+                )
+                  .toString(16)
+                  .padStart(2, "0")}${Math.round(
+                  viewerOptions.crosshairColor[2] * 255,
+                )
+                  .toString(16)
+                  .padStart(2, "0")}`}
+                onChange={(e) => handleCrosshairColorChange(e.target.value)}
+                className="w-full h-10"
+              />
+            </div>
+            {/*
+            // PW 20251210: Ruler UI elements commented out for now.  Only shows
+            //              in first panel and unclear what the scale is
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Ruler Width</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() =>
+                    handleRulerVisibleChange(!viewerOptions.rulerVisible)
+                  }
+                >
+                  {viewerOptions.rulerVisible ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 opacity-50" />
+                  )}
+                </Button>
+              </div>
+              <LabeledSliderWithInput
+                label=""
+                value={viewerOptions.rulerWidth}
+                onValueChange={handleRulerWidthChange}
+                min={0.0}
+                max={10.0}
+                step={0.1}
+                decimalPlaces={1}
+                disabled={!viewerOptions.rulerVisible}
+              />
+            </div>
+            */}
+
+            <div className="space-y-2">
+              <LabeledSliderWithInput
+                label="Overlay Outline Width"
+                value={viewerOptions.overlayOutlineWidth}
+                onValueChange={handleOverlayOutlineWidthChange}
+                min={0.0}
+                max={2.0}
+                step={0.1}
+                decimalPlaces={1}
+              />
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="interpolate-voxels"
-              checked={viewerOptions.interpolateVoxels}
-              onCheckedChange={(checked) =>
-                handleInterpolateVoxelsChange(checked as boolean)
-              }
-            />
-            <Label
-              htmlFor="interpolate-voxels"
-              className="text-sm font-medium"
-            >
-              Interpolate Voxels
-            </Label>
-          </div>
+          {/* Right column: view options and confirmation toggles */}
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                View Options
+              </h3>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="skip-remove-confirmation"
-              checked={skipRemoveConfirmation}
-              onCheckedChange={(checked) =>
-                setSkipRemoveConfirmation(checked as boolean)
-              }
-            />
-            <Label
-              htmlFor="skip-remove-confirmation"
-              className="text-sm font-medium"
-            >
-              Don't ask me to confirm removals
-            </Label>
-          </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-colorbar"
+                  checked={viewerOptions.isColorbar}
+                  onCheckedChange={(checked) =>
+                    handleColorbarChange(checked as boolean)
+                  }
+                />
+                <Label htmlFor="show-colorbar" className="text-sm font-medium">
+                  Show Colorbar
+                </Label>
+              </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="skip-imaging-upload-confirmation-settings"
-              checked={skipImagingUploadConfirmation}
-              onCheckedChange={(checked) =>
-                setSkipImagingUploadConfirmation(checked as boolean)
-              }
-            />
-            <Label
-              htmlFor="skip-imaging-upload-confirmation-settings"
-              className="text-sm font-medium"
-            >
-              Don't ask me to confirm imaging data uploads
-            </Label>
-          </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="radiological-view"
+                  checked={viewerOptions.isRadiologicalConvention}
+                  onCheckedChange={(checked) =>
+                    handleRadiologicalChange(checked as boolean)
+                  }
+                />
+                <Label
+                  htmlFor="radiological-view"
+                  className="text-sm font-medium"
+                >
+                  Radiological View
+                </Label>
+              </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="skip-session-delete-confirmation-settings"
-              checked={skipSessionDeleteConfirmation}
-              onCheckedChange={(checked) =>
-                setSkipSessionDeleteConfirmation(checked as boolean)
-              }
-            />
-            <Label
-              htmlFor="skip-session-delete-confirmation-settings"
-              className="text-sm font-medium"
-            >
-              Don't ask me to confirm session deletions
-            </Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="sagittal-nose-left"
+                  checked={viewerOptions.sagittalNoseLeft}
+                  onCheckedChange={(checked) =>
+                    handleSagittalNoseLeftChange(checked as boolean)
+                  }
+                />
+                <Label
+                  htmlFor="sagittal-nose-left"
+                  className="text-sm font-medium"
+                >
+                  Sagittal Nose on Left
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="interpolate-voxels"
+                  checked={viewerOptions.interpolateVoxels}
+                  onCheckedChange={(checked) =>
+                    handleInterpolateVoxelsChange(checked as boolean)
+                  }
+                />
+                <Label
+                  htmlFor="interpolate-voxels"
+                  className="text-sm font-medium"
+                >
+                  Interpolate Voxels
+                </Label>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Confirmations
+              </h3>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="skip-remove-confirmation"
+                  checked={skipRemoveConfirmation}
+                  onCheckedChange={(checked) =>
+                    setSkipRemoveConfirmation(checked as boolean)
+                  }
+                />
+                <Label
+                  htmlFor="skip-remove-confirmation"
+                  className="text-sm font-medium"
+                >
+                  Don't ask me to confirm removals
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="skip-imaging-upload-confirmation-settings"
+                  checked={skipImagingUploadConfirmation}
+                  onCheckedChange={(checked) =>
+                    setSkipImagingUploadConfirmation(checked as boolean)
+                  }
+                />
+                <Label
+                  htmlFor="skip-imaging-upload-confirmation-settings"
+                  className="text-sm font-medium"
+                >
+                  Don't ask me to confirm imaging data uploads
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="skip-session-delete-confirmation-settings"
+                  checked={skipSessionDeleteConfirmation}
+                  onCheckedChange={(checked) =>
+                    setSkipSessionDeleteConfirmation(checked as boolean)
+                  }
+                />
+                <Label
+                  htmlFor="skip-session-delete-confirmation-settings"
+                  className="text-sm font-medium"
+                >
+                  Don't ask me to confirm session deletions
+                </Label>
+              </div>
+            </div>
           </div>
         </div>
 
