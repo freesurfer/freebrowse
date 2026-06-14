@@ -38,6 +38,8 @@ interface SidebarProps {
   onContrastMaxChange: (value: number) => void;
   onColormapChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   onLabelVolumeChange: (checked: boolean) => void;
+  onMoveVolumeUp: () => void;
+  onMoveVolumeDown: () => void;
   // Surface operations
   onToggleSurfaceVisibility: (id: string) => void;
   onRemoveSurfaceClick: (index: number) => void;
@@ -162,6 +164,8 @@ export default function Sidebar(props: SidebarProps) {
             onContrastMaxChange={props.onContrastMaxChange}
             onColormapChange={props.onColormapChange}
             onLabelVolumeChange={props.onLabelVolumeChange}
+            onMoveVolumeUp={props.onMoveVolumeUp}
+            onMoveVolumeDown={props.onMoveVolumeDown}
           />
         </TabsContent>
 

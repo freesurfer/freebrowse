@@ -120,6 +120,28 @@ export function useVolumes(
     [currentImageIndex, nvRef, debouncedGLUpdate, incrementVolumeVersion],
   );
 
+  const handleMoveVolumeUp = useCallback(() => {
+    const nv = nvRef.current;
+    if (currentImageIndex === null || !nv || !nv.volumes[currentImageIndex]) return;
+    if (currentImageIndex === 0) return; // already first in the list
+    // UI "up" means earlier in the list (lower index); niivue's moveVolumeDown
+    // decreases the array index.
+    nv.moveVolumeDown(nv.volumes[currentImageIndex]);
+    setCurrentImageIndex(currentImageIndex - 1); // keep selection on moved volume
+    incrementVolumeVersion();
+  }, [currentImageIndex, nvRef, setCurrentImageIndex, incrementVolumeVersion]);
+
+  const handleMoveVolumeDown = useCallback(() => {
+    const nv = nvRef.current;
+    if (currentImageIndex === null || !nv || !nv.volumes[currentImageIndex]) return;
+    if (currentImageIndex >= nv.volumes.length - 1) return; // already last in the list
+    // UI "down" means later in the list (higher index); niivue's moveVolumeUp
+    // increases the array index.
+    nv.moveVolumeUp(nv.volumes[currentImageIndex]);
+    setCurrentImageIndex(currentImageIndex + 1); // keep selection on moved volume
+    incrementVolumeVersion();
+  }, [currentImageIndex, nvRef, setCurrentImageIndex, incrementVolumeVersion]);
+
   const removeVolume = useCallback(
     (imageIndex: number) => {
       const nv = nvRef.current;
@@ -296,6 +318,8 @@ export function useVolumes(
     handleContrastMaxChange,
     handleColormapChange,
     handleLabelVolumeChange,
+    handleMoveVolumeUp,
+    handleMoveVolumeDown,
     removeVolume,
     handleRemoveVolumeClick,
     handleEditVolume,
