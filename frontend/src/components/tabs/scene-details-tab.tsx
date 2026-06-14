@@ -9,6 +9,8 @@ import {
   Edit,
   Pencil,
   Download,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -36,6 +38,8 @@ interface SceneDetailsTabProps {
   onContrastMaxChange: (value: number) => void;
   onColormapChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   onLabelVolumeChange: (checked: boolean) => void;
+  onMoveVolumeUp: () => void;
+  onMoveVolumeDown: () => void;
 }
 
 export default function SceneDetailsTab({
@@ -55,6 +59,8 @@ export default function SceneDetailsTab({
   onContrastMaxChange,
   onColormapChange,
   onLabelVolumeChange,
+  onMoveVolumeUp,
+  onMoveVolumeDown,
 }: SceneDetailsTabProps) {
   const currentImageIndex = useFreeBrowseStore((s) => s.currentImageIndex);
   const setCurrentImageIndex = useFreeBrowseStore((s) => s.setCurrentImageIndex);
@@ -200,6 +206,31 @@ export default function SceneDetailsTab({
         <ScrollArea className="flex-1 min-h-0">
           {currentVolume ? (
             <div className="grid gap-4 p-4">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={onMoveVolumeUp}
+                  disabled={currentImageIndex === null || currentImageIndex === 0}
+                >
+                  <ChevronUp className="mr-2 h-4 w-4" />
+                  Move up
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={onMoveVolumeDown}
+                  disabled={
+                    currentImageIndex === null ||
+                    currentImageIndex === volumes.length - 1
+                  }
+                >
+                  <ChevronDown className="mr-2 h-4 w-4" />
+                  Move down
+                </Button>
+              </div>
               {(currentVolume.nFrame4D || 1) > 1 && (
                 <LabeledSliderWithInput
                   label="Frame"
