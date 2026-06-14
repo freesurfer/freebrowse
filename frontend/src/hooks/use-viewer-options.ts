@@ -51,6 +51,11 @@ export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
       nvRef.current.setInterpolation(!viewerOptions.interpolateVoxels);
       nvRef.current.opts.dragMode = DRAG_MODE[viewerOptions.dragMode];
       nvRef.current.overlayOutlineWidth = viewerOptions.overlayOutlineWidth;
+      nvRef.current.opts.isColorbar = viewerOptions.isColorbar;
+      nvRef.current.setRadiologicalConvention(
+        viewerOptions.isRadiologicalConvention,
+      );
+      nvRef.current.opts.sagittalNoseLeft = viewerOptions.sagittalNoseLeft;
 
       if (viewConfig) {
         nvRef.current.opts.multiplanarShowRender = viewConfig.showRender;
@@ -94,6 +99,9 @@ export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
         interpolateVoxels: !nv.opts.isNearestInterpolation,
         dragMode,
         overlayOutlineWidth: nv.overlayOutlineWidth,
+        isColorbar: nv.opts.isColorbar ?? false,
+        isRadiologicalConvention: nv.opts.isRadiologicalConvention ?? false,
+        sagittalNoseLeft: nv.opts.sagittalNoseLeft ?? false,
       });
     }
   }, [nvRef, setViewerOptions]);
@@ -180,6 +188,33 @@ export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
     [setViewerOptions],
   );
 
+  const handleColorbarChange = useCallback(
+    (checked: boolean) => {
+      setViewerOptions((prev) => ({ ...prev, isColorbar: checked }));
+      debouncedGLUpdate();
+    },
+    [setViewerOptions, debouncedGLUpdate],
+  );
+
+  const handleRadiologicalChange = useCallback(
+    (checked: boolean) => {
+      setViewerOptions((prev) => ({
+        ...prev,
+        isRadiologicalConvention: checked,
+      }));
+      debouncedGLUpdate();
+    },
+    [setViewerOptions, debouncedGLUpdate],
+  );
+
+  const handleSagittalNoseLeftChange = useCallback(
+    (checked: boolean) => {
+      setViewerOptions((prev) => ({ ...prev, sagittalNoseLeft: checked }));
+      debouncedGLUpdate();
+    },
+    [setViewerOptions, debouncedGLUpdate],
+  );
+
   const handleOverlayOutlineWidthChange = useCallback(
     (value: number) => {
       setViewerOptions((prev) => ({ ...prev, overlayOutlineWidth: value }));
@@ -206,5 +241,8 @@ export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
     handleRulerWidthChange,
     handleRulerVisibleChange,
     handleOverlayOutlineWidthChange,
+    handleColorbarChange,
+    handleRadiologicalChange,
+    handleSagittalNoseLeftChange,
   };
 }

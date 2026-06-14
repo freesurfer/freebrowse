@@ -22,6 +22,9 @@ export type ViewerOptions = {
   interpolateVoxels: boolean;
   dragMode: DragMode;
   overlayOutlineWidth: number;
+  isColorbar: boolean;
+  isRadiologicalConvention: boolean;
+  sagittalNoseLeft: boolean;
 };
 
 export type DrawingOptions = {
