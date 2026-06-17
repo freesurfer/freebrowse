@@ -5,7 +5,10 @@ import { DRAG_MODE, type Niivue } from "@niivue/niivue";
 import type { DragMode } from "@/components/drag-mode-selector";
 import type { ViewMode } from "@/store/types";
 
-export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
+export function useViewerOptions(
+  nvRef: React.RefObject<Niivue | null>,
+  autoApply = false,
+) {
   const viewerOptions = useFreeBrowseStore((s) => s.viewerOptions);
   const setViewerOptions = useFreeBrowseStore((s) => s.setViewerOptions);
   const incrementVolumeVersion = useFreeBrowseStore((s) => s.incrementVolumeVersion);
@@ -53,9 +56,22 @@ export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
       nvRef.current.opts.dragMode = DRAG_MODE[viewerOptions.dragMode];
       nvRef.current.overlayOutlineWidth = viewerOptions.overlayOutlineWidth;
       nvRef.current.opts.isColorbar = viewerOptions.isColorbar;
-      nvRef.current.setRadiologicalConvention(
-        viewerOptions.isRadiologicalConvention,
-      );
+      // setRadiologicalConvention() calls updateGLVolume() internally, which
+      // re-uploads every volume's 3D texture to the GPU — expensive.
+      // applyViewerOptions() runs on every viewer change (e.g. switching
+      // Axial/Coronal), so only call it when the value actually changed,
+      // otherwise each view click pays for a needless texture reload.
+      // NOTE: any other niivue call that internally triggers
+      // updateGLVolume()/refreshLayers() should be guarded the same way if
+      // added here in future.
+      if (
+        nvRef.current.opts.isRadiologicalConvention !==
+        viewerOptions.isRadiologicalConvention
+      ) {
+        nvRef.current.setRadiologicalConvention(
+          viewerOptions.isRadiologicalConvention,
+        );
+      }
       nvRef.current.opts.sagittalNoseLeft = viewerOptions.sagittalNoseLeft;
 
       if (viewConfig) {
@@ -107,10 +123,12 @@ export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
     }
   }, [nvRef, setViewerOptions]);
 
-  // Apply viewer options when they change
+  // Apply viewer options when they change — only in the component that owns
+  // nvRef, so each change is applied to niivue exactly once (this hook is used
+  // by several components that share the same nvRef).
   useEffect(() => {
-    applyViewerOptions();
-  }, [applyViewerOptions]);
+    if (autoApply) applyViewerOptions();
+  }, [applyViewerOptions, autoApply]);
 
   const handleViewMode = useCallback(
     (mode: ViewMode) => {

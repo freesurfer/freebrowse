@@ -41,7 +41,7 @@ export default function FreeBrowse() {
     applyViewerOptions,
     syncViewerOptionsFromNiivue,
     debouncedGLUpdate,
-  } = useViewerOptions(nvRef);
+  } = useViewerOptions(nvRef, true);
   const { handleLocationChange } = useLocation(nvRef);
   const {
     updateSurfaceDetails,
