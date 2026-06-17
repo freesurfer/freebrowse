@@ -5,7 +5,10 @@ import { DRAG_MODE, type Niivue } from "@niivue/niivue";
 import type { DragMode } from "@/components/drag-mode-selector";
 import type { ViewMode } from "@/store/types";
 
-export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
+export function useViewerOptions(
+  nvRef: React.RefObject<Niivue | null>,
+  autoApply = false,
+) {
   const viewerOptions = useFreeBrowseStore((s) => s.viewerOptions);
   const setViewerOptions = useFreeBrowseStore((s) => s.setViewerOptions);
   const incrementVolumeVersion = useFreeBrowseStore((s) => s.incrementVolumeVersion);
@@ -107,10 +110,12 @@ export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
     }
   }, [nvRef, setViewerOptions]);
 
-  // Apply viewer options when they change
+  // Apply viewer options when they change — only in the component that owns
+  // nvRef, so each change is applied to niivue exactly once (this hook is used
+  // by several components that share the same nvRef).
   useEffect(() => {
-    applyViewerOptions();
-  }, [applyViewerOptions]);
+    if (autoApply) applyViewerOptions();
+  }, [applyViewerOptions, autoApply]);
 
   const handleViewMode = useCallback(
     (mode: ViewMode) => {

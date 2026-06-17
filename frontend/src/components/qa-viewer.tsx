@@ -31,7 +31,7 @@ export default function QaViewer() {
     applyViewerOptions,
     syncViewerOptionsFromNiivue,
     debouncedGLUpdate,
-  } = useViewerOptions(nvRef);
+  } = useViewerOptions(nvRef, true);
   const { handleLocationChange } = useLocation(nvRef);
   useVolumes(
     nvRef,
