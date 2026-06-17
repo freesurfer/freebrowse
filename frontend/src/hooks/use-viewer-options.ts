@@ -8,6 +8,7 @@ import type { ViewMode } from "@/store/types";
 export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
   const viewerOptions = useFreeBrowseStore((s) => s.viewerOptions);
   const setViewerOptions = useFreeBrowseStore((s) => s.setViewerOptions);
+  const incrementVolumeVersion = useFreeBrowseStore((s) => s.incrementVolumeVersion);
 
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const crosshairColorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -226,6 +227,32 @@ export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
     [nvRef, setViewerOptions, debouncedGLUpdate],
   );
 
+  // Reset zoom, centering, and 3D rotation of the view, plus the contrast of
+  // every volume, back to reasonable load-time defaults. Other viewer settings
+  // (drag mode, slice type, crosshair color, etc.) are intentionally untouched.
+  const resetViewAndContrast = useCallback(() => {
+    const nv = nvRef.current;
+    if (!nv) return;
+
+    // View: zoom + pan + crosshair centering (niivue INITIAL_SCENE_DATA defaults)
+    nv.scene.volScaleMultiplier = 1.0; // 3D zoom
+    nv.scene.pan2Dxyzmm = [0, 0, 0, 1]; // 2D pan + zoom
+    nv.scene.crosshairPos = [0.5, 0.5, 0.5]; // center (fractional coords)
+
+    // View: 3D rotation -> niivue defaults
+    nv.setRenderAzimuthElevation(110, 10);
+
+    // Contrast: every volume back to its robust (2-98%) range
+    for (const vol of nv.volumes ?? []) {
+      if (vol.robust_min !== undefined) vol.cal_min = vol.robust_min;
+      if (vol.robust_max !== undefined) vol.cal_max = vol.robust_max;
+    }
+
+    nv.updateGLVolume(); // re-render with new contrast
+    nv.drawScene(); // re-render the reset view
+    incrementVolumeVersion();
+  }, [nvRef, incrementVolumeVersion]);
+
   return {
     viewerOptions,
     setViewerOptions,
@@ -244,5 +271,6 @@ export function useViewerOptions(nvRef: React.RefObject<Niivue | null>) {
     handleColorbarChange,
     handleRadiologicalChange,
     handleSagittalNoseLeftChange,
+    resetViewAndContrast,
   };
 }
