@@ -8,6 +8,7 @@ import {
   Moon,
   Sun,
   Brain,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ViewSelector from "@/components/view-selector";
@@ -32,6 +33,7 @@ export default function Header({ nvRef }: HeaderProps) {
     viewerOptions,
     setViewerOptions,
     handleViewMode,
+    resetViewAndContrast,
   } = useViewerOptions(nvRef);
 
   return (
@@ -66,28 +68,35 @@ export default function Header({ nvRef }: HeaderProps) {
           <Button
             variant="outline"
             size="sm"
+            onClick={resetViewAndContrast}
+            className="h-8 w-8 p-0"
+            title="Reset view+contrast of all volumes"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="h-8 w-8 p-0"
+            title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
           >
             {sidebarOpen ? (
               <PanelRight className="h-4 w-4" />
             ) : (
               <PanelLeft className="h-4 w-4" />
             )}
-            <span className="ml-2 sr-only md:not-sr-only md:inline-block">
-              {/*sidebarOpen ? "Hide Sidebar" : "Show Sidebar"*/}
-            </span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setFooterOpen(!footerOpen)}
+            className="h-8 w-8 p-0"
+            title={footerOpen ? "Hide footer" : "Show footer"}
           >
             <PanelBottom
               className={cn("h-4 w-4", !footerOpen && "rotate-180")}
             />
-            <span className="ml-2 sr-only md:not-sr-only md:inline-block">
-              {/*footerOpen ? "Hide Footer" : "Show Footer"*/}
-            </span>
           </Button>
           <Button
             variant="outline"
@@ -107,6 +116,7 @@ export default function Header({ nvRef }: HeaderProps) {
             size="sm"
             onClick={() => setSettingsDialogOpen(true)}
             className="h-8 w-8 p-0"
+            title="Settings"
           >
             <Settings className="h-4 w-4" />
           </Button>
