@@ -155,11 +155,10 @@ cd frontend
 npm run build
 ```
 
-### Deployment configuration (secure deployments)
+### Deployment configurations
 
-Some deployment settings are controlled at **build time** via Vite environment
-variables. These are operator-controlled and read-only at runtime (they are
-*not* user preferences).
+Some deployment settings are controlled at build time via Vite environment
+variables. These are read-only at runtime.
 
 | Variable | Values | Effect |
 | --- | --- | --- |
@@ -167,8 +166,8 @@ variables. These are operator-controlled and read-only at runtime (they are
 | `VITE_SERVERLESS` | `true` / unset | Builds for the `file://` protocol with no backend (set automatically by `build:serverless`). Also disables the backend **Save** button. |
 | `VITE_BASE_PATH` | e.g. `/freebrowse/` | Base URL path for routing/assets. |
 
-`VITE_DISABLE_DOWNLOAD` is **env-driven and composes with every build target** —
-no build-script changes are needed. Just prepend it to whichever build you run:
+`VITE_DISABLE_DOWNLOAD` composes with every build target. Just prepend it to
+whichever build you run:
 
 ```bash
 # Static / serverless
@@ -187,9 +186,10 @@ VITE_DISABLE_DOWNLOAD=true npm run build:singlefile
 VITE_DISABLE_DOWNLOAD=true npm run build
 ```
 
-**Note:** this stops well-intentioned users from exporting data; it is *not* a
-guarantee against a malicious user, who can still read pixels from the GPU or
-intercept data via the browser console.
+**Note:** While `VITE_DISABLE_DOWNLOAD` may stop well-intentioned users from
+exporting data from a secure environment, it is *not* a guarantee against a
+malicious user, who can still read pixels from the GPU or intercept data via t
+he browser console.
 
 ## Dev
 
@@ -280,7 +280,7 @@ npm run build:jupyter
 
 To embed FreeBrowse in a secure environment where data export is disabled, set
 `VITE_DISABLE_DOWNLOAD=true` for the build (see
-[Deployment configuration](#deployment-configuration-secure-deployments)):
+[Deployment configuration](#deployment-configurations)):
 
 ```bash
 cd frontend
