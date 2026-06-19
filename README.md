@@ -176,7 +176,7 @@ Then open the file directly (`file://`) or serve the containing folder locally:
 
 ```bash
 python3 -m http.server
-# then browse to http://localhost:8000/freebrowse-2.4.6.html
+# then browse to http://localhost:8000/freebrowse-2.4.7.html
 ```
 
 Releases are created automatically by the deploy workflow whenever the
