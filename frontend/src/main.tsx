@@ -5,6 +5,13 @@ import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import FreeBrowse from './components/freebrowse.tsx';
 import QaViewer from './components/qa-viewer.tsx';
+import { deploymentConfig } from './lib/deployment-config';
+import { applyExportLockdown } from './lib/disable-export';
+
+// Secure deployments: neutralize niivue's save-to-disk API before the app mounts.
+if (deploymentConfig.downloadDisabled) {
+  applyExportLockdown();
+}
 
 // Get base path from Vite's base config (import.meta.env.BASE_URL)
 // This is automatically set by Vite based on the `base` config option

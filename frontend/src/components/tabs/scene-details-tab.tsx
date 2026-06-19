@@ -19,6 +19,7 @@ import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-inpu
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { deploymentConfig } from "@/lib/deployment-config";
 import type { Niivue } from "@niivue/niivue";
 
 interface SceneDetailsTabProps {
@@ -194,7 +195,14 @@ export default function SceneDetailsTab({
                 className="flex-1"
                 onClick={() => onSaveScene(true)}
                 disabled={
-                  volumes.length === 0 || drawingOptions.enabled
+                  volumes.length === 0 ||
+                  drawingOptions.enabled ||
+                  deploymentConfig.downloadDisabled
+                }
+                title={
+                  deploymentConfig.downloadDisabled
+                    ? "Download is disabled in this deployment"
+                    : undefined
                 }
               >
                 <Download className="mr-2 h-4 w-4" />

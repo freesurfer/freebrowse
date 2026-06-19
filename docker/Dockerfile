@@ -24,6 +24,10 @@ RUN npm ci
 # Usage: docker build --build-arg SERVERLESS=true ...
 ARG SERVERLESS=false
 ENV VITE_SERVERLESS=${SERVERLESS}
+# Build argument to disable data export (Download button + niivue save-to-disk).
+# Usage: docker build --build-arg DISABLE_DOWNLOAD=true ...
+ARG DISABLE_DOWNLOAD=false
+ENV VITE_DISABLE_DOWNLOAD=${DISABLE_DOWNLOAD}
 RUN npm run build
 
 # Create data directory
