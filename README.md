@@ -146,6 +146,42 @@ standalone HTML file is available at
 
 Where `<version>` is the [current version of freebrowse](https://github.com/freesurfer/freebrowse/blob/main/frontend/package.json#L4)
 
+The singlefile build is particularily useful with the python scripts in the
+[`scripts`](https://github.com/freesurfer/freebrowse/tree/main/scripts) directory
+to embed a niivue document and related imaging data directly into a the single
+HTML file.  The resulting HTML file can be used to visualize the output of
+processing pipelines, shared with collaborators and is offline compatible.  For
+a real-world example, see the [petsurfer-bids](https://github.com/freesurfer/petsurfer-bids)
+repository.
+
+#### Older versions
+
+The GitHub Pages site only ever hosts the **latest** single-file build (each
+deploy replaces the whole site).
+
+Every released version as of 2.4.7 is instead archived as a
+[GitHub Release](https://github.com/freesurfer/freebrowse/releases) with its
+standalone HTML attached as a release asset. This is the place to grab an older
+build to test for regressions. To download a specific version:
+
+```bash
+# Direct download URL (replace the version):
+# https://github.com/freesurfer/freebrowse/releases/download/v<version>/freebrowse-<version>.html
+
+# Or with the GitHub CLI:
+gh release download v2.4.7 --repo freesurfer/freebrowse --pattern 'freebrowse-*.html'
+```
+
+Then open the file directly (`file://`) or serve the containing folder locally:
+
+```bash
+python3 -m http.server
+# then browse to http://localhost:8000/freebrowse-2.4.6.html
+```
+
+Releases are created automatically by the deploy workflow whenever the
+`frontend/package.json` version is bumped on `main`.
+
 ### Full stack (with backend)
 
 Builds the frontend for use with the FastAPI backend:
