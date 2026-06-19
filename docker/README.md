@@ -16,6 +16,28 @@ docker build -f docker/Dockerfile --build-arg SERVERLESS=true -t freebrowse:serv
 
 **Note:** Serverless mode is determined at build time. The `freebrowse:latest` image includes full backend support, while `freebrowse:serverless` is built without backend functionality (suitable for static file serving).
 
+### Disabling data export (secure deployments)
+
+To build an image where local data export is disabled (the **Download** button is
+disabled and niivue's save-to-disk methods are no-ops), pass the
+`DISABLE_DOWNLOAD=true` build arg. This is a **build-time** setting and composes
+with the serverless build arg:
+
+```bash
+# Server image with download disabled
+docker build -f docker/Dockerfile --build-arg DISABLE_DOWNLOAD=true -t freebrowse:secure .
+
+# Serverless image with download disabled
+docker build -f docker/Dockerfile \
+  --build-arg SERVERLESS=true --build-arg DISABLE_DOWNLOAD=true \
+  -t freebrowse:serverless-secure .
+```
+
+This stops well-intentioned users from exporting data; it is *not* a guarantee
+against a malicious user. See the main README's
+[Deployment configuration](../README.md#deployment-configuration-secure-deployments)
+section for details.
+
 ## Running with Docker
 
 ### Option 1: Localhost Only (Recommended for Security)

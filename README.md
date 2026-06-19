@@ -155,6 +155,42 @@ cd frontend
 npm run build
 ```
 
+### Deployment configuration (secure deployments)
+
+Some deployment settings are controlled at **build time** via Vite environment
+variables. These are operator-controlled and read-only at runtime (they are
+*not* user preferences).
+
+| Variable | Values | Effect |
+| --- | --- | --- |
+| `VITE_DISABLE_DOWNLOAD` | `true` / unset | Disables the **Download** button and no-ops niivue's save-to-disk methods (`saveImage`, `saveDocument`, `saveScene`, `saveHTML`, `saveToDisk`). For deploying into secure environments where local data export should be turned off. |
+| `VITE_SERVERLESS` | `true` / unset | Builds for the `file://` protocol with no backend (set automatically by `build:serverless`). Also disables the backend **Save** button. |
+| `VITE_BASE_PATH` | e.g. `/freebrowse/` | Base URL path for routing/assets. |
+
+`VITE_DISABLE_DOWNLOAD` is **env-driven and composes with every build target** —
+no build-script changes are needed. Just prepend it to whichever build you run:
+
+```bash
+# Static / serverless
+VITE_DISABLE_DOWNLOAD=true npm run build:serverless
+
+# JupyterLab embed
+VITE_DISABLE_DOWNLOAD=true npm run build:jupyter
+
+# GitHub Pages
+VITE_DISABLE_DOWNLOAD=true npm run build:github
+
+# Single standalone HTML file
+VITE_DISABLE_DOWNLOAD=true npm run build:singlefile
+
+# Full stack (with backend)
+VITE_DISABLE_DOWNLOAD=true npm run build
+```
+
+**Note:** this stops well-intentioned users from exporting data; it is *not* a
+guarantee against a malicious user, who can still read pixels from the GPU or
+intercept data via the browser console.
+
 ## Dev
 
 ### Run the backend in development mode
@@ -240,6 +276,15 @@ they become visible in Jupyter notebooks.
 ```bash
 cd frontend
 npm run build:jupyter
+```
+
+To embed FreeBrowse in a secure environment where data export is disabled, set
+`VITE_DISABLE_DOWNLOAD=true` for the build (see
+[Deployment configuration](#deployment-configuration-secure-deployments)):
+
+```bash
+cd frontend
+VITE_DISABLE_DOWNLOAD=true npm run build:jupyter
 ```
 
 To re-install the JupyterLab extensions:
