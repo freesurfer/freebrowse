@@ -1,0 +1,3 @@
+pytest
+httpx
+jupyter_server>=2.0.0,<3

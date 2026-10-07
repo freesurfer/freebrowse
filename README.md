@@ -270,7 +270,7 @@ npm run build
 
 FreeBrowse can be used as a NIfTI file viewer inside JupyterLab or Jupyter
 Notebook 7. Clicking a `.nii`, `.nii.gz` or `.nvd` (niivue document) file in the
-file browser opens it in FreeBrowse in a new browser tab.
+file browser opens it in a FreeBrowse document tab inside Jupyter.
 
 ### Setup
 
@@ -297,14 +297,35 @@ jupyter notebook  # if using Notebook 7
 ```
 
 Navigate to a directory containing `.nii`, `.nii.gz` or `.nvd` files, then either:
-- **Double-click** a file to open it in FreeBrowse in a new browser tab
+- **Double-click** a file to open it in a FreeBrowse document tab
 - **Right-click** a file and select **Open in FreeBrowse**
 
 [ipyniivue](https://github.com/niivue/ipyniivue) is also installed in the example
 `freebrowse-jupyter` environment.  See the [example notebooks repository](https://github.com/niivue/jupyter-notebooks)
 for examples on how to use niivue directly inside jupyter
 
+Files are downloaded through Jupyter's contents service and authenticated server
+connection, so JupyterHub base paths and filenames containing spaces or Unicode
+are supported. The embedded viewer receives a temporary blob URL and the original
+filename. Downloads are cancelled and blob URLs released when a file is renamed
+or its tab closes. Viewer pages and assets require the same authentication as the
+Jupyter server.
+
 ### Development
+
+Run the Jupyter integration regression tests after installing the JavaScript and
+Python test dependencies:
+
+```bash
+cd jupyter
+jlpm install
+python -m pip install -r requirements-test.txt
+jlpm test
+```
+
+These tests exercise document opening, authenticated file downloads, filename
+handling, rename/disposal races, and real Jupyter HTTP authentication for viewer
+assets at root and JupyterHub base paths.
 
 If you make changes to the frontend, you will have to rebuild the `jupyter` before
 they become visible in Jupyter notebooks.
