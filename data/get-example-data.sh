@@ -18,6 +18,9 @@ wget -nc https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/fr
 wget -nc https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/rh.pial -P surfaces/
 wget -nc https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/rh.thickness -P surfaces/
 wget -nc https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/rh.white -P surfaces/
+wget -nc https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/label/lh.aparc.annot.gii -P surfaces/
+wget -nc https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/label/rh.aparc.annot.gii -P surfaces/
+
 
 wget -nc https://pwighton.github.io/freebrowse-test-data/pet/tpl-MNI305_T1w.nii.gz -P volumes/
 wget -nc https://pwighton.github.io/freebrowse-test-data/pet/sub-PS11_ses-baselinebrain_space-mni305_pvc-nopvc_desc-preproc_pet.nii.gz -P volumes/
