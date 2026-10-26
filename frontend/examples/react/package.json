@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@niivue/niivue": "1.0.0-rc.16",
+    "@niivue/niivue": "1.0.0-rc.38",
     "freebrowse": "next",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
