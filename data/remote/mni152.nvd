@@ -1,11 +1,11 @@
 {
-  "title": "MNI152 remote",
-  "imageOptionsArray": [
+  "version": 8,
+  "created": "2026-07-15T19:45:49.862472+00:00",
+  "volumes": [
     {
       "url": "https://niivue.github.io/niivue-demo-images/mni152.nii.gz",
       "name": "mni152.nii.gz",
       "colormap": "gray",
-      "visible": true,
       "opacity": 1
     }
   ]

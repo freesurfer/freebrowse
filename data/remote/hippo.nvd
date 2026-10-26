@@ -1,11 +1,11 @@
 {
-  "title": "hippo remote",
-  "imageOptionsArray": [
+  "version": 8,
+  "created": "2026-07-15T19:45:49.862572+00:00",
+  "volumes": [
     {
       "url": "https://niivue.com/demos/images/hippo.nii.gz",
       "name": "hippo.nii.gz",
-      "colormap": "gray",
-      "visible": true,
+      "colormap": "red",
       "opacity": 1
     }
   ]
