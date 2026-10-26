@@ -1,0 +1,68 @@
+{
+  "version": 8,
+  "created": "2026-07-15T19:45:49.804174+00:00",
+  "layout": {
+    "sliceType": 3,
+    "showRender": 0
+  },
+  "volumes": [
+    {
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/orig.nii.gz",
+      "name": "orig.nii.gz",
+      "colormap": "gray",
+      "opacity": 0.5
+    },
+    {
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/aseg.nii.gz",
+      "name": "aseg.nii.gz",
+      "colormap": "freesurfer",
+      "opacity": 0.3
+    }
+  ],
+  "meshes": [
+    {
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/lh.white",
+      "name": "lh.white",
+      "color": [
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "shaderType": "crosscut"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/rh.white",
+      "name": "rh.white",
+      "color": [
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "shaderType": "crosscut"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/lh.pial",
+      "name": "lh.white",
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "shaderType": "crosscut"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/rh.pial",
+      "name": "rh.white",
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "shaderType": "crosscut"
+    }
+  ]
+}
