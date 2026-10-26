@@ -1,0 +1,18 @@
+{
+  "version": 8,
+  "created": "2026-07-15T19:45:49.863281+00:00",
+  "volumes": [
+    {
+      "url": "data/volumes/mni152.nii.gz",
+      "name": "mni152.nii.gz",
+      "colormap": "gray",
+      "opacity": 1.0
+    },
+    {
+      "url": "data/volumes/hippo.nii.gz",
+      "name": "hippo.nii.gz",
+      "colormap": "red",
+      "opacity": 1.0
+    }
+  ]
+}
