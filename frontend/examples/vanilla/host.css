@@ -1,0 +1,12 @@
+/* Host page styles — deliberately opinionated so any leak from FreeBrowse
+   (a global reset, html/body rules, an unscoped `canvas {}`) would show. */
+html { font-family: Georgia, serif; font-size: 18px; }
+body { margin: 24px; background: #fdf6e3; color: #333; }
+h1 { color: #b58900; font-size: 2rem; margin: 0 0 0.25rem; }
+p { line-height: 1.7; margin: 0 0 1rem; max-width: 60ch; }
+#host-canvas { border: 3px dashed #b58900; width: 240px; height: 60px; display: inline-block; vertical-align: middle; }
+#host-controls { margin: 12px 0 20px; display: flex; flex-wrap: wrap; gap: 8px; }
+#host-controls button { font: inherit; padding: 6px 12px; border: 2px solid #268bd2; border-radius: 999px; background: #eee8d5; color: #268bd2; cursor: pointer; }
+#host-controls button:disabled { opacity: 0.4; cursor: default; }
+#viewer { height: 760px; border: 4px solid #268bd2; border-radius: 8px; overflow: hidden; }
+#host-footer { margin-top: 20px; padding-top: 12px; border-top: 1px solid #93a1a1; font-style: italic; color: #657b83; }

@@ -1,0 +1,17 @@
+{
+  "version": 8,
+  "volumes": [
+    {
+      "url": "https://pwighton.github.io/freebrowse-test-data/pet/tpl-MNI305_T1w.nii.gz",
+      "name": "tpl-MNI305_T1w.nii.gz",
+      "colormap": "gray",
+      "opacity": 1
+    },
+    {
+      "url": "https://pwighton.github.io/freebrowse-test-data/pet/sub-PS11_ses-baselinebrain_space-mni305_pvc-nopvc_desc-preproc_pet.nii.gz",
+      "name": "sub-PS11_ses-baselinebrain_space-mni305_pvc-nopvc_desc-preproc_pet.nii.gz",
+      "colormap": "nih",
+      "opacity": 0.3
+    }
+  ]
+}

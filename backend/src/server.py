@@ -5,6 +5,7 @@ import logging
 import uuid
 import base64
 from pathlib import Path
+from typing import Union
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -50,7 +51,10 @@ mimetypes.add_type("application/gzip", ".nii.gz", strict=True)
 
 class SaveSceneRequest(BaseModel):
     filename: str
-    data: dict
+    # format="json": `data` is the JSON document object (written via json.dump).
+    # format="cbor": `data` is a base64 string of binary CBOR (written as bytes).
+    data: Union[dict, str]
+    format: str = "json"
 
 class SaveVolumeRequest(BaseModel):
     filename: str
@@ -124,14 +128,25 @@ def save_scene(request: SaveSceneRequest):
         
         # Create full file path
         file_path = Path(data_dir) / filename
-        
+
         # Create directory if it doesn't exist
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Write the JSON data to file
-        with open(file_path, 'w') as f:
-            json.dump(request.data, f, indent=2)
-        
+
+        # Write the document. JSON documents are stored as pretty-printed JSON;
+        # CBOR documents arrive base64-encoded and are written as raw bytes.
+        if request.format == 'cbor':
+            if not isinstance(request.data, str):
+                raise HTTPException(status_code=400, detail="CBOR data must be a base64 string")
+            try:
+                cbor_bytes = base64.b64decode(request.data)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid base64 data: {str(e)}")
+            with open(file_path, 'wb') as f:
+                f.write(cbor_bytes)
+        else:
+            with open(file_path, 'w') as f:
+                json.dump(request.data, f, indent=2)
+
         logger.info(f"Scene saved successfully to {file_path}")
         
         return {

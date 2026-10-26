@@ -14,21 +14,35 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import type { Niivue } from "@niivue/niivue";
+import type { NiiVue } from "@niivue/niivue";
 
 interface SettingsDialogProps {
-  nvRef: React.RefObject<Niivue | null>;
+  nvRef: React.RefObject<NiiVue | null>;
 }
 
 export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
   const settingsDialogOpen = useFreeBrowseStore((s) => s.settingsDialogOpen);
-  const setSettingsDialogOpen = useFreeBrowseStore((s) => s.setSettingsDialogOpen);
-  const skipRemoveConfirmation = useFreeBrowseStore((s) => s.skipRemoveConfirmation);
-  const setSkipRemoveConfirmation = useFreeBrowseStore((s) => s.setSkipRemoveConfirmation);
-  const skipImagingUploadConfirmation = useFreeBrowseStore((s) => s.skipImagingUploadConfirmation);
-  const setSkipImagingUploadConfirmation = useFreeBrowseStore((s) => s.setSkipImagingUploadConfirmation);
-  const skipSessionDeleteConfirmation = useFreeBrowseStore((s) => s.skipSessionDeleteConfirmation);
-  const setSkipSessionDeleteConfirmation = useFreeBrowseStore((s) => s.setSkipSessionDeleteConfirmation);
+  const setSettingsDialogOpen = useFreeBrowseStore(
+    (s) => s.setSettingsDialogOpen,
+  );
+  const skipRemoveConfirmation = useFreeBrowseStore(
+    (s) => s.skipRemoveConfirmation,
+  );
+  const setSkipRemoveConfirmation = useFreeBrowseStore(
+    (s) => s.setSkipRemoveConfirmation,
+  );
+  const skipImagingUploadConfirmation = useFreeBrowseStore(
+    (s) => s.skipImagingUploadConfirmation,
+  );
+  const setSkipImagingUploadConfirmation = useFreeBrowseStore(
+    (s) => s.setSkipImagingUploadConfirmation,
+  );
+  const skipSessionDeleteConfirmation = useFreeBrowseStore(
+    (s) => s.skipSessionDeleteConfirmation,
+  );
+  const setSkipSessionDeleteConfirmation = useFreeBrowseStore(
+    (s) => s.setSkipSessionDeleteConfirmation,
+  );
 
   const {
     viewerOptions,
@@ -40,7 +54,6 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
     handleOverlayOutlineWidthChange,
     handleColorbarChange,
     handleRadiologicalChange,
-    handleSagittalNoseLeftChange,
   } = useViewerOptions(nvRef);
 
   return (
@@ -210,21 +223,10 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
                 </Label>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="sagittal-nose-left"
-                  checked={viewerOptions.sagittalNoseLeft}
-                  onCheckedChange={(checked) =>
-                    handleSagittalNoseLeftChange(checked as boolean)
-                  }
-                />
-                <Label
-                  htmlFor="sagittal-nose-left"
-                  className="text-sm font-medium"
-                >
-                  Sagittal Nose on Left
-                </Label>
-              </div>
+              {/* "Sagittal Nose on Left" is hidden: niivue-mono has no such
+                  option (migration plan Step 8, item 8j). The store field and
+                  `handleSagittalNoseLeftChange` are kept so the toggle can be
+                  restored once upstream supports it. */}
 
               <div className="flex items-center space-x-2">
                 <Checkbox

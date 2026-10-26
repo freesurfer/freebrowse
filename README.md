@@ -17,12 +17,12 @@ branch [`v1`](https://github.com/freesurfer/freebrowse/tree/v1).
 
 Try out the 'serverless' version: [https://freesurfer.github.io/freebrowse/](https://freesurfer.github.io/freebrowse/)
 
-- [A FreeSurfer segmentation overlayed on a t1-weighted anatomical MRI; from openneuro.org](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/refs/heads/main/openneuro/ds004731/sub-SM07.nvd)
-- [FreeSurfer surfaces overlayed on a t1-weighted anatomical MRI showing volume/surface intersections](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/mgz-surf-eg.nvd)
-- [A FreeSurfer surface with a curvature overlay](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/refs/heads/main/freesurfer/surfaces/surf-overlay-eg.nvd)
-- [PET total volume of distribution (VT) overlaid on an MNI template](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/pet/petsurfer-bids/petsurfer-km.nvd)
-- [4D PET data](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/pet/4d-eg.nvd)
-  - This one may take some time to load.  Niivue has optimizations for 4d data which have yet to be implemented
+- [A FreeSurfer segmentation overlayed on a t1-weighted anatomical MRI; from openneuro.org](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/refs/heads/main/openneuro/ds004731/sub-SM07.v9.nvd)
+- [FreeSurfer surfaces overlayed on a t1-weighted anatomical MRI showing volume/surface intersections](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/mgz-surf-eg.v9.nvd)
+- [A FreeSurfer surface with a curvature overlay](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/refs/heads/main/freesurfer/surfaces/surf-overlay-eg.v9.nvd)
+- [PET total volume of distribution (VT) overlaid on an MNI template](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/pet/petsurfer-bids/petsurfer-km.v9.nvd)
+- [4D PET data](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/pet/4d-eg.v9.nvd)
+  - This one may take some time to load.  NiiVue has optimizations for 4d data which have yet to be implemented
 
 ## Architecture
 
@@ -35,6 +35,134 @@ Try out the 'serverless' version: [https://freesurfer.github.io/freebrowse/](htt
 **Backend:**
 - [FastAPI](https://fastapi.tiangolo.com) (Python web framework)
 - [Pixi](https://pixi.sh) (package manager)
+
+## NiiVue documents (`.nvd`)
+
+A FreeBrowse scene is a plain [NiiVue document](https://github.com/niivue/mono/blob/main/packages/niivue/src/NVDocument.ts)
+(`NVDocumentData`, schema version 9).
+
+The **Download** dialog writes it as JSON (text) or CBOR (binary);
+loading detects the encoding, so either can be passed to `?nvd=`, dropped onto
+the viewer, or embedded in a single-file build.
+
+- **Downloaded documents are self-contained**: every volume's voxels are embedded
+  (`volumes[i].data`), so the file stands alone. Meshes are embedded as geometry
+  too, but mesh *overlays* (curvature, thickness) are not yet persisted — see
+  [#43](https://github.com/freesurfer/freebrowse/issues/43).
+- **Saved-to-backend documents are linked**: volumes are uploaded as `.nii.gz`
+  and the document references them by URL. The one FreeBrowse-specific save
+  behaviour is `retargetVolumeUrls` (`frontend/src/lib/nvd-volume-urls.ts`),
+  which points each volume entry at the path it is being uploaded to; a volume
+  given no destination keeps its bytes.
+- **Loading changes only what the document sets.** FreeBrowse loads with
+  niivue's `fill: "current"` policy, so a document that says nothing about,
+  say, the crosshair colour or the view layout leaves the current viewer
+  settings alone.
+
+**Documents from FreeBrowse ≤ 2.4 (classic niivue) do not load** — the viewer
+reports *"This .nvd predates the niivue document schema"*. Convert them once
+with the stdlib-only migration script, which writes `<name>.v9.nvd` next to
+each input (originals are never touched) and handles documents with embedded
+volumes:
+
+```bash
+python3 scripts/migrate-nvd.py path/to/docs/        # directory, file or glob
+python3 scripts/migrate-nvd.py scene.nvd --cbor     # binary output (needs cbor2)
+```
+
+`scripts/nvd-embed.py` embeds a document into a single-file build (see
+[Build](#build)), and `python3 -m pytest` runs the script's tests.
+
+## Embedding FreeBrowse in your own app (npm package)
+
+FreeBrowse is published to npm as `freebrowse`:
+
+```bash
+npm install freebrowse @niivue/niivue@1.0.0-rc.38
+```
+
+`@niivue/niivue` is a peer dependency: **you** create the NiiVue instance, FreeBrowse renders
+its UI for it, and anything you do to the instance through niivue's API shows up in that UI
+(see [Driving FreeBrowse from your own code](#driving-freebrowse-from-your-own-code)). A
+classic-niivue (0.x) instance cannot be used — the package targets niivue 1.0.
+
+**Vanilla JavaScript** (React is bundled; nothing else to install):
+
+```js
+import { NiiVue } from "@niivue/niivue";
+import { mountFreeBrowse } from "freebrowse";
+import "freebrowse/style.css";
+
+const nv = new NiiVue({ backgroundColor: [0, 0, 0, 1] });
+const fb = mountFreeBrowse(document.getElementById("viewer"), { nv });
+await nv.addVolume({ url: "https://niivue.com/demos/images/mni152.nii.gz" });
+// ... later
+fb.destroy();
+```
+
+**React 19 hosts** (`react` / `react-dom` are peers on this entry, not bundled):
+
+```jsx
+import { FreeBrowse, configureFreeBrowse } from "freebrowse/react";
+import "freebrowse/style.css";
+
+configureFreeBrowse({ backend: null });   // once, before the first render
+<FreeBrowse nv={nv} hostInstance />
+```
+
+`mountFreeBrowse(container, options)` options, all optional:
+
+| option | default | meaning |
+| --- | --- | --- |
+| `nv` | created for you | Your NiiVue instance. When given, FreeBrowse seeds its UI from the instance's settings and never pushes its own defaults onto it. |
+| `backend` | `null` | `{ dataUrl, aiUrl }` of a FreeBrowse backend. `null` hides Save-to-server, the Data/NVD tabs and AI. |
+| `persist` | `"freebrowse-user-settings"` | localStorage key for user preferences, or `false` to keep them in memory. |
+| `readUrlParams` | `false` | Honour `?nvd=` / `?vol=` on the host page URL. |
+| `exposeGlobal` | `false` | Also publish the instance as `window.freebrowse.nv`. |
+| `downloadDisabled` | `false` | Disable the Download button and niivue's save-to-disk methods. |
+| `dragDrop` | `true` | `false` turns off drag-and-drop loading (niivue's canvas drop and the drop zone) and shows the canvas from the start — for hosts that load data themselves. |
+| `sidebar` | `true` | Show the sidebar initially; the header button still toggles it. |
+| `footer` | `true` | Show the footer (coordinate readout) initially. |
+
+The handle returned has `nv` and `destroy()`. **One mount at a time**: FreeBrowse's UI state is a
+single store, so a second concurrent mount throws; destroy the first one. Styles are scoped to
+the mounted element (`.freebrowse-root`) and never touch your page's `html`/`body`; import
+`freebrowse/style.css` once. Working examples for both entries live in
+[`frontend/examples/`](frontend/examples/); they install `freebrowse` from npm.
+
+Releasing (maintainers): bump `version` in `frontend/package.json` (the app and the package
+share it), then from `frontend/`:
+
+```bash
+npm run build:package && npm run pack:check   # publint + arethetypeswrong on the tarball
+npm publish                                    # a `-next.N` pre-release: npm publish --tag next
+```
+
+## Driving FreeBrowse from your own code
+
+FreeBrowse's UI is a *derived view* of its NiiVue instance: the React store is
+updated only by the events niivue emits, and FreeBrowse's own controls go
+through the same path as any external caller. The live instance is exposed as
+`window.freebrowse.nv`, so from the browser console (or an embedding page) you
+can drive the viewer with niivue's API and watch the sidebar, toolbar and footer
+follow:
+
+```js
+const nv = window.freebrowse.nv;
+await nv.addVolume({ url: "https://niivue.com/demos/images/mni152.nii.gz" });
+await nv.setVolume(0, { colormap: "Hot", opacity: 0.8 });   // sidebar updates
+nv.sliceType = 4;                                            // toolbar switches to Render
+await nv.loadDocument(fileOrUrl);                            // document path, same events
+```
+
+**Supported mutations**: anything that emits an event: `setVolume(i, {...})`,
+`setMesh(i, {...})`, `setMeshLayerProperty`, `add`/`remove`/`move` methods, the
+flat setters (`sliceType`, `showRender`, `isRadiological`, `crosshairColor`,
+`drawOpacity`, …), the drawing API and `loadDocument`.
+
+**Not supported**: raw field writes such as `nv.volumes[0].colormap = "Hot"`.
+Niivue-mono volumes and meshes are plain objects, so nothing observes the write
+and the UI will not update.
 
 ## Install
 
@@ -198,7 +326,7 @@ variables. These are read-only at runtime.
 
 | Variable | Values | Effect |
 | --- | --- | --- |
-| `VITE_DISABLE_DOWNLOAD` | `true` / unset | Disables the **Download** button and no-ops niivue's save-to-disk methods (`saveImage`, `saveDocument`, `saveScene`, `saveHTML`, `saveToDisk`). For deploying into secure environments where local data export should be turned off. |
+| `VITE_DISABLE_DOWNLOAD` | `true` / unset | Disables the **Download** button and no-ops niivue's save-to-disk methods (`saveMesh`, `saveBitmap`, `saveDocument`, and `saveVolume` / `saveDrawing` whenever they are given a filename). In-memory exports (`saveVolume({filename: ""})`, `serializeDocument()`) keep working, so backend **Save**, AI sessions, save-drawing and edit-volume are unaffected. For deploying into secure environments where local data export should be turned off. |
 | `VITE_SERVERLESS` | `true` / unset | Builds for the `file://` protocol with no backend (set automatically by `build:serverless`). Also disables the backend **Save** button. |
 | `VITE_BASE_PATH` | e.g. `/freebrowse/` | Base URL path for routing/assets. |
 
@@ -306,8 +434,12 @@ for examples on how to use niivue directly inside jupyter
 
 ### Development
 
-If you make changes to the frontend, you will have to rebuild the `jupyter` before
-they become visible in Jupyter notebooks.
+The FreeBrowse bundle served inside JupyterLab
+(`jupyter/jupyterlab_freebrowse/static/freebrowse/`) is a build output and is
+**not committed**: a fresh checkout has to generate it before installing the
+extension, and any frontend change needs it regenerated before it becomes
+visible in notebooks. (The server extension logs a warning at startup if the
+bundle is missing.)
 
 ```bash
 cd frontend

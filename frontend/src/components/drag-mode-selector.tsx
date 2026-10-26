@@ -21,7 +21,9 @@ const dragModeConfig: Record<DragMode, { icon: React.FC<{ className?: string }>,
   roiSelection: { icon: Square, label: "ROI Selection", displayName: "roiSelection" },
   angle: { icon: Crosshair, label: "Angle", displayName: "angle" },
   crosshair: { icon: Crosshair, label: "Crosshair", displayName: "crosshair" },
-  windowing: { icon: Contrast, label: "Windowing", displayName: "windowing" }
+  windowing: { icon: Contrast, label: "Windowing", displayName: "windowing" },
+  // rc.16: a click places the crosshair, a drag past a small threshold pans.
+  crosshairPan: { icon: Move, label: "Crosshair + Pan", displayName: "crosshair/pan" }
 }
 
 const defaultAvailableModes: DragMode[] = Object.keys(DRAG_MODE).filter(

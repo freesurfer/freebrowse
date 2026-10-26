@@ -1,5 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileList, type FileItem } from "@/components/file-list";
+import { dataUrl } from "@/lib/deployment-config";
 
 interface DataTabProps {
   onFileSelect: (file: FileItem) => void;
@@ -17,7 +18,7 @@ export default function DataTab({ onFileSelect }: DataTabProps) {
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 pb-6">
           <FileList
-            endpoint="/data/vol"
+            endpoint={dataUrl("vol")}
             onFileSelect={onFileSelect}
             emptyMessage="No imaging files available."
           />

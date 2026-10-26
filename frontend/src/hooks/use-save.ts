@@ -1,15 +1,32 @@
 import { useCallback } from "react";
 import { useFreeBrowseStore } from "@/store";
-import { uint8ArrayToBase64 } from "@/lib/niivue-helpers";
+import { gzipUint8Array, uint8ArrayToBase64 } from "@/lib/niivue-helpers";
+import { retargetVolumeUrls } from "@/lib/nvd-volume-urls";
 import { requestImagingUploadConfirmation } from "@/lib/confirmations";
-import {
-  asEmbeddedNiftiOptions,
-  imageOptionsForSavedVolume,
-} from "@/lib/nvd-saved-image-options";
-import type { Niivue } from "@niivue/niivue";
+import { FREEBROWSE_SAVE_SETTINGS } from "@/lib/default-niivue-options";
+import { dataUrl } from "@/lib/deployment-config";
+import type { NvdFormat } from "@/store/types";
+import type { NiiVue } from "@niivue/niivue";
 
-export function useSave(nvRef: React.RefObject<Niivue | null>) {
-  const saveDialogOpen = useFreeBrowseStore((s) => s.saveDialogOpen);
+/** Append the given extension if the filename lacks it. */
+function ensureExt(name: string, ext: string): string {
+  return name.toLowerCase().endsWith(ext) ? name : name + ext;
+}
+
+/** Trigger a browser download of `bytes` as `filename`. */
+function downloadBytes(bytes: Uint8Array | string, filename: string, type: string) {
+  const blob = new Blob([bytes], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export function useSave(nvRef: React.RefObject<NiiVue | null>) {
   const setSaveDialogOpen = useFreeBrowseStore((s) => s.setSaveDialogOpen);
   const saveState = useFreeBrowseStore((s) => s.saveState);
   const setSaveState = useFreeBrowseStore((s) => s.setSaveState);
@@ -23,7 +40,7 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
         if (!ok) return;
       }
 
-      const volumeStates = nvRef.current.volumes.map((volume: any) => {
+      const volumeStates = nvRef.current.volumes.map((volume) => {
         const isExternal = !!(volume.url && volume.url.startsWith("http"));
         return {
           enabled: !isExternal,
@@ -37,6 +54,7 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
         document: {
           enabled: false,
           location: "",
+          format: "json",
         },
         volumes: volumeStates,
       });
@@ -54,39 +72,23 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
     if (saveState.isDownloadMode) {
       // Download mode
       if (saveState.document.enabled && saveState.document.location.trim()) {
-        const jsonData = nvRef.current.document.json(true, false) as any;
-        delete jsonData.meshes;
-        delete jsonData.meshOptionsArray;
-        delete jsonData.meshesString;
-
-        // Embedded blobs are always NIfTI (NVImage.toUint8Array), so record
-        // a NIfTI name and image type regardless of the source file format.
-        if (jsonData.imageOptionsArray && nvRef.current.volumes) {
-          for (
-            let i = 0;
-            i < jsonData.imageOptionsArray.length &&
-            i < nvRef.current.volumes.length;
-            i++
-          ) {
-            jsonData.imageOptionsArray[i] = asEmbeddedNiftiOptions(
-              jsonData.imageOptionsArray[i],
-            );
-          }
+        try {
+          const filename = ensureExt(saveState.document.location.trim(), ".nvd");
+          const format = saveState.document.format;
+          // niivue serializes both encodings natively; `loadDocument` sniffs
+          // them apart on the way back in. Embeds everything, meshes included.
+          const bytes = nvRef.current.serializeDocument({
+            format,
+            settings: FREEBROWSE_SAVE_SETTINGS,
+          });
+          downloadBytes(
+            bytes,
+            filename,
+            format === "json" ? "application/json" : "application/cbor",
+          );
+        } catch (error) {
+          console.error("Error downloading document:", error);
         }
-
-        const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = saveState.document.location.endsWith(".nvd")
-          ? saveState.document.location
-          : `${saveState.document.location}.nvd`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
       }
 
       // Download enabled volumes
@@ -97,27 +99,23 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
           nvRef.current &&
           nvRef.current.volumes[index]
         ) {
-          const volume = nvRef.current.volumes[index];
-          const filename = volumeState.url || `volume_${index + 1}.nii.gz`;
+          const filename = ensureExt(
+            volumeState.url || `volume_${index + 1}.nii.gz`,
+            ".nii.gz",
+          );
 
           try {
-            const uint8Array = await volume.saveToUint8Array(
-              filename.endsWith(".nii.gz") ? filename : `${filename}.nii.gz`,
-            );
-
-            const blob = new Blob([uint8Array], {
-              type: "application/octet-stream",
+            // saveVolume with an empty filename returns raw NIfTI bytes; gzip
+            // them for a .nii.gz download.
+            const raw = await nvRef.current.saveVolume({
+              filename: "",
+              volumeByIndex: index,
             });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = filename.endsWith(".nii.gz")
-              ? filename
-              : `${filename}.nii.gz`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            if (!(raw instanceof Uint8Array)) {
+              throw new Error("saveVolume did not return bytes");
+            }
+            const bytes = await gzipUint8Array(raw);
+            downloadBytes(bytes, filename, "application/octet-stream");
           } catch (error) {
             console.error(`Error downloading volume ${index}:`, error);
           }
@@ -125,48 +123,61 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
       }
     } else {
       // Save to backend mode
-      console.log(
-        "handleConfirmSave() -- nvRef.current.document:",
-        nvRef.current.document,
-      );
       if (saveState.document.enabled && saveState.document.location.trim()) {
         try {
-          const jsonData = nvRef.current.document.json(false, false);
-
-          const finalJsonData = { ...jsonData } as any;
-          delete finalJsonData.meshes;
-          delete finalJsonData.meshOptionsArray;
-          delete finalJsonData.meshesString;
-          finalJsonData.imageOptionsArray = finalJsonData.imageOptionsArray.map(
-            (imageOption: any, index: number) => {
-              const volumeState = saveState.volumes[index];
-              if (volumeState?.enabled && volumeState.url.trim() !== "") {
-                // The volume is written below as a NIfTI file at this url.
-                return imageOptionsForSavedVolume(imageOption, volumeState.url);
-              }
-              return imageOption;
-            },
+          // Point each volume entry at its backend save URL, and drop embedded
+          // volume data (the backend stores volumes separately, below).
+          //
+          // `linkData: true` is load-bearing: without it niivue embeds every
+          // volume's bytes into the document only for us to delete them, which
+          // on the JSON path means base64-ing the whole volume first.
+          const volumeUrls = saveState.volumes.map((v) =>
+            v.url && v.url.trim() ? v.url : null,
           );
+          const format: NvdFormat = saveState.document.format;
 
-          const response = await fetch("/data/nvd", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              filename: saveState.document.location,
-              data: finalJsonData,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to save scene: ${response.statusText}`);
+          let data: unknown;
+          if (format === "cbor") {
+            // CBOR cannot be retargeted without a decoder, so linked volumes
+            // keep the url they were loaded from. The save dialog offers CBOR
+            // in download mode only.
+            data = uint8ArrayToBase64(
+              nvRef.current.serializeDocument({
+                linkData: true,
+                settings: FREEBROWSE_SAVE_SETTINGS,
+              }),
+            );
+          } else {
+            // Parse back to an object: the backend stores `data` as a dict and
+            // pretty-prints it, which keeps saved .nvd files diffable.
+            const text = new TextDecoder().decode(
+              nvRef.current.serializeDocument({
+                format: "json",
+                linkData: true,
+                settings: FREEBROWSE_SAVE_SETTINGS,
+              }),
+            );
+            data = retargetVolumeUrls(
+              JSON.parse(text) as Record<string, unknown>,
+              volumeUrls,
+            );
           }
 
-          const result = await response.json();
-          console.log("Scene saved successfully:", result);
+          const response = await fetch(dataUrl("nvd"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              filename: saveState.document.location,
+              data,
+              format,
+            }),
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to save document: ${response.statusText}`);
+          }
+          console.log("Document saved:", await response.json());
         } catch (error) {
-          console.error("Error saving scene:", error);
+          console.error("Error saving document:", error);
         }
       }
 
@@ -178,24 +189,25 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
             nvRef.current &&
             nvRef.current.volumes[index]
           ) {
-            const volume = nvRef.current.volumes[index];
-
             if (!volumeState.url || volumeState.url.trim() === "") {
               console.log(`Skipping volume ${index}: no URL specified`);
               return;
             }
 
             try {
-              const shouldCompress = volumeState.url
-                .toLowerCase()
-                .endsWith(".gz");
-              const filename = shouldCompress
-                ? volumeState.url
-                : volumeState.url + ".gz";
-              const uint8Array = await volume.saveToUint8Array(filename);
+              // saveVolume('' ) returns raw NIfTI bytes; gzip for a .nii.gz
+              // upload (the backend appends .nii.gz if the name lacks it).
+              const raw = await nvRef.current.saveVolume({
+                filename: "",
+                volumeByIndex: index,
+              });
+              if (!(raw instanceof Uint8Array)) {
+                throw new Error("saveVolume did not return bytes");
+              }
+              const uint8Array = await gzipUint8Array(raw);
               const base64Data = uint8ArrayToBase64(uint8Array);
 
-              const volumeResponse = await fetch("/data/nii", {
+              const volumeResponse = await fetch(dataUrl("nii"), {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -230,6 +242,7 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
       document: {
         enabled: false,
         location: "",
+        format: "json",
       },
       volumes: [],
     });
@@ -242,6 +255,7 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
       document: {
         enabled: false,
         location: "",
+        format: "json",
       },
       volumes: [],
     });
@@ -303,6 +317,19 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
     [setSaveState],
   );
 
+  const handleDocumentFormatChange = useCallback(
+    (format: NvdFormat) => {
+      setSaveState((prev) => ({
+        ...prev,
+        document: {
+          ...prev.document,
+          format,
+        },
+      }));
+    },
+    [setSaveState],
+  );
+
   return {
     handleSaveScene,
     handleConfirmSave,
@@ -311,5 +338,6 @@ export function useSave(nvRef: React.RefObject<Niivue | null>) {
     handleVolumeCheckboxChange,
     handleDocumentLocationChange,
     handleDocumentCheckboxChange,
+    handleDocumentFormatChange,
   };
 }

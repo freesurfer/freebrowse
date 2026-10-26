@@ -14,10 +14,10 @@ import { Button } from "@/components/ui/button";
 import ViewSelector from "@/components/view-selector";
 import DragModeSelector from "@/components/drag-mode-selector";
 import { cn } from "@/lib/utils";
-import type { Niivue } from "@niivue/niivue";
+import type { NiiVue } from "@niivue/niivue";
 
 interface HeaderProps {
-  nvRef: React.RefObject<Niivue | null>;
+  nvRef: React.RefObject<NiiVue | null>;
 }
 
 export default function Header({ nvRef }: HeaderProps) {
@@ -27,12 +27,14 @@ export default function Header({ nvRef }: HeaderProps) {
   const setFooterOpen = useFreeBrowseStore((s) => s.setFooterOpen);
   const darkMode = useFreeBrowseStore((s) => s.darkMode);
   const setDarkMode = useFreeBrowseStore((s) => s.setDarkMode);
-  const setSettingsDialogOpen = useFreeBrowseStore((s) => s.setSettingsDialogOpen);
+  const setSettingsDialogOpen = useFreeBrowseStore(
+    (s) => s.setSettingsDialogOpen,
+  );
 
   const {
     viewerOptions,
-    setViewerOptions,
     handleViewMode,
+    handleDragModeChange,
     resetViewAndContrast,
   } = useViewerOptions(nvRef);
 
@@ -41,7 +43,13 @@ export default function Header({ nvRef }: HeaderProps) {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold flex items-center">
           <Brain className="h-6 w-6 mr-2" />
-          <a href="https://github.com/freesurfer/freebrowse" target="_blank" rel="noopener noreferrer">FreeBrowse {__APP_VERSION__}</a>
+          <a
+            href="https://github.com/freesurfer/freebrowse"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            FreeBrowse {__APP_VERSION__}
+          </a>
         </h1>
         <div className="bg-background p-2">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -56,9 +64,7 @@ export default function Header({ nvRef }: HeaderProps) {
               <span className="text-sm font-medium">Right drag:</span>
               <DragModeSelector
                 currentMode={viewerOptions.dragMode}
-                onModeChange={(mode) =>
-                  setViewerOptions((prev) => ({ ...prev, dragMode: mode }))
-                }
+                onModeChange={handleDragModeChange}
                 availableModes={["contrast", "pan"]}
               />
             </div>

@@ -1,8 +1,55 @@
 {
-  "name": "@freebrowse/frontend",
-  "private": true,
-  "version": "2.4.8",
+  "name": "freebrowse",
+  "version": "2.5.0",
+  "description": "FreeBrowse: an embeddable neuroimaging viewer UI on top of NiiVue",
+  "private": false,
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/freesurfer/freebrowse.git",
+    "directory": "frontend"
+  },
+  "homepage": "https://github.com/freesurfer/freebrowse#readme",
+  "bugs": {
+    "url": "https://github.com/freesurfer/freebrowse/issues"
+  },
+  "keywords": [
+    "niivue",
+    "neuroimaging",
+    "viewer",
+    "freesurfer",
+    "nifti"
+  ],
+  "files": [
+    "dist-lib",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./dist-lib/index.js",
+  "module": "./dist-lib/index.js",
+  "types": "./dist-lib/types/lib.d.ts",
+  "typesVersions": {
+    "*": {
+      "react": [
+        "./dist-lib/types/react.d.ts"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist-lib/types/lib.d.ts",
+      "import": "./dist-lib/index.js"
+    },
+    "./react": {
+      "types": "./dist-lib/types/react.d.ts",
+      "import": "./dist-lib/react.js"
+    },
+    "./style.css": "./dist-lib/style.css",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -13,10 +60,31 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "build:lib": "FREEBROWSE_LIB_ENTRY=index vite build --config vite.config.lib.ts && FREEBROWSE_LIB_ENTRY=react vite build --config vite.config.lib.ts",
+    "build:types": "tsc -p tsconfig.lib.json && tsc-alias -p tsconfig.lib.json && node scripts/fix-declarations.mjs",
+    "build:package": "npm run build:lib && npm run build:types && npm run build:readme",
+    "pack:check": "npx publint && npx --yes @arethetypeswrong/cli --pack .",
+    "prepack": "npm run build:package",
+    "build:readme": "node scripts/make-package-readme.mjs",
+    "examples:pack": "npm run build:package && npm pack --pack-destination examples > /dev/null && cd examples && rm -f freebrowse.tgz && mv freebrowse-*.tgz freebrowse.tgz && echo 'examples/freebrowse.tgz ready'"
+  },
+  "peerDependencies": {
+    "@niivue/niivue": "1.0.0-rc.38",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "dependencies": {
-    "@niivue/niivue": "0.69.0",
+    "@niivue/niivue": "1.0.0-rc.38",
+    "@niivue/nv-ext-drawing": "1.0.0-rc.38",
     "@radix-ui/react-checkbox": "^1.3.2",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-radio-group": "^1.3.7",
@@ -51,6 +119,7 @@
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^15.11.0",
     "happy-dom": "^20.6.1",
+    "tsc-alias": "^1.9.5",
     "tw-animate-css": "^1.3.3",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.11.0",

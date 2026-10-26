@@ -13,5 +13,5 @@ def _jupyter_server_extension_points():
 
 def _load_jupyter_server_extension(server_app):
     """Register the FreeBrowse static file handler."""
-    setup_handlers(server_app.web_app)
+    setup_handlers(server_app.web_app, server_app.log)
     server_app.log.info("jupyterlab_freebrowse server extension loaded.")

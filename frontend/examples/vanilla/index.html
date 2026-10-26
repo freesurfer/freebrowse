@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FreeBrowse embedded in a plain page</title>
+    <link rel="stylesheet" href="./host.css" />
+  </head>
+  <body>
+    <!-- Everything outside #viewer is the HOST page. It has its own styles, its
+         own <canvas> and its own buttons; mounting FreeBrowse must not change
+         how any of it looks (CSS-bleed check). -->
+    <header id="host-header">
+      <h1>My imaging app</h1>
+      <p>
+        This page owns the NiiVue instance. The buttons below call niivue's API
+        directly; the FreeBrowse UI inside the panel follows automatically.
+        Drag-and-drop is off and the sidebar and footer start hidden (use the
+        header buttons to open them).
+      </p>
+      <canvas id="host-canvas" width="240" height="60"></canvas>
+      <nav id="host-controls">
+        <button id="btn-load">Load MNI152</button>
+        <button id="btn-overlay">Add overlay</button>
+        <button id="btn-colormap">Colormap: hot</button>
+        <button id="btn-render">3D render</button>
+        <button id="btn-radiological">Toggle radiological</button>
+        <button id="btn-destroy">Destroy</button>
+        <button id="btn-mount" disabled>Mount again</button>
+      </nav>
+    </header>
+
+    <section id="viewer"></section>
+
+    <footer id="host-footer">
+      <p>Host footer — styled by the host, untouched by FreeBrowse.</p>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

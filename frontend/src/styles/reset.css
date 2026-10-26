@@ -1,0 +1,85 @@
+/*
+ * Scoped subset of Tailwind preflight for the FreeBrowse subtree — plain CSS,
+ * kept in its own file and imported WITHOUT a layer so it stays unlayered:
+ * a `.freebrowse-root el` rule (0,1,1) then beats a host page's `el {}` rule
+ * regardless of stylesheet order, which a layered rule never could.
+ */
+/* Scoped subset of Tailwind preflight: what FreeBrowse's markup depends on.
+   Unlayered on purpose (see the note at the top). */
+.freebrowse-root,
+.freebrowse-root *,
+.freebrowse-root ::before,
+.freebrowse-root ::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: var(--border);
+  outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
+}
+.freebrowse-root {
+  background-color: var(--background);
+  color: var(--foreground);
+  margin: 0;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 400;
+}
+.freebrowse-root :is(h1, h2, h3, h4, h5, h6, p, ul, ol, dl, dd, figure, blockquote, pre, hr) {
+  margin: 0;
+  /* a host's `h1 {}` / `p {}` must not restyle text inside the viewer */
+  color: inherit;
+  font-family: inherit;
+  line-height: inherit;
+}
+.freebrowse-root :is(h1, h2, h3, h4, h5, h6) {
+  font-size: inherit;
+  font-weight: inherit;
+}
+.freebrowse-root :is(ul, ol) {
+  list-style: none;
+  padding: 0;
+}
+.freebrowse-root a {
+  color: inherit;
+  text-decoration: inherit;
+}
+.freebrowse-root :is(button, input, optgroup, select, textarea) {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background-color: transparent;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+}
+.freebrowse-root :is(button, [role="button"], input:where([type="button"], [type="reset"], [type="submit"])) {
+  appearance: button;
+  cursor: pointer;
+}
+.freebrowse-root :is(input, textarea)::placeholder {
+  opacity: 1;
+  color: color-mix(in oklab, currentcolor 50%, transparent);
+}
+.freebrowse-root :is(img, svg, video, canvas, audio, iframe, embed, object) {
+  display: block;
+  vertical-align: middle;
+}
+.freebrowse-root :is(img, video) {
+  max-width: 100%;
+  height: auto;
+}
+.freebrowse-root table {
+  border-collapse: collapse;
+  text-indent: 0;
+  border-color: inherit;
+}
+.freebrowse-root :is(:disabled) {
+  cursor: default;
+}
+.freebrowse-root [hidden]:where(:not([hidden="until-found"])) {
+  display: none !important;
+}
+

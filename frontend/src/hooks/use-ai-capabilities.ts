@@ -1,13 +1,12 @@
 import { useEffect } from "react";
 import { useFreeBrowseStore } from "@/store";
-
-const SERVERLESS = import.meta.env.VITE_SERVERLESS === "true";
+import { aiUrl, deploymentConfig } from "@/lib/deployment-config";
 
 export function useAiCapabilities() {
   const setAiEnabled = useFreeBrowseStore((s) => s.setAiEnabled);
 
   useEffect(() => {
-    if (SERVERLESS) {
+    if (deploymentConfig.serverless) {
       setAiEnabled(false);
       return;
     }
@@ -15,7 +14,7 @@ export function useAiCapabilities() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/ai/model/list");
+        const res = await fetch(aiUrl("model/list"));
         if (!res.ok) {
           if (!cancelled) setAiEnabled(false);
           return;

@@ -1,0 +1,18 @@
+{
+  "name": "freebrowse-example-vanilla",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@niivue/niivue": "1.0.0-rc.38",
+    "freebrowse": "^2.5.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}

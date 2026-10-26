@@ -1,14 +1,8 @@
 import { useFreeBrowseStore } from "@/store";
-import {
-  FileText,
-  Box,
-  Brain,
-  Database,
-  Pencil,
-} from "lucide-react";
+import { FileText, Box, Brain, Database, Pencil } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import type { Niivue } from "@niivue/niivue";
+import type { NiiVue, NVImage, NVMeshLayer } from "@niivue/niivue";
 import type { FileItem } from "@/components/file-list";
 import NvdTab from "@/components/tabs/nvd-tab";
 import DataTab from "@/components/tabs/data-tab";
@@ -19,7 +13,7 @@ import AiAnnotationTab from "@/components/tabs/ai-annotation-tab";
 import { Sparkles } from "lucide-react";
 
 interface SidebarProps {
-  nvRef: React.RefObject<Niivue | null>;
+  nvRef: React.RefObject<NiiVue | null>;
   serverlessMode: boolean;
   // File loading
   onNvdFileSelect: (file: FileItem) => void;
@@ -27,7 +21,7 @@ interface SidebarProps {
   onAddMoreFiles: () => void;
   onAddSurfaceFiles: () => void;
   // Volume operations
-  getVolumes: () => any[];
+  getVolumes: () => NVImage[];
   onToggleImageVisibility: (id: string) => void;
   onEditVolume: (index: number) => void;
   canEditVolume: (index: number) => boolean;
@@ -37,18 +31,16 @@ interface SidebarProps {
   onContrastMinChange: (value: number) => void;
   onContrastMaxChange: (value: number) => void;
   onColormapChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
-  onLabelVolumeChange: (checked: boolean) => void;
   onMoveVolumeUp: () => void;
   onMoveVolumeDown: () => void;
   // Surface operations
-  onToggleSurfaceVisibility: (id: string) => void;
+  onToggleSurfaceVisibility: (index: number) => void;
   onRemoveSurfaceClick: (index: number) => void;
   onSurfaceOpacityChange: (value: number) => void;
   onSurfaceColorChange: (hexColor: string) => void;
   onMeshShaderChange: (shaderName: string) => void;
-  getMeshShaderName: (index: number) => string;
   // Layer operations
-  getLayers: () => any[];
+  getLayers: () => NVMeshLayer[];
   onAddLayerFiles: () => void;
   onRemoveLayer: (index: number) => void;
   onLayerOpacityChange: (value: number) => void;
@@ -59,6 +51,9 @@ interface SidebarProps {
   // Drawing operations
   onCreateDrawingLayer: () => void;
   onDrawModeChange: (mode: "none" | "pen" | "wand") => void;
+  onDrawingColormapChange: (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => void;
   onPenFillChange: (checked: boolean) => void;
   onPenErasesChange: (checked: boolean) => void;
   onPenValueChange: (value: number) => void;
@@ -129,18 +124,12 @@ export default function Sidebar(props: SidebarProps) {
             </TabsTrigger>
           )}
           {!props.serverlessMode && (
-            <TabsTrigger
-              value="nvds"
-              className="data-[state=active]:bg-muted"
-            >
+            <TabsTrigger value="nvds" className="data-[state=active]:bg-muted">
               <FileText className="h-4 w-4 mr-2" />
             </TabsTrigger>
           )}
           {!props.serverlessMode && (
-            <TabsTrigger
-              value="data"
-              className="data-[state=active]:bg-muted"
-            >
+            <TabsTrigger value="data" className="data-[state=active]:bg-muted">
               <Database className="h-4 w-4 mr-2" />
             </TabsTrigger>
           )}
@@ -163,7 +152,6 @@ export default function Sidebar(props: SidebarProps) {
             onContrastMinChange={props.onContrastMinChange}
             onContrastMaxChange={props.onContrastMaxChange}
             onColormapChange={props.onColormapChange}
-            onLabelVolumeChange={props.onLabelVolumeChange}
             onMoveVolumeUp={props.onMoveVolumeUp}
             onMoveVolumeDown={props.onMoveVolumeDown}
           />
@@ -178,7 +166,6 @@ export default function Sidebar(props: SidebarProps) {
             onOpacityChange={props.onSurfaceOpacityChange}
             onColorChange={props.onSurfaceColorChange}
             onShaderChange={props.onMeshShaderChange}
-            getMeshShaderName={props.getMeshShaderName}
             getLayers={props.getLayers}
             onAddLayerFiles={props.onAddLayerFiles}
             onRemoveLayer={props.onRemoveLayer}
@@ -192,7 +179,9 @@ export default function Sidebar(props: SidebarProps) {
 
         <TabsContent value="drawing" className="flex-1 min-h-0 p-0">
           <DrawingTab
+            nvRef={props.nvRef}
             onDrawModeChange={props.onDrawModeChange}
+            onDrawingColormapChange={props.onDrawingColormapChange}
             onPenFillChange={props.onPenFillChange}
             onPenErasesChange={props.onPenErasesChange}
             onPenValueChange={props.onPenValueChange}

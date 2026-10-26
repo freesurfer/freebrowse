@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input";
 import { randomSessionName } from "@/lib/random-session-name";
 import type { AiSessionSummary } from "@/store/ai-slice";
+import { aiUrl } from "@/lib/deployment-config";
 
 interface AiAnnotationTabProps {
   volumesCount: number;
@@ -76,7 +77,7 @@ export default function AiAnnotationTab({
 
   const fetchModels = useCallback(async () => {
     try {
-      const res = await fetch("/ai/model/list");
+      const res = await fetch(aiUrl("model/list"));
       if (!res.ok) throw new Error(`GET /ai/model/list failed: ${res.status}`);
       const body: ModelInfo[] = await res.json();
       setModels(body);

@@ -15,6 +15,7 @@ export const createSaveSlice: StateCreator<SaveSlice> = (set) => ({
     document: {
       enabled: false,
       location: "",
+      format: "json",
     },
     volumes: [],
   },

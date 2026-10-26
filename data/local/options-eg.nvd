@@ -1,19 +1,18 @@
 {
-  "title": "Options Example -- local",
-  "imageOptionsArray": [
+  "version": 9,
+  "scene": { "backgroundColor": [0.8, 0.8, 1, 1] },
+  "ui": {
+    "crosshairWidth": 0,
+    "is3DCrosshairVisible": false,
+    "isColorbarVisible": true
+  },
+  "volumes": [
     {
       "url": "data/volumes/mni152.nii.gz",
       "name": "mni152.nii.gz",
       "colormap": "gray",
-      "visible": true,
       "opacity": 1
     }
-  ],
-  "opts": {
-    "crosshairWidth": 0,
-    "show3Dcrosshair": false,
-    "isColorbar": true,
-    "backColor": [0.8, 0.8, 1, 1],
-    "logLevel": "debug"
-  }
+  ]
 }
+

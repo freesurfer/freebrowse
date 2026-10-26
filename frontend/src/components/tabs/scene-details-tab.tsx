@@ -17,15 +17,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input";
 import { Select } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { deploymentConfig } from "@/lib/deployment-config";
-import type { Niivue } from "@niivue/niivue";
+import type { NiiVue, NVImage } from "@niivue/niivue";
 
 interface SceneDetailsTabProps {
-  nvRef: React.RefObject<Niivue | null>;
+  nvRef: React.RefObject<NiiVue | null>;
   serverlessMode: boolean;
-  getVolumes: () => any[];
+  getVolumes: () => NVImage[];
   onToggleVisibility: (id: string) => void;
   onEditVolume: (index: number) => void;
   canEditVolume: (index: number) => boolean;
@@ -38,7 +37,6 @@ interface SceneDetailsTabProps {
   onContrastMinChange: (value: number) => void;
   onContrastMaxChange: (value: number) => void;
   onColormapChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
-  onLabelVolumeChange: (checked: boolean) => void;
   onMoveVolumeUp: () => void;
   onMoveVolumeDown: () => void;
 }
@@ -59,16 +57,18 @@ export default function SceneDetailsTab({
   onContrastMinChange,
   onContrastMaxChange,
   onColormapChange,
-  onLabelVolumeChange,
   onMoveVolumeUp,
   onMoveVolumeDown,
 }: SceneDetailsTabProps) {
   const currentImageIndex = useFreeBrowseStore((s) => s.currentImageIndex);
-  const setCurrentImageIndex = useFreeBrowseStore((s) => s.setCurrentImageIndex);
+  const setCurrentImageIndex = useFreeBrowseStore(
+    (s) => s.setCurrentImageIndex,
+  );
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
 
   const volumes = getVolumes();
-  const currentVolume = currentImageIndex !== null ? volumes[currentImageIndex] : null;
+  const currentVolume =
+    currentImageIndex !== null ? volumes[currentImageIndex] : null;
 
   return (
     <div className="flex flex-col h-full">
@@ -79,234 +79,220 @@ export default function SceneDetailsTab({
         </p>
       </div>
       <ScrollArea className="max-h-[50%] min-h-0">
-          {volumes.length > 0 ? (
-            <div className="grid gap-2 p-4">
-              {volumes.map((volume: any, index: number) => (
-                <div
-                  key={volume.id}
-                  className={cn(
-                    "flex items-center gap-2 p-2 rounded-md cursor-pointer",
-                    currentImageIndex === index
-                      ? "bg-muted"
-                      : "hover:bg-muted/50",
-                  )}
-                  onClick={() => setCurrentImageIndex(index)}
-                >
-                  <div className="flex-shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleVisibility(volume.id);
-                      }}
-                    >
-                      {volume.opacity > 0 ? (
-                        <Eye className="h-3 w-3" />
-                      ) : (
-                        <EyeOff className="h-3 w-3 opacity-50" />
-                      )}
-                    </Button>
-                  </div>
-                  <div className="flex-1 w-0">
-                    <p className="text-sm font-medium break-words">
-                      {volume.name || `Volume ${index + 1}`}
-                    </p>
-                  </div>
-                  <div className="flex-shrink-0 flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-blue-100 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditVolume(index);
-                      }}
-                      disabled={!canEditVolume(index)}
-                      title={
-                        canEditVolume(index)
-                          ? "Edit as drawing"
-                          : "Cannot edit - must match background dimensions and affine"
-                      }
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveVolume(index);
-                      }}
-                      title="Delete volume"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+        {volumes.length > 0 ? (
+          <div className="grid gap-2 p-4">
+            {volumes.map((volume, index) => (
+              <div
+                key={volume.id}
+                className={cn(
+                  "flex items-center gap-2 p-2 rounded-md cursor-pointer",
+                  currentImageIndex === index
+                    ? "bg-muted"
+                    : "hover:bg-muted/50",
+                )}
+                onClick={() => setCurrentImageIndex(index)}
+              >
+                <div className="flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // niivue-mono assigns every loaded volume an id; the
+                      // type keeps it optional, so guard rather than assert.
+                      if (volume.id) onToggleVisibility(volume.id);
+                    }}
+                  >
+                    {volume.visible !== false ? (
+                      <Eye className="h-3 w-3" />
+                    ) : (
+                      <EyeOff className="h-3 w-3 opacity-50" />
+                    )}
+                  </Button>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
-              <ImageIcon className="h-8 w-8 mb-2" />
-              <p>No images</p>
-            </div>
-          )}
-          <div className="p-2 border-t space-y-2">
+                <div className="flex-1 w-0">
+                  <p className="text-sm font-medium break-words">
+                    {volume.name || `Volume ${index + 1}`}
+                  </p>
+                </div>
+                <div className="flex-shrink-0 flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-blue-100 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditVolume(index);
+                    }}
+                    disabled={!canEditVolume(index)}
+                    title={
+                      canEditVolume(index)
+                        ? "Edit as drawing"
+                        : "Cannot edit - must match background dimensions and affine"
+                    }
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveVolume(index);
+                    }}
+                    title="Delete volume"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
+            <ImageIcon className="h-8 w-8 mb-2" />
+            <p>No images</p>
+          </div>
+        )}
+        <div className="p-2 border-t space-y-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={onAddMoreFiles}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Load volumes
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={onCreateDrawingLayer}
+            disabled={drawingOptions.enabled || volumes.length === 0}
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            Create empty drawing layer
+          </Button>
+          <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              className="w-full"
-              onClick={onAddMoreFiles}
+              className="flex-1"
+              onClick={() => onSaveScene(false)}
+              disabled={
+                volumes.length === 0 || drawingOptions.enabled || serverlessMode
+              }
             >
-              <Upload className="mr-2 h-4 w-4" />
-              Load volumes
+              <Save className="mr-2 h-4 w-4" />
+              Save
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="w-full"
-              onClick={onCreateDrawingLayer}
-              disabled={drawingOptions.enabled || volumes.length === 0}
+              className="flex-1"
+              onClick={() => onSaveScene(true)}
+              disabled={
+                volumes.length === 0 ||
+                drawingOptions.enabled ||
+                deploymentConfig.downloadDisabled
+              }
+              title={
+                deploymentConfig.downloadDisabled
+                  ? "Download is disabled in this deployment"
+                  : undefined
+              }
             >
-              <Pencil className="mr-2 h-4 w-4" />
-              Create empty drawing layer
+              <Download className="mr-2 h-4 w-4" />
+              Download
             </Button>
+          </div>
+        </div>
+      </ScrollArea>
+      <ScrollArea className="flex-1 min-h-0">
+        {currentVolume ? (
+          <div className="grid gap-4 p-4">
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => onSaveScene(false)}
-                disabled={
-                  volumes.length === 0 ||
-                  drawingOptions.enabled ||
-                  serverlessMode
-                }
+                onClick={onMoveVolumeUp}
+                disabled={currentImageIndex === null || currentImageIndex === 0}
               >
-                <Save className="mr-2 h-4 w-4" />
-                Save
+                <ChevronUp className="mr-2 h-4 w-4" />
+                Move up
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => onSaveScene(true)}
+                onClick={onMoveVolumeDown}
                 disabled={
-                  volumes.length === 0 ||
-                  drawingOptions.enabled ||
-                  deploymentConfig.downloadDisabled
-                }
-                title={
-                  deploymentConfig.downloadDisabled
-                    ? "Download is disabled in this deployment"
-                    : undefined
+                  currentImageIndex === null ||
+                  currentImageIndex === volumes.length - 1
                 }
               >
-                <Download className="mr-2 h-4 w-4" />
-                Download
+                <ChevronDown className="mr-2 h-4 w-4" />
+                Move down
               </Button>
             </div>
-          </div>
-        </ScrollArea>
-        <ScrollArea className="flex-1 min-h-0">
-          {currentVolume ? (
-            <div className="grid gap-4 p-4">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={onMoveVolumeUp}
-                  disabled={currentImageIndex === null || currentImageIndex === 0}
-                >
-                  <ChevronUp className="mr-2 h-4 w-4" />
-                  Move up
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={onMoveVolumeDown}
-                  disabled={
-                    currentImageIndex === null ||
-                    currentImageIndex === volumes.length - 1
-                  }
-                >
-                  <ChevronDown className="mr-2 h-4 w-4" />
-                  Move down
-                </Button>
-              </div>
-              {(currentVolume.nFrame4D || 1) > 1 && (
-                <LabeledSliderWithInput
-                  label="Frame"
-                  value={currentVolume.frame4D ?? 0}
-                  onValueChange={onFrameChange}
-                  min={0}
-                  max={(currentVolume.nFrame4D || 1) - 1}
-                  step={1}
-                />
-              )}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="label-volume"
-                  checked={currentVolume.hdr?.intent_code === 1002}
-                  onCheckedChange={(checked) =>
-                    onLabelVolumeChange(checked === true)
-                  }
-                />
-                <Label htmlFor="label-volume" className="text-sm font-medium">
-                  Label Volume
-                </Label>
-              </div>
+            {(currentVolume.nFrame4D || 1) > 1 && (
               <LabeledSliderWithInput
-                label="Opacity"
-                value={currentVolume.opacity ?? 1}
-                onValueChange={onOpacityChange}
+                label="Frame"
+                value={currentVolume.frame4D ?? 0}
+                onValueChange={onFrameChange}
                 min={0}
-                max={1}
-                step={0.01}
+                max={(currentVolume.nFrame4D || 1) - 1}
+                step={1}
               />
-              <LabeledSliderWithInput
-                label="Contrast Min"
-                value={currentVolume.cal_min ?? 0}
-                onValueChange={onContrastMinChange}
-                min={currentVolume.global_min ?? 0}
-                max={currentVolume.global_max ?? 255}
-                step={0.1}
-                decimalPlaces={1}
-              />
-              <LabeledSliderWithInput
-                label="Contrast Max"
-                value={currentVolume.cal_max ?? 100}
-                onValueChange={onContrastMaxChange}
-                min={currentVolume.global_min ?? 0}
-                max={currentVolume.global_max ?? 255}
-                step={0.1}
-                decimalPlaces={1}
-              />
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Colormap
-                </Label>
-                <Select
-                  value={currentVolume.colormap || "gray"}
-                  onChange={onColormapChange}
-                >
-                  {nvRef.current?.colormaps().map((colormap: string) => (
-                    <option key={colormap} value={colormap}>
-                      {colormap}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+            )}
+            <LabeledSliderWithInput
+              label="Opacity"
+              value={currentVolume.opacity ?? 1}
+              onValueChange={onOpacityChange}
+              min={0}
+              max={1}
+              step={0.01}
+            />
+            <LabeledSliderWithInput
+              label="Contrast Min"
+              value={currentVolume.calMin ?? 0}
+              onValueChange={onContrastMinChange}
+              min={currentVolume.globalMin ?? 0}
+              max={currentVolume.globalMax ?? 255}
+              step={0.1}
+              decimalPlaces={1}
+            />
+            <LabeledSliderWithInput
+              label="Contrast Max"
+              value={currentVolume.calMax ?? 100}
+              onValueChange={onContrastMaxChange}
+              min={currentVolume.globalMin ?? 0}
+              max={currentVolume.globalMax ?? 255}
+              step={0.1}
+              decimalPlaces={1}
+            />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Colormap</Label>
+              <Select
+                value={currentVolume.colormap || "gray"}
+                onChange={onColormapChange}
+              >
+                {nvRef.current?.colormaps.map((colormap: string) => (
+                  <option key={colormap} value={colormap}>
+                    {colormap}
+                  </option>
+                ))}
+              </Select>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground"></div>
-          )}
-        </ScrollArea>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground"></div>
+        )}
+      </ScrollArea>
     </div>
   );
 }

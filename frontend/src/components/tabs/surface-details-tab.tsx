@@ -1,11 +1,5 @@
 import { useFreeBrowseStore } from "@/store";
-import {
-  Upload,
-  Trash2,
-  Eye,
-  EyeOff,
-  Brain,
-} from "lucide-react";
+import { Upload, Trash2, Eye, EyeOff, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
@@ -14,19 +8,18 @@ import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { rgba255ToHex } from "@/lib/niivue-helpers";
-import type { Niivue } from "@niivue/niivue";
+import type { NiiVue, NVMeshLayer } from "@niivue/niivue";
 
 interface SurfaceDetailsTabProps {
-  nvRef: React.RefObject<Niivue | null>;
-  onToggleVisibility: (id: string) => void;
+  nvRef: React.RefObject<NiiVue | null>;
+  onToggleVisibility: (index: number) => void;
   onRemoveSurface: (index: number) => void;
   onAddSurfaceFiles: () => void;
   onOpacityChange: (value: number) => void;
   onColorChange: (hexColor: string) => void;
   onShaderChange: (shaderName: string) => void;
-  getMeshShaderName: (index: number) => string;
   // Layer operations
-  getLayers: () => any[];
+  getLayers: () => NVMeshLayer[];
   onAddLayerFiles: () => void;
   onRemoveLayer: (index: number) => void;
   onLayerOpacityChange: (value: number) => void;
@@ -44,7 +37,6 @@ export default function SurfaceDetailsTab({
   onOpacityChange,
   onColorChange,
   onShaderChange,
-  getMeshShaderName,
   getLayers,
   onAddLayerFiles,
   onRemoveLayer,
@@ -56,12 +48,17 @@ export default function SurfaceDetailsTab({
 }: SurfaceDetailsTabProps) {
   const surfaces = useFreeBrowseStore((s) => s.surfaces);
   const currentSurfaceIndex = useFreeBrowseStore((s) => s.currentSurfaceIndex);
-  const setCurrentSurfaceIndex = useFreeBrowseStore((s) => s.setCurrentSurfaceIndex);
+  const setCurrentSurfaceIndex = useFreeBrowseStore(
+    (s) => s.setCurrentSurfaceIndex,
+  );
   const selectedLayerIndex = useFreeBrowseStore((s) => s.selectedLayerIndex);
-  const setSelectedLayerIndex = useFreeBrowseStore((s) => s.setSelectedLayerIndex);
+  const setSelectedLayerIndex = useFreeBrowseStore(
+    (s) => s.setSelectedLayerIndex,
+  );
 
   const layers = getLayers();
-  const selectedLayer = selectedLayerIndex !== null ? layers[selectedLayerIndex] : null;
+  const selectedLayer =
+    selectedLayerIndex !== null ? layers[selectedLayerIndex] : null;
 
   return (
     <div className="flex flex-col h-full">
@@ -72,232 +69,234 @@ export default function SurfaceDetailsTab({
         </p>
       </div>
       <ScrollArea className="max-h-[50%] min-h-0">
-          {surfaces.length > 0 ? (
-            <div className="grid gap-2 p-4">
-              {surfaces.map((surface, index) => (
-                <div
-                  key={surface.id}
-                  className={cn(
-                    "flex items-center gap-2 p-2 rounded-md cursor-pointer",
-                    currentSurfaceIndex === index
-                      ? "bg-muted"
-                      : "hover:bg-muted/50",
-                  )}
-                  onClick={() => setCurrentSurfaceIndex(index)}
-                >
-                  <div className="flex-shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleVisibility(surface.id);
-                      }}
-                    >
-                      {surface.visible ? (
-                        <Eye className="h-3 w-3" />
-                      ) : (
-                        <EyeOff className="h-3 w-3 opacity-50" />
-                      )}
-                    </Button>
-                  </div>
-                  <div className="flex-1 w-0">
-                    <p className="text-sm font-medium break-words">
-                      {surface.name}
-                    </p>
-                  </div>
-                  <div className="flex-shrink-0 flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveSurface(index);
-                      }}
-                      title="Delete surface"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
-              <Brain className="h-8 w-8 mb-2" />
-              <p>No surfaces</p>
-            </div>
-          )}
-          <div className="p-2 border-t space-y-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={onAddSurfaceFiles}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Load surfaces
-            </Button>
-          </div>
-        </ScrollArea>
-        <ScrollArea className="flex-1 min-h-0">
-          {currentSurfaceIndex != null && surfaces[currentSurfaceIndex] ? (
-            <div className="grid gap-4 p-4">
-              <LabeledSliderWithInput
-                label="Opacity"
-                value={surfaces[currentSurfaceIndex]?.opacity || 1}
-                onValueChange={onOpacityChange}
-                min={0}
-                max={1}
-                step={0.01}
-              />
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Color</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={rgba255ToHex(surfaces[currentSurfaceIndex]?.rgba255 || [255, 255, 0, 255])}
-                    onChange={(e) => onColorChange(e.target.value)}
-                    className="h-9 w-16 rounded-md border border-input cursor-pointer"
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    {rgba255ToHex(surfaces[currentSurfaceIndex]?.rgba255 || [255, 255, 0, 255])}
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Mesh Shader
-                </Label>
-                <Select
-                  value={getMeshShaderName(surfaces[currentSurfaceIndex]?.meshShaderIndex || 0)}
-                  onChange={(e) => onShaderChange(e.target.value)}
-                >
-                  {nvRef.current?.meshShaderNames(true).map((shaderName: string) => (
-                    <option key={shaderName} value={shaderName}>
-                      {shaderName}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-
-              {/* Layers section */}
-              <div className="border-t pt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium">Layers</Label>
+        {surfaces.length > 0 ? (
+          <div className="grid gap-2 p-4">
+            {surfaces.map((surface, index) => (
+              <div
+                key={surface.id}
+                className={cn(
+                  "flex items-center gap-2 p-2 rounded-md cursor-pointer",
+                  currentSurfaceIndex === index
+                    ? "bg-muted"
+                    : "hover:bg-muted/50",
+                )}
+                onClick={() => setCurrentSurfaceIndex(index)}
+              >
+                <div className="flex-shrink-0">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={onAddLayerFiles}
+                    className="h-6 w-6 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleVisibility(index);
+                    }}
                   >
-                    <Upload className="mr-2 h-3 w-3" />
-                    Add
+                    {surface.visible ? (
+                      <Eye className="h-3 w-3" />
+                    ) : (
+                      <EyeOff className="h-3 w-3 opacity-50" />
+                    )}
                   </Button>
                 </div>
-
-                {layers.length > 0 ? (
-                  <div className="grid gap-1 mb-4">
-                    {layers.map((layer: any, index: number) => (
-                      <div
-                        key={index}
-                        className={cn(
-                          "flex items-center gap-2 p-2 rounded-md cursor-pointer text-sm",
-                          selectedLayerIndex === index
-                            ? "bg-muted"
-                            : "hover:bg-muted/50",
-                        )}
-                        onClick={() => setSelectedLayerIndex(index)}
-                      >
-                        <div className="flex-1 w-0">
-                          <p className="text-sm truncate">
-                            {layer.name || `Layer ${index + 1}`}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveLayer(index);
-                          }}
-                          title="Remove layer"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground mb-4">
-                    No layers loaded
+                <div className="flex-1 w-0">
+                  <p className="text-sm font-medium break-words">
+                    {surface.name}
                   </p>
-                )}
-
-                {selectedLayer && (
-                  <div className="grid gap-4 border-t pt-4">
-                    <LabeledSliderWithInput
-                      label="Contrast Min"
-                      value={selectedLayer.cal_min ?? 0}
-                      onValueChange={onLayerCalMinChange}
-                      min={-10}
-                      max={10}
-                      step={0.01}
-                    />
-                    <LabeledSliderWithInput
-                      label="Contrast Max"
-                      value={selectedLayer.cal_max ?? 1}
-                      onValueChange={onLayerCalMaxChange}
-                      min={-10}
-                      max={10}
-                      step={0.01}
-                    />
-                    <LabeledSliderWithInput
-                      label="Opacity"
-                      value={selectedLayer.opacity ?? 1}
-                      onValueChange={onLayerOpacityChange}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                    />
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Colormap</Label>
-                      <Select
-                        value={selectedLayer.colormap || "warm"}
-                        onChange={(e) => onLayerColormapChange(e.target.value)}
-                      >
-                        {nvRef.current?.colormaps().map((cm: string) => (
-                          <option key={cm} value={cm}>
-                            {cm}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="use-negative-cmap"
-                        checked={selectedLayer.useNegativeCmap ?? false}
-                        onCheckedChange={(checked) =>
-                          onLayerUseNegativeCmapChange(checked === true)
-                        }
-                      />
-                      <Label
-                        htmlFor="use-negative-cmap"
-                        className="text-sm font-medium"
-                      >
-                        Use Negative Colormap
-                      </Label>
-                    </div>
-                  </div>
-                )}
+                </div>
+                <div className="flex-shrink-0 flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveSurface(index);
+                    }}
+                    title="Delete surface"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground">
+            <Brain className="h-8 w-8 mb-2" />
+            <p>No surfaces</p>
+          </div>
+        )}
+        <div className="p-2 border-t space-y-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={onAddSurfaceFiles}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Load surfaces
+          </Button>
+        </div>
+      </ScrollArea>
+      <ScrollArea className="flex-1 min-h-0">
+        {currentSurfaceIndex != null && surfaces[currentSurfaceIndex] ? (
+          <div className="grid gap-4 p-4">
+            <LabeledSliderWithInput
+              label="Opacity"
+              value={surfaces[currentSurfaceIndex]?.opacity || 1}
+              onValueChange={onOpacityChange}
+              min={0}
+              max={1}
+              step={0.01}
+            />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Color</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={rgba255ToHex(
+                    surfaces[currentSurfaceIndex]?.rgba255 || [
+                      255, 255, 0, 255,
+                    ],
+                  )}
+                  onChange={(e) => onColorChange(e.target.value)}
+                  className="h-9 w-16 rounded-md border border-input cursor-pointer"
+                />
+                <span className="text-sm text-muted-foreground">
+                  {rgba255ToHex(
+                    surfaces[currentSurfaceIndex]?.rgba255 || [
+                      255, 255, 0, 255,
+                    ],
+                  )}
+                </span>
               </div>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground"></div>
-          )}
-        </ScrollArea>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Mesh Shader</Label>
+              <Select
+                value={surfaces[currentSurfaceIndex]?.shaderType || "phong"}
+                onChange={(e) => onShaderChange(e.target.value)}
+              >
+                {nvRef.current?.meshShaders.map((shaderName: string) => (
+                  <option key={shaderName} value={shaderName}>
+                    {shaderName}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Layers section */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Layers</Label>
+                <Button variant="outline" size="sm" onClick={onAddLayerFiles}>
+                  <Upload className="mr-2 h-3 w-3" />
+                  Add
+                </Button>
+              </div>
+
+              {layers.length > 0 ? (
+                <div className="grid gap-1 mb-4">
+                  {layers.map((layer, index) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "flex items-center gap-2 p-2 rounded-md cursor-pointer text-sm",
+                        selectedLayerIndex === index
+                          ? "bg-muted"
+                          : "hover:bg-muted/50",
+                      )}
+                      onClick={() => setSelectedLayerIndex(index)}
+                    >
+                      <div className="flex-1 w-0">
+                        <p className="text-sm truncate">
+                          {layer.name || `Layer ${index + 1}`}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveLayer(index);
+                        }}
+                        title="Remove layer"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground mb-4">
+                  No layers loaded
+                </p>
+              )}
+
+              {selectedLayer && (
+                <div className="grid gap-4 border-t pt-4">
+                  <LabeledSliderWithInput
+                    label="Contrast Min"
+                    value={selectedLayer.calMin ?? 0}
+                    onValueChange={onLayerCalMinChange}
+                    min={-10}
+                    max={10}
+                    step={0.01}
+                  />
+                  <LabeledSliderWithInput
+                    label="Contrast Max"
+                    value={selectedLayer.calMax ?? 1}
+                    onValueChange={onLayerCalMaxChange}
+                    min={-10}
+                    max={10}
+                    step={0.01}
+                  />
+                  <LabeledSliderWithInput
+                    label="Opacity"
+                    value={selectedLayer.opacity ?? 1}
+                    onValueChange={onLayerOpacityChange}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                  />
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Colormap</Label>
+                    <Select
+                      value={selectedLayer.colormap || "warm"}
+                      onChange={(e) => onLayerColormapChange(e.target.value)}
+                    >
+                      {nvRef.current?.colormaps.map((cm: string) => (
+                        <option key={cm} value={cm}>
+                          {cm}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="use-negative-cmap"
+                      checked={!!selectedLayer.colormapNegative}
+                      onCheckedChange={(checked) =>
+                        onLayerUseNegativeCmapChange(checked === true)
+                      }
+                    />
+                    <Label
+                      htmlFor="use-negative-cmap"
+                      className="text-sm font-medium"
+                    >
+                      Use Negative Colormap
+                    </Label>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full p-4 text-center text-muted-foreground"></div>
+        )}
+      </ScrollArea>
     </div>
   );
 }

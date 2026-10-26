@@ -1,0 +1,31 @@
+{
+  "version": 8,
+  "created": "2026-07-15T19:45:49.803627+00:00",
+  "layout": {
+    "sliceType": 4,
+    "showRender": 1
+  },
+  "meshes": [
+    {
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/lh.white",
+      "name": "lh.white",
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "shaderType": "matte",
+      "layers": [
+        {
+          "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/lh.curv",
+          "name": "lh.curv",
+          "colormap": "nih",
+          "calMin": -0.75,
+          "calMax": 0.75,
+          "opacity": 1.0
+        }
+      ]
+    }
+  ]
+}

@@ -1,162 +1,131 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useFreeBrowseStore } from "@/store";
-import { NVMesh, type Niivue } from "@niivue/niivue";
+import NiiVue from "@niivue/niivue";
 
-export function useMeshLayers(
-  nvRef: React.RefObject<Niivue | null>,
-) {
+/**
+ * Mesh scalar-overlay layer handlers. Command-only: handlers issue nv.* layer
+ * commands (addMeshLayer/removeMeshLayer/setMeshLayerProperty), which emit
+ * meshUpdated -> the event adapter bumps layerVersion. getLayers re-reads
+ * nv.meshes[i].layers at render, so the UI follows without imperative writes.
+ * Layers are addressed by (meshIndex, layerIndex) — niivue-mono meshes have no id.
+ */
+export function useMeshLayers(nvRef: React.RefObject<NiiVue | null>) {
   const currentSurfaceIndex = useFreeBrowseStore((s) => s.currentSurfaceIndex);
   const selectedLayerIndex = useFreeBrowseStore((s) => s.selectedLayerIndex);
-  const setSelectedLayerIndex = useFreeBrowseStore((s) => s.setSelectedLayerIndex);
+  const setSelectedLayerIndex = useFreeBrowseStore(
+    (s) => s.setSelectedLayerIndex,
+  );
   const layerVersion = useFreeBrowseStore((s) => s.layerVersion);
-  const incrementLayerVersion = useFreeBrowseStore((s) => s.incrementLayerVersion);
 
   const layerFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset layer selection when surface changes
+  // Reset layer selection when the selected surface changes
   useEffect(() => {
     setSelectedLayerIndex(null);
   }, [currentSurfaceIndex, setSelectedLayerIndex]);
 
   const getLayers = useCallback(() => {
-    // Consume layerVersion to trigger re-renders on mutation
+    // Consume layerVersion so the list re-renders when layers mutate.
     void layerVersion;
     const nv = nvRef.current;
-    if (!nv || currentSurfaceIndex === null || !nv.meshes[currentSurfaceIndex]) {
-      return [];
+    if (nv && currentSurfaceIndex !== null && nv.meshes[currentSurfaceIndex]) {
+      return nv.meshes[currentSurfaceIndex].layers || [];
     }
-    const layers = nv.meshes[currentSurfaceIndex].layers || [];
-    // WORKAROUND: NiiVue's loadLayer doesn't persist the name on the layer
-    // object. Backfill from the URL if available (covers layers loaded via
-    // meshesString/loadDocument path). Remove after niivue PR is merged.
-    for (const layer of layers) {
-      if (!layer.name && layer.url) {
-        try {
-          const pathname = new URL(layer.url).pathname;
-          layer.name = pathname.split("/").pop() || layer.url;
-        } catch {
-          layer.name = layer.url.split("/").pop() || layer.url;
-        }
-      }
-    }
-    return layers;
+    return [];
   }, [nvRef, currentSurfaceIndex, layerVersion]);
 
   const addLayerFromFile = useCallback(
     async (file: File) => {
       const nv = nvRef.current;
-      if (!nv || currentSurfaceIndex === null || !nv.meshes[currentSurfaceIndex]) {
+      if (
+        !nv ||
+        currentSurfaceIndex === null ||
+        !nv.meshes[currentSurfaceIndex]
+      )
         return;
-      }
-      const mesh = nv.meshes[currentSurfaceIndex];
-      const blobUrl = URL.createObjectURL(file);
-
-      try {
-        await NVMesh.loadLayer(
-          { url: blobUrl, name: file.name, opacity: 0.5, colormap: "warm" } as any,
-          mesh,
-        );
-        // WORKAROUND: NiiVue's loadLayer doesn't set name on the layer object.
-        // Remove after niivue PR is merged.
-        const newLayer = mesh.layers[mesh.layers.length - 1];
-        if (newLayer) {
-          newLayer.name = file.name;
-        }
-        mesh.updateMesh(nv.gl);
-        nv.updateGLVolume();
-        incrementLayerVersion();
-        setSelectedLayerIndex(mesh.layers.length - 1);
-      } catch (error) {
-        console.error("Error loading layer file:", error);
-      } finally {
-        URL.revokeObjectURL(blobUrl);
-      }
+      // niivue-mono loads layers by URL/File and now persists the layer name
+      // (PR: URL mesh layers). The old NVMesh.loadLayer + name backfill is gone.
+      await nv.addMeshLayer(currentSurfaceIndex, {
+        url: file,
+        name: file.name,
+        opacity: 0.5,
+      });
+      // Select the newly added (last) layer.
+      const layers = nv.meshes[currentSurfaceIndex].layers || [];
+      setSelectedLayerIndex(layers.length - 1);
     },
-    [nvRef, currentSurfaceIndex, incrementLayerVersion, setSelectedLayerIndex],
+    [nvRef, currentSurfaceIndex, setSelectedLayerIndex],
   );
 
   const removeLayer = useCallback(
     (layerIndex: number) => {
       const nv = nvRef.current;
-      if (!nv || currentSurfaceIndex === null || !nv.meshes[currentSurfaceIndex]) {
+      if (
+        !nv ||
+        currentSurfaceIndex === null ||
+        !nv.meshes[currentSurfaceIndex]
+      )
         return;
-      }
-      const mesh = nv.meshes[currentSurfaceIndex];
-      mesh.layers.splice(layerIndex, 1);
-      mesh.updateMesh(nv.gl);
-      nv.updateGLVolume();
-      incrementLayerVersion();
+      void nv.removeMeshLayer(currentSurfaceIndex, layerIndex);
 
-      // Adjust selection
       if (selectedLayerIndex === layerIndex) {
         setSelectedLayerIndex(null);
-      } else if (selectedLayerIndex !== null && selectedLayerIndex > layerIndex) {
+      } else if (
+        selectedLayerIndex !== null &&
+        selectedLayerIndex > layerIndex
+      ) {
         setSelectedLayerIndex(selectedLayerIndex - 1);
       }
     },
-    [nvRef, currentSurfaceIndex, selectedLayerIndex, incrementLayerVersion, setSelectedLayerIndex],
+    [nvRef, currentSurfaceIndex, selectedLayerIndex, setSelectedLayerIndex],
+  );
+
+  // Shared: apply a property change to the currently selected layer.
+  const setLayerProperty = useCallback(
+    (options: Record<string, unknown>) => {
+      const nv = nvRef.current;
+      if (
+        !nv ||
+        currentSurfaceIndex === null ||
+        selectedLayerIndex === null ||
+        !nv.meshes[currentSurfaceIndex]
+      )
+        return;
+      void nv.setMeshLayerProperty(
+        currentSurfaceIndex,
+        selectedLayerIndex,
+        options,
+      );
+    },
+    [nvRef, currentSurfaceIndex, selectedLayerIndex],
   );
 
   const handleLayerOpacityChange = useCallback(
-    (value: number) => {
-      const nv = nvRef.current;
-      if (!nv || currentSurfaceIndex === null || selectedLayerIndex === null) return;
-      const mesh = nv.meshes[currentSurfaceIndex];
-      if (!mesh) return;
-      nv.setMeshLayerProperty(mesh.id, selectedLayerIndex, "opacity", value);
-      incrementLayerVersion();
-    },
-    [nvRef, currentSurfaceIndex, selectedLayerIndex, incrementLayerVersion],
+    (value: number) => setLayerProperty({ opacity: value }),
+    [setLayerProperty],
   );
 
   const handleLayerCalMinChange = useCallback(
-    (value: number) => {
-      const nv = nvRef.current;
-      if (!nv || currentSurfaceIndex === null || selectedLayerIndex === null) return;
-      const mesh = nv.meshes[currentSurfaceIndex];
-      if (!mesh) return;
-      nv.setMeshLayerProperty(mesh.id, selectedLayerIndex, "cal_min", value);
-      incrementLayerVersion();
-    },
-    [nvRef, currentSurfaceIndex, selectedLayerIndex, incrementLayerVersion],
+    (value: number) => setLayerProperty({ calMin: value }),
+    [setLayerProperty],
   );
 
   const handleLayerCalMaxChange = useCallback(
-    (value: number) => {
-      const nv = nvRef.current;
-      if (!nv || currentSurfaceIndex === null || selectedLayerIndex === null) return;
-      const mesh = nv.meshes[currentSurfaceIndex];
-      if (!mesh) return;
-      nv.setMeshLayerProperty(mesh.id, selectedLayerIndex, "cal_max", value);
-      incrementLayerVersion();
-    },
-    [nvRef, currentSurfaceIndex, selectedLayerIndex, incrementLayerVersion],
+    (value: number) => setLayerProperty({ calMax: value }),
+    [setLayerProperty],
   );
 
   const handleLayerColormapChange = useCallback(
-    async (colormap: string) => {
-      const nv = nvRef.current;
-      if (!nv || currentSurfaceIndex === null || selectedLayerIndex === null) return;
-      const mesh = nv.meshes[currentSurfaceIndex];
-      if (!mesh) return;
-      await mesh.setLayerProperty(selectedLayerIndex, "colormap", colormap, nv.gl);
-      nv.updateGLVolume();
-      incrementLayerVersion();
-    },
-    [nvRef, currentSurfaceIndex, selectedLayerIndex, incrementLayerVersion],
+    async (colormap: string) => setLayerProperty({ colormap }),
+    [setLayerProperty],
   );
 
   const handleLayerUseNegativeCmapChange = useCallback(
-    async (checked: boolean) => {
-      const nv = nvRef.current;
-      if (!nv || currentSurfaceIndex === null || selectedLayerIndex === null) return;
-      const mesh = nv.meshes[currentSurfaceIndex];
-      if (!mesh) return;
-      await mesh.setLayerProperty(selectedLayerIndex, "useNegativeCmap", checked, nv.gl);
-      nv.updateGLVolume();
-      incrementLayerVersion();
-    },
-    [nvRef, currentSurfaceIndex, selectedLayerIndex, incrementLayerVersion],
+    // niivue-mono has no `useNegativeCmap` boolean; enabling a negative colormap
+    // means setting `colormapNegative` to a colormap name ('' disables).
+    async (checked: boolean) =>
+      setLayerProperty({ colormapNegative: checked ? "winter" : "" }),
+    [setLayerProperty],
   );
 
   const handleAddLayerFiles = useCallback(() => {

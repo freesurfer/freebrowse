@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -11,16 +12,18 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import type { Niivue } from "@niivue/niivue";
+import type { NvdFormat } from "@/store/types";
+import type { NiiVue } from "@niivue/niivue";
 
 interface SaveDialogProps {
-  nvRef: React.RefObject<Niivue | null>;
+  nvRef: React.RefObject<NiiVue | null>;
   onConfirm: () => void;
   onCancel: () => void;
   onVolumeUrlChange: (index: number, url: string) => void;
   onVolumeCheckboxChange: (index: number, enabled: boolean) => void;
   onDocumentLocationChange: (location: string) => void;
   onDocumentCheckboxChange: (enabled: boolean) => void;
+  onDocumentFormatChange: (format: NvdFormat) => void;
 }
 
 export default function SaveDialog({
@@ -31,6 +34,7 @@ export default function SaveDialog({
   onVolumeCheckboxChange,
   onDocumentLocationChange,
   onDocumentCheckboxChange,
+  onDocumentFormatChange,
 }: SaveDialogProps) {
   const saveDialogOpen = useFreeBrowseStore((s) => s.saveDialogOpen);
   const setSaveDialogOpen = useFreeBrowseStore((s) => s.setSaveDialogOpen);
@@ -48,12 +52,6 @@ export default function SaveDialog({
               ? "Select the files you want to download."
               : "Enter the location where you want to save the scene."}
           </DialogDescription>
-          {nvRef.current?.meshes && nvRef.current.meshes.length > 0 && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Note: Saving scenes with meshes is currently not supported. Mesh
-              data will not be included in the saved file.
-            </p>
-          )}
         </DialogHeader>
 
         <div className="mt-4">
@@ -70,8 +68,8 @@ export default function SaveDialog({
                 className="text-sm font-medium"
               >
                 {saveState.isDownloadMode
-                  ? "Niivue Document Name"
-                  : "Niivue Document Save Location"}
+                  ? "NiiVue Document Name"
+                  : "NiiVue Document Save Location"}
               </Label>
               <Input
                 id="save-location"
@@ -85,6 +83,45 @@ export default function SaveDialog({
                 onChange={(e) => onDocumentLocationChange(e.target.value)}
                 className="mt-1"
               />
+
+              <div className="mt-3">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  Format
+                </Label>
+                <RadioGroup
+                  value={saveState.document.format}
+                  onValueChange={(v) => onDocumentFormatChange(v as NvdFormat)}
+                  className="mt-1 flex gap-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="json" id="format-json" />
+                    <Label htmlFor="format-json" className="text-sm font-normal">
+                      JSON
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem
+                      value="cbor"
+                      id="format-cbor"
+                      disabled={!saveState.isDownloadMode}
+                    />
+                    <Label
+                      htmlFor="format-cbor"
+                      className="text-sm font-normal data-[disabled]:text-muted-foreground"
+                      data-disabled={!saveState.isDownloadMode || undefined}
+                    >
+                      CBOR
+                    </Label>
+                  </div>
+                </RadioGroup>
+                {!saveState.isDownloadMode && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    CBOR is download-only: saving to the server rewrites each
+                    volume&rsquo;s URL to its upload destination, which needs the
+                    text format.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>

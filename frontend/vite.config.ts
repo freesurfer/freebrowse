@@ -24,6 +24,15 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    // Scan only the app's own entry. By default Vite scans every *.html under
+    // the project root, which includes examples/*/index.html; those examples
+    // carry their own node_modules with a registry @niivue/niivue, and the
+    // first resolution of a bare specifier wins, so the dev server would serve
+    // the example's copy to the app instead of frontend/node_modules' (which
+    // may be a file: link to a local niivue-mono checkout).
+    entries: ["index.html"],
+  },
   server: {
     proxy: {
       '/data': backendUrl,

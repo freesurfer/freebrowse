@@ -1,0 +1,4 @@
+freebrowse.tgz
+*/node_modules/
+*/dist/
+*/package-lock.json

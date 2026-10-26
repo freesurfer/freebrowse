@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.lib.tsbuildinfo",
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": false,
+    "allowImportingTsExtensions": false,
+    "rootDir": "./src",
+    "outDir": "./dist-lib/types"
+  },
+  "include": [
+    "src/lib.ts",
+    "src/react.ts",
+    "src/vite-env.d.ts",
+    "src/window.d.ts"
+  ],
+  "exclude": [
+    "src/main.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/__mocks__"
+  ],
+  "tsc-alias": {
+    "resolveFullPaths": true,
+    "resolveFullExtension": ".js"
+  }
+}

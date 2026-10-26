@@ -33,9 +33,9 @@ export const FileList: React.FC<FileListProps> = ({
         const data: FileItem[] = await response.json()
         console.log(`Files from ${endpoint}:`, data)
         setFiles(data)
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(`Error fetching files from ${endpoint}:`, err)
-        setError(err.message)
+        setError(err instanceof Error ? err.message : String(err))
       } finally {
         setLoading(false)
       }
