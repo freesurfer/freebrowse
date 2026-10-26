@@ -1,6 +1,6 @@
 {
   "name": "freebrowse",
-  "version": "2.5.0-next.1",
+  "version": "2.5.0",
   "description": "FreeBrowse: an embeddable neuroimaging viewer UI on top of NiiVue",
   "private": false,
   "type": "module",

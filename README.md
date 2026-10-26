@@ -75,11 +75,10 @@ python3 scripts/migrate-nvd.py scene.nvd --cbor     # binary output (needs cbor2
 
 ## Embedding FreeBrowse in your own app (npm package)
 
-FreeBrowse is published to npm as `freebrowse`. Until the niivue-mono migration lands on
-`main` it is available under the `next` dist-tag only:
+FreeBrowse is published to npm as `freebrowse`:
 
 ```bash
-npm install freebrowse@next @niivue/niivue@1.0.0-rc.13
+npm install freebrowse @niivue/niivue@1.0.0-rc.38
 ```
 
 `@niivue/niivue` is a peer dependency: **you** create the NiiVue instance, FreeBrowse renders
@@ -129,14 +128,14 @@ The handle returned has `nv` and `destroy()`. **One mount at a time**: FreeBrows
 single store, so a second concurrent mount throws; destroy the first one. Styles are scoped to
 the mounted element (`.freebrowse-root`) and never touch your page's `html`/`body`; import
 `freebrowse/style.css` once. Working examples for both entries live in
-[`frontend/examples/`](frontend/examples/); they install `freebrowse@next` from npm.
+[`frontend/examples/`](frontend/examples/); they install `freebrowse` from npm.
 
 Releasing (maintainers): bump `version` in `frontend/package.json` (the app and the package
-share it; pre-merge builds use a `-next.N` suffix), then from `frontend/`:
+share it), then from `frontend/`:
 
 ```bash
 npm run build:package && npm run pack:check   # publint + arethetypeswrong on the tarball
-npm publish --tag next                         # `latest` is reserved for the main-branch release
+npm publish                                    # a `-next.N` pre-release: npm publish --tag next
 ```
 
 ## Driving FreeBrowse from your own code

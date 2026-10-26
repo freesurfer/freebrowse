@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@niivue/niivue": "1.0.0-rc.38",
-    "freebrowse": "next"
+    "freebrowse": "^2.5.0"
   },
   "devDependencies": {
     "vite": "^5.4.10"
