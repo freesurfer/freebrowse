@@ -107,11 +107,13 @@ export async function resolveFileUrl(
   if (signal.aborted) throw abortError();
 
   if (fileAccess === "url") {
-    // getDownloadUrl appends the cookie's _xsrf value. A GET does not need it
-    // and it must not end up in an address bar, so strip it.
-    const url = new URL(downloadUrl, document.baseURI);
-    url.searchParams.delete("_xsrf");
-    return { url: url.href };
+    // Keep the _xsrf query parameter getDownloadUrl appended: jupyter_server
+    // runs check_xsrf_cookie on /files/ GETs and otherwise falls back to a
+    // Referer check, which the viewer's worker fetch fails ("Blocking request
+    // with no referer"). Without the cookie the parameter only earns a login
+    // redirect, so it is not a credential (JupyterLab's own Download command
+    // puts it in the address bar the same way).
+    return { url: downloadUrl };
   }
 
   const response = await ServerConnection.makeRequest(

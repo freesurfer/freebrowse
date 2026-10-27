@@ -24,7 +24,7 @@ const SOURCE = ts.transpileModule(fs.readFileSync(sourcePath, "utf8"), {
 }).outputText;
 
 const downloadUrl = path => `https://hub.example/download/${encodeURIComponent(path)}?_xsrf=session-xsrf`;
-const viewerFileUrl = path => `https://hub.example/download/${encodeURIComponent(path)}`; // _xsrf stripped
+const viewerFileUrl = downloadUrl; // url mode hands the viewer the download URL as is, _xsrf included
 const parameterFor = name => (name.toLowerCase().endsWith(".nvd") ? "nvd" : "vol");
 const settle = async () => { for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve)); };
 
@@ -134,10 +134,10 @@ for (const base of ["/", "/user/alice/", "https://hub.example/user/alice/"]) {
     assert.equal(Array.from(url.searchParams).length, 2);
     assert.equal(url.searchParams.get("filename"), name);
     const file = url.searchParams.get(parameterFor(name));
-    if (urlMode) assert.equal(file, viewerFileUrl(`data folder/${name}`), "The viewer fetches Jupyter's /files/ URL itself, without _xsrf");
+    if (urlMode) assert.equal(file, viewerFileUrl(`data folder/${name}`), "The viewer fetches Jupyter's /files/ URL itself, _xsrf included");
     else assert.ok(blobs.has(file), "The viewer receives locally fetched bytes");
     assert.equal(url.href.includes(settings.token), false);
-    assert.equal(url.href.includes("session-xsrf"), false);
+    assert.equal(url.href.includes("session-xsrf"), urlMode, "Only url mode carries the xsrf parameter (the server demands it on /files/)");
     return url;
   };
   const expectFailure = (widget, text) => {
