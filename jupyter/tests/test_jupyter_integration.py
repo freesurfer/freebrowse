@@ -39,7 +39,7 @@ const source = ts.transpileModule(fs.readFileSync(process.argv[1], 'utf8'), {
 }).outputText;
 for (const base of ['/', '/user/alice/', 'https://hub.example/user/alice/']) {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {url: 'https://hub.example'});
-  const opened = [], types = [], factories = [], menus = [], downloads = [], requests = [];
+  const opened = [], types = [], factories = [], modelFactories = [], menus = [], downloads = [], requests = [];
   const blobs = new Map();
   let nextBlob = 0;
   const browserURL = class extends URL {};
@@ -62,9 +62,9 @@ for (const base of ['/', '/user/alice/', 'https://hub.example/user/alice/']) {
   class DocumentWidget { constructor(options) { Object.assign(this, options); } close() {} }
   const modules = {
     '@jupyterlab/application': {},
-    '@jupyterlab/docregistry': { ABCWidgetFactory: Factory, DocumentWidget },
+    '@jupyterlab/docregistry': { ABCWidgetFactory: Factory, DocumentWidget, DocumentModel: class {} },
     '@jupyterlab/filebrowser': { IFileBrowserFactory: Symbol() },
-    '@jupyterlab/coreutils': { PageConfig: { getBaseUrl: () => base } },
+    '@jupyterlab/coreutils': { PageConfig: { getBaseUrl: () => base, getOption: () => '' } },
     '@lumino/widgets': { Widget },
     '@jupyterlab/services': { ServerConnection: { makeRequest: async (url, init, supplied) => {
       assert.equal(supplied, settings); assert.equal(init.method, 'GET');
@@ -82,7 +82,8 @@ for (const base of ['/', '/user/alice/', 'https://hub.example/user/alice/']) {
     commands: { addCommand: (id, command) => commands.set(id, command),
       execute: (id, args) => { assert.equal(id, 'docmanager:open'); opened.push(args); } },
     contextMenu: { addItem: item => menus.push(item) },
-    docRegistry: { addFileType: type => types.push(type), addWidgetFactory: f => factories.push(f) }
+    docRegistry: { addFileType: type => types.push(type), addWidgetFactory: f => factories.push(f),
+      addModelFactory: f => modelFactories.push(f) }
   }, { tracker: { currentWidget: { selectedItems: function* () { if (selected) yield selected; } } } });
   assert.deepEqual(Array.from(factories[0].options.defaultFor), ['nifti', 'nifti-gz', 'nvd']);
   assert.equal(factories[0].options.name, 'FreeBrowse');
