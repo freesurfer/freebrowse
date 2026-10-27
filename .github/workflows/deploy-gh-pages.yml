@@ -182,11 +182,16 @@ jobs:
         working-directory: frontend
         env:
           VERSION: ${{ needs.release.outputs.version }}
-        # A pre-release version (2.6.0-next.1) goes under the `next` dist-tag so
-        # `latest` keeps pointing at the last full release.
+        # The trusted publisher on npmjs.com requires staged publishing: the
+        # version lands on the registry unlisted, and a maintainer approves it
+        # with 2FA (`npm stage approve <id>` or the package's page on npmjs.com)
+        # before it becomes public. Plain `npm publish` is refused unless
+        # "allow npm publish" is enabled for the publisher. The dist-tag is
+        # fixed at staging time: a pre-release version (2.6.0-next.1) goes under
+        # `next` so `latest` keeps pointing at the last full release.
         run: |
           if [[ "$VERSION" == *-* ]]; then
-            npm publish --tag next
+            npm stage publish --tag next
           else
-            npm publish
+            npm stage publish
           fi
