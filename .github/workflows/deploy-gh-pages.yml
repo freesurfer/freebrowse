@@ -37,6 +37,12 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      # Same check the publish job runs, but here it fails the run before the
+      # release job creates a tag, so a bad package never leaves a half-done release.
+      - name: Build and check the npm package
+        working-directory: frontend
+        run: npm run build:package && npm run pack:check
+
       - name: Build for GitHub Pages (serverless mode)
         working-directory: frontend
         env:

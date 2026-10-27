@@ -64,7 +64,7 @@
     "build:lib": "FREEBROWSE_LIB_ENTRY=index vite build --config vite.config.lib.ts && FREEBROWSE_LIB_ENTRY=react vite build --config vite.config.lib.ts",
     "build:types": "tsc -p tsconfig.lib.json && tsc-alias -p tsconfig.lib.json && node scripts/fix-declarations.mjs",
     "build:package": "npm run build:lib && npm run build:types && npm run build:readme",
-    "pack:check": "npx publint && npx --yes @arethetypeswrong/cli --pack .",
+    "pack:check": "npx --yes publint && npx --yes @arethetypeswrong/cli --pack . --profile esm-only --exclude-entrypoints style.css",
     "prepack": "npm run build:package",
     "build:readme": "node scripts/make-package-readme.mjs",
     "examples:pack": "npm run build:package && npm pack --pack-destination examples > /dev/null && cd examples && rm -f freebrowse.tgz && mv freebrowse-*.tgz freebrowse.tgz && echo 'examples/freebrowse.tgz ready'"
