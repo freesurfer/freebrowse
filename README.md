@@ -17,7 +17,7 @@ branch [`v1`](https://github.com/freesurfer/freebrowse/tree/v1).
 
 Try out the 'serverless' version: [https://freesurfer.github.io/freebrowse/](https://freesurfer.github.io/freebrowse/)
 
-- [A FreeSurfer segmentation overlayed on a t1-weighted anatomical MRI; from openneuro.org](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/refs/heads/main/openneuro/ds004731/sub-SM07.v9.nvd)
+- [A FreeSurfer segmentation overlayed on a t1-weighted anatomical MRI; with cortex and pial surfaces](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/freesurfer/freebrowse/refs/heads/main/data/remote/vol-surf-intersection.nvd)
 - [FreeSurfer surfaces overlayed on a t1-weighted anatomical MRI showing volume/surface intersections](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/mgz-surf-eg.v9.nvd)
 - [A FreeSurfer surface with a curvature overlay](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/refs/heads/main/freesurfer/surfaces/surf-overlay-eg.v9.nvd)
 - [PET total volume of distribution (VT) overlaid on an MNI template](https://freesurfer.github.io/freebrowse/?nvd=https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/pet/petsurfer-bids/petsurfer-km.v9.nvd)
