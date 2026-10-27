@@ -1,0 +1,50 @@
+{
+  "version": 9,
+  "created": "2026-07-15T19:45:49.803627+00:00",
+  "ui": { "isLegendVisible": false },
+  "layout": {
+    "sliceType": 4,
+    "showRender": 1
+  },
+  "meshes": [
+    {
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/lh.white",
+      "name": "lh.white",
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "shaderType": "matte",
+      "layers": [
+        {
+          "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/label/lh.aparc.annot.gii",
+          "name": "lh.aparc.annot.gii",
+          "colormap": "freesurfer",
+          "opacity": 1.0
+        }
+      ]
+    },
+    {
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/rh.white",
+      "name": "rh.white",
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "shaderType": "matte",
+      "layers": [
+        {
+          "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/label/rh.aparc.annot.gii",
+          "name": "rh.aparc.annot.gii",
+          "colormap": "freesurfer",
+          "opacity": 1.0
+        }
+      ]
+    }    
+  ]
+}
+
