@@ -330,6 +330,10 @@ variables. These are read-only at runtime.
 | `VITE_SERVERLESS` | `true` / unset | Builds for the `file://` protocol with no backend (set automatically by `build:serverless`). Also disables the backend **Save** button. |
 | `VITE_BASE_PATH` | e.g. `/freebrowse/` | Base URL path for routing/assets. |
 
+How a file opens from the Jupyter file browser (document tab or browser tab, who
+downloads it) is not a build variable: it is runtime Jupyter server
+configuration, see [Jupyter Integration → Configuration](#configuration).
+
 `VITE_DISABLE_DOWNLOAD` composes with every build target. Just prepend it to
 whichever build you run:
 
@@ -398,7 +402,8 @@ npm run build
 
 FreeBrowse can be used as a NIfTI file viewer inside JupyterLab or Jupyter
 Notebook 7. Clicking a `.nii`, `.nii.gz` or `.nvd` (niivue document) file in the
-file browser opens it in FreeBrowse in a new browser tab.
+file browser opens it in FreeBrowse, either in a document tab inside JupyterLab
+(the default) or in a new browser tab (see [Configuration](#configuration)).
 
 ### Setup
 
@@ -425,14 +430,149 @@ jupyter notebook  # if using Notebook 7
 ```
 
 Navigate to a directory containing `.nii`, `.nii.gz` or `.nvd` files, then either:
-- **Double-click** a file to open it in FreeBrowse in a new browser tab
+- **Double-click** a file to open it in FreeBrowse
 - **Right-click** a file and select **Open in FreeBrowse**
+
+Both open the file the same way: in a FreeBrowse document tab inside JupyterLab
+by default, or in a new browser tab if the deployment is configured that way
+(see [Configuration](#configuration)).
 
 [ipyniivue](https://github.com/niivue/ipyniivue) is also installed in the example
 `freebrowse-jupyter` environment.  See the [example notebooks repository](https://github.com/niivue/jupyter-notebooks)
 for examples on how to use niivue directly inside jupyter
 
+By default the file is downloaded by the JupyterLab page through Jupyter's
+contents service and authenticated server connection, so JupyterHub base paths
+and filenames containing spaces or Unicode are supported. The viewer receives a
+temporary blob URL and the original filename. Downloads are cancelled and blob
+URLs released when a file is renamed or its tab closes (or, for a viewer in its
+own browser tab, when that tab closes). Viewer pages and assets require the same
+authentication as the Jupyter server.
+
+### Configuration
+
+Two deployment settings control how files open. They are **server-side,
+sysadmin-level** settings: the Jupyter server reads them once at startup and
+pushes them to every JupyterLab page, so a change needs a server restart and
+there is nothing for users to set in JupyterLab's settings editor.
+
+| Setting | Values | Default | Meaning |
+| --- | --- | --- | --- |
+| `open_in` | `document`, `browser` | `document` | `document`: a FreeBrowse tab inside JupyterLab. `browser`: a new browser tab (the JupyterLab tab that briefly appears closes itself once the viewer tab has the file). |
+| `file_access` | `blob`, `url` | `blob` | `blob`: the JupyterLab page downloads the file through its authenticated connection and hands the viewer an in-memory copy. `url`: the viewer fetches the file from Jupyter's `/files/` endpoint itself, using the browser's Jupyter cookie plus the session's `_xsrf` query parameter that Jupyter requires on `/files/` requests. |
+
+When to pick what:
+
+- `blob` works with any Jupyter authentication scheme (JupyterHub included) but
+  keeps a copy of each open file in the JupyterLab page, and a viewer in its own
+  browser tab cannot be reloaded once the JupyterLab page that opened it is gone.
+- `url` holds no copy and viewer tabs reload fine, but it needs the browser to
+  send the Jupyter cookie along with the viewer's request, which some JupyterHub
+  setups do not allow. If files fail to load with `url` (a `403` on `/files/` in
+  the server log), switch back to `blob`.
+- `browser` needs the browser to allow pop-ups from the JupyterLab site. If they
+  are blocked, the JupyterLab tab stays open and says so.
+- Notebook 7 opens every file in its own browser tab anyway, so it ignores
+  `open_in` and honours `file_access`.
+
+There are two ways to set them. An environment variable always wins over a
+config file; a config file at a higher-priority directory wins over one at a
+lower-priority directory.
+
+**Environment variables** `FREEBROWSE_OPEN_IN` and `FREEBROWSE_FILE_ACCESS`,
+set wherever the Jupyter server is launched. Users cannot override them, which
+makes them the right choice for JupyterHub and containers:
+
+```bash
+# try it once
+FREEBROWSE_OPEN_IN=browser jupyter lab
+```
+
+```dockerfile
+# Docker image
+ENV FREEBROWSE_OPEN_IN=browser FREEBROWSE_FILE_ACCESS=url
+```
+
+```python
+# jupyterhub_config.py: every single-user server gets them
+c.Spawner.environment = {
+    "FREEBROWSE_OPEN_IN": "browser",
+    "FREEBROWSE_FILE_ACCESS": "url",
+}
+```
+
+```yaml
+# zero-to-jupyterhub values.yaml
+singleuser:
+  extraEnv:
+    FREEBROWSE_OPEN_IN: browser
+    FREEBROWSE_FILE_ACCESS: url
+```
+
+**Config file** named `jupyter_server_config.json` (or `.py`) in one of the
+directories `jupyter --paths` lists under `config:`. The directory sets the
+scope, the file name is the same at every level:
+
+```
+$ jupyter --paths
+config:
+    ~/.jupyter                     <- one user; overrides the ones below
+    ~/.local/etc/jupyter
+    $CONDA_PREFIX/etc/jupyter      <- one conda env or image
+    /usr/local/etc/jupyter
+    /etc/jupyter                   <- whole machine
+```
+
+```bash
+mkdir -p "$CONDA_PREFIX/etc/jupyter"
+cat > "$CONDA_PREFIX/etc/jupyter/jupyter_server_config.json" <<'EOF'
+{
+  "FreeBrowse": {
+    "open_in": "browser",
+    "file_access": "url"
+  }
+}
+EOF
+```
+
+or, in `jupyter_server_config.py`:
+
+```python
+c.FreeBrowse.open_in = "browser"
+c.FreeBrowse.file_access = "url"
+```
+
+Leave out any setting you want at its default. If the file already exists, add
+the `FreeBrowse` block next to its other keys. Do not put the file in
+`jupyter_server_config.d/`: Jupyter only reads that directory for the list of
+extensions to enable, and a `FreeBrowse` block there is ignored. Because the
+per-user directory has the highest priority, a user can override a config file
+from `~/.jupyter`; use the environment variables, or start the server with
+`JUPYTER_PREFER_ENV_PATH=1`, if that matters.
+
+Restart the server, then confirm with the startup log line
+`jupyterlab_freebrowse server extension loaded (open_in=..., file_access=...)`
+or with `jupyter server --show-config`, which lists the loaded files and the
+`FreeBrowse` values. A value outside the table above (for example `tab`) stops
+the server extension from loading, with a `TraitError` in the log naming the
+allowed values. `jupyter lab --FreeBrowse.open_in=...` on the command line is not
+supported; use the environment variable instead.
+
 ### Development
+
+Run the Jupyter integration regression tests after installing the JavaScript and
+Python test dependencies:
+
+```bash
+cd jupyter
+jlpm install
+python -m pip install -r requirements-test.txt
+jlpm test
+```
+
+These tests exercise document opening, authenticated file downloads, filename
+handling, rename/disposal races, and real Jupyter HTTP authentication for viewer
+assets at root and JupyterHub base paths.
 
 The FreeBrowse bundle served inside JupyterLab
 (`jupyter/jupyterlab_freebrowse/static/freebrowse/`) is a build output and is
