@@ -8,7 +8,7 @@
   },
   "meshes": [
     {
-      "url": "data/surfaces/lh.white",
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/lh.white",
       "name": "lh.white",
       "color": [
         1.0,
@@ -19,7 +19,7 @@
       "shaderType": "matte",
       "layers": [
         {
-          "url": "data/surfaces/lh.aparc.annot.gii",
+          "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/label/lh.aparc.annot.gii",
           "name": "lh.aparc.annot.gii",
           "colormap": "freesurfer",
           "opacity": 1.0
@@ -27,7 +27,7 @@
       ]
     },
     {
-      "url": "data/surfaces/rh.white",
+      "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/surfaces/rh.white",
       "name": "rh.white",
       "color": [
         1.0,
@@ -38,7 +38,7 @@
       "shaderType": "matte",
       "layers": [
         {
-          "url": "data/surfaces/rh.aparc.annot.gii",
+          "url": "https://raw.githubusercontent.com/pwighton/freebrowse-test-data/main/freesurfer/label/rh.aparc.annot.gii",
           "name": "rh.aparc.annot.gii",
           "colormap": "freesurfer",
           "opacity": 1.0
