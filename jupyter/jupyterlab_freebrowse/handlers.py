@@ -11,6 +11,19 @@ from tornado.web import StaticFileHandler, authenticated
 class FreeBrowseStaticHandler(JupyterHandler, StaticFileHandler):
     """Serve viewer assets using Jupyter authentication and security headers."""
 
+    def check_xsrf_cookie(self):
+        # Browsers fetch module scripts, and stylesheets marked crossorigin, in
+        # CORS mode even from the same origin, and they cannot attach an
+        # X-XSRFToken header to them. JupyterHub's HubOAuth therefore ignores
+        # the session cookie on these requests and redirects them to login.
+        # Sec-Fetch-Site is set by the browser and cannot be forged by a page,
+        # so only same-origin, read-only requests for this packaged static
+        # directory skip the token; @authenticated still requires a login.
+        if (self.request.method in {"GET", "HEAD"}
+                and self.request.headers.get("Sec-Fetch-Site") == "same-origin"):
+            return
+        return super().check_xsrf_cookie()
+
     @authenticated
     async def get(self, path, include_body=True):
         await super().get(path, include_body)
