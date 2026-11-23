@@ -400,10 +400,11 @@ npm run build
 
 ## Jupyter Integration
 
-FreeBrowse can be used as a NIfTI file viewer inside JupyterLab or Jupyter
-Notebook 7. Clicking a `.nii`, `.nii.gz` or `.nvd` (niivue document) file in the
-file browser opens it in FreeBrowse, either in a document tab inside JupyterLab
-(the default) or in a new browser tab (see [Configuration](#configuration)).
+FreeBrowse can be used as a NIfTI and FreeSurfer MGH file viewer inside
+JupyterLab or Jupyter Notebook 7. Clicking a `.nii`, `.nii.gz`, `.mgh`, `.mgz`
+or `.nvd` (niivue document) file in the file browser opens it in FreeBrowse,
+either in a document tab inside JupyterLab (the default) or in a new browser tab
+(see [Configuration](#configuration)).
 
 ### Setup
 
@@ -429,7 +430,8 @@ jupyter lab       # if using JupyterLab
 jupyter notebook  # if using Notebook 7
 ```
 
-Navigate to a directory containing `.nii`, `.nii.gz` or `.nvd` files, then either:
+Navigate to a directory containing `.nii`, `.nii.gz`, `.mgh`, `.mgz` or `.nvd`
+files, then either:
 - **Double-click** a file to open it in FreeBrowse
 - **Right-click** a file and select **Open in FreeBrowse**
 

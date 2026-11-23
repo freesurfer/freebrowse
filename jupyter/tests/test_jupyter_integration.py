@@ -63,7 +63,8 @@ const source = ts.transpileModule(fs.readFileSync(process.argv[1], 'utf8'), {
   compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2018}
 }).outputText;
 (async () => {
-  for (const filename of ['tof_sub004.nii', 'brain # & ü.nii.gz', undefined]) {
+  class File extends Blob { constructor(parts, name) { super(parts); this.name = name; } }
+  for (const filename of ['tof_sub004.nii', 'brain # & ü.nii.gz', 'aseg.mgz', undefined]) {
     const effects = [], volumes = [];
     const noop = () => {};
     const state = {showUploader: true, setShowUploader: noop, setCurrentImageIndex: noop,
@@ -77,7 +78,9 @@ const source = ts.transpileModule(fs.readFileSync(process.argv[1], 'utf8'), {
       '@/hooks/use-volumes': {applyLabelColormapsAfterLoad: async () => {}},
       '@niivue/niivue': {}
     };
-    const sandbox = {exports: {}, require: name => modules[name], console, URLSearchParams,
+    const fetched = [];
+    const sandbox = {exports: {}, require: name => modules[name], console, URLSearchParams, File,
+      fetch: async url => { fetched.push(url); return {blob: async () => new Blob(['local bytes'])}; },
       window: {location: {search: '?' + query}, addEventListener: noop, removeEventListener: noop}};
     vm.runInNewContext(source, sandbox);
     sandbox.exports.useFileLoading({current: {canvas: {}, opts: {}, volumes: [], addVolume: async volume => volumes.push(volume), addEventListener: noop, removeEventListener: noop}}, noop, noop, noop, noop, noop);
@@ -85,7 +88,17 @@ const source = ts.transpileModule(fs.readFileSync(process.argv[1], 'utf8'), {
     for (let i=0; i<10; i++) await new Promise(resolve => setImmediate(resolve));
     assert.equal(volumes.length, 1);
     assert.equal(volumes[0].name, filename || 'legacy.nii');
-    assert.equal(volumes[0].url, query.get('vol'));
+    if (filename) {
+      // niivue picks the reader from the extension of `url`, which a blob: URL
+      // lacks, so the bytes reach it as a File carrying the real filename.
+      assert.deepEqual(fetched, [query.get('vol')]);
+      assert.ok(volumes[0].url instanceof File);
+      assert.equal(volumes[0].url.name, filename);
+      assert.equal(await volumes[0].url.text(), 'local bytes');
+    } else {
+      assert.deepEqual(fetched, []);
+      assert.equal(volumes[0].url, query.get('vol'));
+    }
   }
 })().catch(error => {console.error(error); process.exitCode=1;});
 '''

@@ -230,8 +230,16 @@ export function useFileLoading(
         }
 
         const basename = file.filename.split("/").pop() || file.filename;
+        // niivue picks the reader from the extension of `url`, not from
+        // `name`, and a blob: URL has none, so anything but NIfTI (the
+        // fallback reader) fails to parse. Hand it a named File instead.
+        let url: string | File = file.url;
+        if (file.url.startsWith("blob:")) {
+          const response = await fetch(file.url);
+          url = new File([await response.blob()], basename);
+        }
         const volume = {
-          url: file.url,
+          url,
           name: basename,
         };
 

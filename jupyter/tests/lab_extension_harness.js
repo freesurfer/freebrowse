@@ -96,14 +96,14 @@ for (const base of ["/", "/user/alice/", "https://hub.example/user/alice/"]) {
   }, { tracker: { currentWidget: { selectedItems: function* () { if (selected) yield selected; } } } });
 
   // --- registration -------------------------------------------------------
-  assert.deepEqual(Array.from(factories[0].options.defaultFor), ["nifti", "nifti-gz", "nvd"]);
+  assert.deepEqual(Array.from(factories[0].options.defaultFor), ["nifti", "nifti-gz", "mgh", "mgz", "nvd"]);
   assert.equal(factories[0].options.name, "FreeBrowse");
   assert.equal(factories[0].options.modelName, "freebrowse", "The widget factory uses the no-content model");
   assert.equal(modelFactories.length, 1);
   assert.equal(modelFactories[0].name, "freebrowse");
   assert.equal(modelFactories[0].fileFormat, null, "A null fileFormat stops the context from fetching the file");
   assert.equal(modelFactories[0].contentType, "file");
-  assert.deepEqual(types.map(t => t.name), ["nifti", "nifti-gz", "nvd"]);
+  assert.deepEqual(types.map(t => t.name), ["nifti", "nifti-gz", "mgh", "mgz", "nvd"]);
   assert.ok(types.every(t => t.fileFormat === undefined && t.contentType === "file"), "No file type asks for base64 content");
   assert.equal(menus[0].command, "freebrowse:open");
   assert.equal(JSON.stringify(sandbox.exports.readSettings()),
@@ -161,7 +161,7 @@ for (const base of ["/", "/user/alice/", "https://hub.example/user/alice/"]) {
   const restore = () => { downloadUrlFor = async path => downloadUrl(path); responseFor = async () => goodResponse(); };
 
   // --- open each kind of file ---------------------------------------------
-  for (const name of ["brain.nii", "brain.nii.gz", "scene.nvd", "Bräin # & ? 100%.NII.GZ", "scene # &.NVD"]) {
+  for (const name of ["brain.nii", "brain.nii.gz", "orig.mgh", "aseg.mgz", "scene.nvd", "Bräin # & ? 100%.NII.GZ", "T1 # &.MGZ", "scene # &.NVD"]) {
     const path = `data folder/${name}`;
     selected = { name, path };
     assert.equal(command.isVisible(), true);

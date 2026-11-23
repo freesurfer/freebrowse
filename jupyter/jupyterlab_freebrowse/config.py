@@ -33,7 +33,7 @@ class FreeBrowse(Configurable):
         default_value="document",
         config=True,
         help=(
-            "Where a .nii/.nii.gz/.nvd opens from the file browser: 'document' "
+            "Where a .nii/.nii.gz/.mgh/.mgz/.nvd opens from the file browser: 'document' "
             "(a FreeBrowse tab inside JupyterLab, default) or 'browser' (a new "
             "browser tab). Notebook 7 always uses 'document'. Set "
             "c.FreeBrowse.open_in in jupyter_server_config.py (or a "

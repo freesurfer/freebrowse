@@ -63,12 +63,17 @@ function isNiftiFile(name: string): boolean {
   return lower.endsWith(".nii") || lower.endsWith(".nii.gz");
 }
 
+function isMghFile(name: string): boolean {
+  const lower = name.toLowerCase();
+  return lower.endsWith(".mgh") || lower.endsWith(".mgz");
+}
+
 function isNvdFile(name: string): boolean {
   return name.toLowerCase().endsWith(".nvd");
 }
 
 function isFreeBrowseFile(name: string): boolean {
-  return isNiftiFile(name) || isNvdFile(name);
+  return isNiftiFile(name) || isMghFile(name) || isNvdFile(name);
 }
 
 function baseName(filePath: string): string {
@@ -392,6 +397,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
       contentType: "file",
     });
     app.docRegistry.addFileType({
+      name: "mgh",
+      displayName: "FreeSurfer MGH Image",
+      extensions: [".mgh"],
+      contentType: "file",
+    });
+    app.docRegistry.addFileType({
+      name: "mgz",
+      displayName: "FreeSurfer MGH Image (compressed)",
+      extensions: [".mgz"],
+      contentType: "file",
+    });
+    app.docRegistry.addFileType({
       name: "nvd",
       displayName: "NiiVue Document",
       extensions: [".nvd"],
@@ -404,8 +421,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       name: FACTORY_NAME,
       label: FACTORY_NAME,
       modelName: MODEL_NAME,
-      fileTypes: ["nifti", "nifti-gz", "nvd"],
-      defaultFor: ["nifti", "nifti-gz", "nvd"],
+      fileTypes: ["nifti", "nifti-gz", "mgh", "mgz", "nvd"],
+      defaultFor: ["nifti", "nifti-gz", "mgh", "mgz", "nvd"],
       readOnly: true,
     }, app.serviceManager, settings);
     app.docRegistry.addWidgetFactory(factory);
