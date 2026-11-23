@@ -8,8 +8,40 @@ from jupyter_server.utils import url_path_join
 from tornado.web import StaticFileHandler, authenticated
 
 
+def _allow_same_origin_framing(csp: str) -> str:
+    """Relax ``frame-ancestors 'none'`` so JupyterLab can embed the viewer.
+
+    JupyterHub's single-user server defaults ``Content-Security-Policy`` to
+    ``frame-ancestors 'none'`` (unlike standalone ``jupyter_server``, which
+    defaults to ``'self'``), blocking FreeBrowse's embedded document iframe.
+    Other directives (such as ``report-uri``) and any non-``'none'`` framing
+    policy configured by the deployment are preserved.
+    """
+    changed = False
+    policies = []
+    for policy in csp.split(","):
+        directives = [part.strip() for part in policy.split(";") if part.strip()]
+        updated = []
+        for directive in directives:
+            tokens = directive.split()
+            if (
+                tokens[0].lower() == "frame-ancestors"
+                and [t.lower() for t in tokens[1:]] == ["'none'"]
+            ):
+                updated.append("frame-ancestors 'self'")
+                changed = True
+            else:
+                updated.append(directive)
+        policies.append("; ".join(updated))
+    return ", ".join(policies) if changed else csp
+
+
 class FreeBrowseStaticHandler(JupyterHandler, StaticFileHandler):
     """Serve viewer assets using Jupyter authentication and security headers."""
+
+    @property
+    def content_security_policy(self):
+        return _allow_same_origin_framing(super().content_security_policy)
 
     def check_xsrf_cookie(self):
         # Browsers fetch module scripts, and stylesheets marked crossorigin, in

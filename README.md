@@ -453,7 +453,11 @@ authentication as the Jupyter server. On JupyterHub, browsers load the viewer's
 module scripts and stylesheets with the session cookie but no XSRF token, so the
 viewer's static directory accepts same-origin `GET`/`HEAD` requests without one;
 login is still required, and cross-site requests and other methods keep the
-usual XSRF check.
+usual XSRF check. JupyterHub's single-user server also defaults
+`Content-Security-Policy` to `frame-ancestors 'none'`, so the `/freebrowse/`
+route relaxes `frame-ancestors 'none'` to `frame-ancestors 'self'` (preserving
+other directives and custom framing policies) so JupyterLab can embed the
+viewer in a document tab without weakening CSP on the rest of the server.
 
 ### Configuration
 
@@ -577,9 +581,9 @@ jlpm test
 ```
 
 These tests exercise document opening, authenticated file downloads, filename
-handling, rename/disposal races, and real Jupyter HTTP authentication for viewer
-assets at root and JupyterHub base paths, including JupyterHub's own cookie and
-XSRF checks.
+handling, rename/disposal races, and real Jupyter HTTP authentication and
+framing headers for viewer assets at root and JupyterHub base paths, including
+JupyterHub's own cookie, XSRF, and CSP defaults.
 
 The FreeBrowse bundle served inside JupyterLab
 (`jupyter/jupyterlab_freebrowse/static/freebrowse/`) is a build output and is

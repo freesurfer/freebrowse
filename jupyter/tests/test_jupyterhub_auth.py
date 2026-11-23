@@ -1,13 +1,14 @@
-"""Exercise static assets with JupyterHub's real cookie/XSRF authentication."""
+"""Exercise static assets with JupyterHub's real cookie, XSRF, and CSP defaults."""
 
 import logging
 from pathlib import Path
 import tempfile
 
 from jupyter_server.auth import IdentityProvider, User
+from jupyter_server.base.handlers import JupyterHandler
 from jupyterhub.services.auth import HubOAuth
 from tornado.testing import AsyncHTTPTestCase
-from tornado.web import Application, create_signed_value
+from tornado.web import Application, authenticated, create_signed_value
 
 from jupyterlab_freebrowse import handlers
 
@@ -34,8 +35,17 @@ class HubIdentity(IdentityProvider):
         return User(username=user["name"]) if user else None
 
 
+class SiblingJupyterHandler(JupyterHandler):
+    """A normal Jupyter handler on the same single-user server (e.g. /lab)."""
+
+    @authenticated
+    def get(self):
+        self.finish("lab")
+
+
 class HubAssetTests(AsyncHTTPTestCase):
     base_url = "/user/alice/"
+    csp_header = "frame-ancestors 'none'"
 
     def get_app(self):
         self.files = tempfile.TemporaryDirectory()
@@ -47,10 +57,18 @@ class HubAssetTests(AsyncHTTPTestCase):
         handlers.STATIC_DIR = str(root)
         identity = HubIdentity(self.base_url)
         self.cookie = "freebrowse-test=" + create_signed_value(SECRET, "freebrowse-test", TOKEN).decode()
-        app = Application(cookie_secret=SECRET, xsrf_cookies=True,
-                          base_url=self.base_url, login_url=self.base_url + "login",
-                          identity_provider=identity, log=logging.getLogger("freebrowse-test"),
-                          allow_remote_access=True)
+        settings = dict(
+            cookie_secret=SECRET,
+            xsrf_cookies=True,
+            base_url=self.base_url,
+            login_url=self.base_url + "login",
+            identity_provider=identity,
+            log=logging.getLogger("freebrowse-test"),
+            allow_remote_access=True,
+        )
+        if self.csp_header is not None:
+            settings["headers"] = {"Content-Security-Policy": self.csp_header}
+        app = Application([(self.base_url + "lab", SiblingJupyterHandler)], **settings)
         handlers.setup_handlers(app)
         return app
 
@@ -97,6 +115,17 @@ class HubAssetTests(AsyncHTTPTestCase):
                               headers=self.headers(mode="navigate"), follow_redirects=False)
         assert response.code == 200
 
+    def test_jupyterhub_csp_allows_same_origin_framing_only_on_freebrowse(self):
+        viewer = self.fetch(self.base_url + "freebrowse/",
+                            headers=self.headers(mode="navigate"), follow_redirects=False)
+        assert viewer.code == 200
+        assert viewer.headers["Content-Security-Policy"] == "frame-ancestors 'self'"
+
+        lab = self.fetch(self.base_url + "lab",
+                         headers=self.headers(mode="navigate"), follow_redirects=False)
+        assert lab.code == 200
+        assert lab.headers["Content-Security-Policy"] == "frame-ancestors 'none'"
+
     def test_mutation_is_not_exempt_from_xsrf(self):
         response = self.fetch(self.base_url + "freebrowse/app.js", method="POST", body="",
                               headers=self.headers(), follow_redirects=False)
@@ -114,3 +143,66 @@ class RootHubAssetTests(HubAssetTests):
 
 class DottedHubAssetTests(HubAssetTests):
     base_url = "/user/a.b/"
+
+
+class HubCspPolicyVariantsTests(AsyncHTTPTestCase):
+    base_url = "/user/alice/"
+
+    def get_app(self):
+        self.files = tempfile.TemporaryDirectory()
+        root = Path(self.files.name)
+        (root / "index.html").write_text("<html>FreeBrowse viewer</html>")
+        self.original_static_dir = handlers.STATIC_DIR
+        handlers.STATIC_DIR = str(root)
+        identity = HubIdentity(self.base_url)
+        self.cookie = "freebrowse-test=" + create_signed_value(SECRET, "freebrowse-test", TOKEN).decode()
+        self.app_headers = {}
+        app = Application(
+            cookie_secret=SECRET,
+            xsrf_cookies=True,
+            base_url=self.base_url,
+            login_url=self.base_url + "login",
+            identity_provider=identity,
+            log=logging.getLogger("freebrowse-test"),
+            allow_remote_access=True,
+            headers=self.app_headers,
+        )
+        handlers.setup_handlers(app)
+        return app
+
+    def tearDown(self):
+        super().tearDown()
+        handlers.STATIC_DIR = self.original_static_dir
+        self.files.cleanup()
+
+    def fetch_csp(self, configured_csp):
+        self.app_headers.clear()
+        if configured_csp is not None:
+            self.app_headers["Content-Security-Policy"] = configured_csp
+        response = self.fetch(
+            self.base_url + "freebrowse/",
+            headers={"Sec-Fetch-Site": "same-origin", "Sec-Fetch-Mode": "navigate", "Cookie": self.cookie},
+            follow_redirects=False,
+        )
+        assert response.code == 200
+        return response.headers["Content-Security-Policy"]
+
+    def test_legacy_jupyterhub_csp_preserves_report_uri(self):
+        csp = self.fetch_csp("frame-ancestors 'none';report-uri /hub/security/csp-report")
+        assert csp == "frame-ancestors 'self'; report-uri /hub/security/csp-report"
+
+    def test_case_insensitive_directive_and_other_directives_preserved(self):
+        csp = self.fetch_csp("default-src 'self'; FRAME-ANCESTORS 'NONE'; report-uri /csp")
+        assert csp == "default-src 'self'; frame-ancestors 'self'; report-uri /csp"
+
+    def test_comma_separated_policies_relax_none_only(self):
+        csp = self.fetch_csp("frame-ancestors 'none', default-src 'self'")
+        assert csp == "frame-ancestors 'self', default-src 'self'"
+
+    def test_custom_framing_policy_is_preserved(self):
+        configured = "frame-ancestors 'self' https://portal.example.org; report-uri /csp"
+        assert self.fetch_csp(configured) == configured
+
+    def test_standalone_jupyter_default_is_preserved(self):
+        csp = self.fetch_csp(None)
+        assert csp == "frame-ancestors 'self'; report-uri /user/alice/api/security/csp-report"
