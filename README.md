@@ -447,7 +447,11 @@ and filenames containing spaces or Unicode are supported. The viewer receives a
 temporary blob URL and the original filename. Downloads are cancelled and blob
 URLs released when a file is renamed or its tab closes (or, for a viewer in its
 own browser tab, when that tab closes). Viewer pages and assets require the same
-authentication as the Jupyter server.
+authentication as the Jupyter server. On JupyterHub, browsers load the viewer's
+module scripts and stylesheets with the session cookie but no XSRF token, so the
+viewer's static directory accepts same-origin `GET`/`HEAD` requests without one;
+login is still required, and cross-site requests and other methods keep the
+usual XSRF check.
 
 ### Configuration
 
@@ -572,7 +576,8 @@ jlpm test
 
 These tests exercise document opening, authenticated file downloads, filename
 handling, rename/disposal races, and real Jupyter HTTP authentication for viewer
-assets at root and JupyterHub base paths.
+assets at root and JupyterHub base paths, including JupyterHub's own cookie and
+XSRF checks.
 
 The FreeBrowse bundle served inside JupyterLab
 (`jupyter/jupyterlab_freebrowse/static/freebrowse/`) is a build output and is
