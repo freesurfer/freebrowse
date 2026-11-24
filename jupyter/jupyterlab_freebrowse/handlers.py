@@ -8,32 +8,77 @@ from jupyter_server.utils import url_path_join
 from tornado.web import StaticFileHandler, authenticated
 
 
+_CSP_ASCII_WS = " \t\n\r\f"
+_CSP_ASCII_WS_RE = re.compile(r"[ \t\n\r\f]+")
+
+
 def _allow_same_origin_framing(csp: str) -> str:
     """Relax ``frame-ancestors 'none'`` so JupyterLab can embed the viewer.
 
     JupyterHub's single-user server defaults ``Content-Security-Policy`` to
     ``frame-ancestors 'none'`` (unlike standalone ``jupyter_server``, which
     defaults to ``'self'``), blocking FreeBrowse's embedded document iframe.
-    Other directives (such as ``report-uri``) and any non-``'none'`` framing
-    policy configured by the deployment are preserved.
+    Follows CSP3's ASCII whitespace and first-directive-wins rules while
+    preserving other directives (such as ``report-uri``) and any non-``'none'``
+    framing policy verbatim.
     """
     changed = False
     policies = []
     for policy in csp.split(","):
-        directives = [part.strip() for part in policy.split(";") if part.strip()]
-        updated = []
-        for directive in directives:
-            tokens = directive.split()
+        policy_changed = False
+        seen_frame_ancestors = False
+        directives = []
+        for raw_directive in policy.split(";"):
+            stripped = raw_directive.strip(_CSP_ASCII_WS)
+            if not stripped:
+                continue
+            tokens = _CSP_ASCII_WS_RE.split(stripped)
             if (
-                tokens[0].lower() == "frame-ancestors"
-                and [t.lower() for t in tokens[1:]] == ["'none'"]
+                not seen_frame_ancestors
+                and tokens[0].isascii()
+                and tokens[0].lower() == "frame-ancestors"
             ):
-                updated.append("frame-ancestors 'self'")
-                changed = True
-            else:
-                updated.append(directive)
-        policies.append("; ".join(updated))
+                seen_frame_ancestors = True
+                if len(tokens) == 2 and tokens[1].isascii() and tokens[1].lower() == "'none'":
+                    directives.append("frame-ancestors 'self'")
+                    policy_changed = True
+                    continue
+            directives.append(stripped)
+        if policy_changed:
+            changed = True
+            policies.append("; ".join(directives))
+        else:
+            policies.append(policy.strip(_CSP_ASCII_WS))
     return ", ".join(policies) if changed else csp
+
+
+def has_configured_csp(server_app) -> bool:
+    """Return True if deployment config explicitly set ``Content-Security-Policy``.
+
+    JupyterHub injects its default ``frame-ancestors 'none'`` directly into
+    ``web_app.settings["headers"]`` (or ``tornado_settings`` in the legacy
+    mixin) without writing to ``server_app.config``. Inspecting ``config``
+    therefore distinguishes an administrator's deliberate policy from
+    JupyterHub's default regardless of extension load order.
+    """
+    config = getattr(server_app, "config", None)
+    if not isinstance(config, dict):
+        return False
+    for section in config.values():
+        if not isinstance(section, dict):
+            continue
+        tornado_settings = section.get("tornado_settings")
+        if hasattr(tornado_settings, "get_value"):
+            tornado_settings = tornado_settings.get_value({})
+        if not isinstance(tornado_settings, dict):
+            continue
+        headers = tornado_settings.get("headers")
+        if isinstance(headers, dict) and any(
+            isinstance(name, str) and name.lower() == "content-security-policy"
+            for name in headers
+        ):
+            return True
+    return False
 
 
 class FreeBrowseStaticHandler(JupyterHandler, StaticFileHandler):
@@ -41,7 +86,17 @@ class FreeBrowseStaticHandler(JupyterHandler, StaticFileHandler):
 
     @property
     def content_security_policy(self):
-        return _allow_same_origin_framing(super().content_security_policy)
+        csp = super().content_security_policy
+        for name, value in self.settings.get("headers", {}).items():
+            if isinstance(name, str) and name.lower() == "content-security-policy":
+                csp = value
+        if not self.settings.get("freebrowse_relax_default_csp", True):
+            return csp
+        return _allow_same_origin_framing(csp)
+
+    def set_default_headers(self):
+        super().set_default_headers()
+        self.set_header("Content-Security-Policy", self.content_security_policy)
 
     def check_xsrf_cookie(self):
         # Browsers fetch module scripts, and stylesheets marked crossorigin, in
@@ -69,7 +124,7 @@ HERE = os.path.dirname(__file__)
 STATIC_DIR = os.path.join(HERE, "static", "freebrowse")
 
 
-def setup_handlers(web_app, log=None):
+def setup_handlers(web_app, log=None, relax_default_csp=True):
     """Register the /freebrowse/ static file handler.
 
     The bundle under ``static/freebrowse`` is generated by ``npm run build:jupyter``
@@ -86,6 +141,7 @@ def setup_handlers(web_app, log=None):
             log.warning(msg)
         else:
             print(msg)
+    web_app.settings["freebrowse_relax_default_csp"] = bool(relax_default_csp)
     base_url = web_app.settings.get("base_url", "/")
     route_pattern = re.escape(url_path_join(base_url, "freebrowse")) + r"/(.*)"
 

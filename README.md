@@ -455,9 +455,14 @@ viewer's static directory accepts same-origin `GET`/`HEAD` requests without one;
 login is still required, and cross-site requests and other methods keep the
 usual XSRF check. JupyterHub's single-user server also defaults
 `Content-Security-Policy` to `frame-ancestors 'none'`, so the `/freebrowse/`
-route relaxes `frame-ancestors 'none'` to `frame-ancestors 'self'` (preserving
-other directives and custom framing policies) so JupyterLab can embed the
-viewer in a document tab without weakening CSP on the rest of the server.
+route relaxes that default to `frame-ancestors 'self'` (preserving other
+directives and sibling routes' CSP) so JupyterLab can embed the viewer in a
+document tab without weakening CSP on the rest of the server. On a path-based
+JupyterHub without per-user subdomains, `'self'` covers the shared Hub origin
+(only the packaged static viewer is served under `/freebrowse/`, never user
+files or APIs); administrators who explicitly set `Content-Security-Policy` in
+`c.ServerApp.tornado_settings` keep their configured policy verbatim (and can
+set `FREEBROWSE_OPEN_IN=browser` to open JupyterLab viewers in top-level tabs).
 
 ### Configuration
 
@@ -581,9 +586,9 @@ jlpm test
 ```
 
 These tests exercise document opening, authenticated file downloads, filename
-handling, rename/disposal races, and real Jupyter HTTP authentication and
-framing headers for viewer assets at root and JupyterHub base paths, including
-JupyterHub's own cookie, XSRF, and CSP defaults.
+handling, rename/disposal races, and real Jupyter HTTP authentication and CSP
+framing header handling for viewer assets at root and JupyterHub base paths,
+including JupyterHub's real cookie/XSRF code and injected CSP policies.
 
 The FreeBrowse bundle served inside JupyterLab
 (`jupyter/jupyterlab_freebrowse/static/freebrowse/`) is a build output and is

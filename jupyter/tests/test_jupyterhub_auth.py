@@ -1,4 +1,4 @@
-"""Exercise static assets with JupyterHub's real cookie, XSRF, and CSP defaults."""
+"""Exercise static assets with JupyterHub's real cookie/XSRF code and CSP headers."""
 
 import logging
 from pathlib import Path
@@ -6,15 +6,31 @@ import tempfile
 
 from jupyter_server.auth import IdentityProvider, User
 from jupyter_server.base.handlers import JupyterHandler
+from jupyter_server.serverapp import ServerApp
 from jupyterhub.services.auth import HubOAuth
 from tornado.testing import AsyncHTTPTestCase
 from tornado.web import Application, authenticated, create_signed_value
+from traitlets.config import Config
 
-from jupyterlab_freebrowse import handlers
+from jupyterlab_freebrowse import _load_jupyter_server_extension, handlers
 
 
 SECRET = "freebrowse-test-cookie-secret"
 TOKEN = "test-session-token"
+_XSRF_ATTRS = ("_xsrf_token_id", "xsrf_token", "check_xsrf_cookie")
+
+
+def _snapshot_xsrf_attrs():
+    return {name: JupyterHandler.__dict__.get(name) for name in _XSRF_ATTRS}
+
+
+def _restore_xsrf_attrs(snapshot):
+    for name, value in snapshot.items():
+        if value is None:
+            if name in JupyterHandler.__dict__:
+                delattr(JupyterHandler, name)
+        else:
+            setattr(JupyterHandler, name, value)
 
 
 class LocalHubOAuth(HubOAuth):
@@ -48,6 +64,9 @@ class HubAssetTests(AsyncHTTPTestCase):
     csp_header = "frame-ancestors 'none'"
 
     def get_app(self):
+        # HubOAuth._patch_xsrf mutates JupyterHandler with the current base_url;
+        # restore it in tearDown so each test class runs with its own patch.
+        self.original_xsrf = _snapshot_xsrf_attrs()
         self.files = tempfile.TemporaryDirectory()
         root = Path(self.files.name)
         (root / "index.html").write_text("<html>FreeBrowse viewer</html>")
@@ -73,9 +92,12 @@ class HubAssetTests(AsyncHTTPTestCase):
         return app
 
     def tearDown(self):
-        super().tearDown()
-        handlers.STATIC_DIR = self.original_static_dir
-        self.files.cleanup()
+        try:
+            super().tearDown()
+        finally:
+            _restore_xsrf_attrs(self.original_xsrf)
+            handlers.STATIC_DIR = self.original_static_dir
+            self.files.cleanup()
 
     def headers(self, site="same-origin", mode="cors", cookie=True):
         result = {"Sec-Fetch-Site": site, "Sec-Fetch-Mode": mode}
@@ -121,6 +143,21 @@ class HubAssetTests(AsyncHTTPTestCase):
         assert viewer.code == 200
         assert viewer.headers["Content-Security-Policy"] == "frame-ancestors 'self'"
 
+        head = self.fetch(self.base_url + "freebrowse/", method="HEAD",
+                          headers=self.headers(mode="navigate"), follow_redirects=False)
+        assert head.code == 200
+        assert head.headers["Content-Security-Policy"] == "frame-ancestors 'self'"
+
+        etag = viewer.headers.get("Etag")
+        assert etag
+        conditional = self.fetch(
+            self.base_url + "freebrowse/",
+            headers={**self.headers(mode="navigate"), "If-None-Match": etag},
+            follow_redirects=False,
+        )
+        assert conditional.code == 304
+        assert conditional.headers["Content-Security-Policy"] == "frame-ancestors 'self'"
+
         lab = self.fetch(self.base_url + "lab",
                          headers=self.headers(mode="navigate"), follow_redirects=False)
         assert lab.code == 200
@@ -149,6 +186,7 @@ class HubCspPolicyVariantsTests(AsyncHTTPTestCase):
     base_url = "/user/alice/"
 
     def get_app(self):
+        self.original_xsrf = _snapshot_xsrf_attrs()
         self.files = tempfile.TemporaryDirectory()
         root = Path(self.files.name)
         (root / "index.html").write_text("<html>FreeBrowse viewer</html>")
@@ -171,14 +209,20 @@ class HubCspPolicyVariantsTests(AsyncHTTPTestCase):
         return app
 
     def tearDown(self):
-        super().tearDown()
-        handlers.STATIC_DIR = self.original_static_dir
-        self.files.cleanup()
+        try:
+            super().tearDown()
+        finally:
+            _restore_xsrf_attrs(self.original_xsrf)
+            handlers.STATIC_DIR = self.original_static_dir
+            self.files.cleanup()
 
-    def fetch_csp(self, configured_csp):
+    def fetch_csp(self, configured_headers, relax_default_csp=True):
         self.app_headers.clear()
-        if configured_csp is not None:
-            self.app_headers["Content-Security-Policy"] = configured_csp
+        self._app.settings["freebrowse_relax_default_csp"] = relax_default_csp
+        if isinstance(configured_headers, str):
+            self.app_headers["Content-Security-Policy"] = configured_headers
+        elif isinstance(configured_headers, dict):
+            self.app_headers.update(configured_headers)
         response = self.fetch(
             self.base_url + "freebrowse/",
             headers={"Sec-Fetch-Site": "same-origin", "Sec-Fetch-Mode": "navigate", "Cookie": self.cookie},
@@ -206,3 +250,58 @@ class HubCspPolicyVariantsTests(AsyncHTTPTestCase):
     def test_standalone_jupyter_default_is_preserved(self):
         csp = self.fetch_csp(None)
         assert csp == "frame-ancestors 'self'; report-uri /user/alice/api/security/csp-report"
+
+    def test_non_ascii_whitespace_does_not_shadow_later_directive(self):
+        configured = "frame-ancestors\u00a0'none'; frame-ancestors https://portal.example.org"
+        assert self.fetch_csp(configured) == configured
+
+    def test_duplicate_frame_ancestors_only_evaluates_first_effective_directive(self):
+        configured = "frame-ancestors https://portal.example.org; frame-ancestors 'none'"
+        assert self.fetch_csp(configured) == configured
+
+    def test_mixed_case_header_keys_follow_relax_flag(self):
+        both = {
+            "Content-Security-Policy": "frame-ancestors 'none'",
+            "content-security-policy": "frame-ancestors 'none'",
+        }
+        lower = {"content-security-policy": "frame-ancestors 'none'"}
+        assert self.fetch_csp(both, relax_default_csp=True) == "frame-ancestors 'self'"
+        assert self.fetch_csp(lower, relax_default_csp=True) == "frame-ancestors 'self'"
+        assert self.fetch_csp(both, relax_default_csp=False) == "frame-ancestors 'none'"
+        assert self.fetch_csp(lower, relax_default_csp=False) == "frame-ancestors 'none'"
+
+
+def test_extension_loader_honors_explicit_admin_csp_config():
+    def load_with(config):
+        app = ServerApp(config=config)
+        app.web_app = Application(base_url="/user/alice/")
+        _load_jupyter_server_extension(app)
+        return app.web_app.settings["freebrowse_relax_default_csp"]
+
+    # Stock JupyterHub: no CSP in server_app.config, so Hub's default is relaxed.
+    assert load_with(Config()) is True
+
+    # Non-CSP tornado_settings headers do not disable relaxing Hub's default.
+    non_csp = Config()
+    non_csp.ServerApp.tornado_settings = {"headers": {"X-Custom": "1"}}
+    assert load_with(non_csp) is True
+
+    # Explicit ServerApp / NotebookApp CSP (assignment or LazyConfigValue update)
+    # disables the override so an administrator's framing denial is honored.
+    explicit_server = Config()
+    explicit_server.ServerApp.tornado_settings = {
+        "headers": {"Content-Security-Policy": "frame-ancestors 'none'"}
+    }
+    assert load_with(explicit_server) is False
+
+    lazy_update = Config()
+    lazy_update.ServerApp.tornado_settings.update(
+        {"headers": {"content-security-policy": "frame-ancestors 'none'"}}
+    )
+    assert load_with(lazy_update) is False
+
+    explicit_notebook = Config()
+    explicit_notebook.NotebookApp.tornado_settings = {
+        "headers": {"Content-Security-Policy": "frame-ancestors 'none'"}
+    }
+    assert load_with(explicit_notebook) is False
