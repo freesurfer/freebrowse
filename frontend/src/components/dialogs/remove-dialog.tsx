@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,6 +18,7 @@ interface RemoveDialogProps {
 }
 
 export default function RemoveDialog({ onConfirm, onCancel }: RemoveDialogProps) {
+  const uid = useId();
   const removeDialogOpen = useFreeBrowseStore((s) => s.removeDialogOpen);
   const setRemoveDialogOpen = useFreeBrowseStore((s) => s.setRemoveDialogOpen);
   const skipRemoveConfirmation = useFreeBrowseStore((s) => s.skipRemoveConfirmation);
@@ -37,13 +39,13 @@ export default function RemoveDialog({ onConfirm, onCancel }: RemoveDialogProps)
 
         <div className="flex items-center space-x-2 mt-4">
           <Checkbox
-            id="dont-ask-again"
+            id={`${uid}-dont-ask-again`}
             checked={skipRemoveConfirmation}
             onCheckedChange={(checked) =>
               setSkipRemoveConfirmation(checked === true)
             }
           />
-          <Label htmlFor="dont-ask-again" className="text-sm">
+          <Label htmlFor={`${uid}-dont-ask-again`} className="text-sm">
             Don't ask me again
           </Label>
         </div>

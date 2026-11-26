@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { useViewerOptions } from "@/hooks/use-viewer-options";
 import { Eye, EyeOff } from "lucide-react";
@@ -21,6 +22,7 @@ interface SettingsDialogProps {
 }
 
 export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
+  const uid = useId();
   const settingsDialogOpen = useFreeBrowseStore((s) => s.settingsDialogOpen);
   const setSettingsDialogOpen = useFreeBrowseStore(
     (s) => s.setSettingsDialogOpen,
@@ -196,27 +198,27 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
 
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="show-colorbar"
+                  id={`${uid}-show-colorbar`}
                   checked={viewerOptions.isColorbar}
                   onCheckedChange={(checked) =>
                     handleColorbarChange(checked as boolean)
                   }
                 />
-                <Label htmlFor="show-colorbar" className="text-sm font-medium">
+                <Label htmlFor={`${uid}-show-colorbar`} className="text-sm font-medium">
                   Show Colorbar
                 </Label>
               </div>
 
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="radiological-view"
+                  id={`${uid}-radiological-view`}
                   checked={viewerOptions.isRadiologicalConvention}
                   onCheckedChange={(checked) =>
                     handleRadiologicalChange(checked as boolean)
                   }
                 />
                 <Label
-                  htmlFor="radiological-view"
+                  htmlFor={`${uid}-radiological-view`}
                   className="text-sm font-medium"
                 >
                   Radiological View
@@ -230,14 +232,14 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
 
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="interpolate-voxels"
+                  id={`${uid}-interpolate-voxels`}
                   checked={viewerOptions.interpolateVoxels}
                   onCheckedChange={(checked) =>
                     handleInterpolateVoxelsChange(checked as boolean)
                   }
                 />
                 <Label
-                  htmlFor="interpolate-voxels"
+                  htmlFor={`${uid}-interpolate-voxels`}
                   className="text-sm font-medium"
                 >
                   Interpolate Voxels
@@ -252,14 +254,14 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
 
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="skip-remove-confirmation"
+                  id={`${uid}-skip-remove-confirmation`}
                   checked={skipRemoveConfirmation}
                   onCheckedChange={(checked) =>
                     setSkipRemoveConfirmation(checked as boolean)
                   }
                 />
                 <Label
-                  htmlFor="skip-remove-confirmation"
+                  htmlFor={`${uid}-skip-remove-confirmation`}
                   className="text-sm font-medium"
                 >
                   Don't ask me to confirm removals
@@ -268,14 +270,14 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
 
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="skip-imaging-upload-confirmation-settings"
+                  id={`${uid}-skip-imaging-upload-confirmation-settings`}
                   checked={skipImagingUploadConfirmation}
                   onCheckedChange={(checked) =>
                     setSkipImagingUploadConfirmation(checked as boolean)
                   }
                 />
                 <Label
-                  htmlFor="skip-imaging-upload-confirmation-settings"
+                  htmlFor={`${uid}-skip-imaging-upload-confirmation-settings`}
                   className="text-sm font-medium"
                 >
                   Don't ask me to confirm imaging data uploads
@@ -284,14 +286,14 @@ export default function SettingsDialog({ nvRef }: SettingsDialogProps) {
 
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="skip-session-delete-confirmation-settings"
+                  id={`${uid}-skip-session-delete-confirmation-settings`}
                   checked={skipSessionDeleteConfirmation}
                   onCheckedChange={(checked) =>
                     setSkipSessionDeleteConfirmation(checked as boolean)
                   }
                 />
                 <Label
-                  htmlFor="skip-session-delete-confirmation-settings"
+                  htmlFor={`${uid}-skip-session-delete-confirmation-settings`}
                   className="text-sm font-medium"
                 >
                   Don't ask me to confirm session deletions

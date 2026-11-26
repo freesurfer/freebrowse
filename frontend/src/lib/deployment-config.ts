@@ -38,19 +38,34 @@ export interface FreeBrowseConfig {
   readUrlParams: boolean;
   /** Publish the instance as `window.freebrowse.nv` (app: yes; library: no). */
   exposeGlobal: boolean;
+  /**
+   * Allow `.nvd` documents to trigger fetches for linked volumes, meshes,
+   * layers, thumbnails, matcaps, or slide planes. Set `false` when embedding
+   * inside an authenticated host (like JupyterLab) so opening an untrusted
+   * `.nvd` cannot initiate credentialed network requests. Default true.
+   */
+  allowExternalDocumentUrls: boolean;
 }
 
 export const DEFAULT_BACKEND: FreeBrowseBackend = { dataUrl: "/data", aiUrl: "/ai" };
 export const DEFAULT_PERSIST_KEY = "freebrowse-user-settings";
 
-function defaultsFromEnv(): FreeBrowseConfig {
+export function defaultsFromEnv(): FreeBrowseConfig {
   return {
     backend: import.meta.env.VITE_SERVERLESS === "true" ? null : { ...DEFAULT_BACKEND },
     downloadDisabled: import.meta.env.VITE_DISABLE_DOWNLOAD === "true",
     persist: DEFAULT_PERSIST_KEY,
     readUrlParams: true,
     exposeGlobal: true,
+    allowExternalDocumentUrls: true,
   };
+}
+
+/** Build an immutable per-instance config starting from env defaults. */
+export function resolveFreeBrowseConfig(
+  partial: Partial<FreeBrowseConfig> = {},
+): Readonly<FreeBrowseConfig> {
+  return Object.freeze({ ...defaultsFromEnv(), ...partial });
 }
 
 let config: FreeBrowseConfig = defaultsFromEnv();
@@ -91,23 +106,46 @@ function join(base: string, path: string): string {
   return base.replace(/\/+$/, "") + "/" + path.replace(/^\/+/, "");
 }
 
-function requireBackend(): FreeBrowseBackend {
-  if (config.backend === null) {
+function requireBackend(cfg: Readonly<FreeBrowseConfig>): FreeBrowseBackend {
+  if (cfg.backend === null) {
     throw new Error(
       "FreeBrowse: no backend configured (serverless); this call should be unreachable",
     );
   }
-  return config.backend;
+  return cfg.backend;
+}
+
+/** `dataUrlFrom(cfg, "nvd")` → `<cfg.backend.dataUrl>/nvd`. */
+export function dataUrlFrom(cfg: Readonly<FreeBrowseConfig>, path = ""): string {
+  return join(requireBackend(cfg).dataUrl, path);
+}
+
+/** `aiUrlFrom(cfg, "session/list")` → `<cfg.backend.aiUrl>/session/list`. */
+export function aiUrlFrom(cfg: Readonly<FreeBrowseConfig>, path = ""): string {
+  return join(requireBackend(cfg).aiUrl, path);
+}
+
+/** Strip `cfg`'s data base from `url`, returning the relative path or null. */
+export function relativeToDataRootFrom(
+  cfg: Readonly<FreeBrowseConfig>,
+  url: string,
+): string | null {
+  const base = cfg.backend?.dataUrl ?? DEFAULT_BACKEND.dataUrl;
+  const prefix = base.replace(/\/+$/, "") + "/";
+  if (url.startsWith(prefix)) return url.slice(prefix.length);
+  const bare = prefix.replace(/^\/+/, "");
+  if (bare && url.startsWith(bare)) return url.slice(bare.length);
+  return null;
 }
 
 /** `dataUrl("nvd")` → `<backend.dataUrl>/nvd`. Throws when no backend is configured. */
 export function dataUrl(path = ""): string {
-  return join(requireBackend().dataUrl, path);
+  return dataUrlFrom(config, path);
 }
 
 /** `aiUrl("session/list")` → `<backend.aiUrl>/session/list`. Throws when no backend. */
 export function aiUrl(path = ""): string {
-  return join(requireBackend().aiUrl, path);
+  return aiUrlFrom(config, path);
 }
 
 /**
@@ -116,10 +154,5 @@ export function aiUrl(path = ""): string {
  * not under it. Accepts the bare relative spelling too (`"data/x"`).
  */
 export function relativeToDataRoot(url: string): string | null {
-  const base = config.backend?.dataUrl ?? DEFAULT_BACKEND.dataUrl;
-  const prefix = base.replace(/\/+$/, "") + "/";
-  if (url.startsWith(prefix)) return url.slice(prefix.length);
-  const bare = prefix.replace(/^\/+/, "");
-  if (bare && url.startsWith(bare)) return url.slice(bare.length);
-  return null;
+  return relativeToDataRootFrom(config, url);
 }

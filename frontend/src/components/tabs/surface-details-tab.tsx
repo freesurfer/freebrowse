@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Upload, Trash2, Eye, EyeOff, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export default function SurfaceDetailsTab({
   onLayerColormapChange,
   onLayerUseNegativeCmapChange,
 }: SurfaceDetailsTabProps) {
+  const uid = useId();
   const surfaces = useFreeBrowseStore((s) => s.surfaces);
   const currentSurfaceIndex = useFreeBrowseStore((s) => s.currentSurfaceIndex);
   const setCurrentSurfaceIndex = useFreeBrowseStore(
@@ -276,14 +278,14 @@ export default function SurfaceDetailsTab({
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      id="use-negative-cmap"
+                      id={`${uid}-use-negative-cmap`}
                       checked={!!selectedLayer.colormapNegative}
                       onCheckedChange={(checked) =>
                         onLayerUseNegativeCmapChange(checked === true)
                       }
                     />
                     <Label
-                      htmlFor="use-negative-cmap"
+                      htmlFor={`${uid}-use-negative-cmap`}
                       className="text-sm font-medium"
                     >
                       Use Negative Colormap

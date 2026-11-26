@@ -30,12 +30,34 @@ function isBytesOnly(filename: string | undefined): boolean {
   return filename === "";
 }
 
-export function applyExportLockdown(): void {
-  const proto = NiiVue.prototype;
-  const origSaveVolume = proto.saveVolume;
-  const origSaveDrawing = proto.saveDrawing;
+type ExportMethodKey =
+  | "saveVolume"
+  | "saveDrawing"
+  | "saveMesh"
+  | "saveBitmap"
+  | "saveDocument";
 
-  proto.saveVolume = async function (
+function patchTarget(
+  target: Pick<NiiVue, ExportMethodKey>,
+): () => void {
+  const keys: ExportMethodKey[] = [
+    "saveVolume",
+    "saveDrawing",
+    "saveMesh",
+    "saveBitmap",
+    "saveDocument",
+  ];
+  const hadOwn = new Map<ExportMethodKey, boolean>();
+  const prevDescriptors = new Map<ExportMethodKey, PropertyDescriptor | undefined>();
+  for (const key of keys) {
+    hadOwn.set(key, Object.prototype.hasOwnProperty.call(target, key));
+    prevDescriptors.set(key, Object.getOwnPropertyDescriptor(target, key));
+  }
+
+  const origSaveVolume = target.saveVolume;
+  const origSaveDrawing = target.saveDrawing;
+
+  target.saveVolume = async function (
     this: NiiVue,
     options?: Parameters<NiiVue["saveVolume"]>[0],
   ) {
@@ -46,7 +68,7 @@ export function applyExportLockdown(): void {
     return origSaveVolume.call(this, options);
   };
 
-  proto.saveDrawing = async function (this: NiiVue, filename?: string) {
+  target.saveDrawing = async function (this: NiiVue, filename?: string) {
     if (!isBytesOnly(filename)) {
       console.warn(REFUSED);
       return false;
@@ -55,16 +77,60 @@ export function applyExportLockdown(): void {
   };
 
   // Disk-only methods: no in-memory variant exists, so they are no-ops.
-  proto.saveMesh = async () => {
+  target.saveMesh = async () => {
     console.warn(REFUSED);
   };
-  proto.saveBitmap = async () => {
+  target.saveBitmap = async () => {
     console.warn(REFUSED);
     return false;
   };
-  proto.saveDocument = () => {
+  target.saveDocument = () => {
     console.warn(REFUSED);
   };
   // `serializeDocument` is deliberately left alone: it returns bytes to the
   // caller (backend Save), it never writes to disk.
+
+  return () => {
+    for (const key of keys) {
+      if (hadOwn.get(key)) {
+        const desc = prevDescriptors.get(key);
+        if (desc) Object.defineProperty(target, key, desc);
+      } else {
+        delete (target as Record<string, unknown>)[key];
+      }
+    }
+  };
+}
+
+const instanceRefCounts = new WeakMap<NiiVue, { count: number; restore: () => void }>();
+
+/**
+ * Neutralize disk-saving methods on one NiiVue instance without mutating
+ * `NiiVue.prototype` for sibling instances on the same page. Returns a cleanup
+ * function that restores the instance's original methods once the last lock
+ * holder releases it.
+ */
+export function applyExportLockdownToInstance(nv: NiiVue): () => void {
+  let entry = instanceRefCounts.get(nv);
+  if (!entry) {
+    entry = { count: 0, restore: patchTarget(nv) };
+    instanceRefCounts.set(nv, entry);
+  }
+  entry.count += 1;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    const current = instanceRefCounts.get(nv);
+    if (!current) return;
+    current.count -= 1;
+    if (current.count <= 0) {
+      instanceRefCounts.delete(nv);
+      current.restore();
+    }
+  };
+}
+
+export function applyExportLockdown(): void {
+  patchTarget(NiiVue.prototype);
 }

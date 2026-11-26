@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,6 +21,7 @@ export default function ImagingUploadConfirmationDialog({
   onConfirm,
   onCancel,
 }: ImagingUploadConfirmationDialogProps) {
+  const uid = useId();
   const open = useFreeBrowseStore((s) => s.imagingUploadConfirmDialogOpen);
   const setOpen = useFreeBrowseStore((s) => s.setImagingUploadConfirmDialogOpen);
   const skip = useFreeBrowseStore((s) => s.skipImagingUploadConfirmation);
@@ -38,12 +40,12 @@ export default function ImagingUploadConfirmationDialog({
 
         <div className="flex items-center space-x-2 mt-4">
           <Checkbox
-            id="skip-imaging-upload-confirmation"
+            id={`${uid}-skip-imaging-upload-confirmation`}
             checked={skip}
             onCheckedChange={(checked) => setSkip(checked === true)}
           />
           <Label
-            htmlFor="skip-imaging-upload-confirmation"
+            htmlFor={`${uid}-skip-imaging-upload-confirmation`}
             className="text-sm"
           >
             Don't ask me again to confirm imaging data uploads

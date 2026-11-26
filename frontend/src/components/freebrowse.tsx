@@ -16,8 +16,9 @@ import {
   resolveSessionDeleteConfirmation,
 } from "@/lib/confirmations";
 import type { NiiVue } from "@niivue/niivue";
-import { getFreeBrowseConfig } from "@/lib/deployment-config";
-import { useFreeBrowseStore } from "@/store";
+import { useFreeBrowseConfig } from "@/lib/config-context";
+import { applyExportLockdownToInstance } from "@/lib/disable-export";
+import { useFreeBrowseStoreApi } from "@/store";
 import ViewerShell from "./viewer-shell";
 import Sidebar from "./sidebar";
 import RemoveDialog from "./dialogs/remove-dialog";
@@ -55,6 +56,8 @@ export interface FreeBrowseProps {
   sidebar?: boolean;
   /** Show the footer (coordinate readout) initially. Default true. */
   footer?: boolean;
+  /** Internal callback receiving the `nv.attachToCanvas()` promise once canvas mounts. */
+  onAttachCanvas?: (promise: Promise<unknown>) => void;
 }
 
 export default function FreeBrowse({
@@ -64,8 +67,16 @@ export default function FreeBrowse({
   dragDrop,
   sidebar,
   footer,
+  onAttachCanvas,
 }: FreeBrowseProps) {
-  const expose = exposeGlobal ?? getFreeBrowseConfig().exposeGlobal;
+  const config = useFreeBrowseConfig();
+  const storeApi = useFreeBrowseStoreApi();
+  const expose = exposeGlobal ?? config.exposeGlobal;
+
+  useEffect(() => {
+    if (!config.downloadDisabled) return;
+    return applyExportLockdownToInstance(nv);
+  }, [nv, config.downloadDisabled]);
 
   // Initial layout / loading preferences from the host. Applied on mount and
   // whenever the props change; the user's own toggles are left alone otherwise.
@@ -82,8 +93,8 @@ export default function FreeBrowse({
     }
     if (sidebar !== undefined) patch.sidebarOpen = sidebar;
     if (footer !== undefined) patch.footerOpen = footer;
-    if (Object.keys(patch).length) useFreeBrowseStore.setState(patch);
-  }, [dragDrop, sidebar, footer]);
+    if (Object.keys(patch).length) storeApi.setState(patch);
+  }, [storeApi, dragDrop, sidebar, footer]);
   const nvRef = useRef<NiiVue | null>(nv);
   nvRef.current = nv;
 
@@ -92,13 +103,13 @@ export default function FreeBrowse({
   // both FreeBrowse's own command wrappers and external callers driving the
   // instance (window.freebrowse.nv) update the UI through the same path.
   useEffect(() => {
-    const teardown = registerNiiVueEvents(nv, createStoreSyncTarget(nv));
+    const teardown = registerNiiVueEvents(nv, createStoreSyncTarget(nv, storeApi));
     if (expose) window.freebrowse = { nv }; // typed in src/window.d.ts
     return () => {
       teardown();
       if (window.freebrowse?.nv === nv) delete window.freebrowse;
     };
-  }, [nv, expose]);
+  }, [nv, storeApi, expose]);
 
   // --- Hooks ---
   const {
@@ -187,6 +198,7 @@ export default function FreeBrowse({
     applyViewerOptions,
     syncViewerOptionsFromNiiVue,
     updateSurfaceDetails,
+    config,
   );
 
   useAiCapabilities();
@@ -204,6 +216,7 @@ export default function FreeBrowse({
       nvInstance={nv}
       viewMode={viewerOptions.viewMode}
       onFileUpload={handleFileUpload}
+      onAttachCanvas={onAttachCanvas}
       sidebar={
         <Sidebar
           nvRef={nvRef}
@@ -276,12 +289,12 @@ export default function FreeBrowse({
           />
           <SettingsDialog nvRef={nvRef} />
           <ImagingUploadConfirmationDialog
-            onConfirm={() => resolveImagingUploadConfirmation(true)}
-            onCancel={() => resolveImagingUploadConfirmation(false)}
+            onConfirm={() => resolveImagingUploadConfirmation(true, storeApi)}
+            onCancel={() => resolveImagingUploadConfirmation(false, storeApi)}
           />
           <SessionDeleteConfirmationDialog
-            onConfirm={() => resolveSessionDeleteConfirmation(true)}
-            onCancel={() => resolveSessionDeleteConfirmation(false)}
+            onConfirm={() => resolveSessionDeleteConfirmation(true, storeApi)}
+            onCancel={() => resolveSessionDeleteConfirmation(false, storeApi)}
           />
         </>
       }

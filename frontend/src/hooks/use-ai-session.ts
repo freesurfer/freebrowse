@@ -1,18 +1,26 @@
 import { useCallback, useEffect } from "react";
 import type { NiiVue } from "@niivue/niivue";
-import { useFreeBrowseStore } from "@/store";
+import { useFreeBrowseStore, useFreeBrowseStoreApi } from "@/store";
 import {
   requestImagingUploadConfirmation,
   requestSessionDeleteConfirmation,
 } from "@/lib/confirmations";
 import { gzipUint8Array, uint8ArrayToBase64 } from "@/lib/niivue-helpers";
 import type { AiSessionSummary } from "@/store/ai-slice";
-import { aiUrl, dataUrl, relativeToDataRoot } from "@/lib/deployment-config";
+import {
+  aiUrlFrom,
+  dataUrlFrom,
+  relativeToDataRootFrom,
+  type FreeBrowseConfig,
+} from "@/lib/deployment-config";
+import { useFreeBrowseConfig } from "@/lib/config-context";
 
 const SESSION_NAME_RE = /^[A-Za-z0-9_-]+$/;
 
-async function fetchSessionList(): Promise<AiSessionSummary[]> {
-  const res = await fetch(aiUrl("session/list"));
+async function fetchSessionList(
+  config: Readonly<FreeBrowseConfig>,
+): Promise<AiSessionSummary[]> {
+  const res = await fetch(aiUrlFrom(config, "session/list"));
   if (!res.ok) throw new Error(`GET /ai/session/list failed: ${res.status}`);
   return res.json();
 }
@@ -23,8 +31,11 @@ function ensureNiiName(name: string | undefined | null): string {
   return `${name}.nii.gz`;
 }
 
-function stripDataPrefix(url: string): string | null {
-  return relativeToDataRoot(url);
+function stripDataPrefix(
+  config: Readonly<FreeBrowseConfig>,
+  url: string,
+): string | null {
+  return relativeToDataRootFrom(config, url);
 }
 
 async function fetchArrayBuffer(url: string): Promise<Uint8Array> {
@@ -34,6 +45,7 @@ async function fetchArrayBuffer(url: string): Promise<Uint8Array> {
 }
 
 async function exportAndUploadDrawing(
+  config: Readonly<FreeBrowseConfig>,
   nv: NiiVue,
   sessionName: string,
 ): Promise<string | null> {
@@ -50,7 +62,7 @@ async function exportAndUploadDrawing(
   const bytes = await gzipUint8Array(raw);
   const annotRel = "annotations.nii.gz";
   const targetPath = `ai-sessions/${sessionName}/${annotRel}`;
-  const res = await fetch(dataUrl("nii"), {
+  const res = await fetch(dataUrlFrom(config, "nii"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -66,11 +78,12 @@ async function exportAndUploadDrawing(
 }
 
 async function postSetAnnots(
+  config: Readonly<FreeBrowseConfig>,
   sessionId: string,
   annotationRelPath: string,
 ): Promise<void> {
   const res = await fetch(
-    aiUrl(`session/${encodeURIComponent(sessionId)}/set_annots`),
+    aiUrlFrom(config, `session/${encodeURIComponent(sessionId)}/set_annots`),
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -104,6 +117,8 @@ const AI_PROMPT_COLORMAP = {
 };
 
 export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
+  const config = useFreeBrowseConfig();
+  const storeApi = useFreeBrowseStoreApi();
   const aiEnabled = useFreeBrowseStore((s) => s.aiEnabled);
   const setAiSessions = useFreeBrowseStore((s) => s.setAiSessions);
   const setAiActiveSession = useFreeBrowseStore((s) => s.setAiActiveSession);
@@ -118,12 +133,12 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
 
   const refreshSessions = useCallback(async () => {
     try {
-      const sessions = await fetchSessionList();
+      const sessions = await fetchSessionList(config);
       setAiSessions(sessions);
     } catch (err) {
       console.error("Failed to refresh AI sessions:", err);
     }
-  }, [setAiSessions]);
+  }, [config, setAiSessions]);
 
   useEffect(() => {
     if (aiEnabled) void refreshSessions();
@@ -187,15 +202,17 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
 
       const volume = nv.volumes[0];
       const backendRelPath =
-        typeof volume.url === "string" ? stripDataPrefix(volume.url) : null;
+        typeof volume.url === "string"
+          ? stripDataPrefix(config, volume.url)
+          : null;
       const needsUpload = !backendRelPath;
 
       if (needsUpload) {
-        const ok = await requestImagingUploadConfirmation();
+        const ok = await requestImagingUploadConfirmation(storeApi);
         if (!ok) throw new Error("Upload cancelled");
       }
 
-      const newRes = await fetch(aiUrl("session/new"), {
+      const newRes = await fetch(aiUrlFrom(config, "session/new"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_name: trimmed }),
@@ -219,7 +236,7 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
             : new Uint8Array();
         const base64Data = uint8ArrayToBase64(uint8Array);
 
-        const uploadRes = await fetch(dataUrl("nii"), {
+        const uploadRes = await fetch(dataUrlFrom(config, "nii"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ filename: targetPath, data: base64Data }),
@@ -235,7 +252,7 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
       }
 
       const setVolRes = await fetch(
-        aiUrl(`session/${encodeURIComponent(session_id)}/set_volume`),
+        aiUrlFrom(config, `session/${encodeURIComponent(session_id)}/set_volume`),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -251,7 +268,7 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
       enterDrawMode();
       await refreshSessions();
     },
-    [nvRef, setAiActiveSession, enterDrawMode, refreshSessions],
+    [config, storeApi, nvRef, setAiActiveSession, enterDrawMode, refreshSessions],
   );
 
   const handleLoadSession = useCallback(
@@ -259,7 +276,7 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
       const nv = nvRef.current;
       if (!nv) throw new Error("Viewer not ready");
 
-      const summary = useFreeBrowseStore
+      const summary = storeApi
         .getState()
         .aiSessions.find((s) => s.session_id === sessionId);
       if (!summary) throw new Error(`Unknown session: ${sessionId}`);
@@ -268,8 +285,11 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
 
       const volumeUrl =
         summary.volume_path_root === "session"
-          ? dataUrl(`ai-sessions/${summary.session_name}/${summary.volume_path}`)
-          : dataUrl(summary.volume_path);
+          ? dataUrlFrom(
+              config,
+              `ai-sessions/${summary.session_name}/${summary.volume_path}`,
+            )
+          : dataUrlFrom(config, summary.volume_path);
 
       // Ensure the niivue canvas is mounted + attached (first-load-in-session path).
       // Same trick use-file-loading.ts:196 uses before addVolumeFromUrl.
@@ -281,7 +301,8 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
 
       if (summary.annotation_path) {
         try {
-          const annotUrl = dataUrl(
+          const annotUrl = dataUrlFrom(
+            config,
             `ai-sessions/${summary.session_name}/${summary.annotation_path}`,
           );
           const bytes = await fetchArrayBuffer(annotUrl);
@@ -306,6 +327,8 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
       enterDrawMode();
     },
     [
+      config,
+      storeApi,
       nvRef,
       setShowUploader,
       incrementVolumeVersion,
@@ -317,17 +340,22 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
   const handleRunSegmentation = useCallback(
     async (mlId: string, labelValue: number): Promise<void> => {
       const nv = nvRef.current;
-      const active = useFreeBrowseStore.getState().aiActiveSession;
+      const active = storeApi.getState().aiActiveSession;
       if (!nv || !active || nv.volumes.length === 0)
         throw new Error("No active session or volume");
 
-      const annotRel = await exportAndUploadDrawing(nv, active.session_name);
+      const annotRel = await exportAndUploadDrawing(
+        config,
+        nv,
+        active.session_name,
+      );
       if (!annotRel) throw new Error("No drawing layer to send as annotations");
 
-      await postSetAnnots(active.session_id, annotRel);
+      await postSetAnnots(config, active.session_id, annotRel);
 
       const inferRes = await fetch(
-        aiUrl(
+        aiUrlFrom(
+          config,
           `session/${encodeURIComponent(active.session_id)}/infer/${encodeURIComponent(mlId)}`,
         ),
         {
@@ -357,7 +385,7 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
       }
 
       const resultUrl =
-        dataUrl(`ai-sessions/${active.session_name}/${RESULT_FILENAME}`) +
+        dataUrlFrom(config, `ai-sessions/${active.session_name}/${RESULT_FILENAME}`) +
         `?t=${Date.now()}`;
       nv.addColormap(AI_RESULT_COLORMAP_NAME, AI_RESULT_COLORMAP);
       await nv.addVolume({
@@ -368,33 +396,40 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
       });
       incrementVolumeVersion();
     },
-    [nvRef, incrementVolumeVersion],
+    [config, storeApi, nvRef, incrementVolumeVersion],
   );
 
   const handleExitAndSaveSession = useCallback(async (): Promise<void> => {
     const nv = nvRef.current;
-    const active = useFreeBrowseStore.getState().aiActiveSession;
+    const active = storeApi.getState().aiActiveSession;
     if (nv && active) {
       try {
-        const annotRel = await exportAndUploadDrawing(nv, active.session_name);
-        if (annotRel) await postSetAnnots(active.session_id, annotRel);
+        const annotRel = await exportAndUploadDrawing(
+          config,
+          nv,
+          active.session_name,
+        );
+        if (annotRel) await postSetAnnots(config, active.session_id, annotRel);
       } catch (err) {
         console.error("Failed to save annotations on exit:", err);
       }
     }
     exitDrawModeLocal();
-  }, [nvRef, exitDrawModeLocal]);
+  }, [config, storeApi, nvRef, exitDrawModeLocal]);
 
   const handleExitAndDeleteSession = useCallback(async (): Promise<void> => {
     if (!aiActiveSession) return;
-    const ok = await requestSessionDeleteConfirmation();
+    const ok = await requestSessionDeleteConfirmation(storeApi);
     if (!ok) return;
 
     const id = aiActiveSession.session_id;
     try {
-      const res = await fetch(aiUrl(`session/${encodeURIComponent(id)}`), {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        aiUrlFrom(config, `session/${encodeURIComponent(id)}`),
+        {
+          method: "DELETE",
+        },
+      );
       if (!res.ok) {
         const msg = await res.text();
         console.error(`DELETE session failed (${res.status}): ${msg}`);
@@ -405,7 +440,7 @@ export function useAiSession(nvRef: React.RefObject<NiiVue | null>) {
 
     exitDrawModeLocal();
     await refreshSessions();
-  }, [aiActiveSession, exitDrawModeLocal, refreshSessions]);
+  }, [config, storeApi, aiActiveSession, exitDrawModeLocal, refreshSessions]);
 
   return {
     refreshSessions,

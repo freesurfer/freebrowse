@@ -3,61 +3,30 @@ import { useFreeBrowseStore } from "@/store";
 import type { NiiVue } from "@niivue/niivue";
 import type { FileItem } from "@/components/file-list";
 import { applyLabelColormapsAfterLoad } from "@/hooks/use-volumes";
-import { deploymentConfig, getFreeBrowseConfig } from "@/lib/deployment-config";
-
-const LEGACY_NVD_MESSAGE =
-  "This .nvd predates the niivue document schema (it has `imageOptionsArray` " +
-  "and no `version`). Regenerate it with scripts/migrate-nvd.py.";
-
-/**
- * Fail legibly on a pre-niivue-mono `.nvd` instead of letting niivue report the
- * opaque "Invalid NVD file: missing version".
- *
- * Legacy documents are old niivue's `DocumentData`/`ExportDocumentData` shape
- * (`imageOptionsArray`, `encodedImageBlobs`, `meshesString`, …) plus
- * FreeBrowse's own top-level `meshes` array. niivue's `deserialize` rejects them
- * outright because they carry no `version`.
- *
- * Best-effort by design: for raw bytes this scans a bounded prefix rather than
- * parsing a document that may be hundreds of MB. A miss just means the user gets
- * niivue's original error, so this never needs to be exhaustive.
- */
-function assertNotLegacyDocument(
-  data: Uint8Array | Record<string, unknown>,
-): void {
-  if (data instanceof Uint8Array) {
-    // Only JSON can be legacy; CBOR documents are always versioned.
-    const first = data.find(
-      (b) => b !== 0x20 && b !== 0x09 && b !== 0x0a && b !== 0x0d,
-    );
-    if (first !== 0x7b) return; // not '{'
-    const prefix = new TextDecoder("utf-8", { fatal: false }).decode(
-      data.subarray(0, 64 * 1024),
-    );
-    // `encodedImageBlobs` is checked too: FreeBrowse 2.4.x writes it FIRST, so
-    // in a 45 MB embedded document `imageOptionsArray` sits far past the prefix.
-    // v9 documents never carry that key.
-    const legacyKey =
-      prefix.includes('"imageOptionsArray"') ||
-      prefix.includes('"encodedImageBlobs"');
-    if (legacyKey && !prefix.includes('"version"'))
-      throw new Error(LEGACY_NVD_MESSAGE);
-    return;
-  }
-  if (
-    ("imageOptionsArray" in data || "encodedImageBlobs" in data) &&
-    typeof data.version !== "number"
-  ) {
-    throw new Error(LEGACY_NVD_MESSAGE);
-  }
-}
+import {
+  deploymentConfig,
+  getFreeBrowseConfig,
+  type FreeBrowseConfig,
+} from "@/lib/deployment-config";
+import {
+  assertNotLegacyDocument,
+  assertSelfContainedNvd,
+  prepareNvdBytes,
+  stripLoadedDocumentUrls,
+} from "@/lib/load-file";
 
 export function useFileLoading(
   nvRef: React.RefObject<NiiVue | null>,
   applyViewerOptions: () => void,
   syncViewerOptionsFromNiiVue: () => void,
   updateSurfaceDetails: () => void,
+  instanceConfig?: Readonly<FreeBrowseConfig>,
 ) {
+  const hasInstanceConfig =
+    instanceConfig != null && typeof instanceConfig === "object";
+  const effectiveConfig = hasInstanceConfig
+    ? instanceConfig
+    : getFreeBrowseConfig();
   const showUploader = useFreeBrowseStore((s) => s.showUploader);
   const setShowUploader = useFreeBrowseStore((s) => s.setShowUploader);
   const currentImageIndex = useFreeBrowseStore((s) => s.currentImageIndex);
@@ -74,9 +43,19 @@ export function useFileLoading(
   );
   const setActiveTab = useFreeBrowseStore((s) => s.setActiveTab);
 
-  const serverlessMode = deploymentConfig.serverless;
+  const serverlessMode = hasInstanceConfig
+    ? instanceConfig.backend === null
+    : deploymentConfig.serverless;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const surfaceFileInputRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Load a niivue Document (.nvd) into the scene.
   //
@@ -94,17 +73,25 @@ export function useFileLoading(
 
       let file: File;
       if (data instanceof ArrayBuffer || data instanceof Uint8Array) {
-        const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+        const rawBytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+        const bytes = prepareNvdBytes(rawBytes);
         assertNotLegacyDocument(bytes);
+        if (effectiveConfig.allowExternalDocumentUrls === false) {
+          assertSelfContainedNvd(bytes);
+        }
         file = new File([bytes], "scene.nvd", {
           type: "application/octet-stream",
         });
       } else {
         // Already-parsed JSON object (embedded __EMBEDDED_NVD_DATA__ path).
-        // Re-stringify: lossless, since it came from JSON text and so holds no
-        // typed arrays and no non-finite numbers.
-        assertNotLegacyDocument(data);
-        file = new File([JSON.stringify(data)], "scene.nvd", {
+        // Serialize first so validation inspects the exact JSON bytes NiiVue
+        // will deserialize with its `$num` / `$ta` reviver.
+        const jsonBytes = new TextEncoder().encode(JSON.stringify(data));
+        assertNotLegacyDocument(jsonBytes);
+        if (effectiveConfig.allowExternalDocumentUrls === false) {
+          assertSelfContainedNvd(jsonBytes);
+        }
+        file = new File([jsonBytes], "scene.nvd", {
           type: "application/json",
         });
       }
@@ -114,7 +101,13 @@ export function useFileLoading(
       // written), and niivue's default policy would reset every omitted setting
       // to its built-in default, silently changing e.g. crosshair colour or view
       // mode on every load. A document should only change what it sets.
-      await nv.loadDocument(file, { fill: "current" });
+      try {
+        await nv.loadDocument(file, { fill: "current" });
+      } finally {
+        if (effectiveConfig.allowExternalDocumentUrls === false) {
+          stripLoadedDocumentUrls(nv);
+        }
+      }
       // Migrated legacy documents name label palettes by `colormap` only.
       await applyLabelColormapsAfterLoad(nv);
 
@@ -129,6 +122,7 @@ export function useFileLoading(
     },
     [
       nvRef,
+      effectiveConfig.allowExternalDocumentUrls,
       syncViewerOptionsFromNiiVue,
       updateSurfaceDetails,
       currentImageIndex,
@@ -172,12 +166,14 @@ export function useFileLoading(
         try {
           // Pass raw bytes: loadNvdData sniffs JSON vs CBOR.
           const bytes = await nvdFile.arrayBuffer();
+          if (!mountedRef.current) return;
           console.log("NVD file loaded:", nvdFile.name, bytes.byteLength, "bytes");
           await loadNvdData(bytes);
         } catch (error) {
           console.error("Error loading uploaded NVD file:", error);
         }
       } else {
+        if (!mountedRef.current) return;
         const promises = files.map(async (file) => {
           // niivue-mono: addVolume accepts a File directly (url: string | File);
           // the separate NVImage.loadFromFile step is gone.
@@ -185,6 +181,7 @@ export function useFileLoading(
         });
 
         await Promise.all(promises);
+        if (!mountedRef.current) return;
 
         applyViewerOptions();
         incrementVolumeVersion();
@@ -418,7 +415,7 @@ export function useFileLoading(
   // Load NVD from URL parameter on initial load (app only: an embedding host
   // keeps its own query string, see config.readUrlParams).
   useEffect(() => {
-    if (!getFreeBrowseConfig().readUrlParams) return;
+    if (!effectiveConfig.readUrlParams) return;
     const urlParams = new URLSearchParams(window.location.search);
     const nvdParam = urlParams.get("nvd");
 
@@ -434,7 +431,7 @@ export function useFileLoading(
 
   // Load volume from URL parameter on initial load (app only, as above).
   useEffect(() => {
-    if (!getFreeBrowseConfig().readUrlParams) return;
+    if (!effectiveConfig.readUrlParams) return;
     const urlParams = new URLSearchParams(window.location.search);
     const volParam = urlParams.get("vol");
 
@@ -446,8 +443,9 @@ export function useFileLoading(
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load embedded NVD data (for self-contained HTML files)
+  // Load embedded NVD data (for self-contained HTML files; app only, not multi-mount hosts)
   useEffect(() => {
+    if (!effectiveConfig.readUrlParams) return;
     const handleEmbeddedNvd = async (event: CustomEvent) => {
       if (!event.detail || !nvRef.current) return;
 

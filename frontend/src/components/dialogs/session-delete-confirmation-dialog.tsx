@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,6 +21,7 @@ export default function SessionDeleteConfirmationDialog({
   onConfirm,
   onCancel,
 }: SessionDeleteConfirmationDialogProps) {
+  const uid = useId();
   const open = useFreeBrowseStore((s) => s.sessionDeleteConfirmDialogOpen);
   const setOpen = useFreeBrowseStore((s) => s.setSessionDeleteConfirmDialogOpen);
   const skip = useFreeBrowseStore((s) => s.skipSessionDeleteConfirmation);
@@ -38,12 +40,12 @@ export default function SessionDeleteConfirmationDialog({
 
         <div className="flex items-center space-x-2 mt-4">
           <Checkbox
-            id="skip-session-delete-confirmation"
+            id={`${uid}-skip-session-delete-confirmation`}
             checked={skip}
             onCheckedChange={(checked) => setSkip(checked === true)}
           />
           <Label
-            htmlFor="skip-session-delete-confirmation"
+            htmlFor={`${uid}-skip-session-delete-confirmation`}
             className="text-sm"
           >
             Don't ask me to confirm session deletions

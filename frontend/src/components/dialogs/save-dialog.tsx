@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,6 +37,7 @@ export default function SaveDialog({
   onDocumentCheckboxChange,
   onDocumentFormatChange,
 }: SaveDialogProps) {
+  const uid = useId();
   const saveDialogOpen = useFreeBrowseStore((s) => s.saveDialogOpen);
   const setSaveDialogOpen = useFreeBrowseStore((s) => s.setSaveDialogOpen);
   const saveState = useFreeBrowseStore((s) => s.saveState);
@@ -57,14 +59,14 @@ export default function SaveDialog({
         <div className="mt-4">
           <div className="flex items-center gap-3 p-3 border rounded-md">
             <Checkbox
-              id="document-checkbox"
+              id={`${uid}-document-checkbox`}
               checked={saveState.document.enabled}
               onCheckedChange={onDocumentCheckboxChange}
               disabled={!saveState.document.location.trim()}
             />
             <div className="flex-1 min-w-0">
               <Label
-                htmlFor="document-checkbox"
+                htmlFor={`${uid}-document-checkbox`}
                 className="text-sm font-medium"
               >
                 {saveState.isDownloadMode
@@ -72,7 +74,7 @@ export default function SaveDialog({
                   : "NiiVue Document Save Location"}
               </Label>
               <Input
-                id="save-location"
+                id={`${uid}-save-location`}
                 type="text"
                 placeholder={
                   saveState.isDownloadMode
@@ -94,19 +96,19 @@ export default function SaveDialog({
                   className="mt-1 flex gap-4"
                 >
                   <div className="flex items-center gap-2">
-                    <RadioGroupItem value="json" id="format-json" />
-                    <Label htmlFor="format-json" className="text-sm font-normal">
+                    <RadioGroupItem value="json" id={`${uid}-format-json`} />
+                    <Label htmlFor={`${uid}-format-json`} className="text-sm font-normal">
                       JSON
                     </Label>
                   </div>
                   <div className="flex items-center gap-2">
                     <RadioGroupItem
                       value="cbor"
-                      id="format-cbor"
+                      id={`${uid}-format-cbor`}
                       disabled={!saveState.isDownloadMode}
                     />
                     <Label
-                      htmlFor="format-cbor"
+                      htmlFor={`${uid}-format-cbor`}
                       className="text-sm font-normal data-[disabled]:text-muted-foreground"
                       data-disabled={!saveState.isDownloadMode || undefined}
                     >
@@ -142,7 +144,7 @@ export default function SaveDialog({
                     className="flex items-center gap-3 p-3 border rounded-md"
                   >
                     <Checkbox
-                      id={`volume-${index}`}
+                      id={`${uid}-volume-${index}`}
                       checked={volumeState.enabled}
                       onCheckedChange={(checked) =>
                         onVolumeCheckboxChange(index, checked === true)
@@ -150,7 +152,7 @@ export default function SaveDialog({
                     />
                     <div className="flex-1 min-w-0">
                       <Label
-                        htmlFor={`volume-${index}`}
+                        htmlFor={`${uid}-volume-${index}`}
                         className="text-sm font-medium"
                       >
                         {volume.name || `Volume ${index + 1}`}

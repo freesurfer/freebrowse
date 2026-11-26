@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import { useFreeBrowseStore } from "@/store";
-import { aiUrl, deploymentConfig } from "@/lib/deployment-config";
+import { aiUrlFrom } from "@/lib/deployment-config";
+import { useFreeBrowseConfig } from "@/lib/config-context";
 
 export function useAiCapabilities() {
+  const config = useFreeBrowseConfig();
   const setAiEnabled = useFreeBrowseStore((s) => s.setAiEnabled);
 
   useEffect(() => {
-    if (deploymentConfig.serverless) {
+    if (config.backend === null) {
       setAiEnabled(false);
       return;
     }
@@ -14,7 +16,7 @@ export function useAiCapabilities() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(aiUrl("model/list"));
+        const res = await fetch(aiUrlFrom(config, "model/list"));
         if (!res.ok) {
           if (!cancelled) setAiEnabled(false);
           return;
@@ -30,5 +32,5 @@ export function useAiCapabilities() {
     return () => {
       cancelled = true;
     };
-  }, [setAiEnabled]);
+  }, [config, setAiEnabled]);
 }

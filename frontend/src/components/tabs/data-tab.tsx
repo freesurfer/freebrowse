@@ -1,12 +1,14 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileList, type FileItem } from "@/components/file-list";
-import { dataUrl } from "@/lib/deployment-config";
+import { dataUrlFrom } from "@/lib/deployment-config";
+import { useFreeBrowseConfig } from "@/lib/config-context";
 
 interface DataTabProps {
   onFileSelect: (file: FileItem) => void;
 }
 
 export default function DataTab({ onFileSelect }: DataTabProps) {
+  const config = useFreeBrowseConfig();
   return (
     <div className="flex flex-col h-full">
       <div className="border-b px-4 py-3">
@@ -18,7 +20,7 @@ export default function DataTab({ onFileSelect }: DataTabProps) {
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 pb-6">
           <FileList
-            endpoint={dataUrl("vol")}
+            endpoint={dataUrlFrom(config, "vol")}
             onFileSelect={onFileSelect}
             emptyMessage="No imaging files available."
           />

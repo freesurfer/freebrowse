@@ -6,9 +6,14 @@ import { NiiVue } from "@niivue/niivue";
 interface ImageCanvasProps {
   viewMode: "axial" | "coronal" | "sagittal" | "ACS" | "ACSR" | "render";
   nvRef: NiiVue;
+  onAttachCanvas?: (promise: Promise<unknown>) => void;
 }
 
-export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
+export default function ImageCanvas({
+  viewMode,
+  nvRef,
+  onAttachCanvas,
+}: ImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -16,16 +21,24 @@ export default function ImageCanvas({ viewMode, nvRef }: ImageCanvasProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
     const nv = nvRef;
-    console.log("NiiVue attached to canvas", nv);
-    if (!canvas) return;
-    if (!nv) return;
-    nv.attachToCanvas(canvas);
-    // Deliberately no `nv.sliceType = ...` here: the view mode is owned by
-    // use-viewer-options (app: pushed from the store on init; host-owned
-    // instance: read FROM the instance). Setting it on canvas mount would
-    // clobber a host's slice type with the store's stale value, because this
-    // child effect runs before the parent's init effect.
-    setImageLoaded(true);
+    if (!canvas || !nv) return;
+    let cancelled = false;
+    const attachPromise = Promise.resolve().then(() => {
+      if (cancelled) return;
+      return nv.attachToCanvas(canvas);
+    });
+    onAttachCanvas?.(attachPromise);
+    void attachPromise.then(
+      () => {
+        if (!cancelled) setImageLoaded(true);
+      },
+      (err) => {
+        console.error("NiiVue attachToCanvas failed:", err);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
     // Mount-once: attach the canvas exactly once. Later view-mode changes are
     // applied through use-viewer-options, never by re-attaching.
     // eslint-disable-next-line react-hooks/exhaustive-deps

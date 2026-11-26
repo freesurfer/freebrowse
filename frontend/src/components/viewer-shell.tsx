@@ -15,6 +15,7 @@ interface ViewerShellProps {
   dialogs?: React.ReactNode;
   hiddenInputs?: React.ReactNode;
   nvCanvasEmptyState?: React.ReactNode;
+  onAttachCanvas?: (promise: Promise<unknown>) => void;
 }
 
 export default function ViewerShell({
@@ -25,6 +26,7 @@ export default function ViewerShell({
   dialogs,
   hiddenInputs,
   nvCanvasEmptyState,
+  onAttachCanvas,
 }: ViewerShellProps) {
   const sidebarOpen = useFreeBrowseStore((s) => s.sidebarOpen);
   const footerOpen = useFreeBrowseStore((s) => s.footerOpen);
@@ -40,7 +42,7 @@ export default function ViewerShell({
   return (
     <div
       className={cn(
-        "freebrowse-root relative flex h-full flex-col",
+        "freebrowse-root relative isolate flex h-full flex-col",
         darkMode && "dark",
       )}
     >
@@ -53,6 +55,7 @@ export default function ViewerShell({
             viewMode={viewMode}
             onFileUpload={onFileUpload}
             nvCanvasEmptyState={nvCanvasEmptyState}
+            onAttachCanvas={onAttachCanvas}
           />
 
           {footerOpen && <Footer />}
