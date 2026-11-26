@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useId, useCallback, useEffect, useMemo, useState } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Brain, Trash2, LogOut, Undo } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input";
 import { randomSessionName } from "@/lib/random-session-name";
 import type { AiSessionSummary } from "@/store/ai-slice";
-import { aiUrl } from "@/lib/deployment-config";
+import { aiUrlFrom } from "@/lib/deployment-config";
+import { useFreeBrowseConfig } from "@/lib/config-context";
 
 interface AiAnnotationTabProps {
   volumesCount: number;
@@ -55,6 +56,8 @@ export default function AiAnnotationTab({
   onMagicWandThresholdChange,
   onDrawUndo,
 }: AiAnnotationTabProps) {
+  const uid = useId();
+  const config = useFreeBrowseConfig();
   const aiSessions = useFreeBrowseStore((s) => s.aiSessions);
   const activeSession = useFreeBrowseStore((s) => s.aiActiveSession);
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
@@ -77,7 +80,7 @@ export default function AiAnnotationTab({
 
   const fetchModels = useCallback(async () => {
     try {
-      const res = await fetch(aiUrl("model/list"));
+      const res = await fetch(aiUrlFrom(config, "model/list"));
       if (!res.ok) throw new Error(`GET /ai/model/list failed: ${res.status}`);
       const body: ModelInfo[] = await res.json();
       setModels(body);
@@ -89,7 +92,7 @@ export default function AiAnnotationTab({
     } catch (err) {
       console.error(err);
     }
-  }, []);
+  }, [config]);
 
   useEffect(() => {
     void fetchModels();
@@ -332,21 +335,21 @@ export default function AiAnnotationTab({
           <>
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="ai-pen-fill"
+                id={`${uid}-ai-pen-fill`}
                 checked={drawingOptions.penFill}
                 onCheckedChange={onPenFillChange}
               />
-              <Label htmlFor="ai-pen-fill" className="text-sm font-medium">
+              <Label htmlFor={`${uid}-ai-pen-fill`} className="text-sm font-medium">
                 Pen Fill
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="ai-pen-erases"
+                id={`${uid}-ai-pen-erases`}
                 checked={drawingOptions.penErases}
                 onCheckedChange={onPenErasesChange}
               />
-              <Label htmlFor="ai-pen-erases" className="text-sm font-medium">
+              <Label htmlFor={`${uid}-ai-pen-erases`} className="text-sm font-medium">
                 Pen Erases
               </Label>
             </div>
@@ -357,12 +360,12 @@ export default function AiAnnotationTab({
           <>
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="ai-magic-wand-2d-only"
+                id={`${uid}-ai-magic-wand-2d-only`}
                 checked={drawingOptions.magicWand2dOnly}
                 onCheckedChange={onMagicWand2dOnlyChange}
               />
               <Label
-                htmlFor="ai-magic-wand-2d-only"
+                htmlFor={`${uid}-ai-magic-wand-2d-only`}
                 className="text-sm font-medium"
               >
                 2D Only

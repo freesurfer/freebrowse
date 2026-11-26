@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { LabeledSliderWithInput } from "@/components/ui/labeled-slider-with-input";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { deploymentConfig } from "@/lib/deployment-config";
+import { useFreeBrowseConfig } from "@/lib/config-context";
 import type { NiiVue, NVImage } from "@niivue/niivue";
 
 interface SceneDetailsTabProps {
@@ -60,6 +60,7 @@ export default function SceneDetailsTab({
   onMoveVolumeUp,
   onMoveVolumeDown,
 }: SceneDetailsTabProps) {
+  const { downloadDisabled } = useFreeBrowseConfig();
   const currentImageIndex = useFreeBrowseStore((s) => s.currentImageIndex);
   const setCurrentImageIndex = useFreeBrowseStore(
     (s) => s.setCurrentImageIndex,
@@ -197,10 +198,10 @@ export default function SceneDetailsTab({
               disabled={
                 volumes.length === 0 ||
                 drawingOptions.enabled ||
-                deploymentConfig.downloadDisabled
+                downloadDisabled
               }
               title={
-                deploymentConfig.downloadDisabled
+                downloadDisabled
                   ? "Download is disabled in this deployment"
                   : undefined
               }

@@ -10,30 +10,77 @@ interface DialogProps {
   children: React.ReactNode
 }
 
-const Dialog = ({ open = false, onOpenChange, children }: DialogProps) => {
-  React.useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open) {
-        onOpenChange?.(false)
-      }
+function isElementVisible(el: HTMLElement): boolean {
+  for (let cur: HTMLElement | null = el; cur; cur = cur.parentElement) {
+    if (
+      cur.hidden ||
+      cur.getAttribute("aria-hidden") === "true" ||
+      cur.classList.contains("lm-mod-hidden")
+    ) {
+      return false;
     }
+    const cs = getComputedStyle(cur);
+    if (cs.display === "none" || cs.visibility === "hidden") {
+      return false;
+    }
+  }
+  return true;
+}
+
+const Dialog = ({ open = false, onOpenChange, children }: DialogProps) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const overlay = containerRef.current;
+      if (!overlay || !isElementVisible(overlay)) return;
+
+      const root = overlay.closest(".freebrowse-root");
+      const active = document.activeElement;
+      if (root && active && active !== document.body) {
+        // Allow focus inside this viewer OR on a direct ancestor container (e.g.
+        // JupyterLab's `.jp-FreeBrowseWidget` wrapper); reject focus in a
+        // sibling viewer tab or unrelated notebook cell.
+        if (!root.contains(active) && !active.contains(root)) {
+          return;
+        }
+      } else if (active === document.body) {
+        // When focus is on body with multiple visible viewers open, close only
+        // the topmost (last in DOM order) visible FreeBrowse dialog.
+        const visibleDialogs = Array.from(
+          document.querySelectorAll<HTMLElement>("[data-freebrowse-dialog='true']"),
+        ).filter(isElementVisible);
+        if (visibleDialogs.length > 0 && visibleDialogs[visibleDialogs.length - 1] !== overlay) {
+          return;
+        }
+      }
+
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      onOpenChange?.(false);
+    };
 
     // Escape closes while open. No body-scroll lock: the overlay is confined to
     // the viewer (absolute within `.freebrowse-root`), so the host page's
     // scrolling is none of our business.
-    if (open) {
-      document.addEventListener("keydown", handleEscape)
-    }
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.removeEventListener("keydown", handleEscape)
-    }
-  }, [open, onOpenChange])
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [open, onOpenChange]);
 
-  if (!open) return null
+  if (!open) return null;
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center">
+    <div
+      ref={containerRef}
+      data-freebrowse-dialog="true"
+      className="absolute inset-0 z-50 flex items-center justify-center"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"

@@ -7,7 +7,7 @@ import type {
   NVExtensionContext,
   SlicePointerEvent,
 } from "@niivue/niivue";
-import { useFreeBrowseStore } from "@/store";
+import { useFreeBrowseStoreApi } from "@/store";
 import type { DrawingOptions } from "@/store/types";
 
 /**
@@ -89,6 +89,7 @@ export async function runMagicWand(
  * re-subscribes).
  */
 export function useMagicWand(nvRef: React.RefObject<NiiVue | null>): void {
+  const storeApi = useFreeBrowseStoreApi();
   // Snapshot of the drawing bitmap before the active preview (null = no active
   // preview; the live drawing bitmap is the truth). Flood base for previews.
   const committedRef = useRef<Uint8Array | null>(null);
@@ -106,7 +107,7 @@ export function useMagicWand(nvRef: React.RefObject<NiiVue | null>): void {
     const nv = nvRef.current;
     if (!nv) return;
     const ctx = nv.createExtensionContext();
-    const opts = () => useFreeBrowseStore.getState().drawingOptions;
+    const opts = () => storeApi.getState().drawingOptions;
 
     // Flood from the committed snapshot and paint the preview.
     const previewAt = async (
@@ -208,5 +209,5 @@ export function useMagicWand(nvRef: React.RefObject<NiiVue | null>): void {
     ctx.on("slicePointerLeave", onLeave);
     ctx.on("drawingChanged", onDrawingChanged);
     return () => ctx.dispose();
-  }, [nvRef]);
+  }, [nvRef, storeApi]);
 }

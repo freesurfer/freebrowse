@@ -119,14 +119,14 @@ configureFreeBrowse({ backend: null });   // once, before the first render
 | `persist` | `"freebrowse-user-settings"` | localStorage key for user preferences, or `false` to keep them in memory. |
 | `readUrlParams` | `false` | Honour `?nvd=` / `?vol=` on the host page URL. |
 | `exposeGlobal` | `false` | Also publish the instance as `window.freebrowse.nv`. |
-| `downloadDisabled` | `false` | Disable the Download button and niivue's save-to-disk methods. |
+| `downloadDisabled` | `false` | Disable the Download button and niivue's save-to-disk methods (defaults to build-time `VITE_DISABLE_DOWNLOAD`). |
+| `allowExternalDocumentUrls` | `true` | Allow `.nvd` documents to fetch linked volumes, meshes, layers, thumbnails, matcaps, or slide planes. Set `false` inside authenticated embedding hosts (like JupyterLab) to accept only self-contained `.nvd` scenes. |
 | `dragDrop` | `true` | `false` turns off drag-and-drop loading (niivue's canvas drop and the drop zone) and shows the canvas from the start — for hosts that load data themselves. |
 | `sidebar` | `true` | Show the sidebar initially; the header button still toggles it. |
 | `footer` | `true` | Show the footer (coordinate readout) initially. |
 
-The handle returned has `nv` and `destroy()`. **One mount at a time**: FreeBrowse's UI state is a
-single store, so a second concurrent mount throws; destroy the first one. Styles are scoped to
-the mounted element (`.freebrowse-root`) and never touch your page's `html`/`body`; import
+The handle returned has `nv`, `config`, `loadFile(file, signal?)`, `loadVolumeUrl(url, filename, signal?)`, and `destroy()`.
+Each mount gets its own isolated store and runtime configuration, so multiple viewers can be mounted simultaneously on the same page (use `persist: false` or distinct keys if sibling mounts should not share `localStorage` preferences). Styles are strictly scoped under `.freebrowse-root` and never touch your page's `html`/`body` or global utility classes; import
 `freebrowse/style.css` once. Working examples for both entries live in
 [`frontend/examples/`](frontend/examples/); they install `freebrowse` from npm.
 
@@ -443,17 +443,29 @@ by default, or in a new browser tab if the deployment is configured that way
 `freebrowse-jupyter` environment.  See the [example notebooks repository](https://github.com/niivue/jupyter-notebooks)
 for examples on how to use niivue directly inside jupyter
 
-By default the file is downloaded by the JupyterLab page through Jupyter's
-contents service and authenticated server connection, so JupyterHub base paths
-and filenames containing spaces or Unicode are supported. The viewer receives a
-temporary blob URL and the original filename. Downloads are cancelled and blob
-URLs released when a file is renamed or its tab closes (or, for a viewer in its
-own browser tab, when that tab closes). Viewer pages and assets require the same
-authentication as the Jupyter server. On JupyterHub, browsers load the viewer's
-module scripts and stylesheets with the session cookie but no XSRF token, so the
-viewer's static directory accepts same-origin `GET`/`HEAD` requests without one;
-login is still required, and cross-site requests and other methods keep the
-usual XSRF check.
+In the default `document` mode, FreeBrowse mounts directly inside a JupyterLab
+or Notebook 7 document tab as an in-DOM widget (no `<iframe>`), so it works out
+of the box under stock and `sandbox`-hardened JupyterHub `Content-Security-Policy`
+headers (`frame-ancestors 'none'`, including `sandbox allow-same-origin allow-scripts`
+without `allow-popups`) without relaxing CSP anywhere (note: if a custom CSP
+restricts `worker-src`, `blob:` is required for drawing/magic-wand workers).
+Each open tab gets an isolated viewer state and scoped CSS under `.freebrowse-root`,
+and `.nvd` scenes opened in-DOM must be self-contained (embedded data) so untrusted
+documents cannot initiate network requests from the authenticated JupyterLab origin
+(the standalone `open_in=browser` viewer retains normal `.nvd` URL loading).
+
+By default (`file_access=blob`), files are downloaded through Jupyter's
+contents service and authenticated `ServerConnection` (sending `X-XSRFToken` as
+a header rather than a query parameter), so JupyterHub base paths and filenames
+containing spaces or Unicode are supported. In `document` mode the viewer
+receives an in-memory `File` directly; in `browser` mode the new tab receives a
+temporary blob URL that is revoked when that tab closes. Viewer pages and
+assets for `browser` mode require the same authentication as the Jupyter
+server. On JupyterHub, browsers load the standalone viewer's module scripts and
+stylesheets with the session cookie but no XSRF token, so the `/freebrowse/`
+static directory accepts same-origin `GET`/`HEAD` requests without one; login
+is still required, `frame-ancestors` is left untouched, and cross-site requests
+and other methods keep the usual XSRF check.
 
 ### Configuration
 
@@ -581,12 +593,14 @@ handling, rename/disposal races, and real Jupyter HTTP authentication for viewer
 assets at root and JupyterHub base paths, including JupyterHub's own cookie and
 XSRF checks.
 
-The FreeBrowse bundle served inside JupyterLab
-(`jupyter/jupyterlab_freebrowse/static/freebrowse/`) is a build output and is
-**not committed**: a fresh checkout has to generate it before installing the
-extension, and any frontend change needs it regenerated before it becomes
-visible in notebooks. (The server extension logs a warning at startup if the
-bundle is missing.)
+The FreeBrowse bundles used by JupyterLab — the in-DOM embed module
+(`jupyter/embed/`, bundled into the labextension as a lazy chunk by
+`jlpm build`) and the standalone viewer served at `/freebrowse/` for
+`open_in=browser` (`jupyter/jupyterlab_freebrowse/static/freebrowse/`) — are
+build outputs and are **not committed**: a fresh checkout has to generate them
+before building or installing the extension, and any frontend change needs them
+regenerated before it becomes visible in notebooks. (The server extension logs
+a warning at startup if the standalone bundle is missing.)
 
 ```bash
 cd frontend

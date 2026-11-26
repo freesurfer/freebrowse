@@ -1,10 +1,11 @@
 import { useCallback } from "react";
-import { useFreeBrowseStore } from "@/store";
+import { useFreeBrowseStore, useFreeBrowseStoreApi } from "@/store";
 import { gzipUint8Array, uint8ArrayToBase64 } from "@/lib/niivue-helpers";
 import { retargetVolumeUrls } from "@/lib/nvd-volume-urls";
 import { requestImagingUploadConfirmation } from "@/lib/confirmations";
 import { FREEBROWSE_SAVE_SETTINGS } from "@/lib/default-niivue-options";
-import { dataUrl } from "@/lib/deployment-config";
+import { dataUrlFrom } from "@/lib/deployment-config";
+import { useFreeBrowseConfig } from "@/lib/config-context";
 import type { NvdFormat } from "@/store/types";
 import type { NiiVue } from "@niivue/niivue";
 
@@ -27,6 +28,8 @@ function downloadBytes(bytes: Uint8Array | string, filename: string, type: strin
 }
 
 export function useSave(nvRef: React.RefObject<NiiVue | null>) {
+  const config = useFreeBrowseConfig();
+  const storeApi = useFreeBrowseStoreApi();
   const setSaveDialogOpen = useFreeBrowseStore((s) => s.setSaveDialogOpen);
   const saveState = useFreeBrowseStore((s) => s.saveState);
   const setSaveState = useFreeBrowseStore((s) => s.setSaveState);
@@ -34,9 +37,13 @@ export function useSave(nvRef: React.RefObject<NiiVue | null>) {
   const handleSaveScene = useCallback(
     async (isDownload: boolean = false) => {
       if (!nvRef.current) return;
+      if (isDownload && config.downloadDisabled) {
+        console.warn("Download is disabled in this deployment");
+        return;
+      }
 
       if (!isDownload && nvRef.current.volumes.length > 0) {
-        const ok = await requestImagingUploadConfirmation();
+        const ok = await requestImagingUploadConfirmation(storeApi);
         if (!ok) return;
       }
 
@@ -61,7 +68,7 @@ export function useSave(nvRef: React.RefObject<NiiVue | null>) {
 
       setSaveDialogOpen(true);
     },
-    [nvRef, setSaveState, setSaveDialogOpen],
+    [config.downloadDisabled, nvRef, setSaveState, setSaveDialogOpen, storeApi],
   );
 
   const handleConfirmSave = useCallback(async () => {
@@ -70,6 +77,11 @@ export function useSave(nvRef: React.RefObject<NiiVue | null>) {
     if (!nvRef.current) return;
 
     if (saveState.isDownloadMode) {
+      if (config.downloadDisabled) {
+        console.warn("Download is disabled in this deployment");
+        setSaveDialogOpen(false);
+        return;
+      }
       // Download mode
       if (saveState.document.enabled && saveState.document.location.trim()) {
         try {
@@ -163,7 +175,7 @@ export function useSave(nvRef: React.RefObject<NiiVue | null>) {
             );
           }
 
-          const response = await fetch(dataUrl("nvd"), {
+          const response = await fetch(dataUrlFrom(config, "nvd"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -207,7 +219,7 @@ export function useSave(nvRef: React.RefObject<NiiVue | null>) {
               const uint8Array = await gzipUint8Array(raw);
               const base64Data = uint8ArrayToBase64(uint8Array);
 
-              const volumeResponse = await fetch(dataUrl("nii"), {
+              const volumeResponse = await fetch(dataUrlFrom(config, "nii"), {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -246,7 +258,7 @@ export function useSave(nvRef: React.RefObject<NiiVue | null>) {
       },
       volumes: [],
     });
-  }, [nvRef, saveState, setSaveDialogOpen, setSaveState]);
+  }, [config, nvRef, saveState, setSaveDialogOpen, setSaveState]);
 
   const handleCancelSave = useCallback(() => {
     setSaveDialogOpen(false);

@@ -1,7 +1,10 @@
 import { DRAG_MODE } from "@niivue/niivue";
 
 import { sliceTypeMap } from "@/lib/niivue-helpers";
-import { useFreeBrowseStore } from "@/store";
+import {
+  getDefaultFreeBrowseStore,
+  type FreeBrowseStoreApi,
+} from "@/store";
 import type { DragMode } from "@/components/drag-mode-selector";
 import type { ViewerOptions, ViewMode } from "@/store/types";
 import type { NiiVueEventSource, NiiVueSyncTarget } from "./niivue-sync";
@@ -161,8 +164,11 @@ export function readViewerFromNiiVue(nv: NiiVueReader): Partial<ViewerOptions> {
   return patch;
 }
 
-export function createStoreSyncTarget(nv: NiiVueReader): NiiVueSyncTarget {
-  const store = () => useFreeBrowseStore.getState();
+export function createStoreSyncTarget(
+  nv: NiiVueReader,
+  storeApi: FreeBrowseStoreApi = getDefaultFreeBrowseStore(),
+): NiiVueSyncTarget {
+  const store = () => storeApi.getState();
   const patchViewer = (partial: Record<string, unknown>) =>
     store().setViewerOptions((prev) => ({ ...prev, ...partial }));
 

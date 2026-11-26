@@ -1,44 +1,89 @@
-import { useFreeBrowseStore } from "@/store";
+import {
+  getDefaultFreeBrowseStore,
+  type FreeBrowseStoreApi,
+} from "@/store";
 
-let pendingImagingUpload: ((ok: boolean) => void) | null = null;
-let pendingSessionDelete: ((ok: boolean) => void) | null = null;
+interface PendingConfirmations {
+  imagingUpload: ((ok: boolean) => void) | null;
+  sessionDelete: ((ok: boolean) => void) | null;
+}
 
-export function requestImagingUploadConfirmation(): Promise<boolean> {
-  const state = useFreeBrowseStore.getState();
+const pendingByStore = new WeakMap<FreeBrowseStoreApi, PendingConfirmations>();
+
+function getPending(storeApi: FreeBrowseStoreApi): PendingConfirmations {
+  let pending = pendingByStore.get(storeApi);
+  if (!pending) {
+    pending = { imagingUpload: null, sessionDelete: null };
+    pendingByStore.set(storeApi, pending);
+  }
+  return pending;
+}
+
+export function requestImagingUploadConfirmation(
+  storeApi: FreeBrowseStoreApi = getDefaultFreeBrowseStore(),
+): Promise<boolean> {
+  const state = storeApi.getState();
   if (state.skipImagingUploadConfirmation) return Promise.resolve(true);
-  if (pendingImagingUpload) {
-    pendingImagingUpload(false);
-    pendingImagingUpload = null;
+  const pending = getPending(storeApi);
+  if (pending.imagingUpload) {
+    pending.imagingUpload(false);
+    pending.imagingUpload = null;
   }
   return new Promise<boolean>((resolve) => {
-    pendingImagingUpload = resolve;
+    pending.imagingUpload = resolve;
     state.setImagingUploadConfirmDialogOpen(true);
   });
 }
 
-export function resolveImagingUploadConfirmation(ok: boolean): void {
-  useFreeBrowseStore.getState().setImagingUploadConfirmDialogOpen(false);
-  const resolver = pendingImagingUpload;
-  pendingImagingUpload = null;
+export function resolveImagingUploadConfirmation(
+  ok: boolean,
+  storeApi: FreeBrowseStoreApi = getDefaultFreeBrowseStore(),
+): void {
+  storeApi.getState().setImagingUploadConfirmDialogOpen(false);
+  const pending = getPending(storeApi);
+  const resolver = pending.imagingUpload;
+  pending.imagingUpload = null;
   if (resolver) resolver(ok);
 }
 
-export function requestSessionDeleteConfirmation(): Promise<boolean> {
-  const state = useFreeBrowseStore.getState();
+export function requestSessionDeleteConfirmation(
+  storeApi: FreeBrowseStoreApi = getDefaultFreeBrowseStore(),
+): Promise<boolean> {
+  const state = storeApi.getState();
   if (state.skipSessionDeleteConfirmation) return Promise.resolve(true);
-  if (pendingSessionDelete) {
-    pendingSessionDelete(false);
-    pendingSessionDelete = null;
+  const pending = getPending(storeApi);
+  if (pending.sessionDelete) {
+    pending.sessionDelete(false);
+    pending.sessionDelete = null;
   }
   return new Promise<boolean>((resolve) => {
-    pendingSessionDelete = resolve;
+    pending.sessionDelete = resolve;
     state.setSessionDeleteConfirmDialogOpen(true);
   });
 }
 
-export function resolveSessionDeleteConfirmation(ok: boolean): void {
-  useFreeBrowseStore.getState().setSessionDeleteConfirmDialogOpen(false);
-  const resolver = pendingSessionDelete;
-  pendingSessionDelete = null;
+export function resolveSessionDeleteConfirmation(
+  ok: boolean,
+  storeApi: FreeBrowseStoreApi = getDefaultFreeBrowseStore(),
+): void {
+  storeApi.getState().setSessionDeleteConfirmDialogOpen(false);
+  const pending = getPending(storeApi);
+  const resolver = pending.sessionDelete;
+  pending.sessionDelete = null;
   if (resolver) resolver(ok);
+}
+
+/** Reject/cancel any unsettled confirmation dialogs for `storeApi` on teardown. */
+export function clearPendingConfirmations(storeApi: FreeBrowseStoreApi): void {
+  const pending = pendingByStore.get(storeApi);
+  if (!pending) return;
+  pendingByStore.delete(storeApi);
+  if (pending.imagingUpload) {
+    pending.imagingUpload(false);
+    pending.imagingUpload = null;
+  }
+  if (pending.sessionDelete) {
+    pending.sessionDelete(false);
+    pending.sessionDelete = null;
+  }
 }

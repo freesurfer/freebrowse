@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useFreeBrowseStore } from "@/store";
+import { useFreeBrowseStore, useFreeBrowseStoreApi } from "@/store";
 import { readViewerFromNiiVue } from "@/store/niivue-store-sync";
 import { sliceTypeMap } from "@/lib/niivue-helpers";
 import { DRAG_MODE, type NiiVue } from "@niivue/niivue";
@@ -29,6 +29,7 @@ export function useViewerOptions(
   nvRef: React.RefObject<NiiVue | null>,
   init: ViewerOptionsInit = "none",
 ) {
+  const storeApi = useFreeBrowseStoreApi();
   const viewerOptions = useFreeBrowseStore((s) => s.viewerOptions);
   const setViewerOptions = useFreeBrowseStore((s) => s.setViewerOptions);
 
@@ -57,7 +58,7 @@ export function useViewerOptions(
   const applyViewerOptions = useCallback(() => {
     const nv = nvRef.current;
     if (!nv) return;
-    const o = useFreeBrowseStore.getState().viewerOptions;
+    const o = storeApi.getState().viewerOptions;
     nv.crosshairWidth = o.crosshairVisible ? o.crosshairWidth : 0;
     nv.crosshairGap = o.crosshairGap;
     nv.crosshairColor = o.crosshairColor;
@@ -75,7 +76,7 @@ export function useViewerOptions(
     } else {
       nv.sliceType = 0;
     }
-  }, [nvRef]);
+  }, [nvRef, storeApi]);
 
   // niivue -> store read-back: seed viewerOptions from the instance's current
   // settings (only the ones it reports). Steady-state changes still arrive

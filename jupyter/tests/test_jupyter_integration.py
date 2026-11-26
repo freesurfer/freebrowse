@@ -36,10 +36,12 @@ MODES = [(open_in, file_access, "") for open_in in ["", "document", "browser"]
 def test_lab_extension_opens_files_in_every_mode(tmp_path, open_in, file_access, page):
     """Run tests/lab_extension_harness.js against src/index.ts for one mode.
 
-    Document mode: the PR 47 assertions (iframe, encoded paths, rename and
-    disposal races, auth failures). Browser mode: synchronous window.open,
-    hand-off, placeholder close, pop-up blocked, blob revoked on tab close.
-    url mode: no download from the Lab page and no _xsrf in the viewer URL.
+    Document mode: in-DOM FreeBrowse widget (no iframe, no CSP relaxation,
+    self-contained .nvd policy, encoded paths, rename/disposal/decode races,
+    auth failures, and _xsrf stripped from document-mode blob requests).
+    Browser mode: synchronous window.open, hand-off, placeholder close, pop-up
+    blocked, blob revoked on tab close.
+    url mode: skips Lab-side buffering for volumes (passes download URL).
     All modes: the no-content model factory is registered and used.
     """
     copy_integration(tmp_path)
@@ -74,7 +76,8 @@ const source = ts.transpileModule(fs.readFileSync(process.argv[1], 'utf8'), {
     const modules = {
       react: {useCallback: f => f, useRef: value => ({current: value}), useEffect: f => effects.push(f)},
       '@/store': {useFreeBrowseStore: selector => selector(state)},
-      '@/lib/deployment-config': {deploymentConfig: {serverless: true}, getFreeBrowseConfig: () => ({readUrlParams: true})},
+      '@/lib/deployment-config': {deploymentConfig: {serverless: true}, getFreeBrowseConfig: () => ({readUrlParams: true, allowExternalDocumentUrls: true})},
+      '@/lib/load-file': {assertNotLegacyDocument: noop, assertSelfContainedNvd: noop, prepareNvdBytes: b => b, stripLoadedDocumentUrls: noop},
       '@/hooks/use-volumes': {applyLabelColormapsAfterLoad: async () => {}},
       '@niivue/niivue': {}
     };

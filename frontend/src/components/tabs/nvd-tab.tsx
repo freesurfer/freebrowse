@@ -1,12 +1,14 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileList, type FileItem } from "@/components/file-list";
-import { dataUrl } from "@/lib/deployment-config";
+import { dataUrlFrom } from "@/lib/deployment-config";
+import { useFreeBrowseConfig } from "@/lib/config-context";
 
 interface NvdTabProps {
   onFileSelect: (file: FileItem) => void;
 }
 
 export default function NvdTab({ onFileSelect }: NvdTabProps) {
+  const config = useFreeBrowseConfig();
   return (
     <div className="flex flex-col h-full">
       <div className="border-b px-4 py-3">
@@ -18,7 +20,7 @@ export default function NvdTab({ onFileSelect }: NvdTabProps) {
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 pb-6">
           <FileList
-            endpoint={dataUrl("nvd")}
+            endpoint={dataUrlFrom(config, "nvd")}
             onFileSelect={onFileSelect}
             emptyMessage="No niivue documents available."
           />

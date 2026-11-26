@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 import packageJson from "./package.json";
+import { scopeCssPlugin } from "./scope-css";
 
 // Library build (npm package). Two entries, selected with FREEBROWSE_LIB_ENTRY:
 //   index -> dist/index.js   framework-agnostic `mountFreeBrowse`; React bundled
@@ -15,7 +16,7 @@ const reactExternal = (id: string): boolean =>
   /^react($|\/)|^react-dom($|\/)/.test(id);
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), scopeCssPlugin()],
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
     // Bundled React reads this; a host page has no `process`.

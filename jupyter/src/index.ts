@@ -12,12 +12,35 @@ import { IFileBrowserFactory } from "@jupyterlab/filebrowser";
 import { PageConfig } from "@jupyterlab/coreutils";
 import { Widget } from "@lumino/widgets";
 import { Contents, ServerConnection } from "@jupyterlab/services";
+import type { FreeBrowseHandle } from "../embed/freebrowse-embed.js";
 
 const COMMAND_ID = "freebrowse:open";
 const FACTORY_NAME = "FreeBrowse";
 const MODEL_NAME = "freebrowse";
 
 type Services = JupyterFrontEnd["serviceManager"];
+type EmbedModule = typeof import("../embed/freebrowse-embed.js");
+
+let embedModulePromise: Promise<EmbedModule> | null = null;
+
+function loadFreeBrowseEmbed(): Promise<EmbedModule> {
+  if (!embedModulePromise) {
+    embedModulePromise = Promise.all([
+      import(
+        /* webpackChunkName: "freebrowse-viewer" */ "../embed/freebrowse-embed.js"
+      ),
+      import(
+        /* webpackChunkName: "freebrowse-viewer-style" */ "../embed/freebrowse-embed.css"
+      ),
+    ])
+      .then(([mod]) => mod)
+      .catch((err) => {
+        embedModulePromise = null;
+        throw err;
+      });
+  }
+  return embedModulePromise;
+}
 
 // ---------------------------------------------------------------------------
 // Deployment settings (server-side, see jupyterlab_freebrowse/config.py)
@@ -28,7 +51,7 @@ export type OpenIn = "document" | "browser";
 
 /**
  * Who fetches the file: "blob" = this page downloads it through Jupyter's
- * authenticated connection and hands the viewer an in-memory blob: URL;
+ * authenticated connection and hands the viewer an in-memory copy;
  * "url" = the viewer fetches it from Jupyter's /files/ endpoint itself.
  */
 export type FileAccess = "blob" | "url";
@@ -87,10 +110,32 @@ function freebrowseUrl(filePath: string, fileUrl: string): string {
 }
 
 function abortError(): Error {
-  return Object.assign(new Error("The FreeBrowse request was aborted"), { name: "AbortError" });
+  return Object.assign(new Error("The FreeBrowse request was aborted"), {
+    name: "AbortError",
+  });
 }
 
-/** A URL the viewer can load, plus how to release it once no longer needed. */
+/**
+ * Remove the `_xsrf` query parameter from a `/files/` download URL before
+ * passing it to `ServerConnection.makeRequest`, which already attaches
+ * `X-XSRFToken` as an HTTP header (and `Authorization` when token-authenticated).
+ * This keeps `_xsrf` out of server/proxy access logs for document-mode reads.
+ */
+function stripXsrfQueryParam(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl, "https://invalid.local");
+    if (!parsed.searchParams.has("_xsrf")) return rawUrl;
+    parsed.searchParams.delete("_xsrf");
+    if (/^https?:\/\//i.test(rawUrl)) {
+      return parsed.toString();
+    }
+    return parsed.pathname + parsed.search + parsed.hash;
+  } catch {
+    return rawUrl;
+  }
+}
+
+/** A URL the viewer can load (browser-tab mode), plus how to release it once no longer needed. */
 export interface IResolvedFile {
   url: string;
   /** Present for blob: URLs; absent when the viewer fetches the file itself. */
@@ -98,9 +143,40 @@ export interface IResolvedFile {
 }
 
 /**
- * Turn a Jupyter contents path into a URL for the viewer, according to the
- * `fileAccess` setting. Throws an AbortError if `signal` fires before a blob
- * is created, so an aborted call never leaks an object URL.
+ * Fetch a Jupyter contents file as a named `File` through Jupyter's
+ * authenticated `ServerConnection`, without creating an object URL or
+ * placing `_xsrf` in the outgoing request URL.
+ */
+async function fetchFileFromJupyter(
+  path: string,
+  services: Services,
+  signal: AbortSignal
+): Promise<File> {
+  const downloadUrl = await services.contents.getDownloadUrl(path);
+  if (signal.aborted) throw abortError();
+  const requestUrl = stripXsrfQueryParam(downloadUrl);
+  const response = await ServerConnection.makeRequest(
+    requestUrl,
+    { method: "GET", signal },
+    services.serverSettings
+  );
+  if (
+    !response.ok ||
+    response.headers.get("content-type")?.includes("text/html")
+  ) {
+    throw new Error("File download failed");
+  }
+  const blob = await response.blob();
+  if (signal.aborted) throw abortError();
+  return new File([blob], baseName(path), {
+    type: blob.type || "application/octet-stream",
+  });
+}
+
+/**
+ * Turn a Jupyter contents path into a URL for browser-tab mode, according to
+ * the `fileAccess` setting. Throws an AbortError if `signal` fires before a
+ * blob is created, so an aborted call never leaks an object URL.
  */
 export async function resolveFileUrl(
   path: string,
@@ -121,10 +197,16 @@ export async function resolveFileUrl(
     return { url: downloadUrl };
   }
 
+  const requestUrl = stripXsrfQueryParam(downloadUrl);
   const response = await ServerConnection.makeRequest(
-    downloadUrl, { method: "GET", signal }, services.serverSettings
+    requestUrl,
+    { method: "GET", signal },
+    services.serverSettings
   );
-  if (!response.ok || response.headers.get("content-type")?.includes("text/html")) {
+  if (
+    !response.ok ||
+    response.headers.get("content-type")?.includes("text/html")
+  ) {
     throw new Error("File download failed");
   }
   const blob = await response.blob();
@@ -146,13 +228,23 @@ function revokeWhenClosed(tab: Window, revoke: () => void): void {
 }
 
 // ---------------------------------------------------------------------------
-// open_in = document: an iframe inside a JupyterLab document tab
+// open_in = document: in-DOM FreeBrowse widget inside a JupyterLab / Notebook 7 tab
 // ---------------------------------------------------------------------------
 
 class FreeBrowseWidget extends Widget {
-  private readonly frame: HTMLIFrameElement;
+  private readonly host: HTMLDivElement;
   private request = new AbortController();
-  private revoke: (() => void) | undefined;
+  private handle: FreeBrowseHandle | null = null;
+  private readonly onPointerDown = (event: Event) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    const interactive = target.closest?.(
+      "input, textarea, select, button, a, [tabindex], [contenteditable]"
+    );
+    if (!interactive || interactive === this.node) {
+      this.node.focus?.({ preventScroll: true });
+    }
+  };
 
   constructor(
     private readonly context: DocumentRegistry.IContext<DocumentRegistry.IModel>,
@@ -160,45 +252,103 @@ class FreeBrowseWidget extends Widget {
     private readonly fileAccess: FileAccess
   ) {
     super();
-    this.frame = document.createElement("iframe");
-    this.frame.title = "FreeBrowse";
-    this.frame.style.cssText = "width:100%;height:100%;border:0;display:block";
-    this.node.appendChild(this.frame);
-    void this.updateUrl();
-    context.pathChanged.connect(this.updateUrl, this);
+    this.addClass("jp-FreeBrowseWidget");
+    this.node.tabIndex = -1;
+    this.node.dataset.lmSuppressShortcuts = "true";
+    this.node.addEventListener("pointerdown", this.onPointerDown);
+    this.host = document.createElement("div");
+    this.host.style.cssText =
+      "width:100%;height:100%;position:relative;overflow:hidden";
+    this.node.appendChild(this.host);
+    void this.updateDocument();
+    context.pathChanged.connect(this.updateDocument, this);
   }
 
-  private async updateUrl(): Promise<void> {
+  private destroyHandle(): void {
+    const current = this.handle;
+    this.handle = null;
+    if (current) {
+      current.destroy();
+    }
+  }
+
+  private async updateDocument(): Promise<void> {
     this.request.abort();
-    const request = this.request = new AbortController();
+    const request = (this.request = new AbortController());
     const path = this.context.path;
+    const isNvd = isNvdFile(path);
+
     try {
-      const file = await resolveFileUrl(path, this.services, this.fileAccess, request.signal);
-      if (request.signal.aborted) {
-        file.revoke?.();
+      // For volumes in `url` mode, hand Jupyter's download URL directly to the
+      // mounted viewer so large volumes are not buffered twice. `.nvd` scenes
+      // always load as bytes so FreeBrowse can validate that they are
+      // self-contained before handing them to NiiVue.
+      const useDirectVolumeUrl = this.fileAccess === "url" && !isNvd;
+
+      const [embed, loaded] = await Promise.all([
+        loadFreeBrowseEmbed(),
+        useDirectVolumeUrl
+          ? this.services.contents
+              .getDownloadUrl(path)
+              .then((url) => ({ kind: "url" as const, url }))
+          : fetchFileFromJupyter(path, this.services, request.signal).then(
+              (file) => ({ kind: "file" as const, file })
+            ),
+      ]);
+      if (request.signal.aborted || this.isDisposed) return;
+
+      this.destroyHandle();
+      this.node.replaceChildren(this.host);
+      this.host.replaceChildren();
+
+      const handle = embed.mountFreeBrowse(this.host, {
+        backend: null,
+        persist: false,
+        readUrlParams: false,
+        exposeGlobal: false,
+        allowExternalDocumentUrls: false,
+        dragDrop: false,
+      });
+      this.handle = handle;
+
+      if (loaded.kind === "url") {
+        await handle.loadVolumeUrl(loaded.url, baseName(path), request.signal);
+      } else {
+        await handle.loadFile(loaded.file, request.signal);
+      }
+      if (request.signal.aborted || this.isDisposed) {
+        if (this.handle === handle) {
+          this.destroyHandle();
+        } else {
+          handle.destroy();
+        }
         return;
       }
-      const previous = this.revoke;
-      this.revoke = file.revoke;
-      this.node.replaceChildren(this.frame);
-      this.frame.src = freebrowseUrl(path, file.url);
-      previous?.();
-    } catch {
-      if (request.signal.aborted) return;
-      this.frame.src = "about:blank";
-      this.revoke?.();
-      this.revoke = undefined;
-      this.node.textContent = "FreeBrowse could not load this file through Jupyter.";
+      handle.nv.resize?.();
+    } catch (err) {
+      if (request.signal.aborted || this.isDisposed) return;
+      console.error("FreeBrowse failed to load file:", err);
+      this.destroyHandle();
+      const message =
+        err instanceof Error &&
+        (err.message.includes(".nvd") || err.message.includes("migrate-nvd"))
+          ? err.message
+          : "FreeBrowse could not load this file through Jupyter.";
+      this.node.textContent = message;
     }
+  }
+
+  protected onResize(msg: Widget.ResizeMessage): void {
+    super.onResize(msg);
+    this.handle?.nv.resize?.();
   }
 
   dispose(): void {
     if (this.isDisposed) return;
-    this.context.pathChanged.disconnect(this.updateUrl, this);
+    this.node.removeEventListener("pointerdown", this.onPointerDown);
+    this.context.pathChanged.disconnect(this.updateDocument, this);
     this.request.abort();
-    this.frame.src = "about:blank";
-    this.revoke?.();
-    this.revoke = undefined;
+    this.destroyHandle();
     super.dispose();
   }
 }
@@ -236,7 +386,8 @@ class FreeBrowseBrowserTab extends Widget {
     } catch {
       if (signal.aborted) return false;
       this.closeBlankTab();
-      this.node.textContent = "FreeBrowse could not load this file through Jupyter.";
+      this.node.textContent =
+        "FreeBrowse could not load this file through Jupyter.";
       return false;
     }
     if (signal.aborted) {
@@ -278,9 +429,9 @@ class FreeBrowseBrowserTab extends Widget {
 /**
  * A model factory with `fileFormat: null`, so the document context fetches the
  * file's metadata only (`api/contents/<path>?content=0`). The extension does
- * the one real download itself in "blob" mode, and none in "url" mode. With
- * the default base64 factory JupyterLab would first pull the whole file as
- * base64 JSON into the model and then download it again.
+ * the one real download itself in "blob" mode, and none for volumes in "url"
+ * mode. With the default base64 factory JupyterLab would first pull the whole
+ * file as base64 JSON into the model and then download it again.
  */
 class FreeBrowseModelFactory
   implements DocumentRegistry.IModelFactory<DocumentRegistry.IModel>
@@ -324,11 +475,15 @@ class FreeBrowseFactory extends ABCWidgetFactory<
   ): DocumentWidget<Widget> {
     const { openIn, fileAccess } = this.settings;
     if (openIn === "browser") {
-      const content = new FreeBrowseBrowserTab(context, this.services, fileAccess);
+      const content = new FreeBrowseBrowserTab(
+        context,
+        this.services,
+        fileAccess
+      );
       const widget = new DocumentWidget({ content, context });
       // The placeholder tab goes away only once the viewer tab has the file;
       // otherwise it stays open to show what went wrong.
-      void content.opened.then(ok => {
+      void content.opened.then((ok) => {
         if (ok && !widget.isDisposed) widget.close();
       });
       return widget;
@@ -417,14 +572,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     app.docRegistry.addModelFactory(new FreeBrowseModelFactory());
 
-    const factory = new FreeBrowseFactory({
-      name: FACTORY_NAME,
-      label: FACTORY_NAME,
-      modelName: MODEL_NAME,
-      fileTypes: ["nifti", "nifti-gz", "mgh", "mgz", "nvd"],
-      defaultFor: ["nifti", "nifti-gz", "mgh", "mgz", "nvd"],
-      readOnly: true,
-    }, app.serviceManager, settings);
+    const factory = new FreeBrowseFactory(
+      {
+        name: FACTORY_NAME,
+        label: FACTORY_NAME,
+        modelName: MODEL_NAME,
+        fileTypes: ["nifti", "nifti-gz", "mgh", "mgz", "nvd"],
+        defaultFor: ["nifti", "nifti-gz", "mgh", "mgz", "nvd"],
+        readOnly: true,
+      },
+      app.serviceManager,
+      settings
+    );
     app.docRegistry.addWidgetFactory(factory);
 
     console.log(

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useFreeBrowseStore } from "@/store";
 import { Save, Pencil, Undo } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export default function DrawingTab({
   onDrawUndo,
   onSaveDrawing,
 }: DrawingTabProps) {
+  const uid = useId();
   const drawingOptions = useFreeBrowseStore((s) => s.drawingOptions);
   const setDrawingOptions = useFreeBrowseStore((s) => s.setDrawingOptions);
 
@@ -134,11 +136,11 @@ export default function DrawingTab({
                   {drawingOptions.mode === "pen" && (
                     <div className="flex items-center space-x-2">
                       <Checkbox
-                        id="pen-fill"
+                        id={`${uid}-pen-fill`}
                         checked={drawingOptions.penFill}
                         onCheckedChange={onPenFillChange}
                       />
-                      <Label htmlFor="pen-fill" className="text-sm font-medium">
+                      <Label htmlFor={`${uid}-pen-fill`} className="text-sm font-medium">
                         Pen Fill
                       </Label>
                     </div>
@@ -148,12 +150,12 @@ export default function DrawingTab({
                   {drawingOptions.mode === "pen" && (
                     <div className="flex items-center space-x-2">
                       <Checkbox
-                        id="pen-erases"
+                        id={`${uid}-pen-erases`}
                         checked={drawingOptions.penErases}
                         onCheckedChange={onPenErasesChange}
                       />
                       <Label
-                        htmlFor="pen-erases"
+                        htmlFor={`${uid}-pen-erases`}
                         className="text-sm font-medium"
                       >
                         Pen Erases
@@ -165,12 +167,12 @@ export default function DrawingTab({
                   {drawingOptions.mode === "wand" && (
                     <div className="flex items-center space-x-2">
                       <Checkbox
-                        id="magic-wand-2d-only"
+                        id={`${uid}-magic-wand-2d-only`}
                         checked={drawingOptions.magicWand2dOnly}
                         onCheckedChange={onMagicWand2dOnlyChange}
                       />
                       <Label
-                        htmlFor="magic-wand-2d-only"
+                        htmlFor={`${uid}-magic-wand-2d-only`}
                         className="text-sm font-medium"
                       >
                         2D Only

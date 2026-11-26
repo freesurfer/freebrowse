@@ -9,6 +9,7 @@ interface CanvasAreaProps {
   viewMode: ViewMode;
   onFileUpload: (files: File[]) => Promise<void>;
   nvCanvasEmptyState?: React.ReactNode;
+  onAttachCanvas?: (promise: Promise<unknown>) => void;
 }
 
 export default function CanvasArea({
@@ -16,6 +17,7 @@ export default function CanvasArea({
   viewMode,
   onFileUpload,
   nvCanvasEmptyState,
+  onAttachCanvas,
 }: CanvasAreaProps) {
   const showUploader = useFreeBrowseStore((s) => s.showUploader);
 
@@ -27,7 +29,11 @@ export default function CanvasArea({
         </div>
       ) : (
         <div className="flex flex-1">
-          <ImageCanvas viewMode={viewMode} nvRef={nvInstance} />
+          <ImageCanvas
+            viewMode={viewMode}
+            nvRef={nvInstance}
+            onAttachCanvas={onAttachCanvas}
+          />
         </div>
       )}
     </main>
